@@ -1,0 +1,26 @@
+bin/
+obj/
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build outputs
+artifacts/
+publish/
+TestResults/
+coverage/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+
+# Local runtime data
+*.db
+*.db-shm
+*.db-wal
+logs/
+local-data/

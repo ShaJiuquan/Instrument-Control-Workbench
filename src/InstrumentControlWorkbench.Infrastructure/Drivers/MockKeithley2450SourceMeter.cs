@@ -1,0 +1,195 @@
+using InstrumentControlWorkbench.Core.Instruments;
+using InstrumentControlWorkbench.Core.Instruments.Ports;
+
+namespace InstrumentControlWorkbench.Infrastructure.Drivers;
+
+public sealed class MockKeithley2450SourceMeter : ISourceMeterPort
+{
+    private readonly SemaphoreSlim operationLock = new(1, 1);
+    private SourceSetpoint source = new(SourceFunction.Voltage, 0.0, 105e-6);
+    private SenseConfiguration sense = new(SenseFunction.Current, SensingMode.FourWire, 1.0, true);
+    private bool connected;
+    private bool outputEnabled;
+    private DateTimeOffset lastHeartbeat = DateTimeOffset.MinValue;
+
+    public InstrumentId Id { get; } = new("k2450");
+    public string DisplayName => "Keithley 2450 SourceMeter";
+
+    public async Task<SourceMeterSnapshot> ConnectAsync(CancellationToken cancellationToken)
+    {
+        await operationLock.WaitAsync(cancellationToken);
+        try
+        {
+            await Task.Delay(80, cancellationToken);
+            connected = true;
+            lastHeartbeat = DateTimeOffset.Now;
+            return Snapshot(InstrumentLifecycleState.Idle);
+        }
+        finally
+        {
+            operationLock.Release();
+        }
+    }
+
+    public async Task ConfigureSourceAsync(SourceSetpoint setpoint, CancellationToken cancellationToken)
+    {
+        Keithley2450Limits.Validate(setpoint);
+        await operationLock.WaitAsync(cancellationToken);
+        try
+        {
+            RequireConnected();
+            await Task.Delay(25, cancellationToken);
+            source = setpoint;
+            lastHeartbeat = DateTimeOffset.Now;
+        }
+        finally
+        {
+            operationLock.Release();
+        }
+    }
+
+    public async Task ConfigureSenseAsync(SenseConfiguration configuration, CancellationToken cancellationToken)
+    {
+        Keithley2450Limits.Validate(configuration);
+        await operationLock.WaitAsync(cancellationToken);
+        try
+        {
+            RequireConnected();
+            await Task.Delay(20, cancellationToken);
+            sense = configuration;
+            lastHeartbeat = DateTimeOffset.Now;
+        }
+        finally
+        {
+            operationLock.Release();
+        }
+    }
+
+    public async Task EnableOutputAsync(CancellationToken cancellationToken)
+    {
+        await operationLock.WaitAsync(cancellationToken);
+        try
+        {
+            RequireConnected();
+            await Task.Delay(20, cancellationToken);
+            outputEnabled = true;
+            lastHeartbeat = DateTimeOffset.Now;
+        }
+        finally
+        {
+            operationLock.Release();
+        }
+    }
+
+    public async Task DisableOutputAsync(CancellationToken cancellationToken)
+    {
+        await operationLock.WaitAsync(cancellationToken);
+        try
+        {
+            await Task.Delay(15, cancellationToken);
+            outputEnabled = false;
+            lastHeartbeat = DateTimeOffset.Now;
+        }
+        finally
+        {
+            operationLock.Release();
+        }
+    }
+
+    public async Task<MeasurementValue> ReadAsync(CancellationToken cancellationToken)
+    {
+        await operationLock.WaitAsync(cancellationToken);
+        try
+        {
+            RequireConnected();
+            await Task.Delay(35, cancellationToken);
+            lastHeartbeat = DateTimeOffset.Now;
+
+            var measured = sense.Function switch
+            {
+                SenseFunction.Current => MockCurrentFromVoltage(source.Level),
+                SenseFunction.Voltage => source.Level * 0.998,
+                SenseFunction.Resistance => 1_000.0 + Math.Abs(source.Level) * 12.0,
+                _ => 0.0,
+            };
+            var unit = sense.Function switch
+            {
+                SenseFunction.Current => "A",
+                SenseFunction.Voltage => "V",
+                SenseFunction.Resistance => "ohm",
+                _ => "",
+            };
+            return new MeasurementValue(outputEnabled ? measured : 0.0, unit, lastHeartbeat);
+        }
+        finally
+        {
+            operationLock.Release();
+        }
+    }
+
+    public async Task<SourceMeterSnapshot> GetSnapshotAsync(CancellationToken cancellationToken)
+    {
+        await operationLock.WaitAsync(cancellationToken);
+        try
+        {
+            return Snapshot(connected ? InstrumentLifecycleState.Idle : InstrumentLifecycleState.Disconnected);
+        }
+        finally
+        {
+            operationLock.Release();
+        }
+    }
+
+    public async Task<SourceMeterSnapshot> HeartbeatAsync(CancellationToken cancellationToken)
+    {
+        await operationLock.WaitAsync(cancellationToken);
+        try
+        {
+            if (connected)
+            {
+                lastHeartbeat = DateTimeOffset.Now;
+            }
+
+            return Snapshot(connected ? InstrumentLifecycleState.Idle : InstrumentLifecycleState.Disconnected);
+        }
+        finally
+        {
+            operationLock.Release();
+        }
+    }
+
+    public Task SafeStopAsync(CancellationToken cancellationToken)
+    {
+        return DisableOutputAsync(cancellationToken);
+    }
+
+    private SourceMeterSnapshot Snapshot(InstrumentLifecycleState lifecycle)
+    {
+        return new SourceMeterSnapshot(
+            Id,
+            "KEITHLEY INSTRUMENTS INC.,MODEL 2450,MOCK2450,B01",
+            lifecycle,
+            connected,
+            outputEnabled,
+            Terminals.Rear,
+            source,
+            sense,
+            lastHeartbeat);
+    }
+
+    private static double MockCurrentFromVoltage(double voltage)
+    {
+        const double conductance = 2.2e-3;
+        var nonlinear = Math.Tanh(voltage * 2.5) * 18e-6;
+        var deterministicNoise = Math.Sin(voltage * 31.0) * 1.5e-6;
+        return voltage * conductance + nonlinear + deterministicNoise;
+    }
+
+    private void RequireConnected()
+    {
+        if (!connected)
+        {
+            throw new InvalidOperationException("K2450 mock is not connected.");
+        }
+    }
+}
