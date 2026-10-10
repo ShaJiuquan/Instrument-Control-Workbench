@@ -360,6 +360,7 @@ public sealed class DeviceRunResources
                     var status = await session.GetDeviceStatusAsync(token, Owner);
                     var configuration = new Dictionary<string, string>
                     {
+                        ["display_name"] = session.Descriptor.DisplayName,
                         ["driver_kind"] = session.Descriptor.DriverKind.ToString(),
                         ["stop_policy"] = session.Descriptor.StopPolicy.ToString(),
                     };

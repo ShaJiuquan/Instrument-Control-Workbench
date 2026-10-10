@@ -511,3 +511,26 @@ implementation.
 - This is simulated/backend acceptance. Native composition/editor acceptance,
   hardware transports, DB/env precedence and other migration inventory work remain;
   the whole goal remains active.
+
+## Configuration-driven workbench startup
+
+- DeviceConfigurationStartup resolves native saved settings and returns their
+  immutable validated document/origin, runtime and matching existing executor.
+  Explicit initial configuration applies only to FileNotFound/DirectoryNotFound
+  and is never auto-saved. Existing malformed/access/unsupported hardware errors
+  reject with no simulation fallback. Whole-set factory prevalidation and null
+  primary semantics remain in use; no constructor driver IO or leases.
+- Listener input materializes once. Saved primary controls legacy shortcuts,
+  while null primary uses the generic engine. Fresh startup sees saved edits and
+  existing runtime stays unchanged. Fourteen acceptance cases cover these paths,
+  pre/post-load cancellation, native six-row axes plan/archive, finalization errors
+  and archived source/axis/matrix display names after offline edits.
+- All three resource families now store authored display_name in their immutable
+  instrument snapshots, preserving hardware/model identity and archive reload.
+- Local App draft integrates async startup, real registry device list/status,
+  null-primary plan UI, offline settings with save/restart/export distinction,
+  close drain and manual disconnect. Eight new ViewModel tests cover resources,
+  failed-close retry, selected-instance facts and paused settings isolation.
+  Native 1060x720 acceptance remains blocked by freshly observed locked Mac;
+  all App/App.Tests changes are excluded from this backend stage. See
+  configured-workbench-startup.md. Whole migration goal remains active.

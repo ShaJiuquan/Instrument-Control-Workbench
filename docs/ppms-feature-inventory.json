@@ -1191,5 +1191,11 @@
     "tests": "SourceIndependentExecutionTests.cs (12 cases)",
     "fixtures": "examples/devices/axes-only-devices.json; examples/plans/axes-only-scan.plan.json; examples/plans/ppms-axes-only-import.json",
     "limits": "No SMU required for generic plans. Same run lifecycle and resource admission/stop/recovery/finalization; native six-row and imported 24-row controller scans archive/export/replay on fresh runtimes. Explicit source plan, resource-free control plan, pre-cancel, pause/resume/abort, read plus hold fault, listener failure and foreign live source exclusion verified. Legacy source shortcuts require selection. Actual per-run notification identity retained. Simulation/backend evidence; native operator composition, physical adapters and full PPMS command parity remain pending. See source-independent-execution.md."
+  },
+  "configuredWorkbenchStartup": {
+    "status": "partial",
+    "implementation": "Application/Devices/DeviceConfigurationStartup.cs; Devices/DeviceRunResources.cs; MatrixSwitchSession.cs; Instruments/InstrumentManager.cs",
+    "tests": "DeviceConfigurationStartupTests.cs (14 cases)",
+    "limits": "Saved native settings resolve with explicit origin and immutable runtime/executor pair. Explicit initial profile applies only on missing file/directory and is not persisted. Malformed/inaccessible/unsupported existing profile never falls back; enabled-set prevalidation before any port; pre/post-load cancellation; saved-primary shortcut selection, null-primary generic execution and listener finalization verified. Saved edits affect fresh startup only. Source/axis/matrix authored display_name frozen in run/archive. Local async desktop startup/device list/settings/null-primary controls and 8 ViewModel tests are uncommitted pending native 1060x720 acceptance; locked Mac. Physical transports/DB-env/device-specific editors/restart and full PPMS acceptance remain pending. See configured-workbench-startup.md."
   }
 }

@@ -158,6 +158,7 @@ public sealed class MatrixSwitchSession : IDeviceSession
             var snapshot = await port.GetSnapshotAsync(token); RequireKnown(snapshot, requireConnection: true);
             return new(Descriptor.Id, Descriptor.Model, snapshot.Timestamp, [], new Dictionary<string, string>
             {
+                ["display_name"] = Descriptor.DisplayName,
                 ["driver_kind"] = Descriptor.DriverKind.ToString(),
                 ["stop_policy"] = Descriptor.StopPolicy.ToString(),
                 ["cards"] = string.Join(";", Definition.Cards.Select(c => FormattableString.Invariant($"{c.Slot}:{c.Rows}:{c.Columns}"))),

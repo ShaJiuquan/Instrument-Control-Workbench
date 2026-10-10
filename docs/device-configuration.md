@@ -70,8 +70,10 @@ var deviceBindings = runtime.CreateImportBindings(preparations);
 ```
 
 Saving new settings never changes an existing runtime. A new startup gets fresh
-ports and sessions; existing runs retain their captured devices/plan. The API is
-available for composition and headless callers; the published desktop composition
+ports and sessions; existing runs retain their captured devices/plan. DeviceConfigurationStartup now resolves a saved document or explicit missing-file
+initial configuration and constructs the matching runtime/engine with truthful
+origin; existing-file errors never fall back. See configured-workbench-startup.md.
+The API is available for composition and headless callers; the published desktop composition
 has not yet been replaced by this startup path. Do not overlap physical runtimes
 as a way to apply edits. Physical reconnect/resume, global endpoint ownership and
 operator restart orchestration remain migration work.

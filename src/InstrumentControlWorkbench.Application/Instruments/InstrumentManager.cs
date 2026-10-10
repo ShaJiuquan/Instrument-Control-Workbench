@@ -52,6 +52,7 @@ public sealed partial class InstrumentManager : IDeviceSession
                  new(Keithley2450Parameters.Nplc, new(snapshot.Sense.Nplc, PhysicalUnit.Dimensionless))],
                 new Dictionary<string, string>
                 {
+                    ["display_name"] = Descriptor.DisplayName,
                     ["driver_kind"] = Descriptor.DriverKind.ToString(),
                     ["stop_policy"] = Descriptor.StopPolicy.ToString(),
                     ["source_function"] = snapshot.Source.Function.ToString(),

@@ -224,6 +224,12 @@ Avalonia views -> ViewModels -> Application use cases -> Core contracts
    failures, retained ownership/recovery and listener finalization are verified;
    legacy IV/resistance shortcuts still require explicit primary selection.
    See source-independent-execution.md.
+   Startup now resolves saved settings or an explicit missing-file initial profile,
+   returns the matching runtime/executor with origin, and never falls back on
+   invalid existing settings. Display names are frozen in source/axis/matrix
+   snapshots and fresh archives. Local desktop startup/device/settings draft is
+   wired and ViewModel-tested but still awaits native visual acceptance. See
+   configured-workbench-startup.md.
 7. **Operator workflows — pending.** Flow editor, reusable steps, device panels,
    routing/sample settings and live/history views connected to the backend.
 8. **Acceptance — pending.** End-to-end representative PPMS experiments,
