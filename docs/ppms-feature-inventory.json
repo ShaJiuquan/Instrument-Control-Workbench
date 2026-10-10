@@ -211,9 +211,9 @@
       ],
       "status": "partial",
       "evidence": {
-        "implementation": "src/InstrumentControlWorkbench.Application/Experiments/SampleResistancePlan.cs",
-        "tests": "tests/InstrumentControlWorkbench.Application.Tests/SampleResistanceExecutionTests.cs",
-        "limits": "Typed immutable sample/channel/electrode/wiring catalogs; TwoWire/FourWire, Hall longitudinal/transverse and eight vdP raw V/I/R assignments on K2450 simulation; guarded routing, actual sensing-mode verification, nested live-setpoint preservation, external management and per-row provenance in plans/archives/CSV. PPMS decoder/aliases, active profiles/settings/UI, separate source/meter profiles, geometry/derived Hall/vdP corrections/quality and hardware acceptance remain pending."
+        "implementation": "src/InstrumentControlWorkbench.Application/Experiments/SampleResistancePlan.cs; src/InstrumentControlWorkbench.Application/Experiments/SampleResistanceAnalysisPlan.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/SampleResistanceExecutionTests.cs; tests/InstrumentControlWorkbench.Application.Tests/SampleResistanceExecutionTests.Analysis.cs; tests/InstrumentControlWorkbench.Core.Tests/SampleAnalysisMathTests.cs",
+        "limits": "Typed immutable sample/channel/electrode/wiring catalogs; TwoWire/FourWire, Hall longitudinal/transverse and eight vdP raw V/I/R assignments on K2450 simulation; guarded routing, actual sensing-mode verification, nested live-setpoint preservation, external management and per-row provenance in plans/archives/CSV. Complete analyzed Hall/vdP groups include typed geometry, sheet resistance/resistivity, availability issues and bounded summary-input validation in live data/archive/CSV. PPMS decoder/aliases, active profiles/settings/UI, separate source/meter acquisition, corrected Hall/field-reversal/offset/instrument-quality analysis and hardware acceptance remain pending."
       }
     },
     {

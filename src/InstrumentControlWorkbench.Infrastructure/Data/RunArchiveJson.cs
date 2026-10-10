@@ -29,6 +29,7 @@ internal static partial class RunArchiveJson
             new JsonStringEnumConverter<MeasurementRunState>(allowIntegerValues: false),
             new JsonStringEnumConverter<SampleTopology>(allowIntegerValues: false),
             new JsonStringEnumConverter<SampleRouteSelection>(allowIntegerValues: false),
+            new JsonStringEnumConverter<SampleAnalysisIssues>(allowIntegerValues: false),
             new JsonStringEnumConverter<RoutingRole>(allowIntegerValues: false) },
     };
     private static readonly JsonExperimentPlanDocument Plans = new();
@@ -84,11 +85,17 @@ internal static partial class RunArchiveJson
             s.Instruments.Select(InstrumentDto.From).ToArray(), s.Plan is null ? null : Plans.Serialize(s.Plan), MetadataDto.From(s.Metadata ?? RunMetadata.Empty));
     }
     internal sealed record RowDto(int Index, DateTimeOffset Timestamp, Dictionary<string, QuantityDto> Values,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] SampleRouteDto? Routing = null)
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] SampleRouteDto? Routing = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] SampleAnalysisDto? Analysis = null)
     {
-        public MeasurementDataRow ToDomain() => new(Timestamp, Required(Values).ToDictionary(p => new ParameterId(p.Key), p => Required(p.Value).ToDomain()), Routing?.ToDomain());
+        public MeasurementDataRow ToDomain() => new(Timestamp, Required(Values).ToDictionary(p => new ParameterId(p.Key), p => Required(p.Value).ToDomain()), Routing?.ToDomain(), Analysis?.ToDomain());
         public static RowDto From(int index, MeasurementDataRow row) => new(index, row.Timestamp,
-            row.Values.OrderBy(p => p.Key.Value, StringComparer.Ordinal).ToDictionary(p => p.Key.Value, p => QuantityDto.From(p.Value)), row.Routing is null ? null : SampleRouteDto.From(row.Routing));
+            row.Values.OrderBy(p => p.Key.Value, StringComparer.Ordinal).ToDictionary(p => p.Key.Value, p => QuantityDto.From(p.Value)), row.Routing is null ? null : SampleRouteDto.From(row.Routing), row.Analysis is null ? null : SampleAnalysisDto.From(row.Analysis));
+    }
+    internal sealed record SampleAnalysisDto(string Step, int FirstInputRow, int InputCount, SampleAnalysisIssues Issues, int AlgorithmVersion)
+    {
+        public SampleAnalysisSummary ToDomain() => new(new(Step), FirstInputRow, InputCount, Issues, AlgorithmVersion);
+        public static SampleAnalysisDto From(SampleAnalysisSummary summary) => new(summary.Step.Value, summary.FirstInputRow, summary.InputCount, summary.Issues, summary.AlgorithmVersion);
     }
     internal sealed record FinalDto(string Format, int Version, Guid Id, MeasurementRunState State, DateTimeOffset FinishedAt, int RowCount, long DataBytes, string Sha256);
 

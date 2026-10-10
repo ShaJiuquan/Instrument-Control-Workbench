@@ -86,7 +86,7 @@ public sealed record SampleElectrode
 }
 public sealed record SampleProfile
 {
-    public SampleProfile(SampleId id, string name, SampleTopology topology, IEnumerable<SampleElectrode> electrodes)
+    public SampleProfile(SampleId id, string name, SampleTopology topology, IEnumerable<SampleElectrode> electrodes, SampleGeometry? geometry = null)
     {
         ArgumentNullException.ThrowIfNull(id); ArgumentException.ThrowIfNullOrWhiteSpace(name); ArgumentNullException.ThrowIfNull(electrodes);
         if (!Enum.IsDefined(topology)) throw new ArgumentOutOfRangeException(nameof(topology));
@@ -96,12 +96,13 @@ public sealed record SampleProfile
             throw new ArgumentException("Samples need a bounded name and one to 64 distinct electrode labels.", nameof(electrodes));
         var labels = items.Select(e => e.Label.Value).ToHashSet(StringComparer.OrdinalIgnoreCase);
         if (RequiredLabels(topology).Any(l => !labels.Contains(l))) throw new ArgumentException("Sample is missing electrodes required by its topology.", nameof(electrodes));
-        Id = id; Name = name; Topology = topology; Electrodes = Array.AsReadOnly(items);
+        Id = id; Name = name; Topology = topology; Electrodes = Array.AsReadOnly(items); Geometry = geometry ?? SampleGeometry.Empty;
     }
     public SampleId Id { get; }
     public string Name { get; }
     public SampleTopology Topology { get; }
     public IReadOnlyList<SampleElectrode> Electrodes { get; }
+    public SampleGeometry Geometry { get; }
     public static IReadOnlyList<string> RequiredLabels(SampleTopology topology) => topology switch
     {
         SampleTopology.TwoWire => Array.AsReadOnly(new[] { "A", "B" }),

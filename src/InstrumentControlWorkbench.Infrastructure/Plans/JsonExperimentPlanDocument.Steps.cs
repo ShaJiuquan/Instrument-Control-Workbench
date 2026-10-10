@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using InstrumentControlWorkbench.Core.Devices;
 using InstrumentControlWorkbench.Core.Experiments;
 using InstrumentControlWorkbench.Core.Instruments;
+using InstrumentControlWorkbench.Core.Measurements;
 using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Infrastructure.Plans;
@@ -14,6 +15,13 @@ public sealed partial class JsonExperimentPlanDocument
         var o = new JsonObject { ["id"] = step.Id.Value };
         switch (step)
         {
+            case SampleAnalysisStep group:
+                o["kind"] = "sample_analysis";
+                var readings = new JsonArray();
+                foreach (var read in group.Readings) readings.Add(EncodeStep(read, depth + 1, ref count));
+                o["readings"] = readings;
+                o["columns"] = new JsonArray(group.Columns.Select(c => (JsonNode)new JsonObject { ["kind"] = c.Kind.ToString(), ["column"] = c.Column.Value }).ToArray());
+                break;
             case SequenceStep s:
                 o["kind"] = "sequence";
                 var children = new JsonArray();
@@ -79,6 +87,15 @@ public sealed partial class JsonExperimentPlanDocument
         var kind = Text(o, "kind");
         switch (kind)
         {
+            case "sample_analysis":
+                Object(o, "id", "kind", "readings", "columns");
+                var groupReadings = new List<ReadSampleResistanceStep>();
+                foreach (var child in Array(Required(o, "readings")))
+                    groupReadings.Add(DecodeStep(child, depth + 1, ref count) as ReadSampleResistanceStep ?? throw new FormatException("Analysis children must be sample-resistance readings."));
+                return new SampleAnalysisStep(id, groupReadings, Array(Required(o, "columns")).Select(c =>
+                {
+                    var column = Object(c, "kind", "column"); return new SampleDerivedColumn(NamedEnum<SampleDerivedQuantity>(column, "kind"), new(Text(column, "column")));
+                }));
             case "sequence":
                 Object(o, "id", "kind", "children");
                 var children = new List<ExperimentStep>();

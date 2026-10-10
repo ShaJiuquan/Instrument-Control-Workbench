@@ -25,6 +25,9 @@ public sealed partial class MeasurementRunService
             RunId: run.Id.ToString(), Step: step.Id), run.Token);
         switch (step)
         {
+            case SampleAnalysisStep analysis:
+                await ExecuteSampleAnalysisAsync(analysis, run, started);
+                break;
             case SequenceStep sequence:
                 foreach (var child in sequence.Children) await ExecuteStepAsync(child, run, started, ivPlot);
                 break;

@@ -248,3 +248,18 @@ implementation.
 - Source/meter combinations beyond K2450, PPMS import/active profiles, durable
   settings/profile UI, derived quantities/quality and hardware acceptance remain
   required. See sample-routing.md for the exact boundary.
+
+## Grouped sample analysis
+
+- The raw sample API remains; analyzed Hall/vdP plans add one summary after every
+  complete ordered group, through the existing engine/lease/cleanup path.
+- Geometry is optional positive meters. Signed Hall geometry and mean-absolute vdP
+  sheet/resistivity analysis follow captured PPMS behavior; field reversal,
+  corrected Hall coefficients, offsets and instrument-quality propagation remain
+  pending. Availability issues explicitly omit unavailable quantities.
+- Summary provenance includes group step, consecutive input range, issues and
+  algorithm version 1. Live append/archive write/read share a bounded eight-row
+  validator; new CSVs retain those references. Derived recomputation uses relative
+  tolerance 1e-12 for platform math; finalized bytes retain SHA-256 checks.
+- All evidence is simulated/numeric. See sample-analysis.md and the Hall file
+  acceptance. Full migration and native/hardware acceptance remain incomplete.

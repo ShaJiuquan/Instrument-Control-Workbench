@@ -1,0 +1,236 @@
+{
+  "format": "instrument-workbench-plan",
+  "version": 1,
+  "name": "Hall bar with geometry: three bias points",
+  "preparations": [
+    {
+      "device": "k2450",
+      "function": "Voltage",
+      "level": {
+        "value": 0.01,
+        "unit": "Volt"
+      },
+      "compliance": {
+        "value": 0.001,
+        "unit": "Ampere"
+      },
+      "sense": {
+        "function": "Current",
+        "mode": "FourWire",
+        "nplc": 1,
+        "autoRange": true
+      }
+    }
+  ],
+  "metadata": {},
+  "root": {
+    "id": "bias_scan",
+    "kind": "scan",
+    "axis": {
+      "device": "k2450",
+      "parameter": "k2450.source_voltage"
+    },
+    "column": "bias",
+    "values": {
+      "unit": "Volt",
+      "values": [
+        0.01,
+        0.02,
+        0.03
+      ]
+    },
+    "dwellSeconds": 0,
+    "body": {
+      "id": "hall_analysis",
+      "kind": "sample_analysis",
+      "readings": [
+        {
+          "id": "hall_read_1",
+          "kind": "read_sample_resistance",
+          "device": "k2450",
+          "function": "Voltage",
+          "voltageColumn": "voltage",
+          "currentColumn": "current",
+          "resistanceColumn": "resistance",
+          "minimumCurrent": {
+            "value": 1e-15,
+            "unit": "Ampere"
+          },
+          "binding": {
+            "sample": "hall_sample",
+            "wiring": "smu_kelvin",
+            "selection": "HallLongitudinal"
+          },
+          "settleSeconds": 0.02,
+          "routingManagedExternally": false
+        },
+        {
+          "id": "hall_read_2",
+          "kind": "read_sample_resistance",
+          "device": "k2450",
+          "function": "Voltage",
+          "voltageColumn": "voltage",
+          "currentColumn": "current",
+          "resistanceColumn": "resistance",
+          "minimumCurrent": {
+            "value": 1e-15,
+            "unit": "Ampere"
+          },
+          "binding": {
+            "sample": "hall_sample",
+            "wiring": "smu_kelvin",
+            "selection": "HallTransverse"
+          },
+          "settleSeconds": 0.02,
+          "routingManagedExternally": false
+        }
+      ],
+      "columns": [
+        {
+          "kind": "LongitudinalResistance",
+          "column": "r_xx"
+        },
+        {
+          "kind": "TransverseResistance",
+          "column": "r_xy"
+        },
+        {
+          "kind": "SheetResistance",
+          "column": "r_sheet"
+        },
+        {
+          "kind": "Resistivity",
+          "column": "rho_xx"
+        }
+      ]
+    }
+  },
+  "routing": {
+    "matrix": "matrix",
+    "channels": [
+      {
+        "id": "channel1",
+        "name": "CH1",
+        "connections": [
+          {
+            "key": "p0",
+            "slot": 1,
+            "column": 1,
+            "enabled": true
+          },
+          {
+            "key": "p1",
+            "slot": 1,
+            "column": 2,
+            "enabled": true
+          },
+          {
+            "key": "p2",
+            "slot": 1,
+            "column": 3,
+            "enabled": true
+          },
+          {
+            "key": "p3",
+            "slot": 1,
+            "column": 4,
+            "enabled": true
+          },
+          {
+            "key": "p4",
+            "slot": 1,
+            "column": 5,
+            "enabled": true
+          },
+          {
+            "key": "p5",
+            "slot": 1,
+            "column": 6,
+            "enabled": true
+          }
+        ]
+      }
+    ],
+    "wirings": [
+      {
+        "id": "smu_kelvin",
+        "sourceMeter": "k2450",
+        "sourcePlus": {
+          "slot": 1,
+          "row": 1
+        },
+        "sourceMinus": {
+          "slot": 1,
+          "row": 2
+        },
+        "sensePlus": {
+          "slot": 1,
+          "row": 3
+        },
+        "senseMinus": {
+          "slot": 1,
+          "row": 4
+        }
+      }
+    ],
+    "samples": [
+      {
+        "id": "hall_sample",
+        "name": "Hall-bar sample",
+        "topology": "HallBar",
+        "electrodes": [
+          {
+            "label": "I+",
+            "channel": "channel1",
+            "connection": "p0",
+            "enabled": true
+          },
+          {
+            "label": "I-",
+            "channel": "channel1",
+            "connection": "p1",
+            "enabled": true
+          },
+          {
+            "label": "Vxx+",
+            "channel": "channel1",
+            "connection": "p2",
+            "enabled": true
+          },
+          {
+            "label": "Vxx-",
+            "channel": "channel1",
+            "connection": "p3",
+            "enabled": true
+          },
+          {
+            "label": "Vxy+",
+            "channel": "channel1",
+            "connection": "p4",
+            "enabled": true
+          },
+          {
+            "label": "Vxy-",
+            "channel": "channel1",
+            "connection": "p5",
+            "enabled": true
+          }
+        ],
+        "geometry": {
+          "width": {
+            "value": 0.002,
+            "unit": "Meter"
+          },
+          "length": {
+            "value": 0.004,
+            "unit": "Meter"
+          },
+          "thickness": {
+            "value": 1e-07,
+            "unit": "Meter"
+          }
+        }
+      }
+    ]
+  }
+}

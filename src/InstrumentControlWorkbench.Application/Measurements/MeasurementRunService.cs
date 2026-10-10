@@ -59,6 +59,9 @@ public sealed partial class MeasurementRunService
     public Task StartSampleResistanceAsync(SampleResistanceRecipe recipe, CancellationToken token, RunMetadata? metadata = null)
         => StartPlanAsync(SampleResistancePlan.Create(recipe), token, metadata);
 
+    public Task StartAnalyzedSampleResistanceAsync(SampleResistanceRecipe recipe, CancellationToken token, RunMetadata? metadata = null)
+        => StartPlanAsync(SampleResistanceAnalysisPlan.Create(recipe), token, metadata);
+
     public ExperimentPlanPreview PreviewPlan(ExperimentPlan plan)
     {
         var compiled = ExperimentPlanCompiler.Compile(plan, devices);

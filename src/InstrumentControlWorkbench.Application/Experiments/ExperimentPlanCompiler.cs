@@ -4,6 +4,7 @@ using InstrumentControlWorkbench.Core.Data;
 using InstrumentControlWorkbench.Core.Devices;
 using InstrumentControlWorkbench.Core.Experiments;
 using InstrumentControlWorkbench.Core.Instruments;
+using InstrumentControlWorkbench.Core.Measurements;
 using InstrumentControlWorkbench.Core.Parameters;
 using InstrumentControlWorkbench.Core.Routing;
 
@@ -142,6 +143,33 @@ internal static class ExperimentPlanCompiler
             if (!steps.Add(step.Id)) throw new ArgumentException($"Duplicate step ID {step.Id}.");
             switch (step)
             {
+                case SampleAnalysisStep analysis:
+                    analysis.ValidateRouting(plan.Routing ?? throw new ArgumentException("Sample analysis requires a frozen routing configuration."));
+                    var analysisCost = checked(1 + analysis.Readings.Sum(child => Visit(child, known, axes, depth + 1)));
+                    foreach (var result in analysis.Columns)
+                    {
+                        var unit = SampleResistanceAnalysis.Unit(result.Kind);
+                        var label = result.Kind switch
+                        {
+                            SampleDerivedQuantity.LongitudinalResistance => "Longitudinal resistance",
+                            SampleDerivedQuantity.TransverseResistance => "Raw transverse resistance",
+                            SampleDerivedQuantity.HorizontalMeanResistance => "Horizontal mean absolute resistance",
+                            SampleDerivedQuantity.VerticalMeanResistance => "Vertical mean absolute resistance",
+                            SampleDerivedQuantity.SheetResistance => "Sheet resistance",
+                            SampleDerivedQuantity.Resistivity => "Longitudinal resistivity",
+                            _ => throw new ArgumentOutOfRangeException(nameof(result)),
+                        };
+                        AddColumn(result.Column, new(result.Column, label, unit, ParameterAccess.Read), null, [.. axes, Elapsed.Id]);
+                        // Geometry/numeric-dependent results may be unavailable. They
+                        // are optional data columns, not guaranteed plan variables.
+                        if (result.Kind is not (SampleDerivedQuantity.SheetResistance or SampleDerivedQuantity.Resistivity)) BindVariable(result.Column, unit, known);
+                        else
+                        {
+                            if (known.TryGetValue(result.Column, out var previousUnit) && previousUnit != unit) throw new ArgumentException($"Variable {result.Column} cannot change units.");
+                            known.Remove(result.Column);
+                        }
+                    }
+                    return analysisCost;
                 case SequenceStep sequence:
                     return checked(1 + sequence.Children.Sum(child => Visit(child, known, axes, depth + 1)));
                 case RepeatStep repeat:

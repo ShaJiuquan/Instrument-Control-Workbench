@@ -19,7 +19,7 @@ using InstrumentControlWorkbench.Infrastructure.Plans;
 
 namespace InstrumentControlWorkbench.Application.Tests;
 
-public sealed class SampleResistanceExecutionTests
+public sealed partial class SampleResistanceExecutionTests
 {
     private static readonly CancellationToken Token = CancellationToken.None;
 
@@ -292,12 +292,12 @@ public sealed class SampleResistanceExecutionTests
     private static SampleResistanceRecipe Recipe(RoutingConfiguration config, SourceFunction function = SourceFunction.Voltage, TimeSpan? settle = null)
         => new("sample R", config, new("sample"), new("wiring"), Preparation(config.Samples[0].Topology == SampleTopology.TwoWire ? SensingMode.TwoWire : SensingMode.FourWire, function),
             settle ?? TimeSpan.Zero, new(1e-15, PhysicalUnit.Ampere));
-    private static RoutingConfiguration Configuration(SampleTopology topology)
+    private static RoutingConfiguration Configuration(SampleTopology topology, SampleGeometry? geometry = null)
     {
         var labels = SampleProfile.RequiredLabels(topology); var shared = topology == SampleTopology.TwoWire;
         return new(new("matrix"), [new(new("channel"), "CH1", labels.Select((label, i) => new ChannelConnection(new($"p{i}"), 1, i + 1)))],
             [new(new("wiring"), new("k2450"), new(1, 1), new(1, 2), new(1, shared ? 1 : 3), new(1, shared ? 2 : 4))],
-            [new(new("sample"), "试样, \"A\"\nB", topology, labels.Select((label, i) => new SampleElectrode(new(label), new("channel"), new($"p{i}"))))]);
+            [new(new("sample"), "试样, \"A\"\nB", topology, labels.Select((label, i) => new SampleElectrode(new(label), new("channel"), new($"p{i}"))), geometry)]);
     }
     private static async Task Until(NotificationSubscription events, WorkbenchNotificationKind kind, string? step = null)
     {

@@ -2,8 +2,8 @@ using System.Collections.Concurrent;
 using System.Runtime.ExceptionServices;
 using System.Security.Cryptography;
 using InstrumentControlWorkbench.Core.Data;
+using InstrumentControlWorkbench.Core.Experiments;
 using InstrumentControlWorkbench.Core.Measurements;
-using InstrumentControlWorkbench.Core.Routing;
 
 namespace InstrumentControlWorkbench.Infrastructure.Data;
 
@@ -26,6 +26,7 @@ public sealed partial class FileRunArchive : IRunArchive, IAsyncDisposable
         if (dataSet.State != MeasurementRunState.Running || dataSet.FinishedAt is not null || dataSet.Rows.Count != 0)
             throw new ArgumentException("An archive starts with an empty acquiring data set.", nameof(dataSet));
         var bytes = RunArchiveJson.Encode(RunArchiveJson.HeaderDto.From(dataSet));
+        var analysis = new SampleAnalysisRowValidator(dataSet.Plan, dataSet.Schema);
         await lifetimeGate.WaitAsync(token);
         try
         {
@@ -36,7 +37,7 @@ public sealed partial class FileRunArchive : IRunArchive, IAsyncDisposable
             await WriteAtomicAsync(Path.Combine(folder, "metadata.json"), bytes, token);
             var stream = new FileStream(Path.Combine(folder, "rows.ndjson"), FileMode.CreateNew, FileAccess.Write,
                 FileShare.Read, 8192, FileOptions.Asynchronous);
-            var writer = new Writer(stream, bytes, dataSet.Schema, dataSet.Plan?.Routing);
+            var writer = new Writer(stream, bytes, dataSet.Schema, dataSet.Plan, analysis);
             if (!active.TryAdd(dataSet.Id, writer))
             {
                 await writer.DisposeAsync();
@@ -160,7 +161,7 @@ public sealed partial class FileRunArchive : IRunArchive, IAsyncDisposable
         if (error is not null) ExceptionDispatchInfo.Capture(error).Throw();
     }
 
-    private sealed class Writer(FileStream stream, byte[] header, DataSetSchema schema, RoutingConfiguration? routing) : IAsyncDisposable
+    private sealed class Writer(FileStream stream, byte[] header, DataSetSchema schema, ExperimentPlan? plan, SampleAnalysisRowValidator analysis) : IAsyncDisposable
     {
         public FileStream Stream { get; } = stream;
         public byte[] Header { get; } = header;
@@ -183,11 +184,13 @@ public sealed partial class FileRunArchive : IRunArchive, IAsyncDisposable
         {
             Schema.ValidateRow(row);
             if (row.Routing is { } context)
-                (routing ?? throw new ArgumentException("Routed archive rows require the frozen plan routing configuration.", nameof(row))).ValidateContext(context);
+                (plan?.Routing ?? throw new ArgumentException("Routed archive rows require the frozen plan routing configuration.", nameof(row))).ValidateContext(context);
+            analysis.Validate(row);
             var bytes = RowBytes(Count + 1, row);
             UnconfirmedTail = true;
             await Stream.WriteAsync(bytes, token);
             await Stream.FlushAsync(token);
+            analysis.Append(row);
             Hash.AppendData(bytes);
             Bytes += bytes.Length; Count++; UnconfirmedTail = false;
         }

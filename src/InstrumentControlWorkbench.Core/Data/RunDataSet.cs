@@ -21,22 +21,25 @@ public sealed record RunId
 
 public sealed record MeasurementDataRow
 {
-    public MeasurementDataRow(DateTimeOffset timestamp, IReadOnlyDictionary<ParameterId, Quantity> values, ResolvedSampleRoute? routing = null)
+    public MeasurementDataRow(DateTimeOffset timestamp, IReadOnlyDictionary<ParameterId, Quantity> values, ResolvedSampleRoute? routing = null, SampleAnalysisSummary? analysis = null)
     {
         ArgumentNullException.ThrowIfNull(values);
-        Timestamp = timestamp; Routing = routing;
+        if (routing is not null && analysis is not null) throw new ArgumentException("A row cannot be both a raw electrode reading and an analysis summary.");
+        Timestamp = timestamp; Routing = routing; Analysis = analysis;
         Values = new ReadOnlyDictionary<ParameterId, Quantity>(new Dictionary<ParameterId, Quantity>(values));
     }
 
     public DateTimeOffset Timestamp { get; }
     public IReadOnlyDictionary<ParameterId, Quantity> Values { get; }
     public ResolvedSampleRoute? Routing { get; }
+    public SampleAnalysisSummary? Analysis { get; }
 }
 
 public sealed class RunDataSet
 {
     private readonly object gate = new();
     private readonly List<MeasurementDataRow> rows = [];
+    private readonly SampleAnalysisRowValidator analysisValidator;
     private MeasurementRunState state = MeasurementRunState.Running;
     private DateTimeOffset? finishedAt;
 
@@ -59,6 +62,7 @@ public sealed class RunDataSet
         Recipe = new ReadOnlyDictionary<string, Quantity>(new Dictionary<string, Quantity>(recipe));
         Instruments = Array.AsReadOnly(snapshots);
         Plan = plan; Metadata = metadata ?? RunMetadata.Empty;
+        analysisValidator = new(plan, schema);
     }
 
     public const int FormatVersion = 1;
@@ -88,6 +92,7 @@ public sealed class RunDataSet
         lock (gate)
         {
             if (state != MeasurementRunState.Running) throw new InvalidOperationException("A finalized data set cannot accept rows.");
+            analysisValidator.Append(row);
             rows.Add(row);
         }
     }

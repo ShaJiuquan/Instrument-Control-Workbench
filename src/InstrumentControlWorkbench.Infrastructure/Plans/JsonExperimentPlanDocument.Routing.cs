@@ -25,15 +25,27 @@ public sealed partial class JsonExperimentPlanDocument
             ["sensePlus"] = EncodePort(w.SensePlus),
             ["senseMinus"] = EncodePort(w.SenseMinus),
         }).ToArray()),
-        ["samples"] = new JsonArray(config.Samples.Select(s => (JsonNode)new JsonObject
-        {
-            ["id"] = s.Id.Value,
-            ["name"] = s.Name,
-            ["topology"] = s.Topology.ToString(),
-            ["electrodes"] = new JsonArray(s.Electrodes.Select(e => (JsonNode)new JsonObject
-            { ["label"] = e.Label.Value, ["channel"] = e.Channel.Value, ["connection"] = e.Connection.Value, ["enabled"] = e.Enabled }).ToArray()),
-        }).ToArray()),
+        ["samples"] = new JsonArray(config.Samples.Select(s => (JsonNode)EncodeSample(s)).ToArray()),
     };
+    private static JsonObject EncodeSample(SampleProfile sample)
+    {
+        var result = new JsonObject
+        {
+            ["id"] = sample.Id.Value,
+            ["name"] = sample.Name,
+            ["topology"] = sample.Topology.ToString(),
+            ["electrodes"] = new JsonArray(sample.Electrodes.Select(e => (JsonNode)new JsonObject
+            { ["label"] = e.Label.Value, ["channel"] = e.Channel.Value, ["connection"] = e.Connection.Value, ["enabled"] = e.Enabled }).ToArray()),
+        };
+        if (sample.Geometry != SampleGeometry.Empty)
+            result["geometry"] = new JsonObject
+            {
+                ["width"] = sample.Geometry.Width is { } w ? EncodeQuantity(w) : null,
+                ["length"] = sample.Geometry.Length is { } l ? EncodeQuantity(l) : null,
+                ["thickness"] = sample.Geometry.Thickness is { } t ? EncodeQuantity(t) : null,
+            };
+        return result;
+    }
     private static RoutingConfiguration DecodeRouting(JsonNode node)
     {
         var o = Object(node, "matrix", "channels", "wirings", "samples");
@@ -53,12 +65,18 @@ public sealed partial class JsonExperimentPlanDocument
         });
         var samples = Array(Required(o, "samples")).Select(v =>
         {
-            var s = Object(v, "id", "name", "topology", "electrodes");
+            var s = Object(v, "id", "name", "topology", "electrodes", "geometry");
+            SampleGeometry? geometry = null;
+            if (s.ContainsKey("geometry"))
+            {
+                var g = Object(Required(s, "geometry"), "width", "length", "thickness");
+                geometry = new(g["width"] is { } w ? DecodeQuantity(w) : null, g["length"] is { } l ? DecodeQuantity(l) : null, g["thickness"] is { } t ? DecodeQuantity(t) : null);
+            }
             return new SampleProfile(new(Text(s, "id")), Text(s, "name"), NamedEnum<SampleTopology>(s, "topology"), Array(Required(s, "electrodes")).Select(i =>
             {
                 var e = Object(i, "label", "channel", "connection", "enabled");
                 return new SampleElectrode(new(Text(e, "label")), new(Text(e, "channel")), new(Text(e, "connection")), Boolean(e, "enabled"));
-            }));
+            }), geometry);
         });
         return new(new(Text(o, "matrix")), channels, wirings, samples);
     }

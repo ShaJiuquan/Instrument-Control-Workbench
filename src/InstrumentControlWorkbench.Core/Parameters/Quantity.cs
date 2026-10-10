@@ -16,6 +16,9 @@ public enum PhysicalUnit
     KelvinPerMinute,
     TeslaPerSecond,
     DegreePerSecond,
+    Meter,
+    OhmPerSquare,
+    OhmMeter,
 }
 
 public readonly record struct Quantity

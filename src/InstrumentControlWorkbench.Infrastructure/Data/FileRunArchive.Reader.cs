@@ -67,6 +67,7 @@ public sealed partial class FileRunArchive
         using var frame = new MemoryStream();
         var buffer = new byte[8192];
         var count = 0;
+        var analysis = new SampleAnalysisRowValidator(metadata.Header.Plan, metadata.Header.Schema);
         long read = 0;
         while (read < boundary)
         {
@@ -85,6 +86,7 @@ public sealed partial class FileRunArchive
                 metadata.Header.Schema.ValidateRow(row);
                 if (row.Routing is { } context)
                     (metadata.Header.Plan?.Routing ?? throw new FormatException("Routed archive row has no plan routing configuration.")).ValidateContext(context);
+                analysis.Append(row);
                 frame.SetLength(0); frame.Position = 0; start = i + 1;
                 yield return row;
             }

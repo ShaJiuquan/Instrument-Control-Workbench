@@ -152,9 +152,12 @@ Avalonia views -> ViewModels -> Application use cases -> Core contracts
    executes TwoWire/FourWire and raw Hall/vdP assignments through the same engine,
    preserves nested scan setpoints and supports verified external route management.
    Rows retain sample/selection/electrode identity in archives and streamed CSV;
-   supplied context is checked against frozen plan configuration. Derived Hall/vdP
-   results, separate source/meter profiles, settings/UI and physical wiring/hardware
-   acceptance remain pending. See sample-routing.md.
+   supplied context is checked against frozen plan configuration. The analyzed
+   follow-up adds complete Hall/vdP measurement groups, typed geometry, sheet
+   resistance/resistivity, bounded row-reference validation and archived/CSV
+   summaries. Corrected Hall/offset/quality analysis, separate source/meter
+   profiles, settings/UI and physical wiring/hardware acceptance remain pending.
+   See sample-routing.md and sample-analysis.md.
 7. **Operator workflows — pending.** Flow editor, reusable steps, device panels,
    routing/sample settings and live/history views connected to the backend.
 8. **Acceptance — pending.** End-to-end representative PPMS experiments,

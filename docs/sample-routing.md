@@ -61,11 +61,13 @@ Route inputs to the resource scope are copied before waiting so a caller cannot
 change the requested route while excitation-off is pending.
 
 `SampleResistanceRecipe` / `StartSampleResistanceAsync` produce the full raw
-selection sequence for the chosen topology. Hall coefficients, sheet resistance,
-vdP equation solving, offset correction, geometry, current/polarity correction and
-quality/status rows are **not** generated here. The mock source does not simulate
-sample-specific or electrode-polarity-dependent physics. Actual V/I/R and route
-identity are retained so a later analysis stage can use measured inputs.
+selection sequence for the chosen topology. `SampleResistanceAnalysisPlan` /
+`StartAnalyzedSampleResistanceAsync` additionally publish grouped Hall/vdP sheet
+resistance and geometry-dependent resistivity; see [sample-analysis.md](sample-analysis.md).
+Hall coefficients, field reversal, offset correction and instrument quality are
+still pending. The mock source does not simulate sample-specific or
+electrode-polarity-dependent physics. Actual V/I/R and route identity remain
+available independently of derived analysis.
 
 Each sample row carries `ResolvedSampleRoute`: canonical sample ID/name/topology,
 wiring and selection, source/matrix IDs, and the four electrode/channel/connection/
@@ -94,5 +96,5 @@ source functions, mixed samples, nested scans, external route verification,
 front-panel sensing-mode faults, pause/abort during settle, cancellation before
 archive delivery, context tampering, prefix changes and whole-tree preflight.
 The published desktop still lacks matrix/profile registration and settings UI;
-operator/device/hardware acceptance, PPMS file import and derived measurements
-remain separate required work. No new dependency was added.
+operator/device/hardware acceptance, PPMS file import and the remaining corrected
+measurements remain separate required work. No new dependency was added.

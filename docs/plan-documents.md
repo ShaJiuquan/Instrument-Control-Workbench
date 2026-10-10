@@ -80,3 +80,8 @@ finalization waiter completing.
 A desktop document workspace with pause/recovery controls is being implemented.
 Visual acceptance is pending; this published stage provides the backend document
 and execution APIs, not a completed graphical flow editor.
+
+Sample profiles may include positive meter-valued geometry. `sample_analysis`
+groups two Hall or eight vdP `read_sample_resistance` children and four typed
+derived column declarations; child nodes count toward the existing budgets.
+See [sample-analysis.md](sample-analysis.md) for analyzed execution and row evidence.
