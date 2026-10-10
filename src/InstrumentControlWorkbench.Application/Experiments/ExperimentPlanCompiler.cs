@@ -163,6 +163,8 @@ internal static class ExperimentPlanCompiler
                 case ReadSourceSenseStep pair:
                     ValidateSourceSense(pair.Device, pair.Function, pair.VoltageColumn, pair.CurrentColumn, known, axes);
                     return 1;
+                case MeasurementGroupStep point:
+                    return checked(1 + point.Members.Sum(member => Visit(member.Body, known, axes, depth + 1)));
                 case SampleAnalysisStep analysis:
                     analysis.ValidateRouting(plan.Routing ?? throw new ArgumentException("Sample analysis requires a frozen routing configuration."));
                     var analysisCost = checked(1 + analysis.Readings.Sum(child => Visit(child, known, axes, depth + 1)));

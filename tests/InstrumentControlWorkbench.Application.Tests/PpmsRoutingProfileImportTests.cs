@@ -114,7 +114,7 @@ public sealed class PpmsRoutingProfileImportTests
                 var document = await b.Workspace.ImportAsync(Path.Combine(AppContext.BaseDirectory, "plans", "ppms-field-samples-import.json"), bindings, Token);
                 var native = Path.Combine(folder, "plan.json"); await b.Workspace.SaveAsync(native, document.Text, Token);
                 await b.Runs.StartPlanAsync((await b.Workspace.LoadAsync(native, Token)).Plan, Token);
-                Assert.Equal(26, b.Runs.LatestDataSet!.Rows.Count); id = b.Runs.LatestDataSet.Id;
+                Assert.Equal(28, b.Runs.LatestDataSet!.Rows.Count); id = b.Runs.LatestDataSet.Id;
             }
             await using var reopened = new FileRunArchive(Path.Combine(folder, "runs")); var stored = await reopened.LoadAsync(id, Token);
             var config = stored.DataSet.Plan!.Routing!; var sample = config.Samples[0];
@@ -122,7 +122,7 @@ public sealed class PpmsRoutingProfileImportTests
             Assert.Equal(0.0015, sample.Geometry.Spacing!.Value.Value); Assert.Equal("Contact I+", sample.Electrodes[0].Notes);
             Assert.Equal("main contacts", config.Channels[0].Alias); Assert.Equal("display-only-1", config.Channels[0].Connections[0].Raw);
             Assert.Equal("Simulated independent force/sense ports", config.Wirings[0].Label);
-            var fresh = new Bench(); await fresh.Runs.StartPlanAsync(stored.DataSet.Plan, Token); Assert.Equal(26, fresh.Runs.LatestDataSet!.Rows.Count);
+            var fresh = new Bench(); await fresh.Runs.StartPlanAsync(stored.DataSet.Plan, Token); Assert.Equal(28, fresh.Runs.LatestDataSet!.Rows.Count);
             var csv = Path.Combine(folder, "result.csv"); await reopened.ExportCsvAsync(id, csv, Token); Assert.Contains("routing_json", await File.ReadAllTextAsync(csv));
         }
         finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }

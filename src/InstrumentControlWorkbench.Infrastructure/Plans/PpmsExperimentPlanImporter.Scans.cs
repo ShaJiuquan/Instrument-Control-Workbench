@@ -22,7 +22,7 @@ public sealed partial class PpmsExperimentPlanImporter
             if (voltage && points.Values.Any(q => Math.Abs(q.Value) > 200)) throw new FormatException("PPMS voltage scan points must lie in -200..200 V.");
             List<ExperimentStep> sourceChildren;
             c.SourceScans.Push((source.Device, Text(p, "channel", voltage ? "" : "ch1").Trim()));
-            try { sourceChildren = Children(node, path, c, depth); }
+            try { sourceChildren = ScanChildren(node, path, c, depth); }
             finally { c.SourceScans.Pop(); }
             var body = new SequenceStep(new(path + ".body"), [new DelayStep(new(path + ".settle"), Duration(p, "settle_s", 0.1)), .. sourceChildren]);
             var steps = new List<ExperimentStep> { new SourceOutputStep(new(path + ".off"), source.Device, false) };
@@ -42,7 +42,7 @@ public sealed partial class PpmsExperimentPlanImporter
         var values = Points(p["points"] is JsonObject or JsonArray ? p["points"]! : p, axis.Target.Unit, c, 0, p["points"] is not (JsonObject or JsonArray));
         var column = new ParameterId(path + ".axis");
         var wait = Stability(path + ".stable", axis, new VariableValue(column), p, toleranceKey, role == "field" ? 0.0005 : tolerance, stable, timeout);
-        var children = new SequenceStep(new(path + ".body"), [wait, new DelayStep(new(path + ".settle"), Duration(p, "settle_s", 0)), .. Children(node, path, c, depth)]);
+        var children = new SequenceStep(new(path + ".body"), [wait, new DelayStep(new(path + ".settle"), Duration(p, "settle_s", 0)), .. ScanChildren(node, path, c, depth)]);
         if (role == "temperature")
         {
             if (!Boolean(p, "enable_control", true)) throw new NotSupportedException("Temperature scans with disabled control are not migrated.");

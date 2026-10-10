@@ -107,7 +107,7 @@ The independently authored simulation fixtures in `examples/profiles` use the
 current Rust schemas and include cross-channel Hall electrodes, disabled spare
 contacts, descriptive metadata, shared two-wire wiring and an unbound separate
 source/meter layout. Together with the existing field/sample runtime file, they
-produce 26 rows and preserve metadata through native save/load, fresh archive
+produce 28 rows (26 original records plus two scan-point summaries) and preserve metadata through native save/load, fresh archive
 reopening, re-execution and CSV. Tests also exercise pre-connection rejection,
 ambiguities, all channel aliases, 64-channel lookup, BOM/cancellation/UTF-8 and
 format budgets.

@@ -21,11 +21,11 @@ public sealed record RunId
 
 public sealed record MeasurementDataRow
 {
-    public MeasurementDataRow(DateTimeOffset timestamp, IReadOnlyDictionary<ParameterId, Quantity> values, ResolvedSampleRoute? routing = null, SampleAnalysisSummary? analysis = null)
+    public MeasurementDataRow(DateTimeOffset timestamp, IReadOnlyDictionary<ParameterId, Quantity> values, ResolvedSampleRoute? routing = null, SampleAnalysisSummary? analysis = null, MeasurementGroupSummary? measurementGroup = null)
     {
         ArgumentNullException.ThrowIfNull(values);
-        if (routing is not null && analysis is not null) throw new ArgumentException("A row cannot be both a raw electrode reading and an analysis summary.");
-        Timestamp = timestamp; Routing = routing; Analysis = analysis;
+        if (new[] { routing is not null, analysis is not null, measurementGroup is not null }.Count(v => v) > 1) throw new ArgumentException("A row has one provenance kind: electrode reading, sample analysis or measurement point.");
+        Timestamp = timestamp; Routing = routing; Analysis = analysis; MeasurementGroup = measurementGroup;
         Values = new ReadOnlyDictionary<ParameterId, Quantity>(new Dictionary<ParameterId, Quantity>(values));
     }
 
@@ -33,13 +33,14 @@ public sealed record MeasurementDataRow
     public IReadOnlyDictionary<ParameterId, Quantity> Values { get; }
     public ResolvedSampleRoute? Routing { get; }
     public SampleAnalysisSummary? Analysis { get; }
+    public MeasurementGroupSummary? MeasurementGroup { get; }
 }
 
 public sealed class RunDataSet
 {
     private readonly object gate = new();
     private readonly List<MeasurementDataRow> rows = [];
-    private readonly SampleAnalysisRowValidator analysisValidator;
+    private readonly RunDataRowValidator rowValidator;
     private MeasurementRunState state = MeasurementRunState.Running;
     private DateTimeOffset? finishedAt;
 
@@ -62,7 +63,7 @@ public sealed class RunDataSet
         Recipe = new ReadOnlyDictionary<string, Quantity>(new Dictionary<string, Quantity>(recipe));
         Instruments = Array.AsReadOnly(snapshots);
         Plan = plan; Metadata = metadata ?? RunMetadata.Empty;
-        analysisValidator = new(plan, schema);
+        rowValidator = new(plan, schema);
     }
 
     public const int FormatVersion = 1;
@@ -92,7 +93,7 @@ public sealed class RunDataSet
         lock (gate)
         {
             if (state != MeasurementRunState.Running) throw new InvalidOperationException("A finalized data set cannot accept rows.");
-            analysisValidator.Append(row);
+            rowValidator.Append(row);
             rows.Add(row);
         }
     }

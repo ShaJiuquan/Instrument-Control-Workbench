@@ -21,6 +21,10 @@ public sealed partial class JsonExperimentPlanDocument
             case ReadSourceSenseStep pair:
                 o["kind"] = "read_source_sense"; o["device"] = pair.Device.Value; o["function"] = pair.Function.ToString();
                 o["voltageColumn"] = pair.VoltageColumn.Value; o["currentColumn"] = pair.CurrentColumn.Value; break;
+            case MeasurementGroupStep point:
+                o["kind"] = "measurement_group"; var members = new JsonArray();
+                foreach (var member in point.Members) members.Add(new JsonObject { ["label"] = member.Label, ["body"] = EncodeStep(member.Body, depth + 1, ref count) });
+                o["members"] = members; break;
             case SampleAnalysisStep group:
                 o["kind"] = "sample_analysis";
                 var readings = new JsonArray();
@@ -104,6 +108,14 @@ public sealed partial class JsonExperimentPlanDocument
             case "read_source_sense":
                 Object(o, "id", "kind", "device", "function", "voltageColumn", "currentColumn");
                 return new ReadSourceSenseStep(id, new(Text(o, "device")), NamedEnum<SourceFunction>(o, "function"), new(Text(o, "voltageColumn")), new(Text(o, "currentColumn")));
+            case "measurement_group":
+                Object(o, "id", "kind", "members"); var pointMembers = new List<MeasurementGroupMember>();
+                foreach (var value in Array(Required(o, "members")))
+                {
+                    var member = Object(value, "label", "body");
+                    pointMembers.Add(new(Text(member, "label"), DecodeStep(Required(member, "body"), depth + 1, ref count)));
+                }
+                return new MeasurementGroupStep(id, pointMembers);
             case "sample_analysis":
                 Object(o, "id", "kind", "readings", "columns");
                 var groupReadings = new List<ReadSampleResistanceStep>();

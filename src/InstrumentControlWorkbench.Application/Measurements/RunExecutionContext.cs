@@ -41,6 +41,7 @@ internal sealed class RunExecutionContext : IDisposable
     public TimeSpan ActiveElapsed => Elapsed.Elapsed - PausedDuration;
     public int PauseVersion { get; set; }
     public int RowsAcquired { get; set; }
+    public List<MeasurementDataRow>? MeasurementInputs { get; set; }
     public long ExecutedSteps { get; set; }
     public RunDataSet? DataSet { get; set; }
     public IReadOnlyDictionary<StepId, ResolvedSampleRoute> SampleRoutes { get; set; } = new Dictionary<StepId, ResolvedSampleRoute>();

@@ -26,7 +26,7 @@ public sealed partial class FileRunArchive : IRunArchive, IAsyncDisposable
         if (dataSet.State != MeasurementRunState.Running || dataSet.FinishedAt is not null || dataSet.Rows.Count != 0)
             throw new ArgumentException("An archive starts with an empty acquiring data set.", nameof(dataSet));
         var bytes = RunArchiveJson.Encode(RunArchiveJson.HeaderDto.From(dataSet));
-        var analysis = new SampleAnalysisRowValidator(dataSet.Plan, dataSet.Schema);
+        var analysis = new RunDataRowValidator(dataSet.Plan, dataSet.Schema);
         await lifetimeGate.WaitAsync(token);
         try
         {
@@ -161,7 +161,7 @@ public sealed partial class FileRunArchive : IRunArchive, IAsyncDisposable
         if (error is not null) ExceptionDispatchInfo.Capture(error).Throw();
     }
 
-    private sealed class Writer(FileStream stream, byte[] header, DataSetSchema schema, ExperimentPlan? plan, SampleAnalysisRowValidator analysis) : IAsyncDisposable
+    private sealed class Writer(FileStream stream, byte[] header, DataSetSchema schema, ExperimentPlan? plan, RunDataRowValidator analysis) : IAsyncDisposable
     {
         public FileStream Stream { get; } = stream;
         public byte[] Header { get; } = header;

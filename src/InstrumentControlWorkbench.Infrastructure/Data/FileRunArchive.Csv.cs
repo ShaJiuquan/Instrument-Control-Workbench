@@ -27,6 +27,7 @@ public sealed partial class FileRunArchive
             await using (var writer = new StreamWriter(stream, new UTF8Encoding(false)))
             {
                 var header = metadata.Header;
+                var hasMeasurementGroups = new RunDataRowValidator(header.Plan, header.Schema).HasMeasurementGroups;
                 var hasAnalysis = new SampleAnalysisRowValidator(header.Plan, header.Schema).HasGroups;
                 await WriteCsvAsync(writer, ["# format", "instrument-workbench-csv", "1"], token);
                 await WriteCsvAsync(writer, ["# run_id", id.ToString()], token);
@@ -41,7 +42,8 @@ public sealed partial class FileRunArchive
                 await WriteCsvAsync(writer, ["# plan_json", header.Plan is null ? "" : new JsonExperimentPlanDocument().Serialize(header.Plan)], token);
                 await WriteCsvAsync(writer, ["row", "timestamp", .. header.Schema.Columns.Select(c => $"{c.Parameter.Id} [{c.Parameter.Unit}]"),
                     .. header.Plan?.Routing is null ? Array.Empty<string>() : new[] { "routing_json" },
-                    .. hasAnalysis ? new[] { "analysis_json" } : Array.Empty<string>()], token);
+                    .. hasAnalysis ? new[] { "analysis_json" } : Array.Empty<string>(),
+                    .. hasMeasurementGroups ? new[] { "measurement_group_json" } : Array.Empty<string>()], token);
                 var count = 0;
                 var cursor = new ReadCursor();
                 await foreach (var row in ReadRowsAsync(metadata, cursor, token))
@@ -49,7 +51,8 @@ public sealed partial class FileRunArchive
                         .. header.Schema.Columns.Select(c => row.Values.TryGetValue(c.Parameter.Id, out var value)
                             ? value.Value.ToString("R", CultureInfo.InvariantCulture) : ""),
                         .. header.Plan?.Routing is null ? Array.Empty<string>() : new[] { row.Routing is null ? "" : JsonSerializer.Serialize(RunArchiveJson.SampleRouteDto.From(row.Routing), RunArchiveJson.Options) },
-                        .. hasAnalysis ? new[] { row.Analysis is null ? "" : JsonSerializer.Serialize(RunArchiveJson.SampleAnalysisDto.From(row.Analysis), RunArchiveJson.Options) } : Array.Empty<string>()], token);
+                        .. hasAnalysis ? new[] { row.Analysis is null ? "" : JsonSerializer.Serialize(RunArchiveJson.SampleAnalysisDto.From(row.Analysis), RunArchiveJson.Options) } : Array.Empty<string>(),
+                        .. hasMeasurementGroups ? new[] { row.MeasurementGroup is null ? "" : JsonSerializer.Serialize(RunArchiveJson.MeasurementGroupDto.From(row.MeasurementGroup), RunArchiveJson.Options) } : Array.Empty<string>()], token);
                 if (cursor.HasIncompleteTail) await WriteCsvAsync(writer, ["# incomplete_tail", "The unfinished last record was excluded."], token);
                 await writer.FlushAsync(token);
             }

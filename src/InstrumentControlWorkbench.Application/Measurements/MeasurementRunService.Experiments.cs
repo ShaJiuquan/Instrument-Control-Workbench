@@ -25,6 +25,8 @@ public sealed partial class MeasurementRunService
             RunId: run.Id.ToString(), Step: step.Id), run.Token);
         switch (step)
         {
+            case MeasurementGroupStep point:
+                await ExecuteMeasurementGroupAsync(point, run, started, ivPlot); break;
             case SampleAnalysisStep analysis:
                 await ExecuteSampleAnalysisAsync(analysis, run, started);
                 break;
@@ -151,6 +153,7 @@ public sealed partial class MeasurementRunService
     private async Task CommitRowAsync(MeasurementDataRow row, StepId step, RunExecutionContext run, IReadOnlyList<IRunResultListener> started)
     {
         run.DataSet!.Append(row); run.RowsAcquired++;
+        run.MeasurementInputs?.Add(row);
         // Commit to local history first even if an external listener cancels.
         foreach (var listener in started)
             await listener.OnRowAsync(run.Id, row, listener == History ? CancellationToken.None : run.Token);

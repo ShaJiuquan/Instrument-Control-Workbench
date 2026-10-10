@@ -263,7 +263,7 @@ public sealed class PpmsResistanceImportTests
         Assert.False((await b.Source.GetSnapshotAsync(Token)).OutputEnabled); Assert.Empty((await b.Matrix.GetSnapshotAsync(Token)).Closed);
     }
     [Fact]
-    public async Task ActualMixedSampleRuntimeFileExecutesTwentySixRowsAndReopensNativeArchive()
+    public async Task ActualMixedSampleRuntimeFileExecutesTwentyEightRowsAndReopensNativeArchive()
     {
         var folder = Path.Combine(Path.GetTempPath(), $"ppms-sample-import-{Guid.NewGuid():N}");
         try
@@ -275,16 +275,28 @@ public sealed class PpmsResistanceImportTests
                 var document = await b.Workspace.ImportAsync(Path.Combine(AppContext.BaseDirectory, "plans", "ppms-field-samples-import.json"), b.Bindings, Token);
                 var native = Path.Combine(folder, "sample.plan.json"); await b.Workspace.SaveAsync(native, document.Text, Token);
                 await b.Runs.StartPlanAsync((await b.Workspace.LoadAsync(native, Token)).Plan, Token);
-                var data = b.Runs.LatestDataSet!; Assert.Equal(26, data.Rows.Count); Assert.Equal(4, data.Rows.Count(r => r.Analysis is not null));
+                var data = b.Runs.LatestDataSet!; Assert.Equal(28, data.Rows.Count); Assert.Equal(26, data.Rows.Count(r => r.MeasurementGroup is null)); Assert.Equal(2, data.Rows.Count(r => r.MeasurementGroup is not null)); Assert.Equal(4, data.Rows.Count(r => r.Analysis is not null));
+                var points = data.Rows.Where(r => r.MeasurementGroup is not null).ToArray();
+                Assert.Equal(new[] { 1, 15 }, points.Select(p => p.MeasurementGroup!.Inputs[0].FirstInputRow));
+                Assert.All(points, point =>
+                {
+                    Assert.Equal(new[] { 1, 3, 9 }, point.MeasurementGroup!.Inputs.Select(i => i.InputCount));
+                    var first = point.MeasurementGroup.Inputs[0].FirstInputRow - 1;
+                    Assert.Equal(data.Rows[first].Timestamp, point.Timestamp);
+                    Assert.Equal(data.Rows[first].Values[new("elapsed")], point.Values[new("elapsed")]);
+                    foreach (var member in point.MeasurementGroup.Inputs)
+                        foreach (var value in data.Rows[member.FirstInputRow + member.InputCount - 2].Values.Where(v => v.Key.Value != "elapsed"))
+                            Assert.Equal(value.Value, point.Values[value.Key]);
+                });
                 Assert.Equal(new[] { "sample1", "sample2", "sample3" }, data.Rows.Where(r => r.Routing is not null).Select(r => r.Routing!.Binding.Sample.Value).Distinct());
                 Assert.All(data.Rows, row => data.Schema.ValidateRow(row)); Assert.Equal(3, data.Instruments.Count);
                 Assert.False((await b.Source.GetSnapshotAsync(Token)).OutputEnabled); Assert.Empty((await b.Matrix.GetSnapshotAsync(Token)).Closed); id = data.Id;
             }
             await using var reopened = new FileRunArchive(Path.Combine(folder, "runs")); var stored = await reopened.LoadAsync(id, Token);
-            Assert.Equal(26, stored.DataSet.Rows.Count); Assert.Equal(4, stored.DataSet.Plan!.Metadata["ppms.root.0.2.source_line"].Value);
-            var fresh = new Bench(); await fresh.Runs.StartPlanAsync(stored.DataSet.Plan!, Token); Assert.Equal(26, fresh.Runs.LatestDataSet!.Rows.Count);
+            Assert.Equal(28, stored.DataSet.Rows.Count); Assert.Equal(4, stored.DataSet.Plan!.Metadata["ppms.root.0.2.source_line"].Value);
+            var fresh = new Bench(); await fresh.Runs.StartPlanAsync(stored.DataSet.Plan!, Token); Assert.Equal(28, fresh.Runs.LatestDataSet!.Rows.Count);
             var csv = Path.Combine(folder, "sample.csv"); await reopened.ExportCsvAsync(id, csv, Token); var text = await File.ReadAllTextAsync(csv);
-            Assert.Contains("routing_json", text); Assert.Contains("analysis_json", text); Assert.Contains("HallLongitudinal", text); Assert.Contains("VdpCbAd", text);
+            Assert.Contains("routing_json", text); Assert.Contains("analysis_json", text); Assert.Contains("measurement_group_json", text); Assert.Contains("HallLongitudinal", text); Assert.Contains("VdpCbAd", text);
         }
         finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
     }

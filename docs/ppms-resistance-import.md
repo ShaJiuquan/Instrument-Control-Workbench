@@ -109,7 +109,8 @@ atomic and cannot replace a hardware interlock.
 The runnable [field/sample runtime tree](../examples/plans/ppms-field-samples-import.json)
 uses real schema keys and source lines. It acquires two fields × (one four-wire
 raw row + two Hall raw rows and summary + eight vdP raw rows and summary),
-26 rows in total. Native disk save/load, fresh archive reopening, re-execution
+26 acquisition/analysis records plus two scan-point summaries, 28 rows in total
+(see measurement-groups.md). Native disk save/load, fresh archive reopening, re-execution
 and quoted routing/analysis CSV all preserve the result. Tests also cover
 aliases, prepared sensing modes, managed voltage scans, managed-channel mismatch,
 source-scan context lifetime, numeric parsing, invalid/coupled limits, pause,
@@ -118,8 +119,8 @@ original-plus-stop-failure ownership/recovery.
 
 PPMS file conversion now supplies these bindings (see ppms-profile-import.md).
 Persistent profile editing and the remaining
-resistance modes and source/meter roles, environment columns, consecutive-read
-aggregation, manual ranges/quality, dynamic preparation, settings/visual editor
+resistance modes and source/meter roles, automatic environment columns,
+manual ranges/quality, dynamic preparation, settings/visual editor
 and physical hardware remain required. Native row layouts and explicit analysis
 summaries are not claimed as byte-for-byte Rust CSV compatibility. This is
 simulated runtime import acceptance within the full migration goal.

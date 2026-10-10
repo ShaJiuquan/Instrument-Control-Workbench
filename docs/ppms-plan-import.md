@@ -67,8 +67,10 @@ routed acquisition and source/meter combinations remain migration work.
 | resistance / measure_r and aliases, mode=volt_dc | Owned channel or source-scan-managed coherent V/I/R, verified routing and output settling |
 | meas_r_sample / 2w / 4w / hallbar / vdp and aliases, mode=volt_dc | Frozen sample/wiring resolution, role-specific raw V/I/R, complete Hall/vdP analysis groups |
 
-The importer retains individual measurement rows with active nested axes. It does
-not implement Rust's consecutive-measurement aggregation into a single scan row.
+The importer retains individual measurement rows with active nested axes and adds
+a complete wide point for consecutive scan measurements. Scan-local parallel
+wrappers join this collection in authored order. See
+[measurement-groups.md](measurement-groups.md) for input identity and boundaries.
 Standalone meter reads remain sequential; coherent native IV/source-sense reads
 are a separate implemented step. Filtering/manual ranges are rejected, and auto
 range is only accepted with an explicitly auto-ranged sense preparation. Auto source-range selection is accepted as the current simulation profile
@@ -108,8 +110,8 @@ live-origin failures, mode confirmation, pause/resume, cleanup and limitations.
 
 Continuous/ramp/cooling modes, disabled temperature-control settings,
 persistent magnet transitions, quench operations, state-based environment wait
-commands, conditional/parallel/retry/race/for_each BT semantics, measurement
-aggregation, remaining resistance modes/persistent profile editing, filtering, manual ranges, changed source
+commands, conditional/general parallel/retry/race/for_each BT semantics, automatic
+environment recording, remaining resistance modes/persistent profile editing, filtering, manual ranges, changed source
 functions, segment settle/mirror/repeat modifiers and additional instrument
 families remain required. They produce an import error, not a no-op or silent
 fallback. Numeric stability on bound controller ports does
@@ -148,7 +150,8 @@ existing integrated source meter. Other resistance modes keep their original
 identity and reject until their actual source/meter execution paths exist.
 
 The [field/sample runtime file](../examples/plans/ppms-field-samples-import.json)
-executes 26 rows across two fields and three sample topologies, preserving raw
+executes 28 rows (26 acquisition/analysis records plus two scan points) across
+two fields and three sample topologies, preserving raw
 routes, complete-group analysis, native save/load, fresh archive/re-execution
 and CSV. These supplied four-terminal profiles are simulations; the bundled
 PPMS physical K2450 wiring is two-wire and cannot establish four-terminal

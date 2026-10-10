@@ -86,16 +86,23 @@ internal static partial class RunArchiveJson
     }
     internal sealed record RowDto(int Index, DateTimeOffset Timestamp, Dictionary<string, QuantityDto> Values,
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] SampleRouteDto? Routing = null,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] SampleAnalysisDto? Analysis = null)
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] SampleAnalysisDto? Analysis = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] MeasurementGroupDto? MeasurementGroup = null)
     {
-        public MeasurementDataRow ToDomain() => new(Timestamp, Required(Values).ToDictionary(p => new ParameterId(p.Key), p => Required(p.Value).ToDomain()), Routing?.ToDomain(), Analysis?.ToDomain());
+        public MeasurementDataRow ToDomain() => new(Timestamp, Required(Values).ToDictionary(p => new ParameterId(p.Key), p => Required(p.Value).ToDomain()), Routing?.ToDomain(), Analysis?.ToDomain(), MeasurementGroup?.ToDomain());
         public static RowDto From(int index, MeasurementDataRow row) => new(index, row.Timestamp,
-            row.Values.OrderBy(p => p.Key.Value, StringComparer.Ordinal).ToDictionary(p => p.Key.Value, p => QuantityDto.From(p.Value)), row.Routing is null ? null : SampleRouteDto.From(row.Routing), row.Analysis is null ? null : SampleAnalysisDto.From(row.Analysis));
+            row.Values.OrderBy(p => p.Key.Value, StringComparer.Ordinal).ToDictionary(p => p.Key.Value, p => QuantityDto.From(p.Value)), row.Routing is null ? null : SampleRouteDto.From(row.Routing), row.Analysis is null ? null : SampleAnalysisDto.From(row.Analysis), row.MeasurementGroup is null ? null : MeasurementGroupDto.From(row.MeasurementGroup));
     }
     internal sealed record SampleAnalysisDto(string Step, int FirstInputRow, int InputCount, SampleAnalysisIssues Issues, int AlgorithmVersion)
     {
         public SampleAnalysisSummary ToDomain() => new(new(Step), FirstInputRow, InputCount, Issues, AlgorithmVersion);
         public static SampleAnalysisDto From(SampleAnalysisSummary summary) => new(summary.Step.Value, summary.FirstInputRow, summary.InputCount, summary.Issues, summary.AlgorithmVersion);
+    }
+    internal sealed record MeasurementGroupInputDto(string Label, int FirstInputRow, int InputCount);
+    internal sealed record MeasurementGroupDto(string Step, MeasurementGroupInputDto[] Inputs)
+    {
+        public MeasurementGroupSummary ToDomain() => new(new(Step), Required(Inputs).Select(i => new MeasurementGroupInput(Required(i).Label, i.FirstInputRow, i.InputCount)));
+        public static MeasurementGroupDto From(MeasurementGroupSummary group) => new(group.Step.Value, group.Inputs.Select(i => new MeasurementGroupInputDto(i.Label, i.FirstInputRow, i.InputCount)).ToArray());
     }
     internal sealed record FinalDto(string Format, int Version, Guid Id, MeasurementRunState State, DateTimeOffset FinishedAt, int RowCount, long DataBytes, string Sha256);
 

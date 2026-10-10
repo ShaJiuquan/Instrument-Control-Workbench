@@ -67,7 +67,7 @@ public sealed partial class FileRunArchive
         using var frame = new MemoryStream();
         var buffer = new byte[8192];
         var count = 0;
-        var analysis = new SampleAnalysisRowValidator(metadata.Header.Plan, metadata.Header.Schema);
+        var analysis = new RunDataRowValidator(metadata.Header.Plan, metadata.Header.Schema);
         long read = 0;
         while (read < boundary)
         {

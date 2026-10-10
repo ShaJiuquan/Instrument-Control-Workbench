@@ -52,6 +52,7 @@ public sealed class SampleAnalysisRowValidator
                     if (!groups.TryAdd(group.Id, group)) throw new ArgumentException("Duplicate sample analysis step ID.", nameof(plan));
                     foreach (var read in group.Readings) pending.Push((read, item.Depth + 1));
                     break;
+                case MeasurementGroupStep point: foreach (var member in point.Members) pending.Push((member.Body, item.Depth + 1)); break;
                 case SequenceStep sequence: foreach (var child in sequence.Children) pending.Push((child, item.Depth + 1)); break;
                 case ScanStep scan: pending.Push((scan.Body, item.Depth + 1)); break;
                 case ForEachStep loop: pending.Push((loop.Body, item.Depth + 1)); break;
@@ -111,7 +112,11 @@ public sealed class SampleAnalysisRowValidator
     }
     public void Append(MeasurementDataRow row)
     {
-        Validate(row); count++;
+        Validate(row); AppendValidated(row);
+    }
+    internal void AppendValidated(MeasurementDataRow row)
+    {
+        count++;
         if (groups.Count == 0) return;
         recent.Enqueue(row); if (recent.Count > 8) recent.Dequeue();
     }

@@ -297,7 +297,7 @@ implementation.
   budgets as well as the raw tree. Invalid fields/functions/ranges/routes fail
   before IO; workspace capability preflight is still required after parsing.
 - Controller-status waits, persistent mode,
-  remaining BT semantics, aggregation, remaining resistance modes/persistent profile editing, ranges/filtering,
+  remaining BT semantics, automatic environment recording, remaining resistance modes/persistent profile editing, ranges/filtering,
   separate meter families, text DSL/database export and hardware remain required.
   See ppms-plan-import.md and the six-row field/voltage import acceptance.
 
@@ -345,12 +345,13 @@ implementation.
   Sample measurements reject enclosing scans of that same source, consistent
   with their required cleanup ownership. Explicit managed reads need source
   enable earlier in the same admitted plan; they do not adopt a manual output.
-- The two-field/three-sample file produces 26 rows, including full Hall/vdP
+- The two-field/three-sample file produces 26 acquisition/analysis rows plus two
+  scan-point summaries (28 total), including full Hall/vdP
   summaries and raw route identity; disk plans, fresh archives, re-execution and
   CSV pass. Partial/faulted groups retain raw rows without fabricated summaries;
   original and cleanup failures keep resources for recovery. See
   ppms-resistance-import.md. Persistent profile editing, remaining acquisition modes,
-  environment columns/aggregation, settings/UI and hardware remain required.
+  automatic environment columns, settings/UI and hardware remain required.
 
 ## PPMS routing configuration import follow-up
 
@@ -375,10 +376,33 @@ implementation.
 - All four channel roles, polarity separation and four-wire independence are
   enforced. Selected volt_dc channel wiring must match the authored mode map;
   whole-plan card/device/sense/resource preflight still precedes connection.
-- The profile fixtures are newly authored simulation data. The existing 26-row
-  field/sample tree now imports with these files and saves/reopens/re-executes
+- The profile fixtures are newly authored simulation data. The field/sample tree
+  now retains 26 original records plus two scan points (28 total), imports with
+  these files and saves/reopens/re-executes
   native plans and archives with metadata. Local read-only actual-file acceptance
   parsed six channels/samples/wirings and eight modes and round-tripped the native
   plan without hardware. Bundled K2450 shared force/sense ports are preserved.
   Settings/profile editing, remaining modes/runtime flags, UI/physical transport
   and hardware still require work. See ppms-profile-import.md.
+
+## Scan-point measurement aggregation follow-up
+
+- MeasurementGroupStep executes labeled members through the existing interpreter.
+  Scan import collects consecutive measurements and unwraps scan-local parallel
+  wrappers in authored order. General parallel IO remains unsupported. Single
+  measurements keep their existing row layout; non-measurements flush collection.
+- Raw rows and existing Hall/vdP analysis remain independent evidence. Complete
+  wide points copy member final results and first-input timestamp/elapsed, with
+  one-based contiguous input ranges and collision-safe repeated display labels.
+  Distinct result columns, 2..64 members and <=1024 inputs are enforced.
+- RunDataRowValidator validates live append, archive writing and streaming reads;
+  it retains at most 1024 recent inputs. Forged values/time/labels/ranges and mixed
+  provenance reject, including unfinished archives without terminal checksums.
+  CSV includes optional measurement_group_json and preserves old exports on error.
+- Pause/resume preserves collector state. Abort/fault retains committed raw rows
+  and earlier points; read-plus-stop faults retain both errors and recovery
+  ownership. This is simulated acceptance, not physical acquisition simultaneity.
+- The field/sample fixture now yields 28 rows: 26 original records plus two
+  complete scan points. Automatic environment flags, general BT parallelism,
+  persistent editing/settings, visual acceptance and hardware remain required.
+  See measurement-groups.md; the full migration goal stays active.

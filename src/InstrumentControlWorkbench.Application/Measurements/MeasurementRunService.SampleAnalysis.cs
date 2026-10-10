@@ -28,6 +28,7 @@ public sealed partial class MeasurementRunService
             if (result.Values.TryGetValue(column.Kind, out var value)) values.Add(column.Column, value);
         var row = new MeasurementDataRow(DateTimeOffset.UtcNow, values, analysis: new(step.Id, firstInput, step.Readings.Count, result.Issues));
         run.DataSet.Append(row); run.RowsAcquired++;
+        run.MeasurementInputs?.Add(row);
         foreach (var column in step.Columns)
             if (result.Values.TryGetValue(column.Kind, out var value)) run.Variables[column.Column] = value;
             else run.Variables.Remove(column.Column);

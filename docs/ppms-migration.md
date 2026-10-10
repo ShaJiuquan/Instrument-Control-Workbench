@@ -179,18 +179,26 @@ Avalonia views -> ViewModels -> Application use cases -> Core contracts
    The resistance/sample follow-up translates current registry/schema aliases,
    volt_dc parameters and frozen sample-mode wiring into ordinary owned or
    scan-managed V/I/R and full Hall/vdP groups. Post-enable sampling waits and
-   explicit route verification are separate from relay settling. The 26-row
-   field/sample file saves, archives, reopens, re-executes and exports. Other
-   current/AC acquisition roles, persistent profile editing, measurement aggregation,
+   explicit route verification are separate from relay settling. The field/sample
+   file now retains 26 original records plus two scan points,
+   28 rows in total, and saves, archives, reopens, re-executes and exports. Other
+   current/AC acquisition roles, persistent profile editing, automatic environment recording,
    settings/UI and physical hardware remain required. See
    ppms-resistance-import.md, ppms-plan-import.md and temperature-control.md.
    The profile-file follow-up parses all three routing schemas, preserves authored
    metadata and unbound physical families in a frozen catalog, and binds explicit
    supported devices. Channel/sample aliases resolve without duplicate route maps.
-   The 26-row file now executes from imported profiles and round-trips metadata in
+   The field/sample file now executes 28 rows from imported profiles and
+   round-trips metadata in
    native plans/archives. Actual bundled files were parsed and converted locally
    without hardware. Editing/settings, remaining runtime flags/families and
    hardware remain required. See ppms-profile-import.md.
+   The measurement-group follow-up collects consecutive scan measurements and
+   scan-local parallel wrappers into complete wide points with bounded input
+   identity. Raw/analysis rows, partial failures and resource recovery are retained;
+   live append, archive writers/readers and streamed CSV validate point evidence.
+   General parallel IO, automatic environment flags and visual filtering remain
+   pending. See measurement-groups.md.
 7. **Operator workflows — pending.** Flow editor, reusable steps, device panels,
    routing/sample settings and live/history views connected to the backend.
 8. **Acceptance — pending.** End-to-end representative PPMS experiments,
