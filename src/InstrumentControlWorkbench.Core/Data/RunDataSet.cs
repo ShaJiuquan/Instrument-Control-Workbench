@@ -21,11 +21,15 @@ public sealed record RunId
 
 public sealed record MeasurementDataRow
 {
-    public MeasurementDataRow(DateTimeOffset timestamp, IReadOnlyDictionary<ParameterId, Quantity> values, ResolvedSampleRoute? routing = null, SampleAnalysisSummary? analysis = null, MeasurementGroupSummary? measurementGroup = null)
+    public MeasurementDataRow(DateTimeOffset timestamp, IReadOnlyDictionary<ParameterId, Quantity> values, ResolvedSampleRoute? routing = null, SampleAnalysisSummary? analysis = null, MeasurementGroupSummary? measurementGroup = null, IEnumerable<EnvironmentObservation>? environment = null)
     {
         ArgumentNullException.ThrowIfNull(values);
         if (new[] { routing is not null, analysis is not null, measurementGroup is not null }.Count(v => v) > 1) throw new ArgumentException("A row has one provenance kind: electrode reading, sample analysis or measurement point.");
         Timestamp = timestamp; Routing = routing; Analysis = analysis; MeasurementGroup = measurementGroup;
+        var observations = environment?.ToArray() ?? [];
+        if (observations.Length > 192 || observations.Any(o => o is null) || observations.Select(o => o.Column).Distinct().Count() != observations.Length)
+            throw new ArgumentException("Environment evidence requires bounded distinct column observations.");
+        Environment = Array.AsReadOnly(observations);
         Values = new ReadOnlyDictionary<ParameterId, Quantity>(new Dictionary<ParameterId, Quantity>(values));
     }
 
@@ -34,6 +38,7 @@ public sealed record MeasurementDataRow
     public ResolvedSampleRoute? Routing { get; }
     public SampleAnalysisSummary? Analysis { get; }
     public MeasurementGroupSummary? MeasurementGroup { get; }
+    public IReadOnlyList<EnvironmentObservation> Environment { get; }
 }
 
 public sealed class RunDataSet

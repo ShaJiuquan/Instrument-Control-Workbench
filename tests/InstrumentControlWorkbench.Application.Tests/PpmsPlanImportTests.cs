@@ -37,7 +37,7 @@ public sealed class PpmsPlanImportTests
                 Assert.Contains("route_matrix", document.Text); Assert.DoesNotContain("meas_type", document.Text);
                 var path = Path.Combine(folder, "converted.plan.json"); await b.Workspace.SaveAsync(path, document.Text, Token);
                 var native = await b.Workspace.LoadAsync(path, Token); await b.Runs.StartPlanAsync(native.Plan, Token);
-                var data = b.Runs.LatestDataSet!; Assert.Equal(6, data.Rows.Count); Assert.Equal(3, data.Instruments.Count);
+                var data = b.Runs.LatestDataSet!; Assert.Equal(6, data.Rows.Count); Assert.Equal(5, data.Instruments.Count); Assert.All(data.Rows, row => Assert.Equal(3, row.Environment.Count));
                 Assert.Equal(new[] { 0.0, 0, 0, 0.01, 0.01, 0.01 }, data.Rows.Select(r => r.Values[new("ppms.root.0.axis")].Value));
                 Assert.Equal(new[] { -0.01, 0, 0.01, -0.01, 0, 0.01 }, data.Rows.Select(r => r.Values[new("ppms.root.0.0.axis")].Value));
                 Assert.All(data.Rows, row => { Assert.True(row.Values.ContainsKey(new("ppms.root.0.0.0.value"))); data.Schema.ValidateRow(row); });
@@ -67,7 +67,7 @@ public sealed class PpmsPlanImportTests
                 Assert.False((await b.Temperature.GetSnapshotAsync(Token)).Connected);
                 var nativePath = Path.Combine(folder, "converted.plan.json"); await b.Workspace.SaveAsync(nativePath, document.Text, Token);
                 await b.Runs.StartPlanAsync((await b.Workspace.LoadAsync(nativePath, Token)).Plan, Token);
-                var data = b.Runs.LatestDataSet!; Assert.Equal(12, data.Rows.Count); Assert.Equal(4, data.Instruments.Count);
+                var data = b.Runs.LatestDataSet!; Assert.Equal(12, data.Rows.Count); Assert.Equal(5, data.Instruments.Count); Assert.All(data.Rows, row => Assert.Equal(3, row.Environment.Count));
                 Assert.Equal(new[] { 300.0, 300, 300, 300, 300.01, 300.01, 300.01, 300.01, 300.02, 300.02, 300.02, 300.02 }, data.Rows.Select(r => r.Values[new("ppms.root.0.axis")].Value));
                 Assert.All(data.Rows, row => { Assert.Equal(3, row.Values[new("ppms.root.0.axis.total")].Value); data.Schema.ValidateRow(row); });
                 var controller = await b.Temperature.GetSnapshotAsync(Token); Assert.Equal(controller.Readback, controller.Target); Assert.False(controller.Moving);

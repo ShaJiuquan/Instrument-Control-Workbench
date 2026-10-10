@@ -26,7 +26,7 @@ public sealed partial class PpmsExperimentPlanImporter
             if (p[optional] is null) p.Remove(optional);
         Choice(p, "source_range_v", "auto", "auto"); Choice(p, "meter_range_a", "auto", "auto");
         foreach (var environment in new[] { "record_temperature", "record_field", "record_angle" })
-            if (Boolean(p, environment, false)) throw new NotSupportedException("Environment columns in a resistance acquisition remain pending.");
+            _ = Boolean(p, environment, false); // Current Rust captures all three; these are legacy authoring flags.
         if (ResistanceNumber(p, "sense_channel", 1) != 1) throw new NotSupportedException("Only the primary integrated meter input is migrated.");
         var source = Source(new JsonObject { ["instrument"] = "k2450" }, c, SourceFunction.Voltage);
         foreach (var role in new[] { "source_instrument", "meter_instrument", "reference_instrument", "lock_in_instrument", "voltage_source_instrument", "current_meter_instrument" })
@@ -74,6 +74,7 @@ public sealed partial class PpmsExperimentPlanImporter
         }
         steps.Add(Write(path + ".nplc", source.Device, Keithley2450Parameters.Nplc, nplc));
         var minimum = new Quantity(2.220446049250313e-16, PhysicalUnit.Ampere); // Rust f64::EPSILON, not .NET double.Epsilon.
+        var environmentReads = MeasurementEnvironment(path, c);
         if (sample is not null)
         {
             var binding = c.Bindings.Samples!;
@@ -85,7 +86,7 @@ public sealed partial class PpmsExperimentPlanImporter
                 _ => SampleResistanceAnalysis.Selections(sample.Topology).ToArray(),
             };
             var reads = selections.Select((selection, index) => new ReadSampleResistanceStep(
-                new(new(path + ".read." + index), source.Device, SourceFunction.Voltage, new(path + ".V_V"), new(path + ".I_A"), new(path + ".R_ohms"), minimum),
+                new(new(path + ".read." + index), source.Device, SourceFunction.Voltage, new(path + ".V_V"), new(path + ".I_A"), new(path + ".R_ohms"), minimum, environmentReads),
                 new(sample.Id, wiring, selection), binding.RouteSettle, acquisitionSettle: settle)).ToArray();
             if (sample.Topology is SampleTopology.HallBar or SampleTopology.VanDerPauw)
                 steps.Add(new SampleAnalysisStep(new(path + ".analysis"), reads,
@@ -97,7 +98,7 @@ public sealed partial class PpmsExperimentPlanImporter
             if (!managed) steps.Add(new SourceOutputStep(new(path + ".on"), source.Device, true));
             steps.Add(new DelayStep(new(path + ".settle"), settle));
             if (route is not null) steps.Add(new VerifyMatrixRouteStep(new(path + ".verify"), route.Device, route.Closed));
-            steps.Add(new ReadResistanceStep(new(path + ".read"), source.Device, SourceFunction.Voltage, new(path + ".V_V"), new(path + ".I_A"), new(path + ".R_ohms"), minimum));
+            steps.Add(new ReadResistanceStep(new(path + ".read"), source.Device, SourceFunction.Voltage, new(path + ".V_V"), new(path + ".I_A"), new(path + ".R_ohms"), minimum, environmentReads));
             if (!managed) steps.Add(new SourceOutputStep(new(path + ".done"), source.Device, false));
         }
         return new SequenceStep(new(path), steps);

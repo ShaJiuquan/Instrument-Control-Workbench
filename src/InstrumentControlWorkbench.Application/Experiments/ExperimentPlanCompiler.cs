@@ -26,6 +26,8 @@ internal static class ExperimentPlanCompiler
         var devices = registry.Devices.ToDictionary(d => d.Id);
         var needed = new HashSet<InstrumentId>();
         var columns = new Dictionary<ParameterId, DataColumn> { [Elapsed.Id] = new(Elapsed) };
+        var environmentColumns = new HashSet<ParameterId>();
+        var environmentPolicies = new Dictionary<ParameterId, IReadOnlyList<EnvironmentRead>>();
         var steps = new HashSet<StepId>();
         var variables = new Dictionary<ParameterId, PhysicalUnit>();
         var preparations = plan.Preparations.ToDictionary(p => p.Device);
@@ -99,17 +101,19 @@ internal static class ExperimentPlanCompiler
             if (known.TryGetValue(id, out var existing) && existing != unit) throw new ArgumentException($"Variable {id} cannot change units.");
             known[id] = unit;
         }
-        void AddColumn(ParameterId id, ParameterDescriptor parameter, ParameterAddress? source, IReadOnlyList<ParameterId> dependencies)
+        void AddColumn(ParameterId id, ParameterDescriptor parameter, ParameterAddress? source, IReadOnlyList<ParameterId> dependencies, bool environment = false)
         {
             if (id == Elapsed.Id) throw new ArgumentException("The elapsed column is reserved.");
             var descriptor = new ParameterDescriptor(id, parameter.Label, parameter.Unit, ParameterAccess.Read, parameter.Minimum, parameter.Maximum);
             if (columns.TryGetValue(id, out var previous))
             {
+                if (environmentColumns.Contains(id) != environment) throw new ArgumentException("Environment and primary acquisition columns must remain distinct.");
                 if (previous.Parameter != descriptor || previous.Source != source || !previous.DependsOn.SequenceEqual(dependencies))
                     throw new ArgumentException($"Column {id} has inconsistent sources or scan dependencies; use a distinct column ID.");
                 return;
             }
             columns.Add(id, new(descriptor, dependencies, optional: true, source: source));
+            if (environment) environmentColumns.Add(id);
         }
         void CheckCondition(ValueCondition condition, Dictionary<ParameterId, PhysicalUnit> known)
         {
@@ -136,9 +140,34 @@ internal static class ExperimentPlanCompiler
         void ValidateResistance(ReadResistanceStep resistance, Dictionary<ParameterId, PhysicalUnit> known, IReadOnlyList<ParameterId> axes)
         {
             ValidateSourceSense(resistance.Device, resistance.Function, resistance.VoltageColumn, resistance.CurrentColumn, known, axes);
+            ValidateEnvironmentPolicy([resistance.VoltageColumn, resistance.CurrentColumn, resistance.ResistanceColumn], resistance.EnvironmentReads);
+            ValidateEnvironment(resistance.EnvironmentReads, axes);
             AddColumn(resistance.ResistanceColumn, new(resistance.ResistanceColumn, "Resistance (V/I)", PhysicalUnit.Ohm, ParameterAccess.Read),
                 null, [.. axes, Elapsed.Id, resistance.VoltageColumn, resistance.CurrentColumn]);
             BindVariable(resistance.ResistanceColumn, PhysicalUnit.Ohm, known);
+        }
+        void ValidateEnvironment(IReadOnlyList<EnvironmentRead> reads, IReadOnlyList<ParameterId> axes)
+        {
+            foreach (var read in reads)
+            {
+                var unit = EnvironmentRead.Unit(read.Role);
+                ParameterDescriptor descriptor = new(read.Column, read.Role + " readback", unit, ParameterAccess.Read);
+                if (read.Address is { } address)
+                {
+                    descriptor = Parameter(address, ParameterAccess.Read);
+                    var controller = registry.GetAxisDefinition(address.Device);
+                    if (controller.Readback.Id != address.Parameter || descriptor.Unit != unit)
+                        throw new ArgumentException("Environment capture requires the matching controller readback, never its target.");
+                }
+                AddColumn(read.Column, descriptor, read.Address, [.. axes, Elapsed.Id], environment: true);
+            }
+        }
+        void ValidateEnvironmentPolicy(IEnumerable<ParameterId> acquisitionColumns, IReadOnlyList<EnvironmentRead> reads)
+        {
+            foreach (var column in acquisitionColumns)
+                if (environmentPolicies.TryGetValue(column, out var previous) && !previous.SequenceEqual(reads))
+                    throw new ArgumentException("Shared acquisition columns require one consistent environment policy; use distinct IDs.");
+                else environmentPolicies[column] = reads;
         }
         long Visit(ExperimentStep step, Dictionary<ParameterId, PhysicalUnit> known, IReadOnlyList<ParameterId> axes, int depth)
         {
@@ -162,6 +191,8 @@ internal static class ExperimentPlanCompiler
                     return temperature.Rate is { } temperatureRate ? checked(1 + Math.Max(1, new TemperatureRampPath(controller.Target.Minimum!.Value, controller.Target.Maximum!.Value, temperatureRate).UpdateCount)) : 2;
                 case ReadSourceSenseStep pair:
                     ValidateSourceSense(pair.Device, pair.Function, pair.VoltageColumn, pair.CurrentColumn, known, axes);
+                    ValidateEnvironmentPolicy([pair.VoltageColumn, pair.CurrentColumn], pair.EnvironmentReads);
+                    ValidateEnvironment(pair.EnvironmentReads, axes);
                     return 1;
                 case MeasurementGroupStep point:
                     return checked(1 + point.Members.Sum(member => Visit(member.Body, known, axes, depth + 1)));
@@ -243,6 +274,7 @@ internal static class ExperimentPlanCompiler
                     Source(output.Device);
                     return 1;
                 case ReadStep read:
+                    ValidateEnvironmentPolicy(read.Channels.Select(c => c.Column), read.EnvironmentReads);
                     foreach (var channel in read.Channels)
                     {
                         ArgumentNullException.ThrowIfNull(channel.Column);
@@ -250,6 +282,7 @@ internal static class ExperimentPlanCompiler
                         AddColumn(channel.Column, measurement, channel.Address, [.. axes, Elapsed.Id]);
                         BindVariable(channel.Column, measurement.Unit, known);
                     }
+                    ValidateEnvironment(read.EnvironmentReads, axes);
                     return 1;
                 case ReadResistanceStep resistance:
                     ValidateResistance(resistance, known, axes);

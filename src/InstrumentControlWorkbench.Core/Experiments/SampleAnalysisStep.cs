@@ -34,11 +34,12 @@ public sealed record SampleAnalysisStep : ExperimentStep
             var route = routing.Resolve(reading.Binding);
             if (reading.RoutingManagedExternally || route.SourceMeter != reading.Acquisition.Device || route.Binding.Sample != first.Binding.Sample || route.Binding.Wiring != first.Binding.Wiring ||
                 reading.Acquisition.Device != Readings[0].Acquisition.Device || reading.Acquisition.Function != Readings[0].Acquisition.Function ||
+                !reading.Acquisition.EnvironmentReads.SequenceEqual(Readings[0].Acquisition.EnvironmentReads) ||
                 reading.Acquisition.VoltageColumn != Readings[0].Acquisition.VoltageColumn || reading.Acquisition.CurrentColumn != Readings[0].Acquisition.CurrentColumn ||
                 reading.Acquisition.ResistanceColumn != Readings[0].Acquisition.ResistanceColumn)
                 throw new ArgumentException("Analysis readings must manage their routes internally and share the configured source, sample, wiring, source function and raw columns.");
         }
-        if (Columns.Any(c => c.Column == Readings[0].Acquisition.VoltageColumn || c.Column == Readings[0].Acquisition.CurrentColumn || c.Column == Readings[0].Acquisition.ResistanceColumn))
+        if (Columns.Any(c => c.Column == Readings[0].Acquisition.VoltageColumn || c.Column == Readings[0].Acquisition.CurrentColumn || c.Column == Readings[0].Acquisition.ResistanceColumn || Readings[0].Acquisition.EnvironmentReads.Any(e => e.Column == c.Column)))
             throw new ArgumentException("Derived columns cannot overwrite raw columns.");
         return sample;
     }

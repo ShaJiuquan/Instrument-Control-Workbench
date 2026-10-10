@@ -56,7 +56,7 @@ public sealed class MeasurementGroupExecutionTests
         Assert.Equal(6, rows.Count); var points = rows.Where(r => r.MeasurementGroup is not null).ToArray(); Assert.Equal(2, points.Length);
         Assert.Equal(new[] { 1, 4 }, points.Select(p => p.MeasurementGroup!.Inputs[0].FirstInputRow));
         Assert.Equal(new[] { 0.01, 0.02 }, points.Select(p => p.Values[new("ppms.root.axis")].Value));
-        Assert.All(points, p => { Assert.Equal(4, p.Values.Count); Assert.Equal(new[] { "CH1", "CH1#2" }, p.MeasurementGroup!.Inputs.Select(i => i.Label)); });
+        Assert.All(points, p => { Assert.Equal(6, p.Values.Count); Assert.Equal(6, p.Environment.Count); Assert.Equal(new[] { "CH1", "CH1#2" }, p.MeasurementGroup!.Inputs.Select(i => i.Label)); });
         Assert.False((await b.Source.GetSnapshotAsync(Token)).OutputEnabled);
     }
     [Fact]

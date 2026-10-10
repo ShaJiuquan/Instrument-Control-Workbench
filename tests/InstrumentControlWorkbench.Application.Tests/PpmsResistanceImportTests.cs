@@ -195,7 +195,7 @@ public sealed class PpmsResistanceImportTests
             case "range": p["source_range_v"] = "20"; break;
             case "managed": p["source_managed"] = true; break;
             case "aliases": p["sample"] = "sample2"; break;
-            case "record": p["record_temperature"] = true; break;
+            case "record": p["record_temperature"] = "invalid boolean"; break;
             case "nonfinite": p["voltage_v"] = "NaN"; break;
             case "nplc": p["nplc"] = 11; break;
             case "compliance": p["voltage_v"] = 100; p["compliance_a"] = 1; break;
@@ -277,10 +277,13 @@ public sealed class PpmsResistanceImportTests
                 await b.Runs.StartPlanAsync((await b.Workspace.LoadAsync(native, Token)).Plan, Token);
                 var data = b.Runs.LatestDataSet!; Assert.Equal(28, data.Rows.Count); Assert.Equal(26, data.Rows.Count(r => r.MeasurementGroup is null)); Assert.Equal(2, data.Rows.Count(r => r.MeasurementGroup is not null)); Assert.Equal(4, data.Rows.Count(r => r.Analysis is not null));
                 var points = data.Rows.Where(r => r.MeasurementGroup is not null).ToArray();
+                Assert.All(data.Rows.Where(r => r.Routing is not null), row => Assert.Equal(3, row.Environment.Count));
+                Assert.All(data.Rows.Where(r => r.Analysis is not null), row => Assert.Equal(data.Rows[row.Analysis!.FirstInputRow - 1].Environment, row.Environment));
                 Assert.Equal(new[] { 1, 15 }, points.Select(p => p.MeasurementGroup!.Inputs[0].FirstInputRow));
                 Assert.All(points, point =>
                 {
                     Assert.Equal(new[] { 1, 3, 9 }, point.MeasurementGroup!.Inputs.Select(i => i.InputCount));
+                    Assert.Equal(9, point.Environment.Count);
                     var first = point.MeasurementGroup.Inputs[0].FirstInputRow - 1;
                     Assert.Equal(data.Rows[first].Timestamp, point.Timestamp);
                     Assert.Equal(data.Rows[first].Values[new("elapsed")], point.Values[new("elapsed")]);

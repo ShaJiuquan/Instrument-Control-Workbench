@@ -26,7 +26,7 @@ public sealed record MeasurementGroupMember
         }
         Acquisition = acquisition ?? throw new ArgumentException("Measurement member has no acquisition.");
         Label = label; Body = body; InputCount = Acquisition is SampleAnalysisStep analysis ? analysis.Readings.Count + 1 : 1;
-        OutputColumns = Array.AsReadOnly((Acquisition switch
+        AcquisitionColumns = Array.AsReadOnly((Acquisition switch
         {
             ReadStep read => read.Channels.Select(c => c.Column),
             ReadSourceSenseStep pair => new[] { pair.VoltageColumn, pair.CurrentColumn },
@@ -35,12 +35,24 @@ public sealed record MeasurementGroupMember
             SampleAnalysisStep sample => sample.Columns.Select(c => c.Column),
             _ => throw new NotSupportedException(),
         }).ToArray());
+        EnvironmentReads = Acquisition switch
+        {
+            ReadStep read => read.EnvironmentReads,
+            ReadSourceSenseStep read => read.EnvironmentReads,
+            ReadResistanceStep read => read.EnvironmentReads,
+            ReadSampleResistanceStep read => read.Acquisition.EnvironmentReads,
+            SampleAnalysisStep read => read.Readings[0].Acquisition.EnvironmentReads,
+            _ => throw new NotSupportedException(),
+        };
+        OutputColumns = Array.AsReadOnly(AcquisitionColumns.Concat(EnvironmentReads.Select(e => e.Column)).ToArray());
     }
     public string Label { get; }
     public ExperimentStep Body { get; }
     public ExperimentStep Acquisition { get; }
     public int InputCount { get; }
     public IReadOnlyList<ParameterId> OutputColumns { get; }
+    public IReadOnlyList<ParameterId> AcquisitionColumns { get; }
+    public IReadOnlyList<EnvironmentRead> EnvironmentReads { get; }
 }
 
 public sealed record MeasurementGroupStep : ExperimentStep

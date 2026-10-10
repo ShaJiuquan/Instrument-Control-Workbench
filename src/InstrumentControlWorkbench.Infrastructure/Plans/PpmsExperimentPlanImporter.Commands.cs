@@ -152,7 +152,7 @@ public sealed partial class PpmsExperimentPlanImporter
         if (name is "measure_temp" or "measure_field" or "measure_angle")
         {
             Fields(p, "meas_type", "name"); var axis = Axis(name == "measure_temp" ? "temperature" : name[8..], c);
-            return new ReadStep(new(path), [new(new(path + ".value"), new(axis.Device.Id, axis.Readback.Id))]);
+            return new ReadStep(new(path), [new(new(path + ".value"), new(axis.Device.Id, axis.Readback.Id))], MeasurementEnvironment(path, c));
         }
         if (name is not ("measure_voltage" or "measure_current")) throw new NotSupportedException($"Measurement '{name}' is not migrated.");
         Fields(p, "meas_type", "name", "instrument", "channel", "sensing_mode", "nplc", "meter_range_v", "meter_range_a", "sense_channel", "filter_enabled", "filter_count", "filter_window_percent");
@@ -165,6 +165,6 @@ public sealed partial class PpmsExperimentPlanImporter
             throw new NotSupportedException("Meter settings differ from the explicit source preparation.");
         if (!Text(p, "channel", "").Trim().Equals("", StringComparison.Ordinal) && !Text(p, "channel").Trim().Equals("none", StringComparison.OrdinalIgnoreCase))
             throw new NotSupportedException("Routed standalone meter reads are not migrated; source scan routes may be explicitly bound.");
-        return new SequenceStep(new(path), [Write(path + ".nplc", source.Device, Keithley2450Parameters.Nplc, Number(p, "nplc", 1)), new ReadStep(new(path + ".read"), [new(new(path + ".value"), new(source.Device, name == "measure_voltage" ? Keithley2450Parameters.MeasuredVoltage.Id : Keithley2450Parameters.MeasuredCurrent.Id))])]);
+        return new SequenceStep(new(path), [Write(path + ".nplc", source.Device, Keithley2450Parameters.Nplc, Number(p, "nplc", 1)), new ReadStep(new(path + ".read"), [new(new(path + ".value"), new(source.Device, name == "measure_voltage" ? Keithley2450Parameters.MeasuredVoltage.Id : Keithley2450Parameters.MeasuredCurrent.Id))], MeasurementEnvironment(path, c))]);
     }
 }

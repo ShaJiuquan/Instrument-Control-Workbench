@@ -182,8 +182,7 @@ Avalonia views -> ViewModels -> Application use cases -> Core contracts
    explicit route verification are separate from relay settling. The field/sample
    file now retains 26 original records plus two scan points,
    28 rows in total, and saves, archives, reopens, re-executes and exports. Other
-   current/AC acquisition roles, persistent profile editing, automatic environment recording,
-   settings/UI and physical hardware remain required. See
+   current/AC acquisition roles, persistent profile editing, settings/UI and physical hardware remain required. See
    ppms-resistance-import.md, ppms-plan-import.md and temperature-control.md.
    The profile-file follow-up parses all three routing schemas, preserves authored
    metadata and unbound physical families in a frozen catalog, and binds explicit
@@ -197,8 +196,13 @@ Avalonia views -> ViewModels -> Application use cases -> Core contracts
    scan-local parallel wrappers into complete wide points with bounded input
    identity. Raw/analysis rows, partial failures and resource recovery are retained;
    live append, archive writers/readers and streamed CSV validate point evidence.
-   General parallel IO, automatic environment flags and visual filtering remain
+   General parallel IO and visual filtering remain
    pending. See measurement-groups.md.
+   The environment follow-up captures all three fresh environment roles and
+   explicit errors/unbound sources, preserving each observation time and raw
+   sample/member identity through archive/CSV. Atomic resource admission includes
+   bound controllers; read errors do not bypass independent hold confirmation.
+   See environment-acquisition.md and ppms-environment-point-import.json.
 7. **Operator workflows — pending.** Flow editor, reusable steps, device panels,
    routing/sample settings and live/history views connected to the backend.
 8. **Acceptance — pending.** End-to-end representative PPMS experiments,

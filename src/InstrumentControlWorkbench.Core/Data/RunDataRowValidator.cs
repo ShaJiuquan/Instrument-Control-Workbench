@@ -10,9 +10,12 @@ public sealed class RunDataRowValidator
     private readonly DataSetSchema schema;
     private readonly SampleAnalysisRowValidator analysis;
     private readonly Dictionary<StepId, MeasurementGroupStep> groups = [];
+    private readonly Dictionary<ParameterId, EnvironmentRead> environment = [];
+    private readonly Dictionary<ParameterId, IReadOnlyList<EnvironmentRead>> environmentPolicies = [];
     private readonly Queue<MeasurementDataRow> recent = new();
     private int count;
     public bool HasMeasurementGroups => groups.Count != 0;
+    public bool HasEnvironment => environment.Count != 0;
     public RunDataRowValidator(ExperimentPlan? plan, DataSetSchema schema)
     {
         this.plan = plan; this.schema = schema; analysis = new(plan, schema);
@@ -23,6 +26,11 @@ public sealed class RunDataRowValidator
             if (++visited > 10_000 || item.Depth > 128) throw new ArgumentException("Measurement provenance plan exceeds bounds.");
             switch (item.Step)
             {
+                case ReadStep read: RegisterEnvironment(read.Channels.Select(c => c.Column), read.EnvironmentReads); break;
+                case ReadSourceSenseStep read: RegisterEnvironment([read.VoltageColumn, read.CurrentColumn], read.EnvironmentReads); break;
+                case ReadResistanceStep read: RegisterEnvironment([read.VoltageColumn, read.CurrentColumn, read.ResistanceColumn], read.EnvironmentReads); break;
+                case ReadSampleResistanceStep read: RegisterEnvironment([read.Acquisition.VoltageColumn, read.Acquisition.CurrentColumn, read.Acquisition.ResistanceColumn], read.Acquisition.EnvironmentReads); break;
+                case SampleAnalysisStep sample: foreach (var read in sample.Readings) pending.Push((read, item.Depth + 1)); break;
                 case MeasurementGroupStep group:
                     if (!groups.TryAdd(group.Id, group)) throw new ArgumentException("Duplicate measurement group ID.");
                     foreach (var column in group.Members.SelectMany(m => m.OutputColumns))
@@ -35,10 +43,27 @@ public sealed class RunDataRowValidator
                 case IfElseStep choice: pending.Push((choice.Then, item.Depth + 1)); if (choice.Else is { } other) pending.Push((other, item.Depth + 1)); break;
             }
         }
+        foreach (var read in environment.Values)
+        {
+            var column = schema.Columns.SingleOrDefault(c => c.Parameter.Id == read.Column);
+            if (column is null || !column.Optional || column.Source != read.Address || column.Parameter.Unit != EnvironmentRead.Unit(read.Role))
+                throw new ArgumentException("Environment columns require their optional matching units and frozen source address.");
+        }
+        void RegisterEnvironment(IEnumerable<ParameterId> columns, IReadOnlyList<EnvironmentRead> reads)
+        {
+            foreach (var column in columns)
+                if (environmentPolicies.TryGetValue(column, out var previous) && !previous.SequenceEqual(reads))
+                    throw new ArgumentException("Shared acquisition columns require consistent environment policies.");
+                else environmentPolicies[column] = reads;
+            foreach (var read in reads)
+                if (environment.TryGetValue(read.Column, out var previous) && previous != read) throw new ArgumentException("Environment columns cannot change roles/sources.");
+                else environment[read.Column] = read;
+        }
     }
     public void Validate(MeasurementDataRow row)
     {
         schema.ValidateRow(row);
+        ValidateEnvironment(row);
         if (row.Routing is { } context)
             (plan?.Routing ?? throw new ArgumentException("Routed rows require the frozen plan catalog.")).ValidateContext(context);
         if (row.MeasurementGroup is not { } summary) { analysis.Validate(row); return; }
@@ -56,7 +81,7 @@ public sealed class RunDataRowValidator
             {
                 if (last.Analysis?.Step != sample.Id) throw new ArgumentException("Sample group requires its validated analysis result.");
             }
-            else if (last.Analysis is not null || member.OutputColumns.Any(c => !last.Values.ContainsKey(c)))
+            else if (last.Analysis is not null || member.AcquisitionColumns.Any(c => !last.Values.ContainsKey(c)))
                 throw new ArgumentException("Measurement member requires its declared acquisition columns.");
             var allowed = member.OutputColumns.ToHashSet(); var dependencies = new Stack<ParameterId>(allowed);
             while (dependencies.TryPop(out var id))
@@ -66,8 +91,27 @@ public sealed class RunDataRowValidator
             offset += member.InputCount;
         }
         var expected = MeasurementGroupSummary.BuildRow(group, summary.Inputs[0].FirstInputRow, inputs);
-        if (expected.Timestamp != row.Timestamp || !expected.Values.Keys.ToHashSet().SetEquals(row.Values.Keys) || expected.Values.Any(p => row.Values[p.Key] != p.Value))
+        if (expected.Timestamp != row.Timestamp || !expected.Environment.SequenceEqual(row.Environment) || !expected.Values.Keys.ToHashSet().SetEquals(row.Values.Keys) || expected.Values.Any(p => row.Values[p.Key] != p.Value))
             throw new ArgumentException("Measurement summary values/time differ from the preserved acquisitions.");
+    }
+    private void ValidateEnvironment(MeasurementDataRow row)
+    {
+        if (environment.Count == 0 && row.Environment.Count == 0) return;
+        var observed = row.Environment.ToDictionary(o => o.Column);
+        if (row.Analysis is null && row.MeasurementGroup is null)
+        {
+            var required = row.Values.Keys.Where(environmentPolicies.ContainsKey).SelectMany(c => environmentPolicies[c]).Select(r => r.Column).ToHashSet();
+            if (!required.SetEquals(observed.Keys)) throw new ArgumentException("Acquisition environment evidence differs from its declared policy.");
+        }
+        foreach (var observation in row.Environment)
+        {
+            if (!environment.TryGetValue(observation.Column, out var expected) || expected.Role != observation.Role || expected.Address != observation.Source)
+                throw new ArgumentException("Environment role/source differs from the frozen plan.");
+            var present = row.Values.TryGetValue(observation.Column, out var value);
+            if (observation.Value is { } actual ? !present || value != actual : present)
+                throw new ArgumentException("Environment values/errors differ from observation evidence.");
+        }
+        if (row.Values.Keys.Any(c => environment.ContainsKey(c) && !observed.ContainsKey(c))) throw new ArgumentException("Environment quantities require their acquisition evidence.");
     }
     public void Append(MeasurementDataRow row)
     {

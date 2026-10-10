@@ -20,7 +20,7 @@ public sealed partial class JsonExperimentPlanDocument
                 if (temperature.Rate is { } rate) o["rate"] = EncodeQuantity(rate); break;
             case ReadSourceSenseStep pair:
                 o["kind"] = "read_source_sense"; o["device"] = pair.Device.Value; o["function"] = pair.Function.ToString();
-                o["voltageColumn"] = pair.VoltageColumn.Value; o["currentColumn"] = pair.CurrentColumn.Value; break;
+                o["voltageColumn"] = pair.VoltageColumn.Value; o["currentColumn"] = pair.CurrentColumn.Value; EncodeEnvironment(o, pair.EnvironmentReads); break;
             case MeasurementGroupStep point:
                 o["kind"] = "measurement_group"; var members = new JsonArray();
                 foreach (var member in point.Members) members.Add(new JsonObject { ["label"] = member.Label, ["body"] = EncodeStep(member.Body, depth + 1, ref count) });
@@ -63,7 +63,7 @@ public sealed partial class JsonExperimentPlanDocument
                 o["kind"] = "delay"; o["seconds"] = s.Duration.TotalSeconds; break;
             case ReadStep s:
                 o["kind"] = "read"; o["channels"] = new JsonArray(s.Channels.Select(c => (JsonNode)new JsonObject
-                { ["column"] = c.Column.Value, ["address"] = EncodeAddress(c.Address) }).ToArray()); break;
+                { ["column"] = c.Column.Value, ["address"] = EncodeAddress(c.Address) }).ToArray()); EncodeEnvironment(o, s.EnvironmentReads); break;
             case ReadSampleResistanceStep sample:
                 var acquisition = sample.Acquisition;
                 o["kind"] = "read_sample_resistance"; o["device"] = acquisition.Device.Value; o["function"] = acquisition.Function.ToString();
@@ -71,11 +71,12 @@ public sealed partial class JsonExperimentPlanDocument
                 o["resistanceColumn"] = acquisition.ResistanceColumn.Value; o["minimumCurrent"] = EncodeQuantity(acquisition.MinimumCurrent);
                 o["binding"] = EncodeBinding(sample.Binding); o["settleSeconds"] = sample.Settle.TotalSeconds;
                 o["routingManagedExternally"] = sample.RoutingManagedExternally;
+                EncodeEnvironment(o, acquisition.EnvironmentReads);
                 if (sample.AcquisitionSettle != TimeSpan.Zero) o["acquisitionSettleSeconds"] = sample.AcquisitionSettle.TotalSeconds; break;
             case ReadResistanceStep s:
                 o["kind"] = "read_resistance"; o["device"] = s.Device.Value; o["function"] = s.Function.ToString();
                 o["voltageColumn"] = s.VoltageColumn.Value; o["currentColumn"] = s.CurrentColumn.Value;
-                o["resistanceColumn"] = s.ResistanceColumn.Value; o["minimumCurrent"] = EncodeQuantity(s.MinimumCurrent); break;
+                o["resistanceColumn"] = s.ResistanceColumn.Value; o["minimumCurrent"] = EncodeQuantity(s.MinimumCurrent); EncodeEnvironment(o, s.EnvironmentReads); break;
             case WaitStableStep s:
                 o["kind"] = "wait_stable"; o["readback"] = EncodeAddress(s.Readback); o["target"] = EncodeValue(s.Target);
                 o["tolerance"] = EncodeQuantity(s.Tolerance); o["stableSeconds"] = s.StableFor.TotalSeconds;
@@ -106,8 +107,8 @@ public sealed partial class JsonExperimentPlanDocument
                 Object(o, "id", "kind", "device", "target", "rate");
                 return new SoftwareTemperatureRampStep(id, new(Text(o, "device")), DecodeValue(o["target"]), o.ContainsKey("rate") ? DecodeQuantity(o["rate"]) : null);
             case "read_source_sense":
-                Object(o, "id", "kind", "device", "function", "voltageColumn", "currentColumn");
-                return new ReadSourceSenseStep(id, new(Text(o, "device")), NamedEnum<SourceFunction>(o, "function"), new(Text(o, "voltageColumn")), new(Text(o, "currentColumn")));
+                Object(o, "id", "kind", "device", "function", "voltageColumn", "currentColumn", "environmentReads");
+                return new ReadSourceSenseStep(id, new(Text(o, "device")), NamedEnum<SourceFunction>(o, "function"), new(Text(o, "voltageColumn")), new(Text(o, "currentColumn")), DecodeEnvironment(o));
             case "measurement_group":
                 Object(o, "id", "kind", "members"); var pointMembers = new List<MeasurementGroupMember>();
                 foreach (var value in Array(Required(o, "members")))
@@ -167,21 +168,21 @@ public sealed partial class JsonExperimentPlanDocument
                 Object(o, "id", "kind", "seconds");
                 return new DelayStep(id, Duration(o, "seconds"));
             case "read":
-                Object(o, "id", "kind", "channels");
+                Object(o, "id", "kind", "channels", "environmentReads");
                 return new ReadStep(id, Array(Required(o, "channels")).Select(c =>
                 {
                     var channel = Object(c, "column", "address");
                     return new ReadChannel(new(Text(channel, "column")), DecodeAddress(channel["address"]));
-                }));
+                }), DecodeEnvironment(o));
             case "read_sample_resistance":
-                Object(o, "id", "kind", "device", "function", "voltageColumn", "currentColumn", "resistanceColumn", "minimumCurrent", "binding", "settleSeconds", "routingManagedExternally", "acquisitionSettleSeconds");
+                Object(o, "id", "kind", "device", "function", "voltageColumn", "currentColumn", "resistanceColumn", "minimumCurrent", "binding", "settleSeconds", "routingManagedExternally", "acquisitionSettleSeconds", "environmentReads");
                 return new ReadSampleResistanceStep(new(id, new(Text(o, "device")), NamedEnum<SourceFunction>(o, "function"),
-                    new(Text(o, "voltageColumn")), new(Text(o, "currentColumn")), new(Text(o, "resistanceColumn")), DecodeQuantity(o["minimumCurrent"])),
+                    new(Text(o, "voltageColumn")), new(Text(o, "currentColumn")), new(Text(o, "resistanceColumn")), DecodeQuantity(o["minimumCurrent"]), DecodeEnvironment(o)),
                     DecodeBinding(o["binding"]), Duration(o, "settleSeconds"), Boolean(o, "routingManagedExternally"), o.ContainsKey("acquisitionSettleSeconds") ? Duration(o, "acquisitionSettleSeconds") : TimeSpan.Zero);
             case "read_resistance":
-                Object(o, "id", "kind", "device", "function", "voltageColumn", "currentColumn", "resistanceColumn", "minimumCurrent");
+                Object(o, "id", "kind", "device", "function", "voltageColumn", "currentColumn", "resistanceColumn", "minimumCurrent", "environmentReads");
                 return new ReadResistanceStep(id, new(Text(o, "device")), NamedEnum<SourceFunction>(o, "function"),
-                    new(Text(o, "voltageColumn")), new(Text(o, "currentColumn")), new(Text(o, "resistanceColumn")), DecodeQuantity(o["minimumCurrent"]));
+                    new(Text(o, "voltageColumn")), new(Text(o, "currentColumn")), new(Text(o, "resistanceColumn")), DecodeQuantity(o["minimumCurrent"]), DecodeEnvironment(o));
             case "wait_stable":
                 Object(o, "id", "kind", "readback", "target", "tolerance", "stableSeconds", "pollSeconds", "timeoutSeconds");
                 return new WaitStableStep(id, DecodeAddress(o["readback"]), DecodeValue(o["target"]), DecodeQuantity(o["tolerance"]),

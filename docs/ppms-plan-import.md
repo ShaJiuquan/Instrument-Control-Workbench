@@ -110,8 +110,7 @@ live-origin failures, mode confirmation, pause/resume, cleanup and limitations.
 
 Continuous/ramp/cooling modes, disabled temperature-control settings,
 persistent magnet transitions, quench operations, state-based environment wait
-commands, conditional/general parallel/retry/race/for_each BT semantics, automatic
-environment recording, remaining resistance modes/persistent profile editing, filtering, manual ranges, changed source
+commands, conditional/general parallel/retry/race/for_each BT semantics, remaining resistance modes/persistent profile editing, filtering, manual ranges, changed source
 functions, segment settle/mirror/repeat modifiers and additional instrument
 families remain required. They produce an import error, not a no-op or silent
 fallback. Numeric stability on bound controller ports does
@@ -164,3 +163,13 @@ IRoutingProfileImporter. The frozen catalog binds explicit supported devices
 and resolves channel/sample aliases without hard-coded route reconstruction.
 See [PPMS profile import](ppms-profile-import.md) for metadata, validation and
 the independent-source/meter and hardware boundaries.
+
+## Fresh acquisition environment
+
+All supported imported measurements now capture temperature, field and angle
+from bound controller readbacks, or retain an explicit unavailable observation
+for unbound/read-error cases. Primary electrical data, acquisition times, raw
+sample contexts and wide-point member identity persist through native plans,
+archives and CSV. Legacy boolean record_* flags remain accepted. See
+[environment-acquisition.md](environment-acquisition.md) for timing, cancellation,
+error-as-data and physical acceptance boundaries.

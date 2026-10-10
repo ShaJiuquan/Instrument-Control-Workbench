@@ -30,7 +30,8 @@ internal static partial class RunArchiveJson
             new JsonStringEnumConverter<SampleTopology>(allowIntegerValues: false),
             new JsonStringEnumConverter<SampleRouteSelection>(allowIntegerValues: false),
             new JsonStringEnumConverter<SampleAnalysisIssues>(allowIntegerValues: false),
-            new JsonStringEnumConverter<RoutingRole>(allowIntegerValues: false) },
+            new JsonStringEnumConverter<RoutingRole>(allowIntegerValues: false),
+            new JsonStringEnumConverter<EnvironmentRole>(allowIntegerValues: false) },
     };
     private static readonly JsonExperimentPlanDocument Plans = new();
 
@@ -87,11 +88,24 @@ internal static partial class RunArchiveJson
     internal sealed record RowDto(int Index, DateTimeOffset Timestamp, Dictionary<string, QuantityDto> Values,
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] SampleRouteDto? Routing = null,
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] SampleAnalysisDto? Analysis = null,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] MeasurementGroupDto? MeasurementGroup = null)
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] MeasurementGroupDto? MeasurementGroup = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] EnvironmentObservationDto[]? Environment = null)
     {
-        public MeasurementDataRow ToDomain() => new(Timestamp, Required(Values).ToDictionary(p => new ParameterId(p.Key), p => Required(p.Value).ToDomain()), Routing?.ToDomain(), Analysis?.ToDomain(), MeasurementGroup?.ToDomain());
+        public MeasurementDataRow ToDomain() => new(Timestamp, Required(Values).ToDictionary(p => new ParameterId(p.Key), p => Required(p.Value).ToDomain()), Routing?.ToDomain(), Analysis?.ToDomain(), MeasurementGroup?.ToDomain(), Environment?.Select(o => Required(o).ToDomain()));
         public static RowDto From(int index, MeasurementDataRow row) => new(index, row.Timestamp,
-            row.Values.OrderBy(p => p.Key.Value, StringComparer.Ordinal).ToDictionary(p => p.Key.Value, p => QuantityDto.From(p.Value)), row.Routing is null ? null : SampleRouteDto.From(row.Routing), row.Analysis is null ? null : SampleAnalysisDto.From(row.Analysis), row.MeasurementGroup is null ? null : MeasurementGroupDto.From(row.MeasurementGroup));
+            row.Values.OrderBy(p => p.Key.Value, StringComparer.Ordinal).ToDictionary(p => p.Key.Value, p => QuantityDto.From(p.Value)), row.Routing is null ? null : SampleRouteDto.From(row.Routing), row.Analysis is null ? null : SampleAnalysisDto.From(row.Analysis), row.MeasurementGroup is null ? null : MeasurementGroupDto.From(row.MeasurementGroup), row.Environment.Count == 0 ? null : row.Environment.Select(EnvironmentObservationDto.From).ToArray());
+    }
+    internal sealed record EnvironmentObservationDto(EnvironmentRole Role, string Column, string? Device, string? Parameter,
+        DateTimeOffset CapturedAt, QuantityDto? Value, string? Error)
+    {
+        public EnvironmentObservation ToDomain()
+        {
+            if ((Device is null) != (Parameter is null)) throw new FormatException("Environment source address is incomplete.");
+            return new(Role, new(Column), Device is null ? null : new(new(Device), new(Parameter!)), CapturedAt, Value?.ToDomain(), Error);
+        }
+        public static EnvironmentObservationDto From(EnvironmentObservation observation) => new(observation.Role, observation.Column.Value,
+            observation.Source?.Device.Value, observation.Source?.Parameter.Value, observation.CapturedAt,
+            observation.Value is { } value ? QuantityDto.From(value) : null, observation.Error);
     }
     internal sealed record SampleAnalysisDto(string Step, int FirstInputRow, int InputCount, SampleAnalysisIssues Issues, int AlgorithmVersion)
     {

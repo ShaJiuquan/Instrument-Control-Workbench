@@ -58,8 +58,7 @@ Native version-1 documents encode `kind: measurement_group` with labeled member
 bodies. Archive rows optionally encode `measurementGroup`; plans containing groups
 add `measurement_group_json` to CSV. Absent metadata is omitted, preserving the
 old archive encoding. Older readers may reject the new step/field. Native rows
-and CSV are not byte-for-byte Rust nested-result compatibility. Automatic
-environment-recording flags, general parallel execution, visual point filtering
+and CSV are not byte-for-byte Rust nested-result compatibility. General parallel execution, visual point filtering
 and real-device acceptance remain migration work.
 
 Evidence: `MeasurementGroupModelTests`, `MeasurementGroupExecutionTests`, the

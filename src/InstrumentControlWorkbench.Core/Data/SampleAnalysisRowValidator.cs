@@ -104,6 +104,16 @@ public sealed class SampleAnalysisRowValidator
         foreach (var column in group.Columns)
             if (result.Values.TryGetValue(column.Kind, out var value)) expectedValues.Add(column.Column, value);
         var allowed = expectedValues.Keys.Concat(axes).Append(elapsed).ToHashSet();
+        var first = input[0];
+        if (!first.Environment.Select(o => o.Column).ToHashSet().SetEquals(group.Readings[0].Acquisition.EnvironmentReads.Select(e => e.Column)))
+            throw new ArgumentException("Analysis inputs need their complete environment evidence.");
+        if (!row.Environment.SequenceEqual(first.Environment)) throw new ArgumentException("Analysis environment must preserve the first raw observation, including errors and capture time.");
+        foreach (var observation in first.Environment)
+        {
+            if (!group.Readings[0].Acquisition.EnvironmentReads.Any(e => e.Column == observation.Column && e.Role == observation.Role && e.Address == observation.Source))
+                throw new ArgumentException("Analysis environment differs from its declared acquisition policy.");
+            if (observation.Value is { } value) { expectedValues.Add(observation.Column, value); allowed.Add(observation.Column); }
+        }
         // Math.Log/Exp may differ by a few ulps across supported OS runtimes.
         // Finalized checksums still protect the exact bytes that were recorded.
         if (!row.Values.Keys.ToHashSet().SetEquals(allowed) || expectedValues.Any(p => !row.Values.TryGetValue(p.Key, out var actual) || actual.Unit != p.Value.Unit ||

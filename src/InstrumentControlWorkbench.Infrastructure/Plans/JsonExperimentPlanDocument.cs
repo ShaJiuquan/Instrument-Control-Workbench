@@ -115,7 +115,10 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanDocument
                 case RepeatStep repeat: pending.Push((repeat.Body, entry.Depth + 1)); break;
                 case ScanStep scan: values += scan.Values.Values.Count; pending.Push((scan.Body, entry.Depth + 1)); break;
                 case ForEachStep loop: values += loop.Values.Values.Count; pending.Push((loop.Body, entry.Depth + 1)); break;
-                case ReadStep read: values += read.Channels.Count; break;
+                case ReadStep read: values += read.Channels.Count + 20L * read.EnvironmentReads.Count; break;
+                case ReadSourceSenseStep read: values += 20L * read.EnvironmentReads.Count; break;
+                case ReadResistanceStep read: values += 20L * read.EnvironmentReads.Count; break;
+                case ReadSampleResistanceStep read: values += 20L * read.Acquisition.EnvironmentReads.Count; break;
                 case RouteMatrixStep route: values += 14L * route.Closed.Count; break;
                 case IfElseStep conditional:
                     pending.Push((conditional.Then, entry.Depth + 1));

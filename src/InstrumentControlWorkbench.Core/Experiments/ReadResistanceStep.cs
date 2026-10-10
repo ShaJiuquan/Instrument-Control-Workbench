@@ -6,7 +6,7 @@ namespace InstrumentControlWorkbench.Core.Experiments;
 public sealed record ReadResistanceStep : ExperimentStep
 {
     public ReadResistanceStep(StepId id, InstrumentId device, SourceFunction function,
-        ParameterId voltageColumn, ParameterId currentColumn, ParameterId resistanceColumn, Quantity minimumCurrent) : base(id)
+        ParameterId voltageColumn, ParameterId currentColumn, ParameterId resistanceColumn, Quantity minimumCurrent, IEnumerable<EnvironmentRead>? environmentReads = null) : base(id)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(device.Value);
         if (!Enum.IsDefined(function)) throw new ArgumentOutOfRangeException(nameof(function));
@@ -17,6 +17,7 @@ public sealed record ReadResistanceStep : ExperimentStep
             throw new ArgumentException("Minimum absolute current must be a nonnegative Ampere quantity.", nameof(minimumCurrent));
         Device = device; Function = function; VoltageColumn = voltageColumn; CurrentColumn = currentColumn;
         ResistanceColumn = resistanceColumn; MinimumCurrent = minimumCurrent;
+        EnvironmentReads = EnvironmentRead.Freeze(environmentReads, [voltageColumn, currentColumn, resistanceColumn]);
     }
     public InstrumentId Device { get; }
     public SourceFunction Function { get; }
@@ -24,4 +25,5 @@ public sealed record ReadResistanceStep : ExperimentStep
     public ParameterId CurrentColumn { get; }
     public ParameterId ResistanceColumn { get; }
     public Quantity MinimumCurrent { get; }
+    public IReadOnlyList<EnvironmentRead> EnvironmentReads { get; }
 }

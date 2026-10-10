@@ -1,0 +1,17 @@
+{
+  "experiment_id": "Simulated field points with fresh environment reads",
+  "type": "scan",
+  "name": "scan_field",
+  "source_line": 1,
+  "params": { "points": [0, 0.001], "mode": "driven", "wait_mode": "reached", "tolerance_t": 0.0001, "settle_s": 0, "timeout_s": 5 },
+  "children": [
+    {
+      "type": "measurement", "name": "meas_r", "label": "CH1", "source_line": 2,
+      "params": { "mode": "volt_dc", "channel": "none", "voltage_v": 0.02, "settle_s": 0, "record_temperature": true, "record_field": true, "record_angle": true }
+    },
+    {
+      "type": "measurement", "name": "meas_r", "label": "CH1", "source_line": 3,
+      "params": { "mode": "volt_dc", "channel": "none", "voltage_v": 0.03, "settle_s": 0 }
+    }
+  ]
+}

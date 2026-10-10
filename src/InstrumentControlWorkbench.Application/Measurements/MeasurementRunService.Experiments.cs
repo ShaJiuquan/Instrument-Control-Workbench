@@ -144,15 +144,17 @@ public sealed partial class MeasurementRunService
             values[channel.Column] = value;
             run.Variables[channel.Column] = value;
         }
+        var environment = await ReadEnvironmentAsync(read.EnvironmentReads, values, run);
         var now = DateTimeOffset.UtcNow;
         values[ExperimentPlanCompiler.Elapsed.Id] = new(run.Elapsed.Elapsed.TotalSeconds, PhysicalUnit.Second);
-        var row = new MeasurementDataRow(now, values);
+        var row = new MeasurementDataRow(now, values, environment: environment);
         await CommitRowAsync(row, read.Id, run, started);
     }
 
     private async Task CommitRowAsync(MeasurementDataRow row, StepId step, RunExecutionContext run, IReadOnlyList<IRunResultListener> started)
     {
         run.DataSet!.Append(row); run.RowsAcquired++;
+        run.LastRow = row;
         run.MeasurementInputs?.Add(row);
         // Commit to local history first even if an external listener cancels.
         foreach (var listener in started)
@@ -174,7 +176,8 @@ public sealed partial class MeasurementRunService
             [ExperimentPlanCompiler.Elapsed.Id] = new(run.Elapsed.Elapsed.TotalSeconds, PhysicalUnit.Second),
         };
         run.Variables[step.VoltageColumn] = voltage; run.Variables[step.CurrentColumn] = current;
-        await CommitRowAsync(new(frame.Timestamp, values), step.Id, run, started);
+        var environment = await ReadEnvironmentAsync(step.EnvironmentReads, values, run);
+        await CommitRowAsync(new(frame.Timestamp, values, environment: environment), step.Id, run, started);
         if (ivPlot)
         {
             var point = new MeasurementPoint(frame.Timestamp, run.Elapsed.Elapsed, voltage.Value, current.Value, "V", "A");
@@ -197,7 +200,8 @@ public sealed partial class MeasurementRunService
             [step.ResistanceColumn] = new(voltage.Value / current.Value, PhysicalUnit.Ohm),
             [ExperimentPlanCompiler.Elapsed.Id] = new(run.Elapsed.Elapsed.TotalSeconds, PhysicalUnit.Second),
         };
-        var row = new MeasurementDataRow(reading.Timestamp, values, context);
+        var environment = await ReadEnvironmentAsync(step.EnvironmentReads, values, run);
+        var row = new MeasurementDataRow(reading.Timestamp, values, context, environment: environment);
         run.Variables[step.VoltageColumn] = voltage; run.Variables[step.CurrentColumn] = current;
         run.Variables[step.ResistanceColumn] = values[step.ResistanceColumn];
         await CommitRowAsync(row, step.Id, run, started);

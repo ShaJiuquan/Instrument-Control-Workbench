@@ -297,7 +297,7 @@ implementation.
   budgets as well as the raw tree. Invalid fields/functions/ranges/routes fail
   before IO; workspace capability preflight is still required after parsing.
 - Controller-status waits, persistent mode,
-  remaining BT semantics, automatic environment recording, remaining resistance modes/persistent profile editing, ranges/filtering,
+  remaining BT semantics, remaining resistance modes/persistent profile editing, ranges/filtering,
   separate meter families, text DSL/database export and hardware remain required.
   See ppms-plan-import.md and the six-row field/voltage import acceptance.
 
@@ -351,7 +351,7 @@ implementation.
   CSV pass. Partial/faulted groups retain raw rows without fabricated summaries;
   original and cleanup failures keep resources for recovery. See
   ppms-resistance-import.md. Persistent profile editing, remaining acquisition modes,
-  automatic environment columns, settings/UI and hardware remain required.
+  remaining environment controller semantics, settings/UI and hardware remain required.
 
 ## PPMS routing configuration import follow-up
 
@@ -403,6 +403,32 @@ implementation.
   and earlier points; read-plus-stop faults retain both errors and recovery
   ownership. This is simulated acceptance, not physical acquisition simultaneity.
 - The field/sample fixture now yields 28 rows: 26 original records plus two
-  complete scan points. Automatic environment flags, general BT parallelism,
+  complete scan points. General BT parallelism,
   persistent editing/settings, visual acceptance and hardware remain required.
   See measurement-groups.md; the full migration goal stays active.
+
+## Fresh environment observation follow-up
+
+- Current Rust automatically reads temperature/field/angle with each measurement;
+  record_* flags are legacy auxiliary-node authoring conveniences. PPMS imports
+  now attach all three roles, with explicit unavailable observations for unbound
+  controllers. Context policy persists in native reads and reserves bound axes.
+- Native primary reads, paired V/I and resistance accept typed optional context.
+  Preflight checks actual controller readbacks/units and consistent column policy;
+  target substitution rejects. C# resource IO is serialized and context follows
+  electrical acquisition, unlike Rust concurrent futures. No physical atomic
+  sampling is claimed. Each observation retains actual value or bounded error,
+  source and software UTC completion time. Optional errors never become NaNs,
+  zero, cache values or targets; successful electrical rows remain usable.
+- Cancellation aborts an unfinished capture. Cleanup is independent: controller
+  hold failures still quarantine resources until explicit recovery. Environment
+  error-as-data does not convert stability/interlock failures into success.
+- Every Hall/vdP electrode row has its own observations; derived summaries retain
+  the first input context. Wide points preserve final member context and retain
+  original raw/analysis input ranges. Shared row validation checks policy, source,
+  value/error and exact summary observations/time in live/archive/streamed CSV.
+- Optional new environment fields omit for old native plans/rows; CSV conditionally
+  adds environment_json. Old readers can reject extensions. Six-row, twelve-row,
+  mixed-sample/profile and new six-row field-point fixtures save/archive/re-execute;
+  hardware/quality/remaining modes, durable settings and native UI remain pending.
+  See environment-acquisition.md. The full migration goal remains active.

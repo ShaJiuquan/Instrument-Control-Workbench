@@ -13,9 +13,11 @@ public sealed partial class MeasurementRunService
     {
         var firstInput = run.RowsAcquired + 1;
         var resistance = new List<Quantity>();
+        MeasurementDataRow? firstRow = null;
         foreach (var reading in step.Readings)
         {
             await ExecuteStepAsync(reading, run, listeners, ivPlot: false);
+            firstRow ??= run.LastRow!;
             resistance.Add(run.Variables[reading.Acquisition.ResistanceColumn]);
         }
         run.Token.ThrowIfCancellationRequested();
@@ -26,8 +28,11 @@ public sealed partial class MeasurementRunService
         { [ExperimentPlanCompiler.Elapsed.Id] = new(run.Elapsed.Elapsed.TotalSeconds, PhysicalUnit.Second) };
         foreach (var column in step.Columns)
             if (result.Values.TryGetValue(column.Kind, out var value)) values.Add(column.Column, value);
-        var row = new MeasurementDataRow(DateTimeOffset.UtcNow, values, analysis: new(step.Id, firstInput, step.Readings.Count, result.Issues));
+        foreach (var observation in firstRow!.Environment)
+            if (observation.Value is { } actual) values.Add(observation.Column, actual);
+        var row = new MeasurementDataRow(DateTimeOffset.UtcNow, values, analysis: new(step.Id, firstInput, step.Readings.Count, result.Issues), environment: firstRow.Environment);
         run.DataSet.Append(row); run.RowsAcquired++;
+        run.LastRow = row;
         run.MeasurementInputs?.Add(row);
         foreach (var column in step.Columns)
             if (result.Values.TryGetValue(column.Kind, out var value)) run.Variables[column.Column] = value;

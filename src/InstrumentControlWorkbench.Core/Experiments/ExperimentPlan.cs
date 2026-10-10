@@ -139,15 +139,17 @@ public sealed record DelayStep : ExperimentStep
 
 public sealed record ReadStep : ExperimentStep
 {
-    public ReadStep(StepId id, IEnumerable<ReadChannel> channels) : base(id)
+    public ReadStep(StepId id, IEnumerable<ReadChannel> channels, IEnumerable<EnvironmentRead>? environmentReads = null) : base(id)
     {
         ArgumentNullException.ThrowIfNull(channels);
         var items = channels.ToArray();
         if (items.Length == 0 || items.Any(c => c is null) || items.Select(c => c.Column).Distinct().Count() != items.Length)
             throw new ArgumentException("A measurement needs non-null channels with unique column IDs.", nameof(channels));
         Channels = Array.AsReadOnly(items);
+        EnvironmentReads = EnvironmentRead.Freeze(environmentReads, items.Select(c => c.Column));
     }
     public IReadOnlyList<ReadChannel> Channels { get; }
+    public IReadOnlyList<EnvironmentRead> EnvironmentReads { get; }
 }
 
 public sealed record WaitStableStep : ExperimentStep
