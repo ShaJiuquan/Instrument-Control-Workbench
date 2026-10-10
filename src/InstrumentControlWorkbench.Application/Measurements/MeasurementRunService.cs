@@ -53,6 +53,9 @@ public sealed partial class MeasurementRunService
             cancellationToken, ivPlot: true, metadata);
     }
 
+    public Task StartVoltageResistanceAsync(VoltageResistanceRecipe recipe, CancellationToken token, RunMetadata? metadata = null)
+        => StartPlanAsync(VoltageResistancePlan.Create(primaryInstrument, recipe), token, metadata);
+
     public ExperimentPlanPreview PreviewPlan(ExperimentPlan plan)
     {
         var compiled = ExperimentPlanCompiler.Compile(plan, devices);

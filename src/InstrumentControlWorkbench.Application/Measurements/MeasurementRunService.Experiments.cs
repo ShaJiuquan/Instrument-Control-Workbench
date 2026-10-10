@@ -1,6 +1,7 @@
 using InstrumentControlWorkbench.Application.Experiments;
 using InstrumentControlWorkbench.Core.Data;
 using InstrumentControlWorkbench.Core.Experiments;
+using InstrumentControlWorkbench.Core.Instruments;
 using InstrumentControlWorkbench.Core.Measurements;
 using InstrumentControlWorkbench.Core.Notifications;
 using InstrumentControlWorkbench.Core.Parameters;
@@ -80,6 +81,9 @@ public sealed partial class MeasurementRunService
             case ReadStep read:
                 await AcquireRowAsync(read, run, started, ivPlot);
                 break;
+            case ReadResistanceStep resistance:
+                await AcquireResistanceRowAsync(resistance, run, started);
+                break;
             case WaitStableStep wait:
                 await WaitStableAsync(wait, run);
                 break;
@@ -123,6 +127,31 @@ public sealed partial class MeasurementRunService
             await notifications.PublishAsync(new(WorkbenchNotificationKind.MeasurementPointReceived,
                 $"Point {voltage:0.###} V -> {current:0.###E+0} A", primaryInstrument, Point: point, RunId: run.Id.ToString()), CancellationToken.None);
         }
+    }
+
+    private async Task AcquireResistanceRowAsync(ReadResistanceStep step, RunExecutionContext run, IReadOnlyList<IRunResultListener> started)
+    {
+        var reading = await run.Resources!.ReadSourceSenseAsync(step.Device, step.Function, run.Token);
+        var voltage = step.Function == SourceFunction.Voltage ? reading.Source : reading.Sense;
+        var current = step.Function == SourceFunction.Current ? reading.Source : reading.Sense;
+        if (Math.Abs(current.Value) <= step.MinimumCurrent.Value)
+            throw new InvalidOperationException($"{step.Id}: measured current is zero or below the required threshold; resistance is undefined.");
+        var values = new Dictionary<ParameterId, Quantity>(run.Axes)
+        {
+            [step.VoltageColumn] = voltage,
+            [step.CurrentColumn] = current,
+            [step.ResistanceColumn] = new(voltage.Value / current.Value, PhysicalUnit.Ohm),
+            [ExperimentPlanCompiler.Elapsed.Id] = new(run.Elapsed.Elapsed.TotalSeconds, PhysicalUnit.Second),
+        };
+        var row = new MeasurementDataRow(reading.Timestamp, values);
+        run.DataSet!.Append(row);
+        run.Variables[step.VoltageColumn] = voltage; run.Variables[step.CurrentColumn] = current;
+        run.Variables[step.ResistanceColumn] = values[step.ResistanceColumn];
+        run.RowsAcquired++;
+        foreach (var listener in started)
+            await listener.OnRowAsync(run.Id, row, listener == History ? CancellationToken.None : run.Token);
+        await notifications.PublishAsync(new(WorkbenchNotificationKind.DataRowReceived,
+            $"Acquired resistance row {run.RowsAcquired}.", RunId: run.Id.ToString(), Step: step.Id, Row: row), CancellationToken.None);
     }
 
     private async Task WaitStableAsync(WaitStableStep wait, RunExecutionContext run)

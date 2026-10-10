@@ -70,6 +70,30 @@ public sealed partial class InstrumentManager
         finally { operations.Exit(); }
     }
 
+    public async Task<SourceSenseReading> ReadSourceSenseAsync(SourceFunction function, CancellationToken token, RunId? owner = null)
+    {
+        await EnterOperationAsync(token, owner);
+        try
+        {
+            var snapshot = await ReadSourceSnapshotAsync(token);
+            if (!snapshot.Connected || !snapshot.OutputEnabled) throw new InvalidOperationException("Resistance acquisition requires connected source output.");
+            if (snapshot.Source.Function != function) throw new InvalidOperationException("Source function differs from the resistance plan.");
+            var senseFunction = function == SourceFunction.Voltage ? SenseFunction.Current : SenseFunction.Voltage;
+            try
+            {
+                if (snapshot.Sense.Function != senseFunction)
+                    await sourceMeter.ConfigureSenseAsync(snapshot.Sense with { Function = senseFunction }, token);
+                var reading = await sourceMeter.ReadSourceSenseAsync(token);
+                if (reading.Function != function || reading.SenseFunction != senseFunction)
+                    throw new InvalidOperationException("Source/sense readback functions differ from the requested acquisition.");
+                await PublishSnapshotAsync((await ReadSourceSnapshotAsync(token)) with { Lifecycle = lifecycle }, token);
+                return reading;
+            }
+            catch { Transition(InstrumentLifecycleEvent.FaultDetected); throw; }
+        }
+        finally { operations.Exit(); }
+    }
+
     public async Task WriteParameterAsync(ParameterId parameter, Quantity value, CancellationToken token, RunId? owner = null)
     {
         Descriptor.GetParameter(parameter).ValidateWrite(value);
@@ -83,10 +107,12 @@ public sealed partial class InstrumentManager
             var complianceId = voltage ? Keithley2450Parameters.CurrentCompliance.Id : Keithley2450Parameters.VoltageCompliance.Id;
             if (parameter != levelId && parameter != complianceId && parameter != Keithley2450Parameters.Nplc.Id)
                 throw new InvalidOperationException($"{parameter} requires a different source mode; configure source mode and compliance explicitly first.");
+            var source = parameter == levelId ? snapshot.Source with { Level = value.Value } :
+                parameter == complianceId ? snapshot.Source with { Compliance = value.Value } : snapshot.Source;
+            Keithley2450Limits.Validate(source);
             try
             {
-                if (parameter == levelId) await sourceMeter.ConfigureSourceAsync(snapshot.Source with { Level = value.Value }, token);
-                else if (parameter == complianceId) await sourceMeter.ConfigureSourceAsync(snapshot.Source with { Compliance = value.Value }, token);
+                if (parameter == levelId || parameter == complianceId) await sourceMeter.ConfigureSourceAsync(source, token);
                 else if (parameter == Keithley2450Parameters.Nplc.Id) await sourceMeter.ConfigureSenseAsync(snapshot.Sense with { Nplc = value.Value }, token);
                 await PublishSnapshotAsync((await ReadSourceSnapshotAsync(token)) with { Lifecycle = lifecycle }, token);
             }

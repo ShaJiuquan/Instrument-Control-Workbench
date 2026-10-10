@@ -133,6 +133,15 @@ Avalonia views -> ViewModels -> Application use cases -> Core contracts
    previous exports on failure. See run-archives.md. This is an application API;
    the published desktop does not yet inject the archive. UI integration, settings,
    querying/filtering, paged plots and physical startup recovery remain pending.
+   The measurement follow-up adds the K2450 voltage-resistance recipe and paired
+   source/sense resistance reads for Voltage/Current source modes. It uses the
+   same resources and finalization, supports nested scan-managed reads and adds
+   a runnable nine-row field/resistance file. Source value/compliance combinations
+   are checked together, including before each live parameter write. The published
+   backend stage passes 159 tests (35 Core, 112 Application, 12 App). Only the
+   tested `measure_r` subset changes to partial; channel/matrix routing, explicit
+   ranges, other resistance modes, PPMS import and hardware remain pending.
+   See resistance-measurements.md.
 7. **Operator workflows — pending.** Flow editor, reusable steps, device panels,
    routing/sample settings and live/history views connected to the backend.
 8. **Acceptance — pending.** End-to-end representative PPMS experiments,

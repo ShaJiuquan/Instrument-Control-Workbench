@@ -72,11 +72,15 @@ public static class Keithley2450Limits
         {
             Keithley2450Parameters.SourceVoltage.ValidateWrite(new(setpoint.Level, PhysicalUnit.Volt));
             Keithley2450Parameters.CurrentCompliance.ValidateWrite(new(setpoint.Compliance, PhysicalUnit.Ampere));
+            if (Math.Abs(setpoint.Level) > 21 && setpoint.Compliance > 0.105)
+                throw new ArgumentOutOfRangeException(nameof(setpoint), "Above 21 V the current limit cannot exceed 105 mA.");
         }
         else
         {
             Keithley2450Parameters.SourceCurrent.ValidateWrite(new(setpoint.Level, PhysicalUnit.Ampere));
             Keithley2450Parameters.VoltageCompliance.ValidateWrite(new(setpoint.Compliance, PhysicalUnit.Volt));
+            if (Math.Abs(setpoint.Level) > 0.105 && setpoint.Compliance > 21)
+                throw new ArgumentOutOfRangeException(nameof(setpoint), "Above 105 mA the voltage limit cannot exceed 21 V.");
         }
     }
 

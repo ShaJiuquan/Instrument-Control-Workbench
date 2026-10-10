@@ -194,7 +194,12 @@
         "meas_resistance",
         "measure_resistance"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Experiments/VoltageResistancePlan.cs; src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/ResistanceExecutionTests.cs",
+        "limits": "Typed K2450 Voltage DC adapter and coherent source/sense V/I step support standalone and nested scan-managed acquisition, units/dependencies, abort/pause/cleanup and archives. PPMS command/alias import, matrix/channel profiles, explicit source/meter ranges, K6221/K2182/SR830 modes, quality/status rows and real hardware remain pending; not full measure_r parity."
+      }
     },
     {
       "id": "measure_r_sample",

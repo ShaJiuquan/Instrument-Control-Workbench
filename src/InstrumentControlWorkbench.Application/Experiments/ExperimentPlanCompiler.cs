@@ -25,6 +25,8 @@ internal static class ExperimentPlanCompiler
         var columns = new Dictionary<ParameterId, DataColumn> { [Elapsed.Id] = new(Elapsed) };
         var steps = new HashSet<StepId>();
         var variables = new Dictionary<ParameterId, PhysicalUnit>();
+        var preparations = plan.Preparations.ToDictionary(p => p.Device);
+        var writes = new List<(ParameterAddress Address, IReadOnlyList<Quantity>? Values)>();
         foreach (var preparation in plan.Preparations)
         {
             var device = Source(preparation.Device);
@@ -36,6 +38,24 @@ internal static class ExperimentPlanCompiler
         }
         var cost = Visit(plan.Root, variables, [], 0);
         if (cost > 10_000_000) throw new ArgumentOutOfRangeException(nameof(plan), "Plan exceeds the 10,000,000 step execution budget.");
+        // Check coupled ranges statically only when the counterpart is fixed.
+        // Plans that change both source fields are checked against actual device
+        // configuration at each write, rather than rejected using stale preparation.
+        var changedAddresses = writes.Select(w => w.Address).ToHashSet();
+        foreach (var write in writes)
+        {
+            if (!preparations.TryGetValue(write.Address.Device, out var preparation) || write.Values is null) continue;
+            var voltage = preparation.Function == SourceFunction.Voltage;
+            var levelId = voltage ? Keithley2450Parameters.SourceVoltage.Id : Keithley2450Parameters.SourceCurrent.Id;
+            var complianceId = voltage ? Keithley2450Parameters.CurrentCompliance.Id : Keithley2450Parameters.VoltageCompliance.Id;
+            var levelWrite = write.Address.Parameter == levelId;
+            if (!levelWrite && write.Address.Parameter != complianceId) continue;
+            var counterpart = levelWrite ? complianceId : levelId;
+            if (changedAddresses.Contains(new(write.Address.Device, counterpart))) continue;
+            foreach (var value in write.Values)
+                Keithley2450Limits.Validate(levelWrite ? preparation.ToSetpoint() with { Level = value.Value } :
+                    preparation.ToSetpoint() with { Compliance = value.Value });
+        }
         return new(plan, new(columns.Values), Array.AsReadOnly(needed.OrderBy(id => id.Value, StringComparer.Ordinal).ToArray()), cost);
 
         DeviceDescriptor Device(InstrumentId id)
@@ -108,6 +128,7 @@ internal static class ExperimentPlanCompiler
                 case ScanStep scan:
                     var axis = Parameter(scan.Axis, ParameterAccess.Write);
                     foreach (var point in scan.Values.Values) axis.ValidateWrite(point);
+                    writes.Add((scan.Axis, scan.Values.Values));
                     if (axes.Contains(scan.Column)) throw new ArgumentException($"Scan variable {scan.Column} is already active.");
                     AddColumn(scan.Column, axis, scan.Axis, []);
                     BindVariable(scan.Column, axis.Unit, known);
@@ -125,7 +146,9 @@ internal static class ExperimentPlanCompiler
                 case SetParameterStep set:
                     var parameter = Parameter(set.Address, ParameterAccess.Write);
                     if (parameter.Unit != ValueUnit(set.Value, known)) throw new ArgumentException($"{set.Address.Parameter} value has the wrong unit.");
-                    if (set.Value is ConstantValue literal) parameter.ValidateWrite(literal.Value);
+                    if (set.Value is ConstantValue literal)
+                    { parameter.ValidateWrite(literal.Value); writes.Add((set.Address, [literal.Value])); }
+                    else writes.Add((set.Address, null));
                     return 1;
                 case AssignValueStep assign:
                     BindVariable(assign.Variable, ValueUnit(assign.Value, known), known);
@@ -141,6 +164,23 @@ internal static class ExperimentPlanCompiler
                         AddColumn(channel.Column, measurement, channel.Address, [.. axes, Elapsed.Id]);
                         BindVariable(channel.Column, measurement.Unit, known);
                     }
+                    return 1;
+                case ReadResistanceStep resistance:
+                    var sourceDevice = Source(resistance.Device);
+                    if (!preparations.TryGetValue(resistance.Device, out var preparation) || preparation.Function != resistance.Function ||
+                        preparation.Sense.Function != (resistance.Function == SourceFunction.Voltage ? SenseFunction.Current : SenseFunction.Voltage))
+                        throw new ArgumentException("Resistance reads need an explicit preparation with matching source and opposite sensing function.");
+                    AddColumn(resistance.VoltageColumn, new(resistance.VoltageColumn,
+                        resistance.Function == SourceFunction.Voltage ? "Actual source voltage" : "Measured voltage", PhysicalUnit.Volt, ParameterAccess.Read),
+                        new(resistance.Device, sourceDevice.GetParameter(Keithley2450Parameters.MeasuredVoltage.Id).Id), [.. axes, Elapsed.Id]);
+                    AddColumn(resistance.CurrentColumn, new(resistance.CurrentColumn,
+                        resistance.Function == SourceFunction.Current ? "Actual source current" : "Measured current", PhysicalUnit.Ampere, ParameterAccess.Read),
+                        new(resistance.Device, sourceDevice.GetParameter(Keithley2450Parameters.MeasuredCurrent.Id).Id), [.. axes, Elapsed.Id]);
+                    AddColumn(resistance.ResistanceColumn, new(resistance.ResistanceColumn, "Resistance (V/I)", PhysicalUnit.Ohm, ParameterAccess.Read),
+                        null, [.. axes, Elapsed.Id, resistance.VoltageColumn, resistance.CurrentColumn]);
+                    BindVariable(resistance.VoltageColumn, PhysicalUnit.Volt, known);
+                    BindVariable(resistance.CurrentColumn, PhysicalUnit.Ampere, known);
+                    BindVariable(resistance.ResistanceColumn, PhysicalUnit.Ohm, known);
                     return 1;
                 case DelayStep:
                     return 1;

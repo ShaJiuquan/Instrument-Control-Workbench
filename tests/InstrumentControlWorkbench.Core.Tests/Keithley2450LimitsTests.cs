@@ -15,7 +15,7 @@ public sealed class Keithley2450LimitsTests
     [Fact]
     public void VoltageSourceUsesCurrentComplianceLimit()
     {
-        Keithley2450Limits.Validate(new SourceSetpoint(SourceFunction.Voltage, 210.0, 1.05));
+        Keithley2450Limits.Validate(new SourceSetpoint(SourceFunction.Voltage, 210.0, 0.105));
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             Keithley2450Limits.Validate(new SourceSetpoint(SourceFunction.Voltage, 211.0, 1e-3)));
@@ -23,10 +23,18 @@ public sealed class Keithley2450LimitsTests
             Keithley2450Limits.Validate(new SourceSetpoint(SourceFunction.Voltage, 1.0, 0.0)));
     }
 
+    [Theory]
+    [InlineData(SourceFunction.Voltage, 100, 1)]
+    [InlineData(SourceFunction.Voltage, -100, 1)]
+    [InlineData(SourceFunction.Current, 1, 100)]
+    [InlineData(SourceFunction.Current, -1, 100)]
+    public void CoupledSourceComplianceEnvelopeIsRejected(SourceFunction function, double level, double compliance)
+        => Assert.Throws<ArgumentOutOfRangeException>(() => Keithley2450Limits.Validate(new SourceSetpoint(function, level, compliance)));
+
     [Fact]
     public void CurrentSourceUsesVoltageComplianceLimit()
     {
-        Keithley2450Limits.Validate(new SourceSetpoint(SourceFunction.Current, 1.05, 210.0));
+        Keithley2450Limits.Validate(new SourceSetpoint(SourceFunction.Current, 1.05, 21.0));
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             Keithley2450Limits.Validate(new SourceSetpoint(SourceFunction.Current, 1.2, 1.0)));

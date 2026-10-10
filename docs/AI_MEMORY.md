@@ -181,3 +181,27 @@ implementation.
 - Acquisition/cleanup state in the data set is distinct from RunOutcome, which
   also reports listener failures. There is no persistence retry queue or deadline
   for finalizers. Settings, database queries and paged plots remain separate work.
+
+## Resistance acquisition (2026-10-11)
+
+- ISourceMeterPort exposes ReadSourceSenseAsync: actual source readback and sense
+  value from the same acquisition, with explicit functions, typed units and time.
+  Never calculate resistance using a configured source level as the numerator.
+- ReadResistanceStep supports K2450 source Voltage/Current with opposite sensing
+  function, explicit preparation, distinct V/I/R columns and nonnegative current
+  threshold. It commits one schema-validated row, with axes/time and raw V/I as
+  dependencies of Ohm resistance. Zero/near-zero current or non-finite ratio is
+  fatal with safe-stop; no NaN/invalid placeholder is substituted.
+- VoltageResistanceRecipe translates standalone voltage mode into the existing
+  engine; nested plans read without reconfiguring source level or disabling output
+  at each point. Source/sense config and user-selected two/four-wire mode are
+  captured. Mock four-wire settings do not validate actual electrode wiring.
+- Source level and compliance are checked together in Core and before live
+  parameter IO. Static preflight checks fixed counterparts; when both change,
+  actual configuration is validated at every write. Do not reject valid plans
+  using stale initial compliance after a planned compliance change.
+- The explicit Rust zero-current reference is f64::EPSILON =
+  2.220446049250313e-16; C# double.Epsilon is a different value.
+- PPMS matrix/channel routing, explicit source/meter ranges, K6221/K2182/SR830
+  modes, sample topology, recoverable quality rows, aliases and physical device
+  evidence remain outstanding. See resistance-measurements.md.

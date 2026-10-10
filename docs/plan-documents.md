@@ -20,7 +20,8 @@ It needs registered instances `k2450` and `field`, matching the simulation
 profiles. A 3-point field scan contains a stability wait followed by a 5-point
 voltage scan and current/field joint reads. It produces 15 rows. Tests load this
 actual repository file and execute it on fresh sessions; it is not just a schema
-example. Physical hardware support is not implied.
+example. Physical hardware support is not implied. The [resistance example](../examples/plans/field-resistance.plan.json)
+uses the same device instances and produces nine coherent V/I/resistance rows.
 
 Parameters are addressed by `{ "device": "field", "parameter": "field.target" }`.
 Quantities use `{ "value": 0.02, "unit": "Tesla" }`. Unit names are exact domain
@@ -29,14 +30,17 @@ enum names, not numeric enum values. A value expression is exactly one of
 `{ "variable": "field_axis" }`.
 
 Every step has `id` and `kind`. Supported kinds are `sequence`, `repeat`, `scan`,
-`for_each`, `set`, `assign`, `output`, `delay`, `read`, `wait_stable`, `if_else`.
+`for_each`, `set`, `assign`, `output`, `delay`, `read`, `read_resistance`,
+`wait_stable`, `if_else`.
 Their fields correspond to the typed models in `experiment-plans.md`; elapsed
 settings are explicitly named `seconds`, `dwellSeconds`, `stableSeconds`,
 `pollSeconds` and `timeoutSeconds`. Scan values are materialized as one unit and
 a numeric array, preserving descending, logarithmic and segmented values exactly.
 Source preparations include mode, level, compliance and sense configuration.
-Metadata currently carries numeric quantities; general sample/provenance metadata
-remains a separate data-model requirement.
+Plan metadata carries numeric quantities; sample/provenance metadata is supplied
+separately to the run and persisted in its archive. `read_resistance` specifies
+`device`, `function`, `voltageColumn`, `currentColumn`, `resistanceColumn` and a
+`minimumCurrent` Ampere quantity. See resistance-measurements.md.
 
 ## Limits and failure behavior
 
@@ -53,7 +57,7 @@ remains a separate data-model requirement.
 - Load does not rewrite files. Unsupported versions are never silently upgraded.
   The caller receives an exception and can preserve its current draft.
 - Plan storage is not persistent result history, run journaling or restart recovery.
-  Result persistence/export and durable settings remain pending.
+  Result archives/export are a separate API; durable settings remain pending.
 
 ## Recovery and shutdown boundary
 

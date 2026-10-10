@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using InstrumentControlWorkbench.Core.Experiments;
+using InstrumentControlWorkbench.Core.Instruments;
 using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Infrastructure.Plans;
@@ -36,6 +37,10 @@ public sealed partial class JsonExperimentPlanDocument
             case ReadStep s:
                 o["kind"] = "read"; o["channels"] = new JsonArray(s.Channels.Select(c => (JsonNode)new JsonObject
                 { ["column"] = c.Column.Value, ["address"] = EncodeAddress(c.Address) }).ToArray()); break;
+            case ReadResistanceStep s:
+                o["kind"] = "read_resistance"; o["device"] = s.Device.Value; o["function"] = s.Function.ToString();
+                o["voltageColumn"] = s.VoltageColumn.Value; o["currentColumn"] = s.CurrentColumn.Value;
+                o["resistanceColumn"] = s.ResistanceColumn.Value; o["minimumCurrent"] = EncodeQuantity(s.MinimumCurrent); break;
             case WaitStableStep s:
                 o["kind"] = "wait_stable"; o["readback"] = EncodeAddress(s.Readback); o["target"] = EncodeValue(s.Target);
                 o["tolerance"] = EncodeQuantity(s.Tolerance); o["stableSeconds"] = s.StableFor.TotalSeconds;
@@ -96,6 +101,10 @@ public sealed partial class JsonExperimentPlanDocument
                     var channel = Object(c, "column", "address");
                     return new ReadChannel(new(Text(channel, "column")), DecodeAddress(channel["address"]));
                 }));
+            case "read_resistance":
+                Object(o, "id", "kind", "device", "function", "voltageColumn", "currentColumn", "resistanceColumn", "minimumCurrent");
+                return new ReadResistanceStep(id, new(Text(o, "device")), NamedEnum<SourceFunction>(o, "function"),
+                    new(Text(o, "voltageColumn")), new(Text(o, "currentColumn")), new(Text(o, "resistanceColumn")), DecodeQuantity(o["minimumCurrent"]));
             case "wait_stable":
                 Object(o, "id", "kind", "readback", "target", "tolerance", "stableSeconds", "pollSeconds", "timeoutSeconds");
                 return new WaitStableStep(id, DecodeAddress(o["readback"]), DecodeValue(o["target"]), DecodeQuantity(o["tolerance"]),

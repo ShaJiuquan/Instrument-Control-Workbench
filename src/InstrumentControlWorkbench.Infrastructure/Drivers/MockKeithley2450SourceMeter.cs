@@ -111,33 +111,32 @@ public sealed class MockKeithley2450SourceMeter : ISourceMeterPort
 
     public async Task<MeasurementValue> ReadAsync(CancellationToken cancellationToken)
     {
+        var reading = await ReadSourceSenseAsync(cancellationToken);
+        var unit = reading.Sense.Unit switch { PhysicalUnit.Ampere => "A", PhysicalUnit.Volt => "V", _ => "ohm" };
+        return new(reading.Sense.Value, unit, reading.Timestamp);
+    }
+
+    public async Task<SourceSenseReading> ReadSourceSenseAsync(CancellationToken cancellationToken)
+    {
         await operationLock.WaitAsync(cancellationToken);
         try
         {
             RequireConnected();
             await Task.Delay(35, cancellationToken);
             lastHeartbeat = DateTimeOffset.Now;
-
-            var measured = sense.Function switch
+            var sourceUnit = source.Function == SourceFunction.Voltage ? PhysicalUnit.Volt : PhysicalUnit.Ampere;
+            var value = sense.Function switch
             {
                 SenseFunction.Current => source.Function == SourceFunction.Voltage ? MockCurrentFromVoltage(source.Level) : source.Level * 0.998,
                 SenseFunction.Voltage => (source.Function == SourceFunction.Voltage ? source.Level : source.Level / 2.2e-3) * 0.998,
                 SenseFunction.Resistance => 1_000.0 + Math.Abs(source.Level) * 12.0,
-                _ => 0.0,
+                _ => throw new InvalidOperationException("Unknown sensing function."),
             };
-            var unit = sense.Function switch
-            {
-                SenseFunction.Current => "A",
-                SenseFunction.Voltage => "V",
-                SenseFunction.Resistance => "ohm",
-                _ => "",
-            };
-            return new MeasurementValue(outputEnabled ? measured : 0.0, unit, lastHeartbeat);
+            var unit = sense.Function switch { SenseFunction.Current => PhysicalUnit.Ampere, SenseFunction.Voltage => PhysicalUnit.Volt, _ => PhysicalUnit.Ohm };
+            return new(source.Function, sense.Function, new(outputEnabled ? source.Level : 0, sourceUnit),
+                new(outputEnabled ? value : 0, unit), lastHeartbeat);
         }
-        finally
-        {
-            operationLock.Release();
-        }
+        finally { operationLock.Release(); }
     }
 
     public async Task<SourceMeterSnapshot> GetSnapshotAsync(CancellationToken cancellationToken)

@@ -1,0 +1,137 @@
+{
+  "format": "instrument-workbench-plan",
+  "version": 1,
+  "name": "Field-voltage resistance scan",
+  "preparations": [
+    {
+      "device": "k2450",
+      "function": "Voltage",
+      "level": {
+        "value": 0.01,
+        "unit": "Volt"
+      },
+      "compliance": {
+        "value": 0.000105,
+        "unit": "Ampere"
+      },
+      "sense": {
+        "function": "Current",
+        "mode": "TwoWire",
+        "nplc": 1,
+        "autoRange": true
+      }
+    }
+  ],
+  "metadata": {
+    "field_points": {
+      "value": 3,
+      "unit": "Dimensionless"
+    },
+    "voltage_points": {
+      "value": 3,
+      "unit": "Dimensionless"
+    }
+  },
+  "root": {
+    "id": "experiment",
+    "kind": "sequence",
+    "children": [
+      {
+        "id": "source_on",
+        "kind": "output",
+        "device": "k2450",
+        "enabled": true
+      },
+      {
+        "id": "field_scan",
+        "kind": "scan",
+        "axis": {
+          "device": "field",
+          "parameter": "field.target"
+        },
+        "column": "field_axis",
+        "values": {
+          "unit": "Tesla",
+          "values": [
+            0,
+            0.01,
+            0.02
+          ]
+        },
+        "dwellSeconds": 0,
+        "body": {
+          "id": "field_body",
+          "kind": "sequence",
+          "children": [
+            {
+              "id": "field_stable",
+              "kind": "wait_stable",
+              "readback": {
+                "device": "field",
+                "parameter": "field.readback"
+              },
+              "target": {
+                "variable": "field_axis"
+              },
+              "tolerance": {
+                "value": 0.0001,
+                "unit": "Tesla"
+              },
+              "stableSeconds": 0.05,
+              "pollSeconds": 0.05,
+              "timeoutSeconds": 5
+            },
+            {
+              "id": "voltage_scan",
+              "kind": "scan",
+              "axis": {
+                "device": "k2450",
+                "parameter": "k2450.source_voltage"
+              },
+              "column": "voltage_axis",
+              "values": {
+                "unit": "Volt",
+                "values": [
+                  0.01,
+                  0.02,
+                  0.03
+                ]
+              },
+              "dwellSeconds": 0,
+              "body": {
+                "id": "point",
+                "kind": "sequence",
+                "children": [
+                  {
+                    "id": "settle",
+                    "kind": "delay",
+                    "seconds": 0.02
+                  },
+                  {
+                    "id": "resistance_read",
+                    "kind": "read_resistance",
+                    "device": "k2450",
+                    "function": "Voltage",
+                    "voltageColumn": "voltage",
+                    "currentColumn": "current",
+                    "resistanceColumn": "resistance",
+                    "minimumCurrent": {
+                      "value": 2.220446049250313e-16,
+                      "unit": "Ampere"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "id": "source_off",
+        "kind": "output",
+        "device": "k2450",
+        "enabled": false
+      }
+    ]
+  }
+}

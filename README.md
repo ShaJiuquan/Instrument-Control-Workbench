@@ -32,7 +32,8 @@ The desktop prototype and execution foundation currently provide:
 - Simulated temperature, magnetic field and rotation controllers with explicit target/rate/readback/hold policies.
 - Nested scans, joint reads, iteration/conditions, delay and stability waits through the application API.
 - Versioned plan files with preflight validation, bounded JSON parsing and atomic replacement.
-- A runnable [field/voltage plan](examples/plans/field-voltage.plan.json) and [document format](docs/plan-documents.md).
+- Runnable [field/voltage](examples/plans/field-voltage.plan.json) and [field/resistance](examples/plans/field-resistance.plan.json) plans, with a [document format](docs/plan-documents.md).
+- Coherent source/sense resistance reads and a typed Voltage DC recipe, sharing the same executor and cleanup.
 - Versioned run archives with sample metadata, plan/configuration snapshots, typed rows, terminal markers and streamed CSV export through the application API.
 - xUnit coverage for state transitions, leases, validators, acquisition and archive integrity.
 - Four working pages: measurement, instrument connection/status, run data, events.

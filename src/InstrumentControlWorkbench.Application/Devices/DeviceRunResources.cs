@@ -66,6 +66,23 @@ public sealed class DeviceRunResources
         finally { gate.Release(); }
     }
 
+    public async Task<SourceSenseReading> ReadSourceSenseAsync(InstrumentId id, SourceFunction function, CancellationToken token)
+    {
+        await gate.WaitAsync(token);
+        try
+        {
+            RequireActive();
+            var manager = Get(id) as InstrumentManager ?? throw new NotSupportedException($"{id} is not a source meter.");
+            // Paired acquisition can configure sensing and observes enabled output;
+            // a previous stop confirmation cannot be reused after this operation.
+            await PrepareMutationAsync(id);
+            token.ThrowIfCancellationRequested();
+            touched.Add(id);
+            return await manager.ReadSourceSenseAsync(function, token, Owner);
+        }
+        finally { gate.Release(); }
+    }
+
     public async Task WriteAsync(InstrumentId id, ParameterId parameter, Quantity value, CancellationToken token)
     {
         await gate.WaitAsync(token);
