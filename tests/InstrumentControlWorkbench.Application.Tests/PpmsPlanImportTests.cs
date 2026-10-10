@@ -203,7 +203,7 @@ public sealed class PpmsPlanImportTests
             case "children": node = Node("command", "sleep", new() { ["seconds"] = 0 }, Node("measurement", "read_field")); break;
             case "mode": Object(node)["voltage_mode"] = "polarization"; break;
             case "points": Object(node)["points"] = new JsonObject { ["mode"] = "shuffle", ["start"] = 0, ["end"] = 1, ["points"] = 3 }; break;
-            case "range": Object(node)["source_range_v"] = "20"; break;
+            case "range": Object(node)["source_range_v"] = "201"; break;
             case "route": Object(node)["channel"] = "missing"; break;
             case "instrument": node = Node("measurement", "read_voltage", new() { ["instrument"] = "k2182" }); break;
             case "function": node = Node("command", "set_current", new() { ["instrument"] = "k2450", ["target_a"] = 1e-6, ["channel"] = "ch1" }); break;

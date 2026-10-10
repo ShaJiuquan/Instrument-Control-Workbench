@@ -41,6 +41,8 @@ internal static class ExperimentPlanCompiler
             device.GetParameter(voltage ? Keithley2450Parameters.SourceVoltage.Id : Keithley2450Parameters.SourceCurrent.Id).ValidateWrite(preparation.Level);
             device.GetParameter(voltage ? Keithley2450Parameters.CurrentCompliance.Id : Keithley2450Parameters.VoltageCompliance.Id).ValidateWrite(preparation.Compliance);
             device.GetParameter(Keithley2450Parameters.Nplc.Id).ValidateWrite(new(preparation.Sense.Nplc, PhysicalUnit.Dimensionless));
+            if (preparation.ManualSourceRange is { } preparedRange)
+                device.GetParameter(voltage ? Keithley2450Parameters.ManualVoltageRange.Id : Keithley2450Parameters.ManualCurrentRange.Id).ValidateWrite(preparedRange);
         }
         var cost = Visit(plan.Root, variables, [], 0);
         if (cost > 10_000_000) throw new ArgumentOutOfRangeException(nameof(plan), "Plan exceeds the 10,000,000 step execution budget.");
@@ -50,6 +52,20 @@ internal static class ExperimentPlanCompiler
         var changedAddresses = writes.Select(w => w.Address).ToHashSet();
         foreach (var write in writes)
         {
+            if (write.Values is { } rangeValues && (write.Address.Parameter == Keithley2450Parameters.ManualVoltageRange.Id || write.Address.Parameter == Keithley2450Parameters.ManualCurrentRange.Id))
+            {
+                var rangeFunction = write.Address.Parameter == Keithley2450Parameters.ManualVoltageRange.Id ? SourceFunction.Voltage : SourceFunction.Current;
+                if (preparations.TryGetValue(write.Address.Device, out var rangePreparation) && rangePreparation.Function != rangeFunction)
+                    throw new ArgumentException("Manual range parameter differs from the prepared source function.");
+                foreach (var rangeValue in rangeValues) Keithley2450SourceRanges.Validate(rangeFunction, rangeValue);
+                if (rangePreparation is not null)
+                {
+                    var levelParameter = rangeFunction == SourceFunction.Voltage ? Keithley2450Parameters.SourceVoltage.Id : Keithley2450Parameters.SourceCurrent.Id;
+                    var complianceParameter = rangeFunction == SourceFunction.Voltage ? Keithley2450Parameters.CurrentCompliance.Id : Keithley2450Parameters.VoltageCompliance.Id;
+                    if (!changedAddresses.Contains(new(write.Address.Device, levelParameter)) && !changedAddresses.Contains(new(write.Address.Device, complianceParameter)))
+                        foreach (var rangeValue in rangeValues) Keithley2450Limits.Validate(rangePreparation.ToSetpoint() with { ManualRange = rangeValue });
+                }
+            }
             if (!preparations.TryGetValue(write.Address.Device, out var preparation) || write.Values is null) continue;
             var voltage = preparation.Function == SourceFunction.Voltage;
             var levelId = voltage ? Keithley2450Parameters.SourceVoltage.Id : Keithley2450Parameters.SourceCurrent.Id;
@@ -57,10 +73,18 @@ internal static class ExperimentPlanCompiler
             var levelWrite = write.Address.Parameter == levelId;
             if (!levelWrite && write.Address.Parameter != complianceId) continue;
             var counterpart = levelWrite ? complianceId : levelId;
+            var rangeId = voltage ? Keithley2450Parameters.ManualVoltageRange.Id : Keithley2450Parameters.ManualCurrentRange.Id;
+            var rangeChanged = changedAddresses.Contains(new(write.Address.Device, rangeId)) || changedAddresses.Contains(new(write.Address.Device, Keithley2450Parameters.EnableSourceAutoRange.Id));
+            if (!rangeChanged && preparation.ManualSourceRange is { } fixedRange)
+                foreach (var value in write.Values)
+                    if (levelWrite) Keithley2450SourceRanges.ValidateLevel(preparation.Function, value.Value, fixedRange);
+                    else Keithley2450Limits.Validate(new SourceSetpoint(preparation.Function, 0, value.Value, fixedRange));
             if (changedAddresses.Contains(new(write.Address.Device, counterpart))) continue;
             foreach (var value in write.Values)
-                Keithley2450Limits.Validate(levelWrite ? preparation.ToSetpoint() with { Level = value.Value } :
-                    preparation.ToSetpoint() with { Compliance = value.Value });
+            {
+                var baseline = rangeChanged ? preparation.ToSetpoint() with { ManualRange = null } : preparation.ToSetpoint();
+                Keithley2450Limits.Validate(levelWrite ? baseline with { Level = value.Value } : baseline with { Compliance = value.Value });
+            }
         }
         return new(plan, new(columns.Values), Array.AsReadOnly(needed.OrderBy(id => id.Value, StringComparer.Ordinal).ToArray()), cost, new ReadOnlyDictionary<StepId, ResolvedSampleRoute>(sampleRoutes));
 

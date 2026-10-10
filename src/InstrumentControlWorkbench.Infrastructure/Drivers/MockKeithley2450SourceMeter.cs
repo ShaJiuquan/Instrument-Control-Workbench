@@ -23,7 +23,8 @@ public sealed class MockKeithley2450SourceMeter : ISourceMeterPort
             [Keithley2450Parameters.SourceVoltage, Keithley2450Parameters.SourceCurrent,
              Keithley2450Parameters.CurrentCompliance, Keithley2450Parameters.VoltageCompliance,
              Keithley2450Parameters.MeasuredCurrent, Keithley2450Parameters.MeasuredVoltage,
-             Keithley2450Parameters.MeasuredResistance, Keithley2450Parameters.Nplc]);
+             Keithley2450Parameters.MeasuredResistance, Keithley2450Parameters.Nplc, Keithley2450Parameters.ManualVoltageRange,
+             Keithley2450Parameters.ManualCurrentRange, Keithley2450Parameters.SourceAutoRange, Keithley2450Parameters.EnableSourceAutoRange]);
     }
 
     public InstrumentId Id { get; }
@@ -54,6 +55,8 @@ public sealed class MockKeithley2450SourceMeter : ISourceMeterPort
         {
             RequireConnected();
             await Task.Delay(25, cancellationToken);
+            if (outputEnabled && (source.Function != setpoint.Function || source.ManualRange != setpoint.ManualRange))
+                throw new InvalidOperationException("Turn output off before changing source function or range mode.");
             source = setpoint;
             lastHeartbeat = DateTimeOffset.Now;
         }

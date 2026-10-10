@@ -18,6 +18,7 @@ internal sealed class Keithley2450ScpiPeer : IAsyncDisposable
     public bool Output { get; set; }
     public bool RefuseOff { get; set; }
     public bool IgnoreLevelWrite { get; set; }
+    public bool IgnoreRangeWrite { get; set; }
     public int Aborts { get; private set; }
     public double ActualSource { get; set; } = 0.0197;
     public double ActualSense { get; set; } = 0.000021;
@@ -57,7 +58,15 @@ internal sealed class Keithley2450ScpiPeer : IAsyncDisposable
             else if (path[2] is "ILIM?" or "VLIM?") reply = old.Compliance.ToString("G17", CultureInfo.InvariantCulture);
             else if (path[2] == "READ" && path[^1] == "BACK?") reply = readback[path[1]] ? "1" : "0";
             else if (path[2] == "READ") readback[path[1]] = value == "ON";
-            else if (path[2] == "RANG") { }
+            else if (path[2] == "RANG?") reply = (old.ManualRange?.Value ?? InstrumentControlWorkbench.Core.Instruments.Keithley2450SourceRanges.For(selected).First(q => Math.Abs(old.Level) <= q.Value * 1.05).Value).ToString("G17", CultureInfo.InvariantCulture);
+            else if (path[2] == "RANG" && path[^1] == "AUTO?") reply = old.ManualRange is null ? "1" : "0";
+            else if (path[2] == "RANG" && path[^1] == "AUTO") sources[selected] = old with { ManualRange = value == "ON" ? null : old.ManualRange ?? Keithley2450SourceRanges.For(selected).First(q => Math.Abs(old.Level) <= q.Value * 1.05) };
+            else if (path[2] == "RANG")
+            {
+                var range = new InstrumentControlWorkbench.Core.Parameters.Quantity(double.Parse(value, CultureInfo.InvariantCulture), selected == SourceFunction.Voltage ? InstrumentControlWorkbench.Core.Parameters.PhysicalUnit.Volt : InstrumentControlWorkbench.Core.Parameters.PhysicalUnit.Ampere);
+                try { Keithley2450Limits.Validate(old with { ManualRange = range }); if (!IgnoreRangeWrite) sources[selected] = old with { ManualRange = range }; }
+                catch (ArgumentOutOfRangeException) { Errors.Enqueue("-222,\"Source range cannot accommodate level\""); }
+            }
             else if (path[2] is "ILIM" or "VLIM" or "LEV")
             {
                 var candidate = path[2] == "LEV" ? old with { Level = double.Parse(value, CultureInfo.InvariantCulture) } : old with { Compliance = double.Parse(value, CultureInfo.InvariantCulture) };

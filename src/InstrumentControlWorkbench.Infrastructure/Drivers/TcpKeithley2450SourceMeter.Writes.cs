@@ -13,13 +13,15 @@ public sealed partial class TcpKeithley2450SourceMeter
         {
             var previous = await ReconcileAsync(token);
             if (previous.Source.Function != requested.Function && previous.OutputEnabled) throw new InvalidOperationException("Turn output off before changing 2450 source function.");
+            if (previous.Source.ManualRange != requested.ManualRange && previous.OutputEnabled) throw new InvalidOperationException("Turn output off before changing 2450 source range mode or value.");
             var prefix = SourceToken(requested.Function);
             if (previous.Source.Function != requested.Function)
             {
                 await transport.WriteAsync($":SOUR:FUNC {prefix}", token);
                 previous = await ReconcileAsync(token);
             }
-            await transport.WriteAsync($":SOUR:{prefix}:RANG:AUTO ON", token);
+            var changingRange = previous.Source.ManualRange != requested.ManualRange;
+            if (requested.ManualRange is null || changingRange) await transport.WriteAsync($":SOUR:{prefix}:RANG:AUTO ON", token);
             var level = $":SOUR:{prefix}:LEV {requested.Level.ToString("G17", CultureInfo.InvariantCulture)}";
             var compliance = $":SOUR:{prefix}:{(requested.Function == SourceFunction.Voltage ? "ILIM" : "VLIM")} {requested.Compliance.ToString("G17", CultureInfo.InvariantCulture)}";
             // Avoid a forbidden intermediate quadrant when raising the limit while
@@ -29,6 +31,11 @@ public sealed partial class TcpKeithley2450SourceMeter
             catch (ArgumentOutOfRangeException) { lowerLevelFirst = true; }
             await transport.WriteAsync(lowerLevelFirst ? level : compliance, token);
             await transport.WriteAsync(lowerLevelFirst ? compliance : level, token);
+            if (changingRange && requested.ManualRange is { } range)
+            {
+                await transport.WriteAsync($":SOUR:{prefix}:RANG {range.Value.ToString("G17", CultureInfo.InvariantCulture)}", token);
+                await transport.WriteAsync($":SOUR:{prefix}:RANG:AUTO OFF", token);
+            }
             await CheckErrorsAsync(token);
             var actual = await ReconcileAsync(token);
             if (actual.Source != requested) throw new IOException("2450 source configuration readback differs from the request; inspect actual settings before proceeding.");

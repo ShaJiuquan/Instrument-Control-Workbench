@@ -52,6 +52,12 @@ sample-routing.md and the runnable sample-four-wire.plan.json example.
 
 ## Limits and failure behavior
 
+Preparations optionally include a typed `manualSourceRange` quantity. Absence/null
+means source autorange; exact nominal choice/unit and level/compliance envelope
+validate before execution. Existing auto documents omit the field. See
+[source-ranges.md](source-ranges.md) and its runnable native example. Older strict
+version-1 readers may reject the new optional field.
+
 - Documents are bounded at 4 MiB, including bounded reads if a file grows during
   load. Encoding also bounds aggregate scan-value allocation before building a
   JSON object tree. Depth is at most 128 and the tree has at most 10,000 nodes.

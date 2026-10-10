@@ -14,12 +14,13 @@ public sealed partial class PpmsExperimentPlanImporter
             var voltage = name == "scan_voltage";
             Fields(p, "points", "start", "end", "step", "points_mode", "channel", "settle_s", voltage ? "compliance_a" : "compliance_v", voltage ? "source_range_v" : "source_range_a", voltage ? "voltage_mode" : "current_mode");
             Choice(p, voltage ? "voltage_mode" : "current_mode", "source", voltage ? ["source"] : ["source", "bias"]);
-            Choice(p, voltage ? "source_range_v" : "source_range_a", "auto", "auto");
             var function = voltage ? SourceFunction.Voltage : SourceFunction.Current;
             var source = Source(p, c, function, voltage || Text(p, "current_mode", "source").Trim().Equals("bias", StringComparison.OrdinalIgnoreCase) ? "k2450" : "k6221");
+            var range = SourceRange(p, function);
             var parameter = voltage ? Keithley2450Parameters.SourceVoltage : Keithley2450Parameters.SourceCurrent;
             var points = Points(p["points"] is JsonObject or JsonArray ? p["points"]! : p, parameter.Unit, c, 0, p["points"] is not (JsonObject or JsonArray));
             if (voltage && points.Values.Any(q => Math.Abs(q.Value) > 200)) throw new FormatException("PPMS voltage scan points must lie in -200..200 V.");
+            if (range is { } fixedRange) foreach (var point in points.Values) Keithley2450Limits.Validate(new SourceSetpoint(function, point.Value, Number(p, voltage ? "compliance_a" : "compliance_v", voltage ? 1e-4 : 10), fixedRange));
             List<ExperimentStep> sourceChildren;
             c.SourceScans.Push((source.Device, Text(p, "channel", voltage ? "" : "ch1").Trim()));
             try { sourceChildren = ScanChildren(node, path, c, depth); }
@@ -29,6 +30,7 @@ public sealed partial class PpmsExperimentPlanImporter
             if (ChannelRoute(p, path, c, source.Device, voltage ? "" : "ch1") is { } route) steps.Add(route);
             steps.Add(Write(path + ".zero", source.Device, parameter, 0));
             steps.Add(Write(path + ".compliance", source.Device, voltage ? Keithley2450Parameters.CurrentCompliance : Keithley2450Parameters.VoltageCompliance, Number(p, voltage ? "compliance_a" : "compliance_v", voltage ? 1e-4 : 10)));
+            steps.Add(SourceRangeStep(path, source, range));
             steps.Add(Write(path + ".initial", source.Device, parameter, points.Values[0].Value));
             steps.Add(new SourceOutputStep(new(path + ".on"), source.Device, true));
             steps.Add(new ScanStep(new(path + ".scan"), new(source.Device, parameter.Id), new(path + ".axis"), points, TimeSpan.Zero, body));

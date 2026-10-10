@@ -50,6 +50,8 @@ public sealed partial class InstrumentManager
             if (!snapshot.Connected) throw new InvalidOperationException($"{InstrumentId} is disconnected.");
             var configuration = ToDeviceStatus(snapshot);
             if (configuration.Values.TryGetValue(parameter, out var configured)) return configured;
+            if (parameter == Keithley2450Parameters.ManualVoltageRange.Id || parameter == Keithley2450Parameters.ManualCurrentRange.Id)
+                throw new InvalidOperationException("Manual range is unavailable in the current source function or automatic range mode.");
             var sense = parameter == Keithley2450Parameters.MeasuredCurrent.Id ? SenseFunction.Current :
                 parameter == Keithley2450Parameters.MeasuredVoltage.Id ? SenseFunction.Voltage :
                 parameter == Keithley2450Parameters.MeasuredResistance.Id ? SenseFunction.Resistance : (SenseFunction?)null;
@@ -111,14 +113,19 @@ public sealed partial class InstrumentManager
             var voltage = snapshot.Source.Function == SourceFunction.Voltage;
             var levelId = voltage ? Keithley2450Parameters.SourceVoltage.Id : Keithley2450Parameters.SourceCurrent.Id;
             var complianceId = voltage ? Keithley2450Parameters.CurrentCompliance.Id : Keithley2450Parameters.VoltageCompliance.Id;
-            if (parameter != levelId && parameter != complianceId && parameter != Keithley2450Parameters.Nplc.Id)
+            var rangeId = voltage ? Keithley2450Parameters.ManualVoltageRange.Id : Keithley2450Parameters.ManualCurrentRange.Id;
+            var rangeWrite = parameter == rangeId || parameter == Keithley2450Parameters.EnableSourceAutoRange.Id;
+            if (parameter != levelId && parameter != complianceId && parameter != Keithley2450Parameters.Nplc.Id && !rangeWrite)
                 throw new InvalidOperationException($"{parameter} requires a different source mode; configure source mode and compliance explicitly first.");
+            if (rangeWrite && snapshot.OutputEnabled) throw new InvalidOperationException("Confirm output off before changing source range.");
             var source = parameter == levelId ? snapshot.Source with { Level = value.Value } :
-                parameter == complianceId ? snapshot.Source with { Compliance = value.Value } : snapshot.Source;
+                parameter == complianceId ? snapshot.Source with { Compliance = value.Value } :
+                parameter == rangeId ? snapshot.Source with { ManualRange = value } :
+                parameter == Keithley2450Parameters.EnableSourceAutoRange.Id ? snapshot.Source with { ManualRange = null } : snapshot.Source;
             Keithley2450Limits.Validate(source);
             try
             {
-                if (parameter == levelId || parameter == complianceId) await sourceMeter.ConfigureSourceAsync(source, token);
+                if (parameter == levelId || parameter == complianceId || rangeWrite) await sourceMeter.ConfigureSourceAsync(source, token);
                 else if (parameter == Keithley2450Parameters.Nplc.Id) await sourceMeter.ConfigureSenseAsync(snapshot.Sense with { Nplc = value.Value }, token);
                 await PublishSnapshotAsync((await ReadSourceSnapshotAsync(token)) with { Lifecycle = lifecycle }, token);
             }
@@ -145,12 +152,16 @@ public sealed partial class InstrumentManager
         var voltage = snapshot.Source.Function == SourceFunction.Voltage;
         var level = voltage ? Keithley2450Parameters.SourceVoltage : Keithley2450Parameters.SourceCurrent;
         var compliance = voltage ? Keithley2450Parameters.CurrentCompliance : Keithley2450Parameters.VoltageCompliance;
+        var values = new Dictionary<ParameterId, Quantity>();
+        if (snapshot.Connected || Descriptor.DriverKind == DriverKind.Simulation)
+        {
+            values[level.Id] = new(snapshot.Source.Level, level.Unit);
+            values[compliance.Id] = new(snapshot.Source.Compliance, compliance.Unit);
+            values[Keithley2450Parameters.Nplc.Id] = new(snapshot.Sense.Nplc, PhysicalUnit.Dimensionless);
+            values[Keithley2450Parameters.SourceAutoRange.Id] = new(snapshot.Source.ManualRange is null ? 1 : 0, PhysicalUnit.Dimensionless);
+            if (snapshot.Source.ManualRange is { } range) values[(voltage ? Keithley2450Parameters.ManualVoltageRange : Keithley2450Parameters.ManualCurrentRange).Id] = range;
+        }
         return new(Descriptor, lifecycle, snapshot.Connected, (snapshot.Connected || Descriptor.DriverKind == DriverKind.Simulation) && !snapshot.OutputEnabled,
-            snapshot.LastHeartbeat, !snapshot.Connected && Descriptor.DriverKind == DriverKind.Hardware ? new Dictionary<ParameterId, Quantity>() : new Dictionary<ParameterId, Quantity>
-            {
-                [level.Id] = new(snapshot.Source.Level, level.Unit),
-                [compliance.Id] = new(snapshot.Source.Compliance, compliance.Unit),
-                [Keithley2450Parameters.Nplc.Id] = new(snapshot.Sense.Nplc, PhysicalUnit.Dimensionless),
-            });
+            snapshot.LastHeartbeat, values);
     }
 }

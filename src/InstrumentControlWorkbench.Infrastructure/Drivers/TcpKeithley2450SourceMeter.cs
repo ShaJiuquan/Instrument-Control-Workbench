@@ -19,7 +19,8 @@ public sealed partial class TcpKeithley2450SourceMeter : ISourceMeterPort
         Descriptor = new(id, "K2450", displayName, DriverKind.Hardware, DeviceStopPolicy.OutputOff,
             [Keithley2450Parameters.SourceVoltage, Keithley2450Parameters.SourceCurrent, Keithley2450Parameters.CurrentCompliance,
              Keithley2450Parameters.VoltageCompliance, Keithley2450Parameters.MeasuredVoltage, Keithley2450Parameters.MeasuredCurrent,
-             Keithley2450Parameters.MeasuredResistance, Keithley2450Parameters.Nplc]);
+             Keithley2450Parameters.MeasuredResistance, Keithley2450Parameters.Nplc, Keithley2450Parameters.ManualVoltageRange,
+             Keithley2450Parameters.ManualCurrentRange, Keithley2450Parameters.SourceAutoRange, Keithley2450Parameters.EnableSourceAutoRange]);
         transport = new(connection);
         snapshot = new(id, "Not connected", InstrumentLifecycleState.Disconnected, false, false, Terminals.Front,
             new(SourceFunction.Voltage, 0, 105e-6), new(SenseFunction.Current, SensingMode.TwoWire, 1, true), DateTimeOffset.MinValue);

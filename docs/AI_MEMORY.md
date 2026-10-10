@@ -568,3 +568,36 @@ implementation.
   manual ranges, autozero/filter/quality flags, other physical families and native
   visual acceptance remain work. See k2450-tcp.md. UI changes are excluded from
   this backend stage and the whole migration goal remains active.
+
+## Typed K2450 source ranges
+
+- SourceSetpoint nullable ManualRange and SourcePreparation optional
+  ManualSourceRange use typed canonical nominal quantities. Core exposes immutable
+  choices, unit/full-scale/headroom and range-limited compliance validation.
+  Source range mode is distinct from level/compliance and sense autorange.
+- Existing source descriptors/sessions provide manual V/A range read/write,
+  source autorange mode read and explicit enable-auto write action. No new port,
+  dependency or executor. Range changes require observed output off; ordinary
+  level/compliance updates preserve actual fixed range. Disconnected hardware
+  observations remain absent. Mock and TCP apply the same declared limits.
+- Compiler checks declared range support, literal choices, fixed-range points and
+  range-limited compliance independently of counterpart changes; range-changing
+  plans/dynamic values retain actual per-write checks. Native v1 optional field is
+  omitted for auto; strict older readers may reject manual-source additions.
+- PPMS set/scan voltage/current and source-owned volt_dc accept auto or positive
+  finite number/string selectors, canonicalizing upward to nominal full scale.
+  Manual scan points/power settings preflight before IO; invalid selectors retain
+  path/line errors. Managed resistance inherits enclosing source settings.
+  Source-range aliases work for routed sample acquisition. Sense ranges stay pending.
+- TCP freshly reconciles mode/manual range and rejects requested/actual mismatch.
+  Changed ranges cannot be applied live; unchanged manual ranges survive scans.
+  Source equality now includes range, so acquisition drift discards the frame and
+  pause drift prevents output restoration. Existing cleanup/ownership is unchanged.
+- Forty-five new cases (22 Core, 23 Application) cover all nominal boundaries,
+  power/units, native fixture/old auto format, both TCP functions, save/archive/CSV,
+  actual/manual parameter actions, no-IO preflight, dynamic fault cleanup,
+  setting refusal/live change, pause/acquisition drift and PPMS imports. No lab IO.
+  Run snapshots capture initial after-preparation settings; later planned writes
+  are not per-row actual range evidence. Automatic selected full-scale, sense
+  range/quality, native editors and hardware certification remain pending. See
+  source-ranges.md; all App/App.Tests stay excluded; full goal remains active.

@@ -75,16 +75,18 @@ public sealed partial class PpmsExperimentPlanImporter
         Fields(p, "instrument", "channel", voltage ? "target_v" : "target_a", voltage ? "compliance_a" : "compliance_v",
             voltage ? "source_range_v" : "source_range_a", voltage ? "voltage_mode" : "current_mode");
         Choice(p, voltage ? "voltage_mode" : "current_mode", "source", "source");
-        Choice(p, voltage ? "source_range_v" : "source_range_a", "auto", "auto");
         var source = Source(p, c, function, voltage ? "k2450" : "k6221");
+        var range = SourceRange(p, function);
         var target = Number(p, voltage ? "target_v" : "target_a");
         if (voltage && Math.Abs(target) > 200) throw new FormatException("PPMS voltage targets must lie in -200..200 V.");
+        if (range is { } fixedRange) Keithley2450Limits.Validate(new SourceSetpoint(function, target, Number(p, voltage ? "compliance_a" : "compliance_v", voltage ? 1e-4 : 1), fixedRange));
         var steps = new List<ExperimentStep> { new SourceOutputStep(new(path + ".off"), source.Device, false) };
         if (ChannelRoute(p, path, c, source.Device, "ch1") is { } route) steps.Add(route);
         // Park at zero before changing compliance so a previous high level cannot
         // invalidate an otherwise safe new level/compliance pair.
         steps.Add(Write(path + ".zero", source.Device, voltage ? Keithley2450Parameters.SourceVoltage : Keithley2450Parameters.SourceCurrent, 0));
         steps.Add(Write(path + ".compliance", source.Device, voltage ? Keithley2450Parameters.CurrentCompliance : Keithley2450Parameters.VoltageCompliance, Number(p, voltage ? "compliance_a" : "compliance_v", voltage ? 1e-4 : 1)));
+        steps.Add(SourceRangeStep(path, source, range));
         steps.Add(Write(path + ".level", source.Device, voltage ? Keithley2450Parameters.SourceVoltage : Keithley2450Parameters.SourceCurrent, target));
         steps.Add(new SourceOutputStep(new(path + ".on"), source.Device, true));
         return new SequenceStep(new(path), steps);

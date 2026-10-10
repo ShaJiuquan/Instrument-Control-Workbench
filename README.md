@@ -29,6 +29,7 @@ The desktop prototype and execution foundation currently provide:
 - Broadcast notification subscriptions with typed device/step/row facts.
 - Mock Keithley 2450 SourceMeter driver.
 - Native-SCPI K2450 raw TCP adapter behind the same execution/resource ports, with [protocol acceptance and hardware limits](docs/k2450-tcp.md).
+- Typed manual source ranges with actual readback, PPMS import, scan bounds and pause drift guards; [contract and runnable example](docs/source-ranges.md).
 - IV recipes and typed multi-device plans share an executor with pause, abort, verified cleanup and retained unsafe ownership.
 - Simulated temperature, magnetic field and rotation controllers with explicit target/rate/readback/hold policies.
 - Nested scans, joint reads, iteration/conditions, delay and stability waits through the application API.

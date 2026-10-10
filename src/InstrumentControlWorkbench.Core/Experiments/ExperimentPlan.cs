@@ -173,7 +173,7 @@ public sealed record WaitStableStep : ExperimentStep
 
 public sealed record SourcePreparation
 {
-    public SourcePreparation(InstrumentId device, SourceFunction function, Quantity level, Quantity compliance, SenseConfiguration sense)
+    public SourcePreparation(InstrumentId device, SourceFunction function, Quantity level, Quantity compliance, SenseConfiguration sense, Quantity? manualSourceRange = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(device.Value);
         if (!Enum.IsDefined(function)) throw new ArgumentOutOfRangeException(nameof(function));
@@ -182,14 +182,16 @@ public sealed record SourcePreparation
             compliance.Unit != (function == SourceFunction.Voltage ? PhysicalUnit.Ampere : PhysicalUnit.Volt))
             throw new ArgumentException("Source level and compliance must match the selected function.");
         Keithley2450Limits.Validate(sense);
-        Device = device; Function = function; Level = level; Compliance = compliance; Sense = sense;
+        if (manualSourceRange is { } range) Keithley2450SourceRanges.Validate(function, range);
+        Device = device; Function = function; Level = level; Compliance = compliance; Sense = sense; ManualSourceRange = manualSourceRange;
     }
     public InstrumentId Device { get; }
     public SourceFunction Function { get; }
     public Quantity Level { get; }
     public Quantity Compliance { get; }
     public SenseConfiguration Sense { get; }
-    public SourceSetpoint ToSetpoint() => new(Function, Level.Value, Compliance.Value);
+    public Quantity? ManualSourceRange { get; }
+    public SourceSetpoint ToSetpoint() => new(Function, Level.Value, Compliance.Value, ManualSourceRange);
 }
 
 public sealed record ExperimentPlan

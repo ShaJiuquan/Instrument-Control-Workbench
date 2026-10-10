@@ -44,9 +44,11 @@ The zero-current threshold is Rust `f64::EPSILON` (2.220446049250313e-16 A),
 not .NET `double.Epsilon`. No zero/undefined resistance is invented.
 
 Explicit role names must map to the same bound integrated K2450 source/meter.
-Prepared source function must be voltage, sensing current and auto range. Only
-absent/null/auto range fields and primary meter input are accepted in this stage.
-Manual ranges, filters and additional device modes remain work.
+Prepared source function must be voltage, sensing current with auto sense range.
+Source-owned measurements accept auto or finite positive source range selectors,
+including aliases/numeric strings; managed reads inherit the enclosing range.
+See [source-ranges.md](source-ranges.md). Primary meter input remains required;
+manual sense ranges, filters and additional device modes remain work.
 
 ## Frozen sample configuration
 
@@ -119,7 +121,7 @@ original-plus-stop-failure ownership/recovery.
 
 PPMS file conversion now supplies these bindings (see ppms-profile-import.md).
 Persistent profile editing and the remaining
-resistance modes and source/meter roles, manual ranges/quality, dynamic preparation, settings/visual editor
+resistance modes and source/meter roles, manual sense ranges/quality, dynamic preparation, settings/visual editor
 and physical hardware remain required. Native row layouts and explicit analysis
 summaries are not claimed as byte-for-byte Rust CSV compatibility. This is
 simulated runtime import acceptance within the full migration goal.

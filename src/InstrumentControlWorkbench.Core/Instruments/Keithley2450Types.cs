@@ -27,7 +27,7 @@ public enum Terminals
     Rear,
 }
 
-public sealed record SourceSetpoint(SourceFunction Function, double Level, double Compliance)
+public sealed record SourceSetpoint(SourceFunction Function, double Level, double Compliance, Quantity? ManualRange = null)
 {
     public string LevelUnit => Function == SourceFunction.Voltage ? "V" : "A";
     public string ComplianceUnit => Function == SourceFunction.Voltage ? "A" : "V";
@@ -67,6 +67,7 @@ public static class Keithley2450Limits
         {
             throw new ArgumentOutOfRangeException(nameof(setpoint), "Compliance must be finite.");
         }
+        if (setpoint.ManualRange is { } range) Keithley2450SourceRanges.ValidateLevel(setpoint.Function, setpoint.Level, range);
 
         if (setpoint.Function == SourceFunction.Voltage)
         {
@@ -74,6 +75,8 @@ public static class Keithley2450Limits
             Keithley2450Parameters.CurrentCompliance.ValidateWrite(new(setpoint.Compliance, PhysicalUnit.Ampere));
             if (Math.Abs(setpoint.Level) > 21 && setpoint.Compliance > 0.105)
                 throw new ArgumentOutOfRangeException(nameof(setpoint), "Above 21 V the current limit cannot exceed 105 mA.");
+            if (setpoint.ManualRange is { Value: > 20 } && setpoint.Compliance > 0.105)
+                throw new ArgumentOutOfRangeException(nameof(setpoint), "The 200 V source range requires a current limit no greater than 105 mA.");
         }
         else
         {
@@ -81,6 +84,8 @@ public static class Keithley2450Limits
             Keithley2450Parameters.VoltageCompliance.ValidateWrite(new(setpoint.Compliance, PhysicalUnit.Volt));
             if (Math.Abs(setpoint.Level) > 0.105 && setpoint.Compliance > 21)
                 throw new ArgumentOutOfRangeException(nameof(setpoint), "Above 105 mA the voltage limit cannot exceed 21 V.");
+            if (setpoint.ManualRange is { Value: > 0.1 } && setpoint.Compliance > 21)
+                throw new ArgumentOutOfRangeException(nameof(setpoint), "The 1 A source range requires a voltage limit no greater than 21 V.");
         }
     }
 

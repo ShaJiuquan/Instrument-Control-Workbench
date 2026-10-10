@@ -24,7 +24,7 @@ public sealed partial class PpmsExperimentPlanImporter
         Choice(p, "mode", "curr_dc", "volt_dc");
         foreach (var optional in new[] { "source_range_v", "meter_range_a", "sensing_mode" })
             if (p[optional] is null) p.Remove(optional);
-        Choice(p, "source_range_v", "auto", "auto"); Choice(p, "meter_range_a", "auto", "auto");
+        var range = SourceRange(p, SourceFunction.Voltage); Choice(p, "meter_range_a", "auto", "auto");
         foreach (var environment in new[] { "record_temperature", "record_field", "record_angle" })
             _ = Boolean(p, environment, false); // Current Rust captures all three; these are legacy authoring flags.
         if (ResistanceNumber(p, "sense_channel", 1) != 1) throw new NotSupportedException("Only the primary integrated meter input is migrated.");
@@ -40,6 +40,7 @@ public sealed partial class PpmsExperimentPlanImporter
         var settle = Duration(p, "settle_s", 0.1); var sampleMeasurement = name != "meas_r";
         var scope = c.SourceScans.FirstOrDefault(s => s.Device == source.Device);
         var managed = Boolean(p, "source_managed", false) || scope.Device == source.Device;
+        if (!managed && range is { } fixedRange) Keithley2450Limits.Validate(new SourceSetpoint(SourceFunction.Voltage, voltage, compliance, fixedRange));
         SampleProfile? sample = null;
         if (sampleMeasurement)
         {
@@ -70,6 +71,7 @@ public sealed partial class PpmsExperimentPlanImporter
         {
             steps.Add(Write(path + ".zero", source.Device, Keithley2450Parameters.SourceVoltage, 0));
             steps.Add(Write(path + ".compliance", source.Device, Keithley2450Parameters.CurrentCompliance, compliance));
+            steps.Add(SourceRangeStep(path, source, range));
             steps.Add(Write(path + ".level", source.Device, Keithley2450Parameters.SourceVoltage, voltage));
         }
         steps.Add(Write(path + ".nplc", source.Device, Keithley2450Parameters.Nplc, nplc));

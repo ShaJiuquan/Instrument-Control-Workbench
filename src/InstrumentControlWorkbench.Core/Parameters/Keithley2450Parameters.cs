@@ -2,6 +2,10 @@ namespace InstrumentControlWorkbench.Core.Parameters;
 
 public static class Keithley2450Parameters
 {
+    public static ParameterDescriptor ManualVoltageRange { get; } = new(new("k2450.manual_voltage_range"), "Manual source voltage range", PhysicalUnit.Volt, ParameterAccess.ReadWrite, new(0.02, PhysicalUnit.Volt), new(200, PhysicalUnit.Volt));
+    public static ParameterDescriptor ManualCurrentRange { get; } = new(new("k2450.manual_current_range"), "Manual source current range", PhysicalUnit.Ampere, ParameterAccess.ReadWrite, new(1e-8, PhysicalUnit.Ampere), new(1, PhysicalUnit.Ampere));
+    public static ParameterDescriptor SourceAutoRange { get; } = new(new("k2450.source_auto_range"), "Automatic source range (1 = enabled)", PhysicalUnit.Dimensionless, ParameterAccess.Read, new(0, PhysicalUnit.Dimensionless), new(1, PhysicalUnit.Dimensionless));
+    public static ParameterDescriptor EnableSourceAutoRange { get; } = new(new("k2450.enable_source_auto_range"), "Enable automatic source range", PhysicalUnit.Dimensionless, ParameterAccess.Write, new(1, PhysicalUnit.Dimensionless), new(1, PhysicalUnit.Dimensionless));
     public static ParameterDescriptor SourceVoltage { get; } = new(new("k2450.source_voltage"), "Source voltage",
         PhysicalUnit.Volt, ParameterAccess.ReadWrite, new(-210, PhysicalUnit.Volt), new(210, PhysicalUnit.Volt));
     public static ParameterDescriptor SourceCurrent { get; } = new(new("k2450.source_current"), "Source current",

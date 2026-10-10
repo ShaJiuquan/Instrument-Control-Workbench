@@ -14,6 +14,8 @@ public sealed partial class TcpKeithley2450SourceMeter
         var sourceToken = SourceToken(function);
         var level = Number(await transport.QueryAsync($":SOUR:{sourceToken}:LEV?", token));
         var compliance = Number(await transport.QueryAsync(function == SourceFunction.Voltage ? ":SOUR:VOLT:ILIM?" : ":SOUR:CURR:VLIM?", token));
+        Quantity? manualRange = Boolean(await transport.QueryAsync($":SOUR:{sourceToken}:RANG:AUTO?", token)) ? null :
+            new(Number(await transport.QueryAsync($":SOUR:{sourceToken}:RANG?", token)), function == SourceFunction.Voltage ? PhysicalUnit.Volt : PhysicalUnit.Ampere);
         var senseFunction = Word(await transport.QueryAsync(":SENS:FUNC?", token)) switch
         { "VOLT" or "VOLTAGE" or "VOLT:DC" or "VOLTAGE:DC" => SenseFunction.Voltage, "CURR" or "CURRENT" or "CURR:DC" or "CURRENT:DC" => SenseFunction.Current, "RES" or "RESISTANCE" => SenseFunction.Resistance, _ => throw new IOException("Unknown 2450 sense function readback.") };
         var senseToken = SenseToken(senseFunction);
@@ -21,7 +23,7 @@ public sealed partial class TcpKeithley2450SourceMeter
         var nplc = Number(await transport.QueryAsync($":SENS:{senseToken}:NPLC?", token));
         var autoRange = Boolean(await transport.QueryAsync($":SENS:{senseToken}:RANG:AUTO?", token));
         var terminals = Word(await transport.QueryAsync(":ROUT:TERM?", token)) switch { "FRON" or "FRONT" => Terminals.Front, "REAR" => Terminals.Rear, _ => throw new IOException("Unknown 2450 terminal readback.") };
-        var source = new SourceSetpoint(function, level, compliance); var sense = new SenseConfiguration(senseFunction, mode, nplc, autoRange);
+        var source = new SourceSetpoint(function, level, compliance, manualRange); var sense = new SenseConfiguration(senseFunction, mode, nplc, autoRange);
         Keithley2450Limits.Validate(source); Keithley2450Limits.Validate(sense);
         await CheckErrorsAsync(token);
         snapshot = new(Id, snapshot.Identifier, InstrumentLifecycleState.Idle, true, output, terminals, source, sense, DateTimeOffset.UtcNow);

@@ -48,16 +48,20 @@ public sealed partial class InstrumentManager : IDeviceSession
             var voltageSource = snapshot.Source.Function == SourceFunction.Voltage;
             var level = voltageSource ? Keithley2450Parameters.SourceVoltage : Keithley2450Parameters.SourceCurrent;
             var compliance = voltageSource ? Keithley2450Parameters.CurrentCompliance : Keithley2450Parameters.VoltageCompliance;
-            return new InstrumentParameterSnapshot(snapshot.InstrumentId, snapshot.Identifier, DateTimeOffset.UtcNow,
-                [new(level, new(snapshot.Source.Level, level.Unit)),
+            var parameters = new List<ParameterSnapshot>
+                {new(level, new(snapshot.Source.Level, level.Unit)),
                  new(compliance, new(snapshot.Source.Compliance, compliance.Unit)),
-                 new(Keithley2450Parameters.Nplc, new(snapshot.Sense.Nplc, PhysicalUnit.Dimensionless))],
+                 new(Keithley2450Parameters.Nplc, new(snapshot.Sense.Nplc, PhysicalUnit.Dimensionless)),
+                 new(Keithley2450Parameters.SourceAutoRange, new(snapshot.Source.ManualRange is null ? 1 : 0, PhysicalUnit.Dimensionless))};
+            if (snapshot.Source.ManualRange is { } range) parameters.Add(new(voltageSource ? Keithley2450Parameters.ManualVoltageRange : Keithley2450Parameters.ManualCurrentRange, range));
+            return new InstrumentParameterSnapshot(snapshot.InstrumentId, snapshot.Identifier, DateTimeOffset.UtcNow, parameters,
                 new Dictionary<string, string>
                 {
                     ["display_name"] = Descriptor.DisplayName,
                     ["driver_kind"] = Descriptor.DriverKind.ToString(),
                     ["stop_policy"] = Descriptor.StopPolicy.ToString(),
                     ["source_function"] = snapshot.Source.Function.ToString(),
+                    ["source_range_mode"] = snapshot.Source.ManualRange is null ? "Auto" : "Manual",
                     ["sense_function"] = snapshot.Sense.Function.ToString(),
                     ["sensing_mode"] = snapshot.Sense.Mode.ToString(),
                     ["terminals"] = snapshot.Terminals.ToString(),

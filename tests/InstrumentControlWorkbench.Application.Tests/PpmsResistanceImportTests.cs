@@ -23,6 +23,14 @@ namespace InstrumentControlWorkbench.Application.Tests;
 public sealed class PpmsResistanceImportTests
 {
     private static readonly CancellationToken Token = CancellationToken.None;
+    [Fact]
+    public async Task SourceManualRangeAliasConfiguresFourWireSampleAcquisition()
+    {
+        var b = new Bench(); var document = b.Workspace.Import(Measurement("meas_r_sample", new() { ["sample_id"] = "sample1", ["mode"] = "volt_dc", ["voltage_v"] = 0.02, ["range_v"] = "20", ["settle_s"] = 0 }).ToJsonString(), b.Bindings);
+        Assert.False((await b.Source.GetSnapshotAsync(Token)).Connected); await b.Runs.StartPlanAsync(document.Plan, Token);
+        Assert.Single(b.Runs.LatestDataSet!.Rows); Assert.Equal(new(20, PhysicalUnit.Volt), (await b.Source.GetSnapshotAsync(Token)).Source.ManualRange);
+        Assert.False((await b.Source.GetSnapshotAsync(Token)).OutputEnabled); Assert.Empty((await b.Matrix.GetSnapshotAsync(Token)).Closed);
+    }
     [Theory]
     [InlineData("meas_r_2w", "sample4", 1)]
     [InlineData("two_wire", "sample4", 1)]
@@ -192,7 +200,7 @@ public sealed class PpmsResistanceImportTests
             case "primitive": node["name"] = "meas_r_2w"; break;
             case "sense": p["sensing_mode"] = false; break;
             case "role": p["meter_instrument"] = "k2182"; break;
-            case "range": p["source_range_v"] = "20"; break;
+            case "range": p["source_range_v"] = "201"; break;
             case "managed": p["source_managed"] = true; break;
             case "aliases": p["sample"] = "sample2"; break;
             case "record": p["record_temperature"] = "invalid boolean"; break;

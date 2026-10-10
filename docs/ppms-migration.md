@@ -239,6 +239,13 @@ Avalonia views -> ViewModels -> Application use cases -> Core contracts
    primary. No hardware was contacted; real acceptance, other physical adapters,
    range/filter/quality features and native operator acceptance remain pending.
    See k2450-tcp.md.
+   Source ranges now use typed nominal choices through preparations, parameter
+   writes, PPMS import, compiler, mock and actual TCP reconciliation. Fixed-range
+   level/compliance bounds, live-change exclusion, acquisition/pause drift and
+   initial snapshot/archive evidence are verified. A native three-row fixture
+   executes against configured simulation. Sense ranges, per-frame quality,
+   automatic selected full scale and hardware acceptance remain pending. See
+   source-ranges.md.
 7. **Operator workflows — pending.** Flow editor, reusable steps, device panels,
    routing/sample settings and live/history views connected to the backend.
 8. **Acceptance — pending.** End-to-end representative PPMS experiments,

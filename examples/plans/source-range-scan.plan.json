@@ -1,0 +1,68 @@
+{
+  "format": "instrument-workbench-plan",
+  "version": 1,
+  "name": "Manual 200 mV source range scan",
+  "preparations": [
+    {
+      "device": "smu-primary",
+      "function": "Voltage",
+      "level": {
+        "value": 0,
+        "unit": "Volt"
+      },
+      "compliance": {
+        "value": 0.000105,
+        "unit": "Ampere"
+      },
+      "sense": {
+        "function": "Current",
+        "mode": "FourWire",
+        "nplc": 1,
+        "autoRange": true
+      },
+      "manualSourceRange": {
+        "value": 0.2,
+        "unit": "Volt"
+      }
+    }
+  ],
+  "metadata": {},
+  "root": {
+    "id": "root",
+    "kind": "sequence",
+    "children": [
+      {
+        "id": "on",
+        "kind": "output",
+        "device": "smu-primary",
+        "enabled": true
+      },
+      {
+        "id": "scan",
+        "kind": "scan",
+        "axis": {
+          "device": "smu-primary",
+          "parameter": "k2450.source_voltage"
+        },
+        "column": "requested",
+        "values": {
+          "unit": "Volt",
+          "values": [
+            -0.03,
+            0.01,
+            0.03
+          ]
+        },
+        "dwellSeconds": 0,
+        "body": {
+          "id": "read",
+          "kind": "read_source_sense",
+          "device": "smu-primary",
+          "function": "Voltage",
+          "voltageColumn": "voltage",
+          "currentColumn": "current"
+        }
+      }
+    ]
+  }
+}
