@@ -1,0 +1,100 @@
+{
+  "format": "instrument-workbench-devices",
+  "version": 1,
+  "primarySource": "smu-primary",
+  "devices": [
+    {
+      "id": "smu-primary",
+      "model": "K2450",
+      "displayName": "Primary specimen SMU",
+      "category": "SourceMeter",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      }
+    },
+    {
+      "id": "smu-secondary",
+      "model": "K2450",
+      "displayName": "Reference specimen SMU",
+      "category": "SourceMeter",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      }
+    },
+    {
+      "id": "magnet-1",
+      "model": "SIM-FIELD",
+      "displayName": "Magnet simulator",
+      "category": "Field",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      }
+    },
+    {
+      "id": "thermal-1",
+      "model": "SIM-TEMPERATURE",
+      "displayName": "Temperature simulator",
+      "category": "Temperature",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      }
+    },
+    {
+      "id": "rotation-1",
+      "model": "ROTATOR",
+      "displayName": "Angle simulator",
+      "category": "Rotation",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      }
+    },
+    {
+      "id": "matrix-1",
+      "model": "K3706",
+      "displayName": "Specimen switch simulator",
+      "category": "Matrix",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      },
+      "matrix": {
+        "cards": [
+          {
+            "slot": 1,
+            "rows": 8,
+            "columns": 10
+          }
+        ],
+        "guardedSources": [
+          "smu-primary",
+          "smu-secondary"
+        ]
+      }
+    },
+    {
+      "id": "future-meter",
+      "model": "K2182",
+      "displayName": "Disabled hardware template",
+      "category": "Meter",
+      "enabled": false,
+      "connection": {
+        "transport": "visa",
+        "resource": "GPIB0::7::INSTR"
+      }
+    }
+  ],
+  "aliases": {
+    "k2450": "smu-primary",
+    "reference": "smu-secondary",
+    "field": "magnet-1",
+    "temperature": "thermal-1",
+    "angle": "rotation-1",
+    "k3706": "matrix-1",
+    "k2182": "future-meter"
+  }
+}

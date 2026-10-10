@@ -14,8 +14,10 @@ public sealed class MockKeithley2450SourceMeter : ISourceMeterPort
     private bool outputEnabled;
     private DateTimeOffset lastHeartbeat = DateTimeOffset.MinValue;
 
-    public MockKeithley2450SourceMeter(InstrumentId? id = null)
+    public MockKeithley2450SourceMeter(InstrumentId? id = null, string? displayName = null)
     {
+        DisplayName = displayName ?? "Keithley 2450 SourceMeter";
+        ArgumentException.ThrowIfNullOrWhiteSpace(DisplayName);
         Id = id ?? new("k2450");
         Descriptor = new(Id, "K2450", DisplayName, DriverKind.Simulation, DeviceStopPolicy.OutputOff,
             [Keithley2450Parameters.SourceVoltage, Keithley2450Parameters.SourceCurrent,
@@ -25,7 +27,7 @@ public sealed class MockKeithley2450SourceMeter : ISourceMeterPort
     }
 
     public InstrumentId Id { get; }
-    public string DisplayName => "Keithley 2450 SourceMeter";
+    public string DisplayName { get; }
     public DeviceDescriptor Descriptor { get; }
 
     public async Task<SourceMeterSnapshot> ConnectAsync(CancellationToken cancellationToken)

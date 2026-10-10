@@ -207,6 +207,16 @@ Avalonia views -> ViewModels -> Application use cases -> Core contracts
    sample/member identity through archive/CSV. Atomic resource admission includes
    bound controllers; read errors do not bypass independent hold confirmation.
    See environment-acquisition.md and ppms-environment-point-import.json.
+   The device-settings follow-up retains native instance/alias/primary/enable and
+   typed simulation/TCP/VISA/serial configurations, imports all eight PPMS
+   connection keys and stores explicit matrix cards/guards. Offline typed edits
+   do not mutate live state. Startup validates the whole enabled set before port
+   construction and builds existing sessions/shared resources without IO;
+   supported simulations execute the 28-row profile experiment with multiple SMUs.
+   Unsupported hardware rejects before construction, never falls back to a mock.
+   Published desktop composition, physical adapters, DB/env precedence and
+   operator restart/device-specific settings remain pending. See
+   device-configuration.md.
 7. **Operator workflows — pending.** Flow editor, reusable steps, device panels,
    routing/sample settings and live/history views connected to the backend.
 8. **Acceptance — pending.** End-to-end representative PPMS experiments,

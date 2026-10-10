@@ -1,0 +1,46 @@
+{
+  "devices": {
+    "k2450": {
+      "transport": "tcp",
+      "host": "127.0.0.1",
+      "port": 5025,
+      "terminator": "\r\n",
+      "timeout_s": 15
+    },
+    "k3706": {
+      "transport": "tcp",
+      "host": "127.0.0.1",
+      "port": 5026,
+      "terminator": "\r\n",
+      "timeout_s": 15
+    },
+    "k6221": {
+      "transport": "tcp",
+      "host": "127.0.0.1",
+      "port": 5030,
+      "terminator": "\r\n",
+      "timeout_s": 15
+    },
+    "k2182": {
+      "transport": "visa",
+      "resource_name": "GPIB0::7::INSTR"
+    },
+    "k6485": {
+      "transport": "visa",
+      "resource_name": "GPIB0::14::INSTR"
+    },
+    "k6514": {
+      "transport": "visa",
+      "resource_name": "GPIB0::15::INSTR"
+    },
+    "sr830": {
+      "transport": "visa",
+      "resource_name": "GPIB0::8::INSTR"
+    },
+    "rotator": {
+      "transport": "serial",
+      "port": "EXAMPLE-SERIAL",
+      "timeout_s": 2.5
+    }
+  }
+}

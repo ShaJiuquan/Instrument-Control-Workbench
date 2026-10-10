@@ -452,3 +452,40 @@ implementation.
 - Device settings, PPMS write-back/database, additional runtime flags/families,
   native profile UI and hardware acceptance remain required. No UI files included
   in this backend stage; see routing-profile-workspace.md. Goal remains active.
+
+## Native device settings and startup runtime
+
+- Core immutable DeviceConfigurationCatalog owns explicit identity/category/name,
+  optional selected enabled source meter, enable states, typed simulation/TCP/VISA/serial
+  connections, aliases and optional matrix cards/guards. Whole-catalog references
+  validate; enabled duplicate physical endpoint declarations reject. No DNS or
+  cross-transport/cross-process equivalence guarantee.
+- DeviceConfigurationWorkspace offline CRUD/primary/alias and native file port
+  never call drivers. SDK JSON v1 uses 1 MiB/depth 16/50000-value budgets, strict
+  fields/UTF-8/BOM, positive timer-range tick-exact timeouts and atomic sibling
+  replacement/cleanup-error aggregation. Last writer wins; no CAS/power-loss promise.
+- PPMS explicit-file importer retains eight current connection keys/fields and
+  all hardware kinds. No DB/env/default lookup, silent invalid-entry fallback or
+  auto-mock fallback. Matrix cards/guards and environment controller definitions
+  are supplied explicitly after import. DB/env precedence remains migration work.
+- ConfiguredDeviceRuntime validates every enabled factory profile before any
+  construction, checks identities/kinds/axis units/matrix declarations and wraps
+  typed Core ports in existing Application sessions/registry. No constructor IO or
+  lease acquisition; existing live runtime remains immutable during offline save.
+- Default factory supports simulated K2450/K3706/three axes, multiple distinct
+  identities/names and disabled hardware templates. Unsupported physical drivers
+  reject; this does not implement TCP/VISA/serial communication. Published desktop
+  composition/operator controls still require integration and native acceptance.
+- Device tests execute/import/archive the 28-row field/sample fixture from a fresh
+  native config, edit/save while paused, preserve old source identity and apply
+  secondary source at fresh startup. Existing output/route cleanup and lease
+  lifecycle remain in use. See device-configuration.md; whole goal remains active.
+- Local read-only acceptance at unchanged Rust 35763295f63b612f70af9dc55983644f437c18ea
+  parsed the actual bundled data/instrument_connections.json: eight devices,
+  three TCP, four VISA and one serial. Native round-trip matched; no construction
+  or hardware IO and no original source/config changes. No lab addresses copied
+  into the independently authored fixtures or published documentation.
+- Null primary supports axes-only configuration/startup/manual/resource cleanup
+  without constructing an unused SMU. The current MeasurementRunService still
+  requires a selected SMU; decoupling general axes-only plan execution remains
+  work. Native null primary and partial rotator-only import are verified.

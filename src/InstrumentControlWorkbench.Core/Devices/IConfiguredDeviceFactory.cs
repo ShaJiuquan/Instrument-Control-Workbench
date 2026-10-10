@@ -1,0 +1,20 @@
+using InstrumentControlWorkbench.Core.Instruments.Ports;
+
+namespace InstrumentControlWorkbench.Core.Devices;
+
+// Validation and construction perform no IO. Connections belong to run/manual sessions.
+public interface IConfiguredDeviceFactory
+{
+    void Validate(DeviceConfiguration configuration);
+    ConfiguredDevicePorts Create(DeviceConfiguration configuration);
+}
+public sealed class ConfiguredDevicePorts
+{
+    public ConfiguredDevicePorts(ISourceMeterPort source) { ArgumentNullException.ThrowIfNull(source); SourceMeter = source; }
+    public ConfiguredDevicePorts(IAxisControllerPort axis) { ArgumentNullException.ThrowIfNull(axis); Axis = axis; }
+    public ConfiguredDevicePorts(IMatrixSwitchPort matrix) { ArgumentNullException.ThrowIfNull(matrix); Matrix = matrix; }
+    public ISourceMeterPort? SourceMeter { get; }
+    public IAxisControllerPort? Axis { get; }
+    public IMatrixSwitchPort? Matrix { get; }
+    public DeviceDescriptor Descriptor => SourceMeter?.Descriptor ?? Axis?.Definition.Device ?? Matrix!.Definition.Device;
+}
