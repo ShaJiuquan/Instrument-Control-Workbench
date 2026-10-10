@@ -1,10 +1,11 @@
+using InstrumentControlWorkbench.Core.Experiments;
 using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Core.Data;
 
 public sealed record DataColumn
 {
-    public DataColumn(ParameterDescriptor parameter, IEnumerable<ParameterId>? dependsOn = null)
+    public DataColumn(ParameterDescriptor parameter, IEnumerable<ParameterId>? dependsOn = null, bool optional = false, ParameterAddress? source = null)
     {
         ArgumentNullException.ThrowIfNull(parameter);
         var dependencies = dependsOn?.ToArray() ?? [];
@@ -12,10 +13,14 @@ public sealed record DataColumn
             throw new ArgumentException("Column dependencies must be non-null and unique.", nameof(dependsOn));
         Parameter = parameter;
         DependsOn = Array.AsReadOnly(dependencies);
+        Optional = optional;
+        Source = source;
     }
 
     public ParameterDescriptor Parameter { get; }
     public IReadOnlyList<ParameterId> DependsOn { get; }
+    public bool Optional { get; }
+    public ParameterAddress? Source { get; }
 }
 
 public sealed class DataSetSchema
@@ -51,10 +56,16 @@ public sealed class DataSetSchema
     public void ValidateRow(MeasurementDataRow row)
     {
         ArgumentNullException.ThrowIfNull(row);
-        if (row.Values.Count != byId.Count) throw new ArgumentException("A row must contain exactly the schema columns.", nameof(row));
+        if (row.Values.Keys.Any(id => !byId.ContainsKey(id))) throw new ArgumentException("A row contains an unknown schema column.", nameof(row));
         foreach (var (id, column) in byId)
         {
-            if (!row.Values.TryGetValue(id, out var value)) throw new ArgumentException($"Missing data column {id}.", nameof(row));
+            if (!row.Values.TryGetValue(id, out var value))
+            {
+                if (column.Optional) continue;
+                throw new ArgumentException($"Missing data column {id}.", nameof(row));
+            }
+            foreach (var dependency in column.DependsOn)
+                if (!row.Values.ContainsKey(dependency)) throw new ArgumentException($"{id} requires dependency {dependency} in this row.", nameof(row));
             column.Parameter.Validate(value);
         }
     }

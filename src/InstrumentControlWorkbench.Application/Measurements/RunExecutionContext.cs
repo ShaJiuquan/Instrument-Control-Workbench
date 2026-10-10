@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using InstrumentControlWorkbench.Application.Devices;
 using InstrumentControlWorkbench.Core.Data;
 using InstrumentControlWorkbench.Core.Measurements;
+using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Application.Measurements;
 
@@ -30,8 +32,14 @@ internal sealed class RunExecutionContext : IDisposable
     public Stopwatch Elapsed { get; } = Stopwatch.StartNew();
     public CancellationToken Token => cancellation.Token;
     public volatile RunExecutionPhase Phase = RunExecutionPhase.Starting;
-    public bool InstrumentClaimed { get; set; }
-    public Task<Exception?>? SafetyTask { get; set; }
+    public DeviceRunResources? Resources { get; set; }
+    public Dictionary<ParameterId, Quantity> Variables { get; } = [];
+    public Dictionary<ParameterId, Quantity> Axes { get; } = [];
+    public TimeSpan PausedDuration { get; set; }
+    public TimeSpan ActiveElapsed => Elapsed.Elapsed - PausedDuration;
+    public int PauseVersion { get; set; }
+    public int RowsAcquired { get; set; }
+    public long ExecutedSteps { get; set; }
     public RunDataSet? DataSet { get; set; }
 
     public void Pause()

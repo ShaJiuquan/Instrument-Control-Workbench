@@ -111,3 +111,26 @@ implementation.
 - Reconnection invalidates prior confirmation. StopAllAsync must confirm every
   device again before ReleaseAsync. A failed initial connect no longer leaves
   the owned group without a recovery path.
+
+## Generic typed plans (2026-10-11)
+
+- StartIvSweepAsync translates its recipe into an ExperimentPlan and uses the
+  same interpreter, DeviceRegistry ownership and result lifecycle as StartPlanAsync.
+- Plan validation checks every branch and scan value before admission. Variable
+  values are range-checked at each write; an unbound variable is rejected before
+  hardware. Step IDs and result column sources/dependencies must be consistent.
+- Scan dwell is after the body. For-each index is 1-based and total is explicit.
+  Sequence/repeat/scan/iterator state is run-local; pause retains the same run ID.
+- Pause saves axis targets and enabled outputs, stops the group, then restores
+  axes before re-enabling only outputs that were enabled. Stability time excludes
+  pauses and its continuous stability window restarts after resume.
+- Untouched claimed devices need no driver cleanup; once an IO attempt begins,
+  fresh stop confirmation is required. A Simulation descriptor permits its
+  offline model to confirm output-off/hold; disconnected Hardware cannot claim
+  confirmation. Hardware-policy tests use a labeled fault-injection adapter,
+  not real hardware evidence. RecoverSafetyAsync(reconnect: true) explicitly
+  reconnects under the same owner before retrying completed failed stops.
+- Generic rows use optional columns for different measurement branches, while
+  present columns require all declared dependencies. No placeholder NaNs are used.
+- The UI still offers the IV adapter. Generic plan authoring, PPMS file import,
+  durable plans/results and device/pause/recovery screens remain future stages.

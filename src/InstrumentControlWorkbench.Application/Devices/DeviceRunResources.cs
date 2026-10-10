@@ -6,9 +6,11 @@ using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Application.Devices;
 
+internal sealed record DeviceResumeState(InstrumentId Device, bool OutputEnabled, ParameterId? Target, Quantity? TargetValue);
+
 public sealed record DeviceCleanupFailure(InstrumentId InstrumentId, Exception Error);
 
-// Explicit release requires successful stop confirmation for every resource.
+// Explicit release requires successful stop confirmation for every touched resource.
 // No automatic disposal can turn unknown hardware state into a released lease.
 public sealed class DeviceRunResources
 {
@@ -17,6 +19,7 @@ public sealed class DeviceRunResources
     private readonly TimeSpan timeout;
     private readonly SemaphoreSlim gate = new(1, 1);
     private readonly Dictionary<InstrumentId, Task<Exception?>> pendingStops = [];
+    private readonly HashSet<InstrumentId> touched = [];
     private bool released;
 
     internal DeviceRunResources(IEnumerable<IDeviceSession> sessions, RunId owner, InstrumentLeaseService leases, TimeSpan timeout)
@@ -40,6 +43,8 @@ public sealed class DeviceRunResources
             foreach (var session in sessions.Values)
             {
                 await PrepareMutationAsync(session.Descriptor.Id, reconnect: true);
+                token.ThrowIfCancellationRequested();
+                touched.Add(session.Descriptor.Id);
                 await session.ConnectDeviceAsync(token, Owner);
             }
         }
@@ -49,7 +54,14 @@ public sealed class DeviceRunResources
     public async Task<Quantity> ReadAsync(InstrumentId id, ParameterId parameter, CancellationToken token)
     {
         await gate.WaitAsync(token);
-        try { RequireActive(); return await Get(id).ReadParameterAsync(parameter, token, Owner); }
+        try
+        {
+            RequireActive();
+            await RequireStoppedTaskFinishedAsync(id);
+            token.ThrowIfCancellationRequested();
+            touched.Add(id);
+            return await Get(id).ReadParameterAsync(parameter, token, Owner);
+        }
         finally { gate.Release(); }
     }
 
@@ -62,6 +74,8 @@ public sealed class DeviceRunResources
             var session = Get(id);
             session.Descriptor.GetParameter(parameter).ValidateWrite(value);
             await PrepareMutationAsync(id);
+            token.ThrowIfCancellationRequested();
+            touched.Add(id);
             await session.WriteParameterAsync(parameter, value, token, Owner);
         }
         finally { gate.Release(); }
@@ -77,6 +91,8 @@ public sealed class DeviceRunResources
             Keithley2450Limits.Validate(source);
             Keithley2450Limits.Validate(sense);
             await PrepareMutationAsync(id);
+            token.ThrowIfCancellationRequested();
+            touched.Add(id);
             await manager.ConfigureAsync(source, sense, token, Owner);
         }
         finally { gate.Release(); }
@@ -90,7 +106,11 @@ public sealed class DeviceRunResources
             RequireActive();
             var manager = Get(id) as InstrumentManager ?? throw new NotSupportedException($"{id} has no source-output capability.");
             await PrepareMutationAsync(id);
-            await manager.EnterRunAsync(token, Owner);
+            token.ThrowIfCancellationRequested();
+            touched.Add(id);
+            var status = await manager.GetDeviceStatusAsync(token, Owner);
+            if (!status.Connected) throw new InvalidOperationException($"{id} is disconnected.");
+            if (status.SafetyConfirmed) await manager.EnterRunAsync(token, Owner);
         }
         finally { gate.Release(); }
     }
@@ -104,6 +124,7 @@ public sealed class DeviceRunResources
             foreach (var session in sessions.Values)
             {
                 var id = session.Descriptor.Id;
+                if (!touched.Contains(id)) continue;
                 if (retryFailed && pendingStops.TryGetValue(id, out var previous) && previous.IsCompleted && await previous is not null)
                     pendingStops.Remove(id);
                 if (!pendingStops.ContainsKey(id)) pendingStops.Add(id, StopAndCaptureAsync(session));
@@ -132,7 +153,7 @@ public sealed class DeviceRunResources
         try
         {
             RequireActive();
-            foreach (var id in sessions.Keys)
+            foreach (var id in touched)
                 if (!pendingStops.TryGetValue(id, out var stop) || !stop.IsCompleted || await stop is not null)
                     throw new InvalidOperationException($"{id} has not confirmed its stop policy; all resources remain reserved.");
             // Once release starts, finish releasing the confirmed-safe group even
@@ -142,6 +163,98 @@ public sealed class DeviceRunResources
             released = true;
         }
         finally { gate.Release(); }
+    }
+
+    public async Task<DeviceStatus> GetStatusAsync(InstrumentId id, CancellationToken token)
+    {
+        await gate.WaitAsync(token);
+        try
+        {
+            RequireActive();
+            await RequireStoppedTaskFinishedAsync(id);
+            token.ThrowIfCancellationRequested();
+            touched.Add(id);
+            return await Get(id).GetDeviceStatusAsync(token, Owner);
+        }
+        finally { gate.Release(); }
+    }
+
+    public async Task DisableSourceOutputAsync(InstrumentId id, CancellationToken token)
+    {
+        await gate.WaitAsync(token);
+        try
+        {
+            RequireActive();
+            var session = Get(id) as InstrumentManager ?? throw new NotSupportedException($"{id} has no source-output capability.");
+            token.ThrowIfCancellationRequested();
+            touched.Add(id);
+            if (!pendingStops.ContainsKey(id)) pendingStops.Add(id, StopAndCaptureAsync(session));
+            var error = await pendingStops[id].WaitAsync(timeout, token);
+            if (error is not null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error).Throw();
+        }
+        finally { gate.Release(); }
+    }
+
+    public async Task<IReadOnlyList<InstrumentParameterSnapshot>> CaptureParametersAsync(CancellationToken token)
+    {
+        await gate.WaitAsync(token);
+        try
+        {
+            RequireActive();
+            var result = new List<InstrumentParameterSnapshot>();
+            foreach (var session in sessions.Values)
+            {
+                var id = session.Descriptor.Id;
+                await RequireStoppedTaskFinishedAsync(id);
+                token.ThrowIfCancellationRequested();
+                touched.Add(id);
+                if (session is InstrumentManager source)
+                    result.Add(await source.CaptureParametersAsync(token, Owner));
+                else
+                {
+                    var status = await session.GetDeviceStatusAsync(token, Owner);
+                    result.Add(new(id, session.Descriptor.Model, status.Timestamp,
+                        status.Values.Select(v => new ParameterSnapshot(session.Descriptor.GetParameter(v.Key), v.Value)),
+                        new Dictionary<string, string>
+                        {
+                            ["driver_kind"] = session.Descriptor.DriverKind.ToString(),
+                            ["stop_policy"] = session.Descriptor.StopPolicy.ToString(),
+                        }));
+                }
+            }
+            return result.AsReadOnly();
+        }
+        finally { gate.Release(); }
+    }
+
+    internal async Task<IReadOnlyList<DeviceResumeState>> CaptureResumeStateAsync(CancellationToken token)
+    {
+        var result = new List<DeviceResumeState>();
+        foreach (var session in sessions.Values)
+        {
+            var status = await GetStatusAsync(session.Descriptor.Id, token);
+            if (session is InstrumentManager)
+                result.Add(new(session.Descriptor.Id, status.Connected && !status.SafetyConfirmed, null, null));
+            else if (session is AxisControllerSession axis)
+                result.Add(new(session.Descriptor.Id, false, axis.Definition.Target.Id, status.Values[axis.Definition.Target.Id]));
+            else throw new NotSupportedException($"Pause has no resume policy for {session.Descriptor.Id}.");
+        }
+        return result.AsReadOnly();
+    }
+
+    internal async Task RestoreResumeStateAsync(IReadOnlyList<DeviceResumeState> states, CancellationToken token)
+    {
+        // Restore held axis targets first; source output stays off until these succeed.
+        foreach (var state in states.Where(s => s.Target is not null))
+            await WriteAsync(state.Device, state.Target!, state.TargetValue!.Value, token);
+        foreach (var state in states.Where(s => s.OutputEnabled)) await EnableSourceOutputAsync(state.Device, token);
+    }
+
+    private async Task RequireStoppedTaskFinishedAsync(InstrumentId id)
+    {
+        Get(id);
+        if (pendingStops.TryGetValue(id, out var stop) && (!stop.IsCompleted || await stop is not null))
+            throw new InvalidOperationException($"{id} requires stop recovery before observation or mutation.");
     }
 
     private async Task PrepareMutationAsync(InstrumentId id, bool reconnect = false)

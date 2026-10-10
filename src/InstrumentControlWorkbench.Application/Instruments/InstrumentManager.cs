@@ -187,6 +187,8 @@ public sealed partial class InstrumentManager : IDeviceSession
 
             await sourceMeter.SafeStopAsync(cancellationToken);
             var snapshot = await sourceMeter.GetSnapshotAsync(cancellationToken);
+            if (!snapshot.Connected && Descriptor.DriverKind == DriverKind.Hardware)
+                throw new InvalidOperationException("Disconnected hardware cannot confirm output off; reconnect under the current owner before recovery.");
             if (snapshot.OutputEnabled) throw new InvalidOperationException("Safe stop did not confirm output off; the instrument remains reserved.");
             if (lifecycle is InstrumentLifecycleState.Stopping or InstrumentLifecycleState.Faulted)
             {

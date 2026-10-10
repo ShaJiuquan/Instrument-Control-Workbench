@@ -241,7 +241,9 @@ public sealed class RunLifecycleTests
         var hub = new NotificationHub();
         var driver = new ControlledDriver();
         var manager = new InstrumentManager(driver, hub);
-        var leases = new InstrumentLeaseService(TimeSpan.FromMilliseconds(1));
+        // Manual conflict must remain unexpired while whole-plan validation runs.
+        // Run-owned leases are still proved non-expiring by the year-ahead checks.
+        var leases = new InstrumentLeaseService(TimeSpan.FromSeconds(5));
         return (new(manager, leases, hub, listeners, safetyTimeout), manager, driver, leases, hub);
     }
 

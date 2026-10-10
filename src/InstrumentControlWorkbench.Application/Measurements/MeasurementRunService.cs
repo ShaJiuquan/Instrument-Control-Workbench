@@ -1,7 +1,10 @@
 using System.Runtime.ExceptionServices;
+using InstrumentControlWorkbench.Application.Devices;
+using InstrumentControlWorkbench.Application.Experiments;
 using InstrumentControlWorkbench.Application.Instruments;
 using InstrumentControlWorkbench.Application.Notifications;
 using InstrumentControlWorkbench.Core.Data;
+using InstrumentControlWorkbench.Core.Experiments;
 using InstrumentControlWorkbench.Core.Instruments;
 using InstrumentControlWorkbench.Core.Measurements;
 using InstrumentControlWorkbench.Core.Notifications;
@@ -9,10 +12,10 @@ using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Application.Measurements;
 
-public sealed class MeasurementRunService
+public sealed partial class MeasurementRunService
 {
-    private readonly InstrumentManager instrumentManager;
-    private readonly InstrumentLeaseService leaseService;
+    private readonly InstrumentId primaryInstrument;
+    private readonly DeviceRegistry devices;
     private readonly NotificationHub notifications;
     private readonly IRunResultListener[] listeners;
     private readonly TimeSpan safetyTimeout;
@@ -21,10 +24,11 @@ public sealed class MeasurementRunService
     private RunExecutionContext? active;
 
     public MeasurementRunService(InstrumentManager instrumentManager, InstrumentLeaseService leaseService,
-        NotificationHub notifications, IEnumerable<IRunResultListener>? resultListeners = null, TimeSpan? safetyTimeout = null)
+        NotificationHub notifications, IEnumerable<IRunResultListener>? resultListeners = null, TimeSpan? safetyTimeout = null,
+        DeviceRegistry? deviceRegistry = null)
     {
-        this.instrumentManager = instrumentManager;
-        this.leaseService = leaseService;
+        primaryInstrument = instrumentManager.InstrumentId;
+        devices = deviceRegistry ?? new DeviceRegistry([instrumentManager], leaseService);
         this.notifications = notifications;
         this.safetyTimeout = safetyTimeout ?? TimeSpan.FromSeconds(5);
         if (this.safetyTimeout <= TimeSpan.Zero || this.safetyTimeout > TimeSpan.FromMilliseconds(uint.MaxValue - 1))
@@ -41,48 +45,59 @@ public sealed class MeasurementRunService
     public RunOutcome? LatestOutcome { get; private set; }
     public InMemoryRunHistory History { get; }
 
-    public async Task StartIvSweepAsync(IvSweepRecipe recipe, CancellationToken cancellationToken)
+    public Task StartIvSweepAsync(IvSweepRecipe recipe, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(recipe);
         recipe.Validate();
+        return StartAsync(ExperimentPlanCompiler.Compile(IvExperimentPlan.Create(primaryInstrument, recipe), devices),
+            cancellationToken, ivPlot: true);
+    }
+
+    public Task StartPlanAsync(ExperimentPlan plan, CancellationToken cancellationToken)
+        => StartAsync(ExperimentPlanCompiler.Compile(plan, devices), cancellationToken, ivPlot: false);
+
+    private async Task StartAsync(CompiledExperiment compiled, CancellationToken token, bool ivPlot)
+    {
         RunExecutionContext run;
         lock (admissionGate)
         {
             if (active is not null) throw new InvalidOperationException("A run is active or requires safety recovery.");
-            run = new(cancellationToken);
-            try { leaseService.AcquireRunExclusive(instrumentManager.InstrumentId, run.Id, run.StartedAt); }
-            catch { run.Dispose(); throw; }
+            run = new(token);
             active = run;
-            LatestDataSet = null;
-            LatestOutcome = null;
         }
-
+        try
+        {
+            // Claim without the run token: pre-cancelled admission still rolls back
+            // only its own claims, and cleanup never touches a foreign resource.
+            if (compiled.Devices.Count > 0)
+                run.Resources = await devices.AcquireRunAsync(compiled.Devices, run.Id, CancellationToken.None, safetyTimeout);
+        }
+        catch
+        {
+            lock (admissionGate) { active = null; run.Dispose(); }
+            throw;
+        }
+        LatestDataSet = null;
+        LatestOutcome = null;
         var errors = new List<Exception>();
         var startedListeners = new List<IRunResultListener>();
         var result = MeasurementRunState.Completed;
         try
         {
-            // Claim uses an independent token: even pre-cancelled runs must own
-            // the instrument before any attempted cleanup can touch it.
-            await instrumentManager.ClaimRunAsync(run.Id, CancellationToken.None);
-            run.InstrumentClaimed = true;
-            await PublishAsync(run, WorkbenchNotificationKind.RunStarted, $"Started {recipe.Name}.", run.Token);
-            await instrumentManager.ConnectAsync(run.Token, run.Id);
-            await instrumentManager.ConfigureAsync(new(SourceFunction.Voltage, recipe.StartVoltage, recipe.ComplianceAmps),
-                new(SenseFunction.Current, SensingMode.FourWire, 1.0, true), run.Token, run.Id);
-            var elapsed = new ParameterDescriptor(new("elapsed"), "Elapsed time", PhysicalUnit.Second, ParameterAccess.Read,
-                new(0, PhysicalUnit.Second));
-            var dataSet = new RunDataSet(run.Id, recipe.Name, run.StartedAt,
-                new DataSetSchema([new(Keithley2450Parameters.SourceVoltage), new(elapsed),
-                    new(Keithley2450Parameters.MeasuredCurrent, [Keithley2450Parameters.SourceVoltage.Id, elapsed.Id])]),
-                new Dictionary<string, Quantity>
+            await PublishAsync(run, WorkbenchNotificationKind.RunStarted, $"Started {compiled.Plan.Name}.", run.Token);
+            if (run.Resources is { } resources)
+            {
+                await resources.ConnectAllAsync(run.Token);
+                foreach (var preparation in compiled.Plan.Preparations)
                 {
-                    ["start_voltage"] = new(recipe.StartVoltage, PhysicalUnit.Volt),
-                    ["stop_voltage"] = new(recipe.StopVoltage, PhysicalUnit.Volt),
-                    ["points"] = new(recipe.Points, PhysicalUnit.Dimensionless),
-                    ["compliance"] = new(recipe.ComplianceAmps, PhysicalUnit.Ampere),
-                    ["dwell"] = new(recipe.DwellSeconds, PhysicalUnit.Second),
-                }, [await instrumentManager.CaptureParametersAsync(run.Token, run.Id)]);
+                    var status = await resources.GetStatusAsync(preparation.Device, run.Token);
+                    if (!status.SafetyConfirmed) await resources.DisableSourceOutputAsync(preparation.Device, run.Token);
+                    await resources.ConfigureSourceMeterAsync(preparation.Device, preparation.ToSetpoint(), preparation.Sense, run.Token);
+                }
+            }
+            var snapshots = run.Resources is null ? Array.Empty<InstrumentParameterSnapshot>() :
+                await run.Resources.CaptureParametersAsync(run.Token);
+            var dataSet = new RunDataSet(run.Id, compiled.Plan.Name, run.StartedAt, compiled.Schema, compiled.Plan.Metadata, snapshots);
             run.DataSet = dataSet;
             LatestDataSet = dataSet;
             foreach (var listener in listeners)
@@ -90,49 +105,18 @@ public sealed class MeasurementRunService
                 await listener.OnStartedAsync(dataSet.Capture(), run.Token);
                 startedListeners.Add(listener);
             }
-            await instrumentManager.EnterRunAsync(run.Token, run.Id);
             run.Phase = RunExecutionPhase.Running;
-            foreach (var voltage in recipe.VoltagePoints())
-            {
-                run.Token.ThrowIfCancellationRequested();
-                await PauseCheckpointAsync(run);
-                var reading = await instrumentManager.SetAndReadAsync(
-                    new(SourceFunction.Voltage, voltage, recipe.ComplianceAmps), run.Token, run.Id);
-                if (reading.Unit != "A") throw new InvalidOperationException("IV current readback must use amperes.");
-                var point = new MeasurementPoint(reading.Timestamp, run.Elapsed.Elapsed, voltage, reading.Value, "V", reading.Unit);
-                var row = new MeasurementDataRow(reading.Timestamp, new Dictionary<ParameterId, Quantity>
-                {
-                    [Keithley2450Parameters.SourceVoltage.Id] = new(voltage, PhysicalUnit.Volt),
-                    [elapsed.Id] = new(point.Elapsed.TotalSeconds, PhysicalUnit.Second),
-                    [Keithley2450Parameters.MeasuredCurrent.Id] = new(reading.Value, PhysicalUnit.Ampere),
-                });
-                dataSet.Append(row);
-                // History receives the committed row first. External listeners
-                // must observe cancellation; final snapshots retain partial data.
-                foreach (var listener in startedListeners)
-                    await listener.OnRowAsync(run.Id, row, listener == History ? CancellationToken.None : run.Token);
-                await notifications.PublishAsync(new(WorkbenchNotificationKind.MeasurementPointReceived,
-                    $"Point {voltage:0.###} V -> {reading.Value:0.###E+0} {reading.Unit}",
-                    instrumentManager.InstrumentId, Point: point, RunId: run.Id.ToString()), CancellationToken.None);
-                await DwellAsync(run, TimeSpan.FromSeconds(recipe.DwellSeconds));
-            }
+            await ExecuteStepAsync(compiled.Plan.Root, run, startedListeners, ivPlot);
         }
-        catch (OperationCanceledException) when (run.Token.IsCancellationRequested)
-        {
-            result = MeasurementRunState.Aborted;
-        }
-        catch (Exception ex)
-        {
-            result = MeasurementRunState.Faulted;
-            errors.Add(ex);
-        }
+        catch (OperationCanceledException) when (run.Token.IsCancellationRequested) { result = MeasurementRunState.Aborted; }
+        catch (Exception ex) { result = MeasurementRunState.Faulted; errors.Add(ex); }
 
         run.Phase = RunExecutionPhase.Finalizing;
-        await PublishAsync(run, WorkbenchNotificationKind.RunFinalizing, "Stopping output and finalizing results.", CancellationToken.None);
-        var safetyError = run.InstrumentClaimed ? await ConfirmSafetyAsync(run) : null;
-        if (safetyError is not null)
+        await PublishAsync(run, WorkbenchNotificationKind.RunFinalizing, "Confirming device stop policies and finalizing results.", CancellationToken.None);
+        var safetyErrors = run.Resources is null ? [] : await run.Resources.StopAllAsync(CancellationToken.None);
+        foreach (var failure in safetyErrors)
         {
-            if (!errors.Contains(safetyError)) errors.Add(safetyError);
+            if (!errors.Contains(failure.Error)) errors.Add(failure.Error);
             result = MeasurementRunState.Faulted;
         }
         if (run.DataSet is { } completed)
@@ -151,22 +135,20 @@ public sealed class MeasurementRunService
             MeasurementRunState.Completed => WorkbenchNotificationKind.RunCompleted,
             MeasurementRunState.Aborted => WorkbenchNotificationKind.RunAborted,
             _ => WorkbenchNotificationKind.RunFaulted,
-        }, errors.Count == 0 ? $"{recipe.Name}: {result}." : string.Join("; ", errors.Select(e => e.Message)), CancellationToken.None);
-        if (safetyError is not null) run.Phase = RunExecutionPhase.SafetyRecoveryRequired;
-        if (safetyError is null) await ReleaseRunAsync(run);
-        if (errors.Count == 1) ExceptionDispatchInfo.Capture(errors[0]).Throw();
-        if (errors.Count > 1) throw new AggregateException("Execution or finalization failed.", errors);
+        }, errors.Count == 0 ? $"{compiled.Plan.Name}: {result}." : string.Join("; ", errors.Select(e => e.Message)), CancellationToken.None);
+        if (safetyErrors.Count > 0) run.Phase = RunExecutionPhase.SafetyRecoveryRequired;
+        else await ReleaseRunAsync(run);
+        ThrowErrors(errors);
     }
 
     public void Abort() { lock (admissionGate) active?.Abort(); }
     public void Pause()
     {
-        lock (admissionGate)
-            (active ?? throw new InvalidOperationException("No run is active.")).Pause();
+        lock (admissionGate) (active ?? throw new InvalidOperationException("No run is active.")).Pause();
     }
     public void Resume() { lock (admissionGate) active?.Resume(); }
 
-    public async Task RecoverSafetyAsync(CancellationToken cancellationToken)
+    public async Task RecoverSafetyAsync(CancellationToken cancellationToken, bool reconnect = false)
     {
         await recoveryGate.WaitAsync(cancellationToken);
         try
@@ -178,12 +160,9 @@ public sealed class MeasurementRunService
                 if (run.Phase != RunExecutionPhase.SafetyRecoveryRequired)
                     throw new InvalidOperationException("Run finalization has not finished.");
             }
-            // Do not start another stop while the timed-out driver call is alive.
-            // A completed failed attempt may be retried explicitly by the operator.
-            if (run.SafetyTask is { IsCompleted: true } previous && await previous is not null)
-                run.SafetyTask = null;
-            var error = await ConfirmSafetyAsync(run).WaitAsync(cancellationToken);
-            if (error is not null) ExceptionDispatchInfo.Capture(error).Throw();
+            if (reconnect) await run.Resources!.ConnectAllAsync(cancellationToken);
+            var errors = await run.Resources!.StopAllAsync(cancellationToken, retryFailed: true);
+            ThrowErrors(errors.Select(e => e.Error).ToArray());
             await ReleaseRunAsync(run);
         }
         finally { recoveryGate.Release(); }
@@ -192,20 +171,32 @@ public sealed class MeasurementRunService
     private async Task PauseCheckpointAsync(RunExecutionContext run)
     {
         if (run.PauseGate is not { } resume) return;
-        var error = await ConfirmSafetyAsync(run);
-        if (error is not null) ExceptionDispatchInfo.Capture(error).Throw();
-        run.SafetyTask = null;
-        run.Phase = RunExecutionPhase.Paused;
-        await PublishAsync(run, WorkbenchNotificationKind.RunPaused, "Paused with output confirmed off; resources remain reserved.", CancellationToken.None);
-        await resume.WaitAsync(run.Token);
-        run.Token.ThrowIfCancellationRequested();
-        await instrumentManager.EnterRunAsync(run.Token, run.Id);
+        var pausedAt = run.Elapsed.Elapsed;
+        if (run.Resources is { } resources)
+        {
+            var saved = await resources.CaptureResumeStateAsync(run.Token);
+            ThrowErrors((await resources.StopAllAsync(CancellationToken.None)).Select(e => e.Error).ToArray());
+            run.Phase = RunExecutionPhase.Paused;
+            await PublishAsync(run, WorkbenchNotificationKind.RunPaused, "Paused with device stop policies confirmed; resources remain reserved.", CancellationToken.None);
+            await resume.WaitAsync(run.Token);
+            run.Token.ThrowIfCancellationRequested();
+            await resources.RestoreResumeStateAsync(saved, run.Token);
+        }
+        else
+        {
+            run.Phase = RunExecutionPhase.Paused;
+            await PublishAsync(run, WorkbenchNotificationKind.RunPaused, "Plan paused.", CancellationToken.None);
+            await resume.WaitAsync(run.Token);
+        }
+        run.PausedDuration += run.Elapsed.Elapsed - pausedAt;
+        run.PauseVersion++;
         run.Phase = RunExecutionPhase.Running;
         await PublishAsync(run, WorkbenchNotificationKind.RunResumed, "Run resumed.", run.Token);
     }
 
     private async Task DwellAsync(RunExecutionContext run, TimeSpan remaining)
     {
+        await PauseCheckpointAsync(run);
         while (remaining > TimeSpan.Zero)
         {
             run.Token.ThrowIfCancellationRequested();
@@ -224,35 +215,9 @@ public sealed class MeasurementRunService
         }
     }
 
-    private async Task<Exception?> ConfirmSafetyAsync(RunExecutionContext run)
-    {
-        run.SafetyTask ??= StopAndCaptureErrorAsync(run);
-        try { return await run.SafetyTask.WaitAsync(safetyTimeout); }
-        catch (TimeoutException ex)
-        {
-            return new TimeoutException("Output-off confirmation timed out; the instrument remains reserved for safety recovery.", ex);
-        }
-    }
-
-    private async Task<Exception?> StopAndCaptureErrorAsync(RunExecutionContext run)
-    {
-        using var deadline = new CancellationTokenSource(safetyTimeout);
-        try
-        {
-            await instrumentManager.SafeStopAsync("run cleanup", deadline.Token, run.Id);
-            return null;
-        }
-        catch (OperationCanceledException ex) when (deadline.IsCancellationRequested)
-        {
-            return new TimeoutException("Output-off confirmation exceeded the safety deadline; recovery is required.", ex);
-        }
-        catch (Exception ex) { return ex; }
-    }
-
     private async Task ReleaseRunAsync(RunExecutionContext run)
     {
-        if (run.InstrumentClaimed) await instrumentManager.ReleaseRunAsync(run.Id, CancellationToken.None);
-        leaseService.Release(instrumentManager.InstrumentId, run.Id.ToString());
+        if (run.Resources is { } resources) await resources.ReleaseAsync(CancellationToken.None);
         lock (admissionGate)
         {
             if (active != run) throw new InvalidOperationException("Run ownership changed unexpectedly.");
@@ -261,6 +226,12 @@ public sealed class MeasurementRunService
         }
     }
 
+    private static void ThrowErrors(IReadOnlyList<Exception> errors)
+    {
+        if (errors.Count == 1) ExceptionDispatchInfo.Capture(errors[0]).Throw();
+        if (errors.Count > 1) throw new AggregateException("Execution or finalization failed.", errors);
+    }
+
     private ValueTask PublishAsync(RunExecutionContext run, WorkbenchNotificationKind kind, string message, CancellationToken token)
-        => notifications.PublishAsync(new(kind, message, instrumentManager.InstrumentId, RunId: run.Id.ToString()), token);
+        => notifications.PublishAsync(new(kind, message, primaryInstrument, RunId: run.Id.ToString()), token);
 }

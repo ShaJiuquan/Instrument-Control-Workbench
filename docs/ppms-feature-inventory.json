@@ -327,7 +327,12 @@
       "aliases": [
         "field"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/ExperimentExecutionTests.cs",
+        "limits": "Typed plan API supports relevant scan/control/numeric wait subset; PPMS decoder and controller-specific semantics still pending"
+      }
     },
     {
       "id": "scan_field_ramp",
@@ -391,7 +396,12 @@
       "id": "scan_voltage",
       "nodeType": "scan",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/ExperimentExecutionTests.cs",
+        "limits": "Typed plan API supports relevant scan/control/numeric wait subset; PPMS decoder and controller-specific semantics still pending"
+      }
     },
     {
       "id": "scan_bias",
@@ -591,7 +601,12 @@
       "aliases": [
         "sleep"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/ExperimentExecutionTests.cs",
+        "limits": "Typed plan API supports relevant scan/control/numeric wait subset; PPMS decoder and controller-specific semantics still pending"
+      }
     },
     {
       "id": "ramp_field",
@@ -640,7 +655,12 @@
         "wait_field_holding",
         "wait_field_stable"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/ExperimentExecutionTests.cs",
+        "limits": "Typed plan API supports relevant scan/control/numeric wait subset; PPMS decoder and controller-specific semantics still pending"
+      }
     },
     {
       "id": "wait_temp",
@@ -718,7 +738,12 @@
         "conditional",
         "branch"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/ExperimentExecutionTests.cs",
+        "limits": "Typed plan API supports relevant scan/control/numeric wait subset; PPMS decoder and controller-specific semantics still pending"
+      }
     },
     {
       "id": "then",
@@ -747,7 +772,12 @@
         "loop",
         "repeat_n"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/ExperimentExecutionTests.cs",
+        "limits": "Typed plan API supports relevant scan/control/numeric wait subset; PPMS decoder and controller-specific semantics still pending"
+      }
     },
     {
       "id": "force_failure",
@@ -781,7 +811,12 @@
       "aliases": [
         "iterate"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/ExperimentExecutionTests.cs",
+        "limits": "Typed plan API supports relevant scan/control/numeric wait subset; PPMS decoder and controller-specific semantics still pending"
+      }
     },
     {
       "id": "while",
@@ -802,7 +837,12 @@
   "runtimeNodeKinds": [
     {
       "id": "sequence",
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/ExperimentExecutionTests.cs",
+        "limits": "Typed generic subset tested on simulation profiles; PPMS JSON/alias decoding, BT success/failure semantics and remaining device/measurement families pending"
+      }
     },
     {
       "id": "fallback",
@@ -822,7 +862,12 @@
     },
     {
       "id": "if_then_else",
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/ExperimentExecutionTests.cs",
+        "limits": "Typed generic subset tested on simulation profiles; PPMS JSON/alias decoding, BT success/failure semantics and remaining device/measurement families pending"
+      }
     },
     {
       "id": "switch",
@@ -834,7 +879,12 @@
     },
     {
       "id": "for_each",
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/ExperimentExecutionTests.cs",
+        "limits": "Typed generic subset tested on simulation profiles; PPMS JSON/alias decoding, BT success/failure semantics and remaining device/measurement families pending"
+      }
     },
     {
       "id": "retry",
@@ -846,11 +896,21 @@
     },
     {
       "id": "delay",
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/ExperimentExecutionTests.cs",
+        "limits": "Typed generic subset tested on simulation profiles; PPMS JSON/alias decoding, BT success/failure semantics and remaining device/measurement families pending"
+      }
     },
     {
       "id": "repeat",
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/ExperimentExecutionTests.cs",
+        "limits": "Typed generic subset tested on simulation profiles; PPMS JSON/alias decoding, BT success/failure semantics and remaining device/measurement families pending"
+      }
     },
     {
       "id": "force_success",
@@ -870,7 +930,12 @@
     },
     {
       "id": "scan",
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/ExperimentExecutionTests.cs",
+        "limits": "Typed generic subset tested on simulation profiles; PPMS JSON/alias decoding, BT success/failure semantics and remaining device/measurement families pending"
+      }
     },
     {
       "id": "scan_v2",
@@ -878,11 +943,21 @@
     },
     {
       "id": "measurement",
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/ExperimentExecutionTests.cs",
+        "limits": "Typed generic subset tested on simulation profiles; PPMS JSON/alias decoding, BT success/failure semantics and remaining device/measurement families pending"
+      }
     },
     {
       "id": "command",
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/ExperimentExecutionTests.cs",
+        "limits": "Typed generic subset tested on simulation profiles; PPMS JSON/alias decoding, BT success/failure semantics and remaining device/measurement families pending"
+      }
     }
   ]
 }

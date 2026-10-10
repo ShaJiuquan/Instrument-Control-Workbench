@@ -226,7 +226,7 @@ public sealed class DeviceRegistryTests
     public async Task FailedInitialConnectionCanRecoverWithinItsExistingResourceGroup()
     {
         var hub = new NotificationHub();
-        var bad = new ControlledAxis(MockEnvironmentCatalog.Field()) { ConnectError = new IOException("connection unavailable") };
+        var bad = new ControlledAxis(MockEnvironmentCatalog.Field(), hardwareProfile: true) { ConnectError = new IOException("connection unavailable") };
         var other = MockEnvironmentCatalog.Angle();
         var leases = new InstrumentLeaseService(TimeSpan.FromSeconds(5));
         var registry = new DeviceRegistry([new AxisControllerSession(bad, hub), new AxisControllerSession(other, hub)], leases);
@@ -333,14 +333,18 @@ public sealed class DeviceRegistryTests
         public void Advance(TimeSpan duration) => ticks += duration.Ticks;
     }
 
-    private sealed class ControlledAxis(MockAxisController inner) : IAxisControllerPort
+    private sealed class ControlledAxis(MockAxisController inner, bool hardwareProfile = false) : IAxisControllerPort
     {
         public Exception? ConnectError { get; set; }
         public Exception? HoldError { get; set; }
         public TaskCompletionSource? HoldGate { get; set; }
         public TaskCompletionSource HoldReturned { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public int HoldCalls { get; private set; }
-        public AxisControllerDefinition Definition => inner.Definition;
+        public AxisControllerDefinition Definition => hardwareProfile
+            ? new(new(inner.Definition.Device.Id, inner.Definition.Device.Model, inner.Definition.Device.DisplayName,
+                DriverKind.Hardware, DeviceStopPolicy.HoldCurrentPosition, inner.Definition.Device.Parameters),
+                inner.Definition.Target, inner.Definition.Readback, inner.Definition.Rate)
+            : inner.Definition;
         public Task<AxisControllerSnapshot> ConnectAsync(CancellationToken token) => ConnectError is { } error
             ? Task.FromException<AxisControllerSnapshot>(error) : inner.ConnectAsync(token);
         public Task<AxisControllerSnapshot> GetSnapshotAsync(CancellationToken token) => inner.GetSnapshotAsync(token);

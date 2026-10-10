@@ -21,6 +21,7 @@ public sealed class AxisControllerSession : IDeviceSession
         operations = new(port.Definition.Device.Id);
     }
 
+    public AxisControllerDefinition Definition => port.Definition;
     public DeviceDescriptor Descriptor => port.Definition.Device;
     public Task ClaimRunAsync(RunId owner, CancellationToken token) => operations.ClaimAsync(owner, token);
     public Task ReleaseRunAsync(RunId owner, CancellationToken token) => operations.ReleaseAsync(owner, token);
@@ -91,7 +92,7 @@ public sealed class AxisControllerSession : IDeviceSession
         {
             await port.HoldAsync(token);
             var snapshot = await port.GetSnapshotAsync(token);
-            if (!snapshot.Connected || snapshot.Moving) throw new InvalidOperationException($"{Descriptor.Id} did not confirm its hold policy.");
+            if ((!snapshot.Connected && Descriptor.DriverKind == DriverKind.Hardware) || snapshot.Moving) throw new InvalidOperationException($"{Descriptor.Id} did not confirm its hold policy.");
             faulted = false;
             var status = await PublishAsync(snapshot, token);
             await notifications.PublishAsync(new(WorkbenchNotificationKind.SafetyStateChanged,
@@ -106,7 +107,7 @@ public sealed class AxisControllerSession : IDeviceSession
     {
         var state = !snapshot.Connected ? InstrumentLifecycleState.Disconnected : faulted ? InstrumentLifecycleState.Faulted :
             snapshot.Moving ? InstrumentLifecycleState.Running : InstrumentLifecycleState.Idle;
-        var status = new DeviceStatus(Descriptor, state, snapshot.Connected, snapshot.Connected && !snapshot.Moving,
+        var status = new DeviceStatus(Descriptor, state, snapshot.Connected, (snapshot.Connected || Descriptor.DriverKind == DriverKind.Simulation) && !snapshot.Moving,
             snapshot.Timestamp, new Dictionary<ParameterId, Quantity>
             {
                 [port.Definition.Target.Id] = snapshot.Target,

@@ -99,8 +99,24 @@ Avalonia views -> ViewModels -> Application use cases -> Core contracts
    heartbeat automation and device UI integration remain pending. The desktop
    still presents its existing K2450 workflow; the new registry is exercised
    through its application API and acceptance tests, not a new device screen.
-5. **PPMS execution parity — pending.** Implement the inventory's command,
-   measurement, scan and control-flow families with typed validation and tests.
+5. **Generic plan execution — partially implemented.** Immutable typed plans,
+   preflight capability/unit/access/branch-variable/dependency validation, scan
+   value strategies (linear, stepped, logarithmic and segmented), nested scans,
+   sequence/repeat/for-each/assignment/if-else, source output, joint reads, delay
+   and readback stability windows. IV is now an adapter to this same executor.
+   Optional result columns support different measurement branches without NaN
+   fillers; every present measurement still requires its declared axes/time.
+   Multi-device pause captures targets and enabled outputs, confirms group stop,
+   and restores original targets and only previously enabled outputs. Stability
+   time excludes pause and requires a fresh stable window after resume. Plan
+   facts carry step IDs and committed rows. Tests cover a 3 x 3 field/voltage
+   scan, conditional rows, typed variables, preflight rejection, partial abort,
+   stability timeout, hardware-policy reconnect recovery, and IV regressions.
+   PPMS JSON/alias decoding, BT failure/retry/parallel/subtree semantics, remaining
+   measurements and real drivers are still pending; this is not full BT parity.
+   The standard audit passes 102 tests (27 Core, 63 Application, 12 App),
+   with zero build warnings/errors and changed-file formatting verification.
+   See experiment-plans.md for supported semantics and recovery boundaries.
 6. **Data/history — pending.** Approved persistence/export dependencies, versioned
    storage and plans, metadata/provenance, history queries and interrupted-run
    recovery. Real data must survive application restart.
@@ -132,7 +148,7 @@ remaining source-meter-specific configuration APIs still require platform work.
 Device groups deliberately retain all their resources if any stop confirmation
 fails. `DeviceRunResources.StopAllAsync(retryFailed: true)` retries only completed
 failed attempts; live timed-out attempts stay attached. `ReleaseAsync` requires
-fresh successful confirmation for every resource. Parameter writes or source
+fresh successful confirmation for every touched resource. Parameter writes or source
 output enable invalidate prior confirmation. Stop policy means output-off for a
 source and hold-current-position for an axis; it is not a claim that a magnet has
 been de-energized or a cryostat is physically safe. Axis limits and mock field slew
@@ -141,9 +157,9 @@ require explicit source-mode/compliance configuration before writing.
 
 The captured PPMS `safe_state.rs` deliberately retains magnetic field; its
 `environment_hold_commands.rs` freezes field/temperature/angle at their current
-readbacks. These are the semantic references for this stage. Full restoration,
-wait-for-stability, matrix routing and BT command decoding are separate remaining
-requirements, not registered no-op implementations.
+readbacks. These are the semantic references for this stage. Generic pause target restoration and numeric readback stability now exist;
+PPMS controller-specific stability/status rules, matrix routing and BT command
+and alias decoding remain separate requirements.
 
 The optional global formatting check still reports pre-existing formatting in
 `ViewLocator.cs`, `ViewModelBase.cs`, `Program.cs` and `ParameterDataSetTests.cs`.

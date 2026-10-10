@@ -1,4 +1,6 @@
+using InstrumentControlWorkbench.Core.Data;
 using InstrumentControlWorkbench.Core.Devices;
+using InstrumentControlWorkbench.Core.Experiments;
 using InstrumentControlWorkbench.Core.Instruments;
 using InstrumentControlWorkbench.Core.Measurements;
 
@@ -18,6 +20,9 @@ public enum WorkbenchNotificationKind
     SafetyStateChanged,
     LogAppended,
     DeviceStateChanged,
+    DataRowReceived,
+    StepStarted,
+    StepCompleted,
 }
 
 public sealed record WorkbenchNotification(
@@ -28,7 +33,9 @@ public sealed record WorkbenchNotification(
     MeasurementPoint? Point = null,
     string? RunId = null,
     DateTimeOffset? Timestamp = null,
-    DeviceStatus? Device = null)
+    DeviceStatus? Device = null,
+    StepId? Step = null,
+    MeasurementDataRow? Row = null)
 {
     public DateTimeOffset OccurredAt => Timestamp ?? DateTimeOffset.Now;
 }

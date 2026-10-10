@@ -47,7 +47,7 @@ public sealed record DeviceStatus
         ArgumentNullException.ThrowIfNull(descriptor);
         ArgumentNullException.ThrowIfNull(values);
         if (!Enum.IsDefined(lifecycle)) throw new ArgumentOutOfRangeException(nameof(lifecycle));
-        if (safetyConfirmed && !connected) throw new ArgumentException("A disconnected observation cannot confirm the hardware stop policy.", nameof(safetyConfirmed));
+        if (safetyConfirmed && !connected && descriptor.DriverKind == DriverKind.Hardware) throw new ArgumentException("A disconnected observation cannot confirm the hardware stop policy.", nameof(safetyConfirmed));
         foreach (var value in values) descriptor.GetParameter(value.Key).Validate(value.Value);
         Descriptor = descriptor;
         Lifecycle = lifecycle;
