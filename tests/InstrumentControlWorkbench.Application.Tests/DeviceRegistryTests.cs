@@ -196,6 +196,7 @@ public sealed class DeviceRegistryTests
         Assert.False((await other.GetSnapshotAsync(CancellationToken.None)).Moving);
         Assert.Single(await resources.StopAllAsync(CancellationToken.None, retryFailed: true));
         Assert.Equal(1, bad.HoldCalls);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => resources.ConnectAllAsync(CancellationToken.None));
         await Assert.ThrowsAsync<InvalidOperationException>(() => resources.ReleaseAsync(CancellationToken.None));
         bad.HoldGate.SetResult();
         await bad.HoldReturned.Task.WaitAsync(TimeSpan.FromSeconds(5));
@@ -204,6 +205,25 @@ public sealed class DeviceRegistryTests
         if (recovered.Count > 0) recovered = await resources.StopAllAsync(CancellationToken.None, retryFailed: true);
         Assert.Empty(recovered);
         await resources.ReleaseAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task FailedInitialConnectionCanRecoverWithinItsExistingResourceGroup()
+    {
+        var hub = new NotificationHub();
+        var bad = new ControlledAxis(MockEnvironmentCatalog.Field()) { ConnectError = new IOException("connection unavailable") };
+        var other = MockEnvironmentCatalog.Angle();
+        var leases = new InstrumentLeaseService(TimeSpan.FromSeconds(5));
+        var registry = new DeviceRegistry([new AxisControllerSession(bad, hub), new AxisControllerSession(other, hub)], leases);
+        var resources = await registry.AcquireRunAsync(registry.Devices.Select(d => d.Id), RunId.New(), CancellationToken.None);
+        await Assert.ThrowsAsync<IOException>(() => resources.ConnectAllAsync(CancellationToken.None));
+        Assert.NotEmpty(await resources.StopAllAsync(CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => resources.ReleaseAsync(CancellationToken.None));
+        bad.ConnectError = null;
+        await resources.ConnectAllAsync(CancellationToken.None);
+        Assert.Empty(await resources.StopAllAsync(CancellationToken.None));
+        await resources.ReleaseAsync(CancellationToken.None);
+        Assert.All(registry.Devices, d => Assert.False(leases.IsLeased(d.Id, DateTimeOffset.UtcNow)));
     }
 
     [Fact]
@@ -300,12 +320,14 @@ public sealed class DeviceRegistryTests
 
     private sealed class ControlledAxis(MockAxisController inner) : IAxisControllerPort
     {
+        public Exception? ConnectError { get; set; }
         public Exception? HoldError { get; set; }
         public TaskCompletionSource? HoldGate { get; set; }
         public TaskCompletionSource HoldReturned { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public int HoldCalls { get; private set; }
         public AxisControllerDefinition Definition => inner.Definition;
-        public Task<AxisControllerSnapshot> ConnectAsync(CancellationToken token) => inner.ConnectAsync(token);
+        public Task<AxisControllerSnapshot> ConnectAsync(CancellationToken token) => ConnectError is { } error
+            ? Task.FromException<AxisControllerSnapshot>(error) : inner.ConnectAsync(token);
         public Task<AxisControllerSnapshot> GetSnapshotAsync(CancellationToken token) => inner.GetSnapshotAsync(token);
         public Task SetTargetAsync(Quantity target, CancellationToken token) => inner.SetTargetAsync(target, token);
         public Task SetRateAsync(Quantity rate, CancellationToken token) => inner.SetRateAsync(rate, token);

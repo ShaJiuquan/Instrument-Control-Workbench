@@ -39,7 +39,7 @@ public sealed class DeviceRunResources
             RequireActive();
             foreach (var session in sessions.Values)
             {
-                await PrepareMutationAsync(session.Descriptor.Id);
+                await PrepareMutationAsync(session.Descriptor.Id, reconnect: true);
                 await session.ConnectDeviceAsync(token, Owner);
             }
         }
@@ -144,11 +144,14 @@ public sealed class DeviceRunResources
         finally { gate.Release(); }
     }
 
-    private async Task PrepareMutationAsync(InstrumentId id)
+    private async Task PrepareMutationAsync(InstrumentId id, bool reconnect = false)
     {
         if (!pendingStops.TryGetValue(id, out var stop)) return;
-        if (!stop.IsCompleted || await stop is not null)
+        if (!stop.IsCompleted || await stop is not null && !reconnect)
             throw new InvalidOperationException($"{id} requires stop recovery before it can be changed.");
+        // Connecting establishes transport only. A completed failed stop may
+        // need reconnection before another confirmation can succeed; it never
+        // authorizes output enable or overlaps a still-running stop attempt.
         pendingStops.Remove(id);
     }
 

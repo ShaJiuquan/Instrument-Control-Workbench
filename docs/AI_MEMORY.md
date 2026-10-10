@@ -101,3 +101,13 @@ implementation.
   this rejection preserves its configuration and is not a driver-fault event.
 - The follow-up regression gate passes 77 tests. Actual startup recovery UX and
   hardware transport acceptance remain pending.
+
+## Group reconnect recovery (2026-10-11)
+
+- A completed failed stop may require reconnecting its device before another
+  confirmation can succeed. ConnectAllAsync allows that reconnect under the
+  same resource owner; it does not permit output/parameter changes while an
+  unresolved stop remains, and cannot overlap a live pending stop.
+- Reconnection invalidates prior confirmation. StopAllAsync must confirm every
+  device again before ReleaseAsync. A failed initial connect no longer leaves
+  the owned group without a recovery path.
