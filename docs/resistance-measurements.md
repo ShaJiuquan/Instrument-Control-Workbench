@@ -74,9 +74,11 @@ constants certify hardware safety. The source mock still does not enforce actual
 current compliance.
 
 `measure_r` is **partial** in the migration inventory. Still required: PPMS JSON
-aliases/parameter import, matrix/channel profiles, explicit source/meter ranges,
+aliases/parameter import, standalone channel binding, explicit source/meter ranges,
 K6221/K2182 current DC/delta/pulse modes, SR830 AC modes, sample Hallbar/Van der
-Pauw topology, electrode checks, quality rows and real transport/device evidence.
+Pauw derived results/geometry, electrode checks, quality rows and real
+transport/device evidence. Typed sample/electrode routing and raw Hall/vdP
+assignments now exist through ReadSampleResistanceStep; see sample-routing.md.
 Desktop selection/editor/plot acceptance remains pending with the other UI work.
 
 `ResistanceExecutionTests` cover paired actual values, both sensing modes,

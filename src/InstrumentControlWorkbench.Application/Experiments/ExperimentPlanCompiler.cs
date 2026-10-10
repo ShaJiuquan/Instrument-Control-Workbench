@@ -1,14 +1,16 @@
+using System.Collections.ObjectModel;
 using InstrumentControlWorkbench.Application.Devices;
 using InstrumentControlWorkbench.Core.Data;
 using InstrumentControlWorkbench.Core.Devices;
 using InstrumentControlWorkbench.Core.Experiments;
 using InstrumentControlWorkbench.Core.Instruments;
 using InstrumentControlWorkbench.Core.Parameters;
+using InstrumentControlWorkbench.Core.Routing;
 
 namespace InstrumentControlWorkbench.Application.Experiments;
 
 public sealed record ExperimentPlanPreview(DataSetSchema Schema, IReadOnlyList<InstrumentId> Devices, long MaximumStepExecutions);
-internal sealed record CompiledExperiment(ExperimentPlan Plan, DataSetSchema Schema, IReadOnlyList<InstrumentId> Devices, long MaximumStepExecutions);
+internal sealed record CompiledExperiment(ExperimentPlan Plan, DataSetSchema Schema, IReadOnlyList<InstrumentId> Devices, long MaximumStepExecutions, IReadOnlyDictionary<StepId, ResolvedSampleRoute> SampleRoutes);
 
 // Compilation reads capability metadata only. No lease or driver operation occurs
 // until every branch, scan value, unit and result dependency has been checked.
@@ -26,6 +28,7 @@ internal static class ExperimentPlanCompiler
         var steps = new HashSet<StepId>();
         var variables = new Dictionary<ParameterId, PhysicalUnit>();
         var preparations = plan.Preparations.ToDictionary(p => p.Device);
+        var sampleRoutes = new Dictionary<StepId, ResolvedSampleRoute>();
         var writes = new List<(ParameterAddress Address, IReadOnlyList<Quantity>? Values)>();
         foreach (var preparation in plan.Preparations)
         {
@@ -56,7 +59,7 @@ internal static class ExperimentPlanCompiler
                 Keithley2450Limits.Validate(levelWrite ? preparation.ToSetpoint() with { Level = value.Value } :
                     preparation.ToSetpoint() with { Compliance = value.Value });
         }
-        return new(plan, new(columns.Values), Array.AsReadOnly(needed.OrderBy(id => id.Value, StringComparer.Ordinal).ToArray()), cost);
+        return new(plan, new(columns.Values), Array.AsReadOnly(needed.OrderBy(id => id.Value, StringComparer.Ordinal).ToArray()), cost, new ReadOnlyDictionary<StepId, ResolvedSampleRoute>(sampleRoutes));
 
         DeviceDescriptor Device(InstrumentId id)
         {
@@ -113,6 +116,24 @@ internal static class ExperimentPlanCompiler
             if (!Enum.IsDefined(condition.Operator)) throw new ArgumentOutOfRangeException(nameof(condition.Operator));
             var left = ValueUnit(new VariableValue(condition.Variable), known);
             if (left != ValueUnit(condition.Value, known)) throw new ArgumentException("Comparison operands must have matching units.");
+        }
+        void ValidateResistance(ReadResistanceStep resistance, Dictionary<ParameterId, PhysicalUnit> known, IReadOnlyList<ParameterId> axes)
+        {
+            var sourceDevice = Source(resistance.Device);
+            if (!preparations.TryGetValue(resistance.Device, out var preparation) || preparation.Function != resistance.Function ||
+                preparation.Sense.Function != (resistance.Function == SourceFunction.Voltage ? SenseFunction.Current : SenseFunction.Voltage))
+                throw new ArgumentException("Resistance reads need an explicit preparation with matching source and opposite sensing function.");
+            AddColumn(resistance.VoltageColumn, new(resistance.VoltageColumn,
+                resistance.Function == SourceFunction.Voltage ? "Actual source voltage" : "Measured voltage", PhysicalUnit.Volt, ParameterAccess.Read),
+                new(resistance.Device, sourceDevice.GetParameter(Keithley2450Parameters.MeasuredVoltage.Id).Id), [.. axes, Elapsed.Id]);
+            AddColumn(resistance.CurrentColumn, new(resistance.CurrentColumn,
+                resistance.Function == SourceFunction.Current ? "Actual source current" : "Measured current", PhysicalUnit.Ampere, ParameterAccess.Read),
+                new(resistance.Device, sourceDevice.GetParameter(Keithley2450Parameters.MeasuredCurrent.Id).Id), [.. axes, Elapsed.Id]);
+            AddColumn(resistance.ResistanceColumn, new(resistance.ResistanceColumn, "Resistance (V/I)", PhysicalUnit.Ohm, ParameterAccess.Read),
+                null, [.. axes, Elapsed.Id, resistance.VoltageColumn, resistance.CurrentColumn]);
+            BindVariable(resistance.VoltageColumn, PhysicalUnit.Volt, known);
+            BindVariable(resistance.CurrentColumn, PhysicalUnit.Ampere, known);
+            BindVariable(resistance.ResistanceColumn, PhysicalUnit.Ohm, known);
         }
         long Visit(ExperimentStep step, Dictionary<ParameterId, PhysicalUnit> known, IReadOnlyList<ParameterId> axes, int depth)
         {
@@ -174,21 +195,21 @@ internal static class ExperimentPlanCompiler
                     }
                     return 1;
                 case ReadResistanceStep resistance:
-                    var sourceDevice = Source(resistance.Device);
-                    if (!preparations.TryGetValue(resistance.Device, out var preparation) || preparation.Function != resistance.Function ||
-                        preparation.Sense.Function != (resistance.Function == SourceFunction.Voltage ? SenseFunction.Current : SenseFunction.Voltage))
-                        throw new ArgumentException("Resistance reads need an explicit preparation with matching source and opposite sensing function.");
-                    AddColumn(resistance.VoltageColumn, new(resistance.VoltageColumn,
-                        resistance.Function == SourceFunction.Voltage ? "Actual source voltage" : "Measured voltage", PhysicalUnit.Volt, ParameterAccess.Read),
-                        new(resistance.Device, sourceDevice.GetParameter(Keithley2450Parameters.MeasuredVoltage.Id).Id), [.. axes, Elapsed.Id]);
-                    AddColumn(resistance.CurrentColumn, new(resistance.CurrentColumn,
-                        resistance.Function == SourceFunction.Current ? "Actual source current" : "Measured current", PhysicalUnit.Ampere, ParameterAccess.Read),
-                        new(resistance.Device, sourceDevice.GetParameter(Keithley2450Parameters.MeasuredCurrent.Id).Id), [.. axes, Elapsed.Id]);
-                    AddColumn(resistance.ResistanceColumn, new(resistance.ResistanceColumn, "Resistance (V/I)", PhysicalUnit.Ohm, ParameterAccess.Read),
-                        null, [.. axes, Elapsed.Id, resistance.VoltageColumn, resistance.CurrentColumn]);
-                    BindVariable(resistance.VoltageColumn, PhysicalUnit.Volt, known);
-                    BindVariable(resistance.CurrentColumn, PhysicalUnit.Ampere, known);
-                    BindVariable(resistance.ResistanceColumn, PhysicalUnit.Ohm, known);
+                    ValidateResistance(resistance, known, axes);
+                    return 1;
+                case ReadSampleResistanceStep sampleRead:
+                    var context = (plan.Routing ?? throw new ArgumentException("Sample measurements require a frozen routing configuration.")).Resolve(sampleRead.Binding);
+                    if (context.SourceMeter != sampleRead.Acquisition.Device) throw new ArgumentException("Sample wiring belongs to a different source meter.");
+                    ValidateResistance(sampleRead.Acquisition, known, axes);
+                    if (preparations[sampleRead.Acquisition.Device].Sense.Mode != context.SensingMode)
+                        throw new ArgumentException("Source preparation sensing mode does not match the selected sample topology.");
+                    Device(context.Matrix);
+                    var sampleMatrix = registry.GetMatrixDefinition(context.Matrix);
+                    sampleMatrix.Validate(context.Closed);
+                    if (!sampleMatrix.GuardedSources.Contains(context.SourceMeter)) throw new ArgumentException("The sample source must be a declared matrix excitation guard.");
+                    foreach (var guard in sampleMatrix.GuardedSources)
+                        if (Device(guard).StopPolicy != DeviceStopPolicy.OutputOff) throw new ArgumentException("Sample matrix guards must confirm output-off.");
+                    sampleRoutes.Add(step.Id, context);
                     return 1;
                 case DelayStep:
                     return 1;

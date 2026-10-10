@@ -67,7 +67,7 @@ public sealed class DeviceRunResources
         finally { gate.Release(); }
     }
 
-    public async Task<SourceSenseReading> ReadSourceSenseAsync(InstrumentId id, SourceFunction function, CancellationToken token)
+    public async Task<SourceSenseReading> ReadSourceSenseAsync(InstrumentId id, SourceFunction function, CancellationToken token, SensingMode? requiredSensingMode = null)
     {
         await gate.WaitAsync(token);
         try
@@ -79,7 +79,7 @@ public sealed class DeviceRunResources
             await PrepareMutationAsync(id);
             token.ThrowIfCancellationRequested();
             touched.Add(id);
-            return await manager.ReadSourceSenseAsync(function, token, Owner);
+            return await manager.ReadSourceSenseAsync(function, token, Owner, requiredSensingMode);
         }
         finally { gate.Release(); }
     }
@@ -117,7 +117,7 @@ public sealed class DeviceRunResources
         finally { gate.Release(); }
     }
 
-    public async Task EnableSourceOutputAsync(InstrumentId id, CancellationToken token)
+    public async Task EnableSourceOutputAsync(InstrumentId id, CancellationToken token, SensingMode? requiredSensingMode = null)
     {
         await gate.WaitAsync(token);
         try
@@ -135,20 +135,43 @@ public sealed class DeviceRunResources
             touched.Add(id);
             var status = await manager.GetDeviceStatusAsync(token, Owner);
             if (!status.Connected) throw new InvalidOperationException($"{id} is disconnected.");
-            if (status.SafetyConfirmed) await manager.EnterRunAsync(token, Owner);
+            if (status.SafetyConfirmed) await manager.EnterRunAsync(token, Owner, requiredSensingMode);
+        }
+        finally { gate.Release(); }
+    }
+
+    public async Task VerifyMatrixRouteAsync(InstrumentId id, IReadOnlyList<MatrixCrossPoint> desired, CancellationToken token)
+    {
+        ArgumentNullException.ThrowIfNull(desired);
+        if (desired.Count > 4096) throw new ArgumentOutOfRangeException(nameof(desired), "Matrix connection count exceeds the software budget.");
+        token.ThrowIfCancellationRequested();
+        var points = desired.ToArray();
+        await gate.WaitAsync(token);
+        try
+        {
+            RequireActive();
+            var matrix = Get(id) as MatrixSwitchSession ?? throw new NotSupportedException($"{id} has no matrix capability.");
+            matrix.Definition.Validate(points);
+            if (points.Length > 4096 || points.Distinct().Count() != points.Length) throw new ArgumentException("Expected connections must be unique and bounded.", nameof(desired));
+            await PrepareMutationAsync(id); token.ThrowIfCancellationRequested(); touched.Add(id);
+            await matrix.ConfirmHeldRouteAsync(Owner, token, points);
         }
         finally { gate.Release(); }
     }
 
     public async Task RouteMatrixAsync(InstrumentId id, IReadOnlyList<MatrixCrossPoint> desired, CancellationToken token)
     {
+        ArgumentNullException.ThrowIfNull(desired);
+        if (desired.Count > 4096) throw new ArgumentOutOfRangeException(nameof(desired), "Matrix connection count exceeds the software budget.");
+        token.ThrowIfCancellationRequested();
+        var points = desired.ToArray();
         await gate.WaitAsync(token);
         try
         {
             RequireActive();
             var matrix = Get(id) as MatrixSwitchSession ?? throw new NotSupportedException($"{id} has no matrix capability.");
-            matrix.Definition.Validate(desired);
-            if (desired.Count > 4096 || desired.Distinct().Count() != desired.Count) throw new ArgumentException("Desired matrix connections must be unique and within the software budget.", nameof(desired));
+            matrix.Definition.Validate(points);
+            if (points.Length > 4096 || points.Distinct().Count() != points.Length) throw new ArgumentException("Desired matrix connections must be unique and within the software budget.", nameof(desired));
             var guards = GetGuards(matrix);
             await PrepareMutationAsync(id);
             foreach (var guard in guards)
@@ -161,7 +184,7 @@ public sealed class DeviceRunResources
             var failures = await AwaitStopsAsync(guards.Select(g => g.Descriptor.Id), token);
             if (failures.Count != 0) throw new AggregateException("Excitation-off confirmation failed; no matrix relays were changed.", failures.Select(f => f.Error));
             token.ThrowIfCancellationRequested(); touched.Add(id);
-            await matrix.ReconcileAsync(desired, Owner, token);
+            await matrix.ReconcileAsync(points, Owner, token);
         }
         finally { gate.Release(); }
     }

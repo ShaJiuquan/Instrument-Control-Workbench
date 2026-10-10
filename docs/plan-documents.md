@@ -10,7 +10,8 @@ independent of serialization attributes and UI frameworks.
 ## Format
 
 The envelope is `format: "instrument-workbench-plan"`, `version: 1`, `name`,
-`preparations`, `metadata` and `root`. All are required. Unknown fields, duplicate
+`preparations`, `metadata` and `root`. These are required. An optional `routing`
+catalog freezes sample/channel/wiring configuration into the plan. Unknown fields, duplicate
 fields, unsupported versions and unknown step kinds are rejected. This format
 is intentionally identified separately from PPMS JSON; PPMS alias/schema import
 is still migration work. A file must be UTF-8, with an optional BOM on load.
@@ -31,7 +32,7 @@ enum names, not numeric enum values. A value expression is exactly one of
 
 Every step has `id` and `kind`. Supported kinds are `sequence`, `repeat`, `scan`,
 `for_each`, `set`, `assign`, `output`, `delay`, `read`, `read_resistance`,
-`wait_stable`, `if_else`.
+`wait_stable`, `if_else`, `route_matrix`, `read_sample_resistance`.
 Their fields correspond to the typed models in `experiment-plans.md`; elapsed
 settings are explicitly named `seconds`, `dwellSeconds`, `stableSeconds`,
 `pollSeconds` and `timeoutSeconds`. Scan values are materialized as one unit and
@@ -40,7 +41,9 @@ Source preparations include mode, level, compliance and sense configuration.
 Plan metadata carries numeric quantities; sample/provenance metadata is supplied
 separately to the run and persisted in its archive. `read_resistance` specifies
 `device`, `function`, `voltageColumn`, `currentColumn`, `resistanceColumn` and a
-`minimumCurrent` Ampere quantity. See resistance-measurements.md.
+`minimumCurrent` Ampere quantity. See resistance-measurements.md. The sample
+kind adds `binding`, `settleSeconds` and `routingManagedExternally`; see
+sample-routing.md and the runnable sample-four-wire.plan.json example.
 
 ## Limits and failure behavior
 

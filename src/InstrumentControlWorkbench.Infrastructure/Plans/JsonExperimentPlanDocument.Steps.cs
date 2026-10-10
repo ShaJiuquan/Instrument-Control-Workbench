@@ -42,6 +42,13 @@ public sealed partial class JsonExperimentPlanDocument
             case ReadStep s:
                 o["kind"] = "read"; o["channels"] = new JsonArray(s.Channels.Select(c => (JsonNode)new JsonObject
                 { ["column"] = c.Column.Value, ["address"] = EncodeAddress(c.Address) }).ToArray()); break;
+            case ReadSampleResistanceStep sample:
+                var acquisition = sample.Acquisition;
+                o["kind"] = "read_sample_resistance"; o["device"] = acquisition.Device.Value; o["function"] = acquisition.Function.ToString();
+                o["voltageColumn"] = acquisition.VoltageColumn.Value; o["currentColumn"] = acquisition.CurrentColumn.Value;
+                o["resistanceColumn"] = acquisition.ResistanceColumn.Value; o["minimumCurrent"] = EncodeQuantity(acquisition.MinimumCurrent);
+                o["binding"] = EncodeBinding(sample.Binding); o["settleSeconds"] = sample.Settle.TotalSeconds;
+                o["routingManagedExternally"] = sample.RoutingManagedExternally; break;
             case ReadResistanceStep s:
                 o["kind"] = "read_resistance"; o["device"] = s.Device.Value; o["function"] = s.Function.ToString();
                 o["voltageColumn"] = s.VoltageColumn.Value; o["currentColumn"] = s.CurrentColumn.Value;
@@ -113,6 +120,11 @@ public sealed partial class JsonExperimentPlanDocument
                     var channel = Object(c, "column", "address");
                     return new ReadChannel(new(Text(channel, "column")), DecodeAddress(channel["address"]));
                 }));
+            case "read_sample_resistance":
+                Object(o, "id", "kind", "device", "function", "voltageColumn", "currentColumn", "resistanceColumn", "minimumCurrent", "binding", "settleSeconds", "routingManagedExternally");
+                return new ReadSampleResistanceStep(new(id, new(Text(o, "device")), NamedEnum<SourceFunction>(o, "function"),
+                    new(Text(o, "voltageColumn")), new(Text(o, "currentColumn")), new(Text(o, "resistanceColumn")), DecodeQuantity(o["minimumCurrent"])),
+                    DecodeBinding(o["binding"]), Duration(o, "settleSeconds"), Boolean(o, "routingManagedExternally"));
             case "read_resistance":
                 Object(o, "id", "kind", "device", "function", "voltageColumn", "currentColumn", "resistanceColumn", "minimumCurrent");
                 return new ReadResistanceStep(id, new(Text(o, "device")), NamedEnum<SourceFunction>(o, "function"),

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using InstrumentControlWorkbench.Core.Experiments;
 using InstrumentControlWorkbench.Core.Measurements;
 using InstrumentControlWorkbench.Core.Parameters;
+using InstrumentControlWorkbench.Core.Routing;
 
 namespace InstrumentControlWorkbench.Core.Data;
 
@@ -20,15 +21,16 @@ public sealed record RunId
 
 public sealed record MeasurementDataRow
 {
-    public MeasurementDataRow(DateTimeOffset timestamp, IReadOnlyDictionary<ParameterId, Quantity> values)
+    public MeasurementDataRow(DateTimeOffset timestamp, IReadOnlyDictionary<ParameterId, Quantity> values, ResolvedSampleRoute? routing = null)
     {
         ArgumentNullException.ThrowIfNull(values);
-        Timestamp = timestamp;
+        Timestamp = timestamp; Routing = routing;
         Values = new ReadOnlyDictionary<ParameterId, Quantity>(new Dictionary<ParameterId, Quantity>(values));
     }
 
     public DateTimeOffset Timestamp { get; }
     public IReadOnlyDictionary<ParameterId, Quantity> Values { get; }
+    public ResolvedSampleRoute? Routing { get; }
 }
 
 public sealed class RunDataSet
@@ -81,6 +83,8 @@ public sealed class RunDataSet
     public void Append(MeasurementDataRow row)
     {
         Schema.ValidateRow(row);
+        if (row.Routing is { } context)
+            (Plan?.Routing ?? throw new ArgumentException("Routed rows require the frozen plan routing configuration.", nameof(row))).ValidateContext(context);
         lock (gate)
         {
             if (state != MeasurementRunState.Running) throw new InvalidOperationException("A finalized data set cannot accept rows.");

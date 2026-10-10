@@ -379,6 +379,19 @@ public sealed class MatrixRoutingTests
         Assert.Empty((await b.Matrix.GetSnapshotAsync(Token)).Closed); Assert.False(b.Runs.HasActiveRun);
     }
 
+    [Fact]
+    public async Task ResourceRoutingFreezesCallerListBeforeWaitingForExcitationOff()
+    {
+        var b = new Bench();
+        var resources = await b.Devices.AcquireRunAsync([b.Source.Id, b.Matrix.Definition.Device.Id], RunId.New(), Token);
+        await resources.ConnectAllAsync(Token); b.Source.StopGate = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        var desired = new List<MatrixCrossPoint> { First };
+        var routing = resources.RouteMatrixAsync(b.Matrix.Definition.Device.Id, desired, Token);
+        desired[0] = Second; b.Source.StopGate.SetResult(); await routing;
+        Assert.Equal(new[] { First }, (await b.Matrix.GetSnapshotAsync(Token)).Closed);
+        Assert.Empty(await resources.StopAllAsync(Token)); await resources.ReleaseAsync(Token);
+    }
+
     private static async Task Until(NotificationSubscription events, WorkbenchNotificationKind kind, string? step = null)
     {
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));

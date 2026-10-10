@@ -83,6 +83,8 @@ public sealed partial class FileRunArchive
                 if (dto.Index != ++count) throw new FormatException("Archive row sequence is missing or duplicated.");
                 var row = dto.ToDomain();
                 metadata.Header.Schema.ValidateRow(row);
+                if (row.Routing is { } context)
+                    (metadata.Header.Plan?.Routing ?? throw new FormatException("Routed archive row has no plan routing configuration.")).ValidateContext(context);
                 frame.SetLength(0); frame.Position = 0; start = i + 1;
                 yield return row;
             }

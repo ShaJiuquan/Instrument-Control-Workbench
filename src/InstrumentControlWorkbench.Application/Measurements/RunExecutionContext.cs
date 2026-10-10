@@ -1,8 +1,10 @@
 using System.Diagnostics;
 using InstrumentControlWorkbench.Application.Devices;
 using InstrumentControlWorkbench.Core.Data;
+using InstrumentControlWorkbench.Core.Experiments;
 using InstrumentControlWorkbench.Core.Measurements;
 using InstrumentControlWorkbench.Core.Parameters;
+using InstrumentControlWorkbench.Core.Routing;
 
 namespace InstrumentControlWorkbench.Application.Measurements;
 
@@ -41,6 +43,7 @@ internal sealed class RunExecutionContext : IDisposable
     public int RowsAcquired { get; set; }
     public long ExecutedSteps { get; set; }
     public RunDataSet? DataSet { get; set; }
+    public IReadOnlyDictionary<StepId, ResolvedSampleRoute> SampleRoutes { get; set; } = new Dictionary<StepId, ResolvedSampleRoute>();
     public TaskCompletionSource Finalized { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public void Pause()

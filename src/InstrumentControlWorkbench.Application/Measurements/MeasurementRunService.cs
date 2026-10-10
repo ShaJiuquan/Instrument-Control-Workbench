@@ -56,6 +56,9 @@ public sealed partial class MeasurementRunService
     public Task StartVoltageResistanceAsync(VoltageResistanceRecipe recipe, CancellationToken token, RunMetadata? metadata = null)
         => StartPlanAsync(VoltageResistancePlan.Create(primaryInstrument, recipe), token, metadata);
 
+    public Task StartSampleResistanceAsync(SampleResistanceRecipe recipe, CancellationToken token, RunMetadata? metadata = null)
+        => StartPlanAsync(SampleResistancePlan.Create(recipe), token, metadata);
+
     public ExperimentPlanPreview PreviewPlan(ExperimentPlan plan)
     {
         var compiled = ExperimentPlanCompiler.Compile(plan, devices);
@@ -71,7 +74,7 @@ public sealed partial class MeasurementRunService
         lock (admissionGate)
         {
             if (active is not null) throw new InvalidOperationException("A run is active or requires safety recovery.");
-            run = new(token);
+            run = new(token) { SampleRoutes = compiled.SampleRoutes };
             active = run;
         }
         try

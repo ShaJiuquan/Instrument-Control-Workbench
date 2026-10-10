@@ -103,13 +103,13 @@ public sealed class MatrixSwitchSession : IDeviceSession
         finally { operations.Exit(); }
     }
 
-    internal async Task ConfirmHeldRouteAsync(RunId owner, CancellationToken token)
+    internal async Task ConfirmHeldRouteAsync(RunId owner, CancellationToken token, IReadOnlyList<MatrixCrossPoint>? desired = null)
     {
         await operations.EnterAsync(token, owner);
         try
         {
             var snapshot = await port.GetSnapshotAsync(token); RequireKnown(snapshot, requireConnection: true);
-            if (expected is null || !expected.SetEquals(snapshot.Closed)) throw new InvalidOperationException("Matrix route changed; excitation must remain off.");
+            if (expected is null || !expected.SetEquals(snapshot.Closed) || desired is not null && !expected.SetEquals(desired)) throw new InvalidOperationException("Matrix route changed; excitation must remain off.");
             await PublishAsync(snapshot, token);
         }
         catch { faulted = true; throw; }

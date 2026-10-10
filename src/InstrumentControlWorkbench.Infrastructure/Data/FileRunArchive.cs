@@ -3,6 +3,7 @@ using System.Runtime.ExceptionServices;
 using System.Security.Cryptography;
 using InstrumentControlWorkbench.Core.Data;
 using InstrumentControlWorkbench.Core.Measurements;
+using InstrumentControlWorkbench.Core.Routing;
 
 namespace InstrumentControlWorkbench.Infrastructure.Data;
 
@@ -35,7 +36,7 @@ public sealed partial class FileRunArchive : IRunArchive, IAsyncDisposable
             await WriteAtomicAsync(Path.Combine(folder, "metadata.json"), bytes, token);
             var stream = new FileStream(Path.Combine(folder, "rows.ndjson"), FileMode.CreateNew, FileAccess.Write,
                 FileShare.Read, 8192, FileOptions.Asynchronous);
-            var writer = new Writer(stream, bytes, dataSet.Schema);
+            var writer = new Writer(stream, bytes, dataSet.Schema, dataSet.Plan?.Routing);
             if (!active.TryAdd(dataSet.Id, writer))
             {
                 await writer.DisposeAsync();
@@ -159,7 +160,7 @@ public sealed partial class FileRunArchive : IRunArchive, IAsyncDisposable
         if (error is not null) ExceptionDispatchInfo.Capture(error).Throw();
     }
 
-    private sealed class Writer(FileStream stream, byte[] header, DataSetSchema schema) : IAsyncDisposable
+    private sealed class Writer(FileStream stream, byte[] header, DataSetSchema schema, RoutingConfiguration? routing) : IAsyncDisposable
     {
         public FileStream Stream { get; } = stream;
         public byte[] Header { get; } = header;
@@ -181,6 +182,8 @@ public sealed partial class FileRunArchive : IRunArchive, IAsyncDisposable
         public async Task AppendAsync(MeasurementDataRow row, CancellationToken token)
         {
             Schema.ValidateRow(row);
+            if (row.Routing is { } context)
+                (routing ?? throw new ArgumentException("Routed archive rows require the frozen plan routing configuration.", nameof(row))).ValidateContext(context);
             var bytes = RowBytes(Count + 1, row);
             UnconfirmedTail = true;
             await Stream.WriteAsync(bytes, token);

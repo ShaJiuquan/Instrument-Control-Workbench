@@ -70,14 +70,16 @@ public sealed partial class InstrumentManager
         finally { operations.Exit(); }
     }
 
-    public async Task<SourceSenseReading> ReadSourceSenseAsync(SourceFunction function, CancellationToken token, RunId? owner = null)
+    public async Task<SourceSenseReading> ReadSourceSenseAsync(SourceFunction function, CancellationToken token, RunId? owner = null, SensingMode? requiredSensingMode = null)
     {
+        if (requiredSensingMode is { } required && !Enum.IsDefined(required)) throw new ArgumentOutOfRangeException(nameof(requiredSensingMode));
         await EnterOperationAsync(token, owner);
         try
         {
             var snapshot = await ReadSourceSnapshotAsync(token);
             if (!snapshot.Connected || !snapshot.OutputEnabled) throw new InvalidOperationException("Resistance acquisition requires connected source output.");
             if (snapshot.Source.Function != function) throw new InvalidOperationException("Source function differs from the resistance plan.");
+            if (requiredSensingMode is { } mode && snapshot.Sense.Mode != mode) throw new InvalidOperationException("Actual sensing mode differs from the sample topology.");
             var senseFunction = function == SourceFunction.Voltage ? SenseFunction.Current : SenseFunction.Voltage;
             try
             {

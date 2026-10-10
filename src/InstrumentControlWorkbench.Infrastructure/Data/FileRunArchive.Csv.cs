@@ -38,13 +38,15 @@ public sealed partial class FileRunArchive
                 await WriteCsvAsync(writer, ["# instruments_json", JsonSerializer.Serialize(header.Instruments.Select(RunArchiveJson.InstrumentDto.From), RunArchiveJson.Options)], token);
                 await WriteCsvAsync(writer, ["# columns_json", JsonSerializer.Serialize(header.Schema.Columns.Select(RunArchiveJson.ColumnDto.From), RunArchiveJson.Options)], token);
                 await WriteCsvAsync(writer, ["# plan_json", header.Plan is null ? "" : new JsonExperimentPlanDocument().Serialize(header.Plan)], token);
-                await WriteCsvAsync(writer, ["row", "timestamp", .. header.Schema.Columns.Select(c => $"{c.Parameter.Id} [{c.Parameter.Unit}]")], token);
+                await WriteCsvAsync(writer, ["row", "timestamp", .. header.Schema.Columns.Select(c => $"{c.Parameter.Id} [{c.Parameter.Unit}]"),
+                    .. header.Plan?.Routing is null ? Array.Empty<string>() : new[] { "routing_json" }], token);
                 var count = 0;
                 var cursor = new ReadCursor();
                 await foreach (var row in ReadRowsAsync(metadata, cursor, token))
                     await WriteCsvAsync(writer, [(++count).ToString(CultureInfo.InvariantCulture), row.Timestamp.ToString("O", CultureInfo.InvariantCulture),
                         .. header.Schema.Columns.Select(c => row.Values.TryGetValue(c.Parameter.Id, out var value)
-                            ? value.Value.ToString("R", CultureInfo.InvariantCulture) : "")], token);
+                            ? value.Value.ToString("R", CultureInfo.InvariantCulture) : ""),
+                        .. header.Plan?.Routing is null ? Array.Empty<string>() : new[] { row.Routing is null ? "" : JsonSerializer.Serialize(RunArchiveJson.SampleRouteDto.From(row.Routing), RunArchiveJson.Options) }], token);
                 if (cursor.HasIncompleteTail) await WriteCsvAsync(writer, ["# incomplete_tail", "The unfinished last record was excluded."], token);
                 await writer.FlushAsync(token);
             }

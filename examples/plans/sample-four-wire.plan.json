@@ -1,0 +1,154 @@
+{
+  "format": "instrument-workbench-plan",
+  "version": 1,
+  "name": "Four-wire sample bias scan",
+  "preparations": [
+    {
+      "device": "k2450",
+      "function": "Voltage",
+      "level": {
+        "value": 0.01,
+        "unit": "Volt"
+      },
+      "compliance": {
+        "value": 0.001,
+        "unit": "Ampere"
+      },
+      "sense": {
+        "function": "Current",
+        "mode": "FourWire",
+        "nplc": 1,
+        "autoRange": true
+      }
+    }
+  ],
+  "metadata": {},
+  "root": {
+    "id": "bias_scan",
+    "kind": "scan",
+    "axis": {
+      "device": "k2450",
+      "parameter": "k2450.source_voltage"
+    },
+    "column": "bias",
+    "values": {
+      "unit": "Volt",
+      "values": [
+        0.01,
+        0.02,
+        0.03
+      ]
+    },
+    "dwellSeconds": 0,
+    "body": {
+      "id": "sample_read",
+      "kind": "read_sample_resistance",
+      "device": "k2450",
+      "function": "Voltage",
+      "voltageColumn": "voltage",
+      "currentColumn": "current",
+      "resistanceColumn": "resistance",
+      "minimumCurrent": {
+        "value": 1e-15,
+        "unit": "Ampere"
+      },
+      "binding": {
+        "sample": "four_wire_sample",
+        "wiring": "smu_kelvin",
+        "selection": "FourWireResistance"
+      },
+      "settleSeconds": 0.02,
+      "routingManagedExternally": false
+    }
+  },
+  "routing": {
+    "matrix": "matrix",
+    "channels": [
+      {
+        "id": "channel1",
+        "name": "CH1",
+        "connections": [
+          {
+            "key": "i_plus",
+            "slot": 1,
+            "column": 1,
+            "enabled": true
+          },
+          {
+            "key": "i_minus",
+            "slot": 1,
+            "column": 2,
+            "enabled": true
+          },
+          {
+            "key": "v_plus",
+            "slot": 1,
+            "column": 3,
+            "enabled": true
+          },
+          {
+            "key": "v_minus",
+            "slot": 1,
+            "column": 4,
+            "enabled": true
+          }
+        ]
+      }
+    ],
+    "wirings": [
+      {
+        "id": "smu_kelvin",
+        "sourceMeter": "k2450",
+        "sourcePlus": {
+          "slot": 1,
+          "row": 1
+        },
+        "sourceMinus": {
+          "slot": 1,
+          "row": 2
+        },
+        "sensePlus": {
+          "slot": 1,
+          "row": 3
+        },
+        "senseMinus": {
+          "slot": 1,
+          "row": 4
+        }
+      }
+    ],
+    "samples": [
+      {
+        "id": "four_wire_sample",
+        "name": "Four-wire simulation sample",
+        "topology": "FourWire",
+        "electrodes": [
+          {
+            "label": "I+",
+            "channel": "channel1",
+            "connection": "i_plus",
+            "enabled": true
+          },
+          {
+            "label": "I-",
+            "channel": "channel1",
+            "connection": "i_minus",
+            "enabled": true
+          },
+          {
+            "label": "V+",
+            "channel": "channel1",
+            "connection": "v_plus",
+            "enabled": true
+          },
+          {
+            "label": "V-",
+            "channel": "channel1",
+            "connection": "v_minus",
+            "enabled": true
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using InstrumentControlWorkbench.Core.Instruments;
 using InstrumentControlWorkbench.Core.Parameters;
+using InstrumentControlWorkbench.Core.Routing;
 
 namespace InstrumentControlWorkbench.Core.Experiments;
 
@@ -192,19 +193,20 @@ public sealed record SourcePreparation
 public sealed record ExperimentPlan
 {
     public ExperimentPlan(string name, ExperimentStep root, IEnumerable<SourcePreparation>? preparations = null,
-        IReadOnlyDictionary<string, Quantity>? metadata = null)
+        IReadOnlyDictionary<string, Quantity>? metadata = null, RoutingConfiguration? routing = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name); ArgumentNullException.ThrowIfNull(root);
         var items = preparations?.ToArray() ?? [];
         if (items.Any(p => p is null) || items.Select(p => p.Device).Distinct().Count() != items.Length)
             throw new ArgumentException("Source preparations must have unique device IDs.", nameof(preparations));
-        Name = name; Root = root; Preparations = Array.AsReadOnly(items);
+        Name = name; Root = root; Preparations = Array.AsReadOnly(items); Routing = routing;
         Metadata = new ReadOnlyDictionary<string, Quantity>(new Dictionary<string, Quantity>(metadata ?? new Dictionary<string, Quantity>()));
     }
     public const int FormatVersion = 1;
     public string Name { get; }
     public ExperimentStep Root { get; }
     public IReadOnlyList<SourcePreparation> Preparations { get; }
+    public RoutingConfiguration? Routing { get; }
     public IReadOnlyDictionary<string, Quantity> Metadata { get; }
 }
 

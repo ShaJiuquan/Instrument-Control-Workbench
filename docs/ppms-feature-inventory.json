@@ -198,7 +198,7 @@
       "evidence": {
         "implementation": "src/InstrumentControlWorkbench.Application/Experiments/VoltageResistancePlan.cs; src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs",
         "tests": "tests/InstrumentControlWorkbench.Application.Tests/ResistanceExecutionTests.cs",
-        "limits": "Typed K2450 Voltage DC adapter and coherent source/sense V/I step support standalone and nested scan-managed acquisition, units/dependencies, abort/pause/cleanup and archives. PPMS command/alias import, matrix/channel profiles, explicit source/meter ranges, K6221/K2182/SR830 modes, quality/status rows and real hardware remain pending; not full measure_r parity."
+        "limits": "Typed K2450 Voltage DC and coherent V/I reads, including scan-managed and sample-bound routing, support units/dependencies, abort/pause/cleanup and archives. PPMS command/alias import, standalone channel binding, explicit ranges, K6221/K2182/SR830 modes, derived/quality rows and hardware remain pending; not full measure_r parity."
       }
     },
     {
@@ -209,7 +209,12 @@
         "sample_r",
         "meas_r_sample"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Experiments/SampleResistancePlan.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/SampleResistanceExecutionTests.cs",
+        "limits": "Typed immutable sample/channel/electrode/wiring catalogs; TwoWire/FourWire, Hall longitudinal/transverse and eight vdP raw V/I/R assignments on K2450 simulation; guarded routing, actual sensing-mode verification, nested live-setpoint preservation, external management and per-row provenance in plans/archives/CSV. PPMS decoder/aliases, active profiles/settings/UI, separate source/meter profiles, geometry/derived Hall/vdP corrections/quality and hardware acceptance remain pending."
+      }
     },
     {
       "id": "measure_current",
@@ -564,7 +569,7 @@
       "evidence": {
         "implementation": "src/InstrumentControlWorkbench.Application/Devices/MatrixSwitchSession.cs",
         "tests": "tests/InstrumentControlWorkbench.Application.Tests/MatrixRoutingTests.cs",
-        "limits": "Typed card/crosspoint reconcile on deterministic simulation: source-off guard, break-before-make/readback, run-added cleanup, pause/verified resume, retained ownership/recovery, saved plans/archive. Existing PPMS command decoding, sample/channel/electrode profiles, actual card/protocol limits, routing UI and hardware acceptance remain pending."
+        "limits": "Typed card/crosspoint reconcile and sample/channel/electrode resolution on deterministic simulation: fresh source-off guards, break-before-make/readback, run-added cleanup, pause/verified resume, retained ownership/recovery, saved plans/archives and row provenance. PPMS command import, actual card/transport protocols, profile/settings/routing UI and hardware acceptance remain pending."
       }
     },
     {
@@ -575,7 +580,7 @@
       "evidence": {
         "implementation": "src/InstrumentControlWorkbench.Application/Devices/MatrixSwitchSession.cs",
         "tests": "tests/InstrumentControlWorkbench.Application.Tests/MatrixRoutingTests.cs",
-        "limits": "Typed card/crosspoint reconcile on deterministic simulation: source-off guard, break-before-make/readback, run-added cleanup, pause/verified resume, retained ownership/recovery, saved plans/archive. Existing PPMS command decoding, sample/channel/electrode profiles, actual card/protocol limits, routing UI and hardware acceptance remain pending."
+        "limits": "Typed card/crosspoint reconcile and sample/channel/electrode resolution on deterministic simulation: fresh source-off guards, break-before-make/readback, run-added cleanup, pause/verified resume, retained ownership/recovery, saved plans/archives and row provenance. PPMS command import, actual card/transport protocols, profile/settings/routing UI and hardware acceptance remain pending."
       }
     },
     {

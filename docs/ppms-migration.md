@@ -147,7 +147,14 @@ Avalonia views -> ViewModels -> Application use cases -> Core contracts
    and verified resume, quarantined failures/timeouts and explicit recovery. Plans
    and archives retain routing/configuration. This is still a simulation/API subset:
    sample/electrode topology, PPMS command import, actual card protocols and routing
-   UI remain pending. See matrix-routing.md.
+   UI remain pending. See matrix-routing.md. The sample follow-up freezes
+   channel/wiring/sample catalogs, resolves and validates electrode topology,
+   executes TwoWire/FourWire and raw Hall/vdP assignments through the same engine,
+   preserves nested scan setpoints and supports verified external route management.
+   Rows retain sample/selection/electrode identity in archives and streamed CSV;
+   supplied context is checked against frozen plan configuration. Derived Hall/vdP
+   results, separate source/meter profiles, settings/UI and physical wiring/hardware
+   acceptance remain pending. See sample-routing.md.
 7. **Operator workflows — pending.** Flow editor, reusable steps, device panels,
    routing/sample settings and live/history views connected to the backend.
 8. **Acceptance — pending.** End-to-end representative PPMS experiments,

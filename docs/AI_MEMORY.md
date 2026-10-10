@@ -224,3 +224,27 @@ implementation.
   This remains a typed simulation subset; PPMS aliases, sample/channel topology,
   card protocols, routing settings/UI and hardware acceptance are pending.
   See matrix-routing.md for limits and reference semantics.
+
+## Frozen sample routing and row provenance (2026-10-11)
+
+- ExperimentPlan may freeze a RoutingConfiguration of channel connections,
+  integrated source-meter ports and sample electrode links. Core resolution is
+  pure and bounded; Application preflight resolves every referenced branch,
+  validates cards/mode/source guards, then stores immutable per-step routes.
+- ReadSampleResistanceStep reuses coherent V/I/R acquisition. Internal management
+  parks sources, routes, settles, enables, reads and disables without resetting a
+  scan's source level. External management verifies the exact accepted route and
+  does not change relays/output. Actual sensing mode is checked before internal
+  enable and again before acquisition. Resource routing copies mutable caller
+  input before waiting for source-off.
+- Two-wire sharing/dedup, four independent force/sense ports and sample terminals,
+  Hall longitudinal/transverse and eight vdP raw assignments are tested. No derived
+  Hall/vdP/geometry/offset result or sample-dependent mock physics is claimed.
+- Sample rows retain typed immutable sample/wiring/selection/electrode provenance;
+  append/archive read/write validate supplied contexts against the frozen catalog.
+  Archives include context in prefix checks; catalog CSVs append routing_json.
+  Legacy rows/plans/CSV layout stay unchanged. Optional context absence in an
+  unfinished row alone cannot prove acquisition identity.
+- Source/meter combinations beyond K2450, PPMS import/active profiles, durable
+  settings/profile UI, derived quantities/quality and hardware acceptance remain
+  required. See sample-routing.md for the exact boundary.

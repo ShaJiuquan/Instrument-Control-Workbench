@@ -62,8 +62,9 @@ from disk in tests and produces two coherent V/I/R rows on distinct verified
 routes. The mock source resistance is independent of the matrix configuration;
 no fabricated channel-specific sample physics is implied.
 
-Channel/sample/electrode profiles, distinct force/sense path validation, actual
-card/protocol limits, four-wire routing constraints, routing UI, PPMS command
+Typed sample/channel/electrode profiles and declared force/sense topology checks
+now exist through ReadSampleResistanceStep (see sample-routing.md). Actual
+card/protocol limits, physical wiring verification, routing UI, PPMS command
 aliases/import, additional sources/meters and hardware fault acceptance remain
 unfinished. The inventory marks `k3706.open_channel` and `k3706.close_channel`
 partial: the typed reconcile operation supports these effects, not their existing

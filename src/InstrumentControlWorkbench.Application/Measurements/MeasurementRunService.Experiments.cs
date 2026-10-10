@@ -5,6 +5,7 @@ using InstrumentControlWorkbench.Core.Instruments;
 using InstrumentControlWorkbench.Core.Measurements;
 using InstrumentControlWorkbench.Core.Notifications;
 using InstrumentControlWorkbench.Core.Parameters;
+using InstrumentControlWorkbench.Core.Routing;
 
 namespace InstrumentControlWorkbench.Application.Measurements;
 
@@ -85,6 +86,19 @@ public sealed partial class MeasurementRunService
             case ReadStep read:
                 await AcquireRowAsync(read, run, started, ivPlot);
                 break;
+            case ReadSampleResistanceStep sampleRead:
+                var context = run.SampleRoutes[sampleRead.Id];
+                if (sampleRead.RoutingManagedExternally)
+                    await run.Resources!.VerifyMatrixRouteAsync(context.Matrix, context.Closed, run.Token);
+                else
+                {
+                    await run.Resources!.RouteMatrixAsync(context.Matrix, context.Closed, run.Token);
+                    await DwellAsync(run, sampleRead.Settle);
+                    await run.Resources.EnableSourceOutputAsync(context.SourceMeter, run.Token, context.SensingMode);
+                }
+                await AcquireResistanceRowAsync(sampleRead.Acquisition, run, started, context);
+                if (!sampleRead.RoutingManagedExternally) await run.Resources!.DisableSourceOutputAsync(context.SourceMeter, run.Token);
+                break;
             case ReadResistanceStep resistance:
                 await AcquireResistanceRowAsync(resistance, run, started);
                 break;
@@ -133,9 +147,9 @@ public sealed partial class MeasurementRunService
         }
     }
 
-    private async Task AcquireResistanceRowAsync(ReadResistanceStep step, RunExecutionContext run, IReadOnlyList<IRunResultListener> started)
+    private async Task AcquireResistanceRowAsync(ReadResistanceStep step, RunExecutionContext run, IReadOnlyList<IRunResultListener> started, ResolvedSampleRoute? context = null)
     {
-        var reading = await run.Resources!.ReadSourceSenseAsync(step.Device, step.Function, run.Token);
+        var reading = await run.Resources!.ReadSourceSenseAsync(step.Device, step.Function, run.Token, context?.SensingMode);
         var voltage = step.Function == SourceFunction.Voltage ? reading.Source : reading.Sense;
         var current = step.Function == SourceFunction.Current ? reading.Source : reading.Sense;
         if (Math.Abs(current.Value) <= step.MinimumCurrent.Value)
@@ -147,7 +161,7 @@ public sealed partial class MeasurementRunService
             [step.ResistanceColumn] = new(voltage.Value / current.Value, PhysicalUnit.Ohm),
             [ExperimentPlanCompiler.Elapsed.Id] = new(run.Elapsed.Elapsed.TotalSeconds, PhysicalUnit.Second),
         };
-        var row = new MeasurementDataRow(reading.Timestamp, values);
+        var row = new MeasurementDataRow(reading.Timestamp, values, context);
         run.DataSet!.Append(row);
         run.Variables[step.VoltageColumn] = voltage; run.Variables[step.CurrentColumn] = current;
         run.Variables[step.ResistanceColumn] = values[step.ResistanceColumn];

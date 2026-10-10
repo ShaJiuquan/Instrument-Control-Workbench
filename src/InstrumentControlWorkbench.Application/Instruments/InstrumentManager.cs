@@ -133,12 +133,15 @@ public sealed partial class InstrumentManager : IDeviceSession
         }
     }
 
-    public async Task EnterRunAsync(CancellationToken cancellationToken, RunId? owner = null)
+    public async Task EnterRunAsync(CancellationToken cancellationToken, RunId? owner = null, SensingMode? requiredSensingMode = null)
     {
         if (owner is null) throw new InvalidOperationException("Exclusive run resources are required before enabling source output.");
+        if (requiredSensingMode is { } required && !Enum.IsDefined(required)) throw new ArgumentOutOfRangeException(nameof(requiredSensingMode));
         await EnterOperationAsync(cancellationToken, owner);
         try
         {
+            if (requiredSensingMode is { } mode && (await ReadSourceSnapshotAsync(cancellationToken)).Sense.Mode != mode)
+                throw new InvalidOperationException("Actual sensing mode differs from the sample topology.");
             Transition(InstrumentLifecycleEvent.RunRequested);
             await sourceMeter.EnableOutputAsync(cancellationToken);
             var snapshot = await sourceMeter.GetSnapshotAsync(cancellationToken);

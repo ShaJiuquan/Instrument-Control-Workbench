@@ -6,12 +6,13 @@ using InstrumentControlWorkbench.Core.Experiments;
 using InstrumentControlWorkbench.Core.Instruments;
 using InstrumentControlWorkbench.Core.Measurements;
 using InstrumentControlWorkbench.Core.Parameters;
+using InstrumentControlWorkbench.Core.Routing;
 using InstrumentControlWorkbench.Infrastructure.Plans;
 
 namespace InstrumentControlWorkbench.Infrastructure.Data;
 
 // Versioned storage DTOs never become mutable domain or UI state.
-internal static class RunArchiveJson
+internal static partial class RunArchiveJson
 {
     internal const int Version = 1;
     internal const int MaximumFrameBytes = 8 * 1024 * 1024;
@@ -25,7 +26,10 @@ internal static class RunArchiveJson
         RespectRequiredConstructorParameters = true,
         Converters = { new JsonStringEnumConverter<PhysicalUnit>(allowIntegerValues: false),
             new JsonStringEnumConverter<ParameterAccess>(allowIntegerValues: false),
-            new JsonStringEnumConverter<MeasurementRunState>(allowIntegerValues: false) },
+            new JsonStringEnumConverter<MeasurementRunState>(allowIntegerValues: false),
+            new JsonStringEnumConverter<SampleTopology>(allowIntegerValues: false),
+            new JsonStringEnumConverter<SampleRouteSelection>(allowIntegerValues: false),
+            new JsonStringEnumConverter<RoutingRole>(allowIntegerValues: false) },
     };
     private static readonly JsonExperimentPlanDocument Plans = new();
 
@@ -79,11 +83,12 @@ internal static class RunArchiveJson
             s.Schema.Columns.Select(ColumnDto.From).ToArray(), s.Recipe.ToDictionary(p => p.Key, p => QuantityDto.From(p.Value)),
             s.Instruments.Select(InstrumentDto.From).ToArray(), s.Plan is null ? null : Plans.Serialize(s.Plan), MetadataDto.From(s.Metadata ?? RunMetadata.Empty));
     }
-    internal sealed record RowDto(int Index, DateTimeOffset Timestamp, Dictionary<string, QuantityDto> Values)
+    internal sealed record RowDto(int Index, DateTimeOffset Timestamp, Dictionary<string, QuantityDto> Values,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] SampleRouteDto? Routing = null)
     {
-        public MeasurementDataRow ToDomain() => new(Timestamp, Required(Values).ToDictionary(p => new ParameterId(p.Key), p => Required(p.Value).ToDomain()));
+        public MeasurementDataRow ToDomain() => new(Timestamp, Required(Values).ToDictionary(p => new ParameterId(p.Key), p => Required(p.Value).ToDomain()), Routing?.ToDomain());
         public static RowDto From(int index, MeasurementDataRow row) => new(index, row.Timestamp,
-            row.Values.OrderBy(p => p.Key.Value, StringComparer.Ordinal).ToDictionary(p => p.Key.Value, p => QuantityDto.From(p.Value)));
+            row.Values.OrderBy(p => p.Key.Value, StringComparer.Ordinal).ToDictionary(p => p.Key.Value, p => QuantityDto.From(p.Value)), row.Routing is null ? null : SampleRouteDto.From(row.Routing));
     }
     internal sealed record FinalDto(string Format, int Version, Guid Id, MeasurementRunState State, DateTimeOffset FinishedAt, int RowCount, long DataBytes, string Sha256);
 
