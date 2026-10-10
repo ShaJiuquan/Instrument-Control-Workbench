@@ -45,12 +45,12 @@ public sealed partial class MeasurementRunService
     public RunOutcome? LatestOutcome { get; private set; }
     public InMemoryRunHistory History { get; }
 
-    public Task StartIvSweepAsync(IvSweepRecipe recipe, CancellationToken cancellationToken)
+    public Task StartIvSweepAsync(IvSweepRecipe recipe, CancellationToken cancellationToken, RunMetadata? metadata = null)
     {
         ArgumentNullException.ThrowIfNull(recipe);
         recipe.Validate();
         return StartAsync(ExperimentPlanCompiler.Compile(IvExperimentPlan.Create(primaryInstrument, recipe), devices),
-            cancellationToken, ivPlot: true);
+            cancellationToken, ivPlot: true, metadata);
     }
 
     public ExperimentPlanPreview PreviewPlan(ExperimentPlan plan)
@@ -59,10 +59,10 @@ public sealed partial class MeasurementRunService
         return new(compiled.Schema, compiled.Devices, compiled.MaximumStepExecutions);
     }
 
-    public Task StartPlanAsync(ExperimentPlan plan, CancellationToken cancellationToken)
-        => StartAsync(ExperimentPlanCompiler.Compile(plan, devices), cancellationToken, ivPlot: false);
+    public Task StartPlanAsync(ExperimentPlan plan, CancellationToken cancellationToken, RunMetadata? metadata = null)
+        => StartAsync(ExperimentPlanCompiler.Compile(plan, devices), cancellationToken, ivPlot: false, metadata);
 
-    private async Task StartAsync(CompiledExperiment compiled, CancellationToken token, bool ivPlot)
+    private async Task StartAsync(CompiledExperiment compiled, CancellationToken token, bool ivPlot, RunMetadata? metadata)
     {
         RunExecutionContext run;
         lock (admissionGate)
@@ -103,7 +103,7 @@ public sealed partial class MeasurementRunService
             }
             var snapshots = run.Resources is null ? Array.Empty<InstrumentParameterSnapshot>() :
                 await run.Resources.CaptureParametersAsync(run.Token);
-            var dataSet = new RunDataSet(run.Id, compiled.Plan.Name, run.StartedAt, compiled.Schema, compiled.Plan.Metadata, snapshots);
+            var dataSet = new RunDataSet(run.Id, compiled.Plan.Name, run.StartedAt, compiled.Schema, compiled.Plan.Metadata, snapshots, compiled.Plan, metadata);
             run.DataSet = dataSet;
             LatestDataSet = dataSet;
             foreach (var listener in listeners)

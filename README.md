@@ -33,7 +33,8 @@ The desktop prototype and execution foundation currently provide:
 - Nested scans, joint reads, iteration/conditions, delay and stability waits through the application API.
 - Versioned plan files with preflight validation, bounded JSON parsing and atomic replacement.
 - A runnable [field/voltage plan](examples/plans/field-voltage.plan.json) and [document format](docs/plan-documents.md).
-- xUnit coverage for state transitions, leases, validators, and sweep notify.
+- Versioned run archives with sample metadata, plan/configuration snapshots, typed rows, terminal markers and streamed CSV export through the application API.
+- xUnit coverage for state transitions, leases, validators, acquisition and archive integrity.
 - Four working pages: measurement, instrument connection/status, run data, events.
 - Data-backed live I–V plot with automatic scaling and pointer readout.
 - Validated scan configuration and state-aware start/connect/stop commands.
@@ -45,9 +46,11 @@ configuration on the right. Device details, current-run data, and events have
 separate pages. Chinese text uses an explicit system-font fallback; no assets
 from third-party instrument software are included.
 
-Run data is currently session-only: restarting a scan replaces the previous
-points. Persistent history and export remain future work. The published desktop retains its IV workflow; the multi-device plan APIs are
-tested separately. Plan/pause/recovery UI changes are under implementation.
+The published desktop retains its IV workflow and session-only plot. Multi-device
+plans and durable run history/export are tested through the application API; their
+desktop integration is pending native acceptance. See [run archive format and
+recovery limits](docs/run-archives.md). Plan/pause/recovery/history UI changes are
+under implementation.
 All current device profiles are simulation; the source mock does not enforce
 real current compliance.
 
@@ -60,7 +63,8 @@ will be implemented in C#, borrowing OpenTAP lifecycle concepts without dependin
 on OpenTAP itself. Parameters and run data now have typed units, validated
 dependencies and immutable recipe/instrument snapshots. They are populated by
 the working IV and generic plan flows. Versioned plans can be saved and loaded;
-persistent run history, PPMS JSON import and full command parity remain pending.
+the result archive API persists run data and streams CSV exports. PPMS JSON
+import, desktop acceptance and full command parity remain pending.
 
 ## Project Layout
 
@@ -116,7 +120,7 @@ roles. The planned feature set focuses on:
 - Safe instrument control with abort and output-off semantics.
 - Realtime measurement status.
 - Mock-first drivers for reproducible demos.
-- SQLite-backed run history.
+- Persistent run history (current file archive adapter; database choice remains open).
 - Interactive plotting for live measurement feedback.
 
 ## License

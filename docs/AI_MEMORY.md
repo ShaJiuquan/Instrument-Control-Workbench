@@ -26,7 +26,9 @@ re-litigate them or accidentally undo them.
 - NotificationHub broadcasts to independent subscriptions. Queues remain
   unbounded; consumers must manage subscription lifetimes.
 - LatestDataSet is the latest run; InMemoryRunHistory keeps terminal snapshots
-  for this process. Neither is disk history or restart recovery.
+  for this process. The injected FileRunArchive separately persists results.
+  Live data and in-memory history still retain all rows; durable storage alone
+  does not bound acquisition memory or resume hardware after restart.
 - The mock driver does not model current compliance enforcement. Its readings
   must not be used as evidence of real hardware protection.
 
@@ -155,3 +157,27 @@ implementation.
 - Desktop plan/pause/recovery changes remain under implementation until native
   layout and interaction inspection is completed. Do not infer visual quality
   from a passing build or ViewModel tests.
+
+## Run archive API (2026-10-11)
+
+- IRunArchive extends the existing result-listener boundary. FileRunArchive uses
+  SDK System.Text.Json/FileStream/SHA256 only; no new dependency was added.
+  The published desktop composition does not yet inject it; native plan/history
+  integration is pending inspection while the Mac is locked.
+- Each run has immutable versioned metadata, flushed NDJSON rows and a separate
+  terminal marker. Plan, schema/units/dependencies, sample metadata, recipe and
+  device configuration are captured. Row finalization reconciles committed
+  application rows missed by cancellation and rejects changed committed prefixes.
+- Catalog enumeration validates metadata, not the entire row stream. Load and
+  export validate row sequence/schema/units and finalized length/count/SHA256.
+  Reload defaults to at most 100,000 rows; CSV export streams larger archives.
+- No terminal marker means unfinalized. Only an unterminated last row may be
+  excluded. It never implies the devices are stopped, active or safe, and cannot
+  automatically resume an experiment. Flush/atomic rename do not guarantee
+  power-loss durability. See run-archives.md for precise limits.
+- Export includes version, IDs, timestamps, units, sample metadata, full plan and
+  instrument snapshots. CSV fields are quoted and can contain embedded newlines;
+  readers must parse CSV records rather than skip fixed physical line counts.
+- Acquisition/cleanup state in the data set is distinct from RunOutcome, which
+  also reports listener failures. There is no persistence retry queue or deadline
+  for finalizers. Settings, database queries and paged plots remain separate work.

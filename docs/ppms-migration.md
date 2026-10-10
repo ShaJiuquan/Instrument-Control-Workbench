@@ -124,9 +124,15 @@ Avalonia views -> ViewModels -> Application use cases -> Core contracts
    replacement preserve previous files on validation failure/cancellation. The
    repository's field/voltage example is loaded from disk and produces 15 rows
    on fresh simulation sessions. The published stage passes 118 tests (28 Core,
-   78 Application, 12 App). See plan-documents.md. Persistent result history,
-   general sample/provenance metadata, settings, queries/export and interrupted-run
-   recovery remain pending; plan files do not prove result persistence.
+   78 Application, 12 App). See plan-documents.md. The following result archive
+   stage passes 135 tests (29 Core, 94 Application, 12 App): immutable sample ID,
+   name, notes and attributes; full plan/schema/device snapshots; versioned file
+   archives, metadata catalog, bounded reload and streamed CSV. Tests reopen fresh
+   adapter instances, recover complete rows from unfinished records, reject corrupt
+   records, reconcile committed rows missed by a cancelled listener and preserve
+   previous exports on failure. See run-archives.md. This is an application API;
+   the published desktop does not yet inject the archive. UI integration, settings,
+   querying/filtering, paged plots and physical startup recovery remain pending.
 7. **Operator workflows — pending.** Flow editor, reusable steps, device panels,
    routing/sample settings and live/history views connected to the backend.
 8. **Acceptance — pending.** End-to-end representative PPMS experiments,
@@ -142,7 +148,9 @@ a ViewModel-to-driver dependency. A later gate improvement should distinguish
 those cases without removing actual boundary checks.
 
 The service retains finalized snapshots for the current process in
-`InMemoryRunHistory`. It has no disk persistence or restart recovery. Data-set
+`InMemoryRunHistory`. Injecting `IRunArchive` adds durable result history; the
+file adapter reopens complete data prefixes but never resumes physical execution.
+The live run and in-memory history still retain all rows in RAM. Data-set
 terminal state describes acquisition/cleanup; `RunOutcome` also reports result
 listener failures. A successfully acquired data set can therefore be completed
 while its overall outcome is faulted by an archive error. Finalization currently

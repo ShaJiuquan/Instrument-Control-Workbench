@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using InstrumentControlWorkbench.Core.Experiments;
 using InstrumentControlWorkbench.Core.Measurements;
 using InstrumentControlWorkbench.Core.Parameters;
 
@@ -38,7 +39,8 @@ public sealed class RunDataSet
     private DateTimeOffset? finishedAt;
 
     public RunDataSet(RunId id, string name, DateTimeOffset startedAt, DataSetSchema schema,
-        IReadOnlyDictionary<string, Quantity> recipe, IEnumerable<InstrumentParameterSnapshot> instruments)
+        IReadOnlyDictionary<string, Quantity> recipe, IEnumerable<InstrumentParameterSnapshot> instruments,
+        ExperimentPlan? plan = null, RunMetadata? metadata = null)
     {
         ArgumentNullException.ThrowIfNull(id);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -54,6 +56,7 @@ public sealed class RunDataSet
         Schema = schema;
         Recipe = new ReadOnlyDictionary<string, Quantity>(new Dictionary<string, Quantity>(recipe));
         Instruments = Array.AsReadOnly(snapshots);
+        Plan = plan; Metadata = metadata ?? RunMetadata.Empty;
     }
 
     public const int FormatVersion = 1;
@@ -63,6 +66,8 @@ public sealed class RunDataSet
     public DataSetSchema Schema { get; }
     public IReadOnlyDictionary<string, Quantity> Recipe { get; }
     public IReadOnlyList<InstrumentParameterSnapshot> Instruments { get; }
+    public ExperimentPlan? Plan { get; }
+    public RunMetadata Metadata { get; }
     public MeasurementRunState State { get { lock (gate) return state; } }
     public DateTimeOffset? FinishedAt { get { lock (gate) return finishedAt; } }
     public IReadOnlyList<MeasurementDataRow> Rows { get { lock (gate) return Array.AsReadOnly(rows.ToArray()); } }
@@ -70,7 +75,7 @@ public sealed class RunDataSet
     public RunDataSetSnapshot Capture()
     {
         lock (gate)
-            return new(Id, Name, StartedAt, finishedAt, state, Schema, Recipe, Instruments, Array.AsReadOnly(rows.ToArray()));
+            return new(Id, Name, StartedAt, finishedAt, state, Schema, Recipe, Instruments, Array.AsReadOnly(rows.ToArray()), Plan, Metadata);
     }
 
     public void Append(MeasurementDataRow row)
@@ -100,4 +105,5 @@ public sealed class RunDataSet
 public sealed record RunDataSetSnapshot(
     RunId Id, string Name, DateTimeOffset StartedAt, DateTimeOffset? FinishedAt,
     MeasurementRunState State, DataSetSchema Schema, IReadOnlyDictionary<string, Quantity> Recipe,
-    IReadOnlyList<InstrumentParameterSnapshot> Instruments, IReadOnlyList<MeasurementDataRow> Rows);
+    IReadOnlyList<InstrumentParameterSnapshot> Instruments, IReadOnlyList<MeasurementDataRow> Rows,
+    ExperimentPlan? Plan = null, RunMetadata? Metadata = null);

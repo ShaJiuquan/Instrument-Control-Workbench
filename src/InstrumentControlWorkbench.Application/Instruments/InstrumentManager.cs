@@ -52,6 +52,8 @@ public sealed partial class InstrumentManager : IDeviceSession
                  new(Keithley2450Parameters.Nplc, new(snapshot.Sense.Nplc, PhysicalUnit.Dimensionless))],
                 new Dictionary<string, string>
                 {
+                    ["driver_kind"] = Descriptor.DriverKind.ToString(),
+                    ["stop_policy"] = Descriptor.StopPolicy.ToString(),
                     ["source_function"] = snapshot.Source.Function.ToString(),
                     ["sense_function"] = snapshot.Sense.Function.ToString(),
                     ["sensing_mode"] = snapshot.Sense.Mode.ToString(),
