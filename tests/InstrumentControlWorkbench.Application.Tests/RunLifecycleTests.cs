@@ -1,3 +1,4 @@
+using InstrumentControlWorkbench.Application.Devices;
 using InstrumentControlWorkbench.Application.Instruments;
 using InstrumentControlWorkbench.Application.Measurements;
 using InstrumentControlWorkbench.Application.Notifications;
@@ -6,6 +7,7 @@ using InstrumentControlWorkbench.Core.Instruments;
 using InstrumentControlWorkbench.Core.Instruments.Ports;
 using InstrumentControlWorkbench.Core.Measurements;
 using InstrumentControlWorkbench.Core.Notifications;
+using InstrumentControlWorkbench.Core.Parameters;
 using InstrumentControlWorkbench.Infrastructure.Drivers;
 
 namespace InstrumentControlWorkbench.Application.Tests;
@@ -66,6 +68,30 @@ public sealed class RunLifecycleTests
         Assert.False((await driver.GetSnapshotAsync(CancellationToken.None)).OutputEnabled);
         await service.StartIvSweepAsync(Recipe, CancellationToken.None);
         Assert.Equal(2, service.History.Runs.Count);
+    }
+
+    [Fact]
+    public async Task SourceReconnectAfterFailedStopDoesNotAuthorizeMutationBeforeFreshConfirmation()
+    {
+        var (_, manager, driver, leases, _) = Create();
+        var registry = new DeviceRegistry([manager], leases);
+        var resources = await registry.AcquireRunAsync([driver.Id], RunId.New(), CancellationToken.None);
+        await resources.ConnectAllAsync(CancellationToken.None);
+        await resources.ConfigureSourceMeterAsync(driver.Id, new(SourceFunction.Voltage, 0.1, 105e-6),
+            new(SenseFunction.Current, SensingMode.FourWire, 1, true), CancellationToken.None);
+        await resources.EnableSourceOutputAsync(driver.Id, CancellationToken.None);
+        driver.StopError = new IOException("stop unavailable");
+        Assert.Single(await resources.StopAllAsync(CancellationToken.None));
+        await resources.ConnectAllAsync(CancellationToken.None);
+        Assert.True((await driver.GetSnapshotAsync(CancellationToken.None)).OutputEnabled);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => resources.EnableSourceOutputAsync(driver.Id, CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => resources.WriteAsync(driver.Id,
+            Keithley2450Parameters.SourceVoltage.Id, new(0.2, PhysicalUnit.Volt), CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => resources.ReleaseAsync(CancellationToken.None));
+        driver.StopError = null;
+        Assert.Empty(await resources.StopAllAsync(CancellationToken.None, retryFailed: true));
+        await resources.ReleaseAsync(CancellationToken.None);
+        Assert.False((await driver.GetSnapshotAsync(CancellationToken.None)).OutputEnabled);
     }
 
     [Fact]
@@ -154,11 +180,14 @@ public sealed class RunLifecycleTests
         await archive.Finalizing.Task.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.True(service.HasActiveRun);
         Assert.Equal(RunExecutionPhase.Finalizing, service.Phase);
+        var drained = service.WaitForFinalizationAsync(CancellationToken.None);
+        Assert.False(drained.IsCompleted);
         Assert.False((await driver.GetSnapshotAsync(CancellationToken.None)).OutputEnabled);
         Assert.DoesNotContain(Drain(hub), n => n.Kind == WorkbenchNotificationKind.RunCompleted);
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.StartIvSweepAsync(Recipe, CancellationToken.None));
         archive.Release.SetResult();
         await running;
+        await drained.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.True(archive.Finalized);
         Assert.Contains(Drain(hub), n => n.Kind == WorkbenchNotificationKind.RunCompleted);
         Assert.False(service.HasActiveRun);

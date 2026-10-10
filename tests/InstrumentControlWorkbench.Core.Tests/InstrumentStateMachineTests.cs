@@ -19,6 +19,15 @@ public sealed class InstrumentStateMachineTests
     }
 
     [Fact]
+    public void FaultCanReconnectTransportButCannotDirectlyEnableOutput()
+    {
+        var machine = new InstrumentStateMachine();
+        Assert.Throws<InvalidOperationException>(() => machine.Apply(InstrumentLifecycleState.Faulted, InstrumentLifecycleEvent.RunRequested));
+        Assert.Equal(InstrumentLifecycleState.Connecting,
+            machine.Apply(InstrumentLifecycleState.Faulted, InstrumentLifecycleEvent.ConnectRequested));
+    }
+
+    [Fact]
     public void RejectsRunBeforeConnect()
     {
         var machine = new InstrumentStateMachine();

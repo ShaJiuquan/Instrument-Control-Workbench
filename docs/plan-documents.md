@@ -1,0 +1,75 @@
+# Versioned plan documents
+
+`JsonExperimentPlanDocument` implements the Core `IExperimentPlanDocument`
+boundary using .NET's existing System.Text.Json and asynchronous file APIs.
+There is no new storage package or database. `ExperimentPlanWorkspace` parses,
+preflights and saves plans; a preview never acquires leases or connects drivers.
+File IO and JSON representation stay in Infrastructure. The domain remains
+independent of serialization attributes and UI frameworks.
+
+## Format
+
+The envelope is `format: "instrument-workbench-plan"`, `version: 1`, `name`,
+`preparations`, `metadata` and `root`. All are required. Unknown fields, duplicate
+fields, unsupported versions and unknown step kinds are rejected. This format
+is intentionally identified separately from PPMS JSON; PPMS alias/schema import
+is still migration work. A file must be UTF-8, with an optional BOM on load.
+
+See the runnable [field/voltage example](../examples/plans/field-voltage.plan.json).
+It needs registered instances `k2450` and `field`, matching the simulation
+profiles. A 3-point field scan contains a stability wait followed by a 5-point
+voltage scan and current/field joint reads. It produces 15 rows. Tests load this
+actual repository file and execute it on fresh sessions; it is not just a schema
+example. Physical hardware support is not implied.
+
+Parameters are addressed by `{ "device": "field", "parameter": "field.target" }`.
+Quantities use `{ "value": 0.02, "unit": "Tesla" }`. Unit names are exact domain
+enum names, not numeric enum values. A value expression is exactly one of
+`{ "constant": { "value": 0.02, "unit": "Tesla" } }` or
+`{ "variable": "field_axis" }`.
+
+Every step has `id` and `kind`. Supported kinds are `sequence`, `repeat`, `scan`,
+`for_each`, `set`, `assign`, `output`, `delay`, `read`, `wait_stable`, `if_else`.
+Their fields correspond to the typed models in `experiment-plans.md`; elapsed
+settings are explicitly named `seconds`, `dwellSeconds`, `stableSeconds`,
+`pollSeconds` and `timeoutSeconds`. Scan values are materialized as one unit and
+a numeric array, preserving descending, logarithmic and segmented values exactly.
+Source preparations include mode, level, compliance and sense configuration.
+Metadata currently carries numeric quantities; general sample/provenance metadata
+remains a separate data-model requirement.
+
+## Limits and failure behavior
+
+- Documents are bounded at 4 MiB, including bounded reads if a file grows during
+  load. Encoding also bounds aggregate scan-value allocation before building a
+  JSON object tree. Depth is at most 128 and the tree has at most 10,000 nodes.
+- Workspace preflight checks registered devices, capabilities, units, variable
+  paths, result dependencies and the execution budget before saving or running.
+  Dynamic values are still range-checked at the actual write.
+- Saves write and flush an exclusively opened temporary file in the destination
+  directory, then rename it over the destination. Invalid input and cancellation
+  before rename preserve the previous file. Own temporary files are cleaned up.
+  This is an atomic file replacement policy, not a power-loss durability promise.
+- Load does not rewrite files. Unsupported versions are never silently upgraded.
+  The caller receives an exception and can preserve its current draft.
+- Plan storage is not persistent result history, run journaling or restart recovery.
+  Result persistence/export and durable settings remain pending.
+
+## Recovery and shutdown boundary
+
+Source transport can reconnect from Faulted under its current resource owner.
+A reconnect after a failed stop leaves a fresh-confirmation requirement: parameter
+writes, observation through the resource scope and output enable remain rejected
+until a subsequent successful stop. A reconnect cannot overlap a live pending
+stop. Merely restoring transport never releases the group lease.
+
+`MeasurementRunService.WaitForFinalizationAsync` observes the current run's
+finalization lifetime, including result listeners, and accepts cancellation.
+It does not request abort, confirm hardware safety, or release an unsafe group.
+A caller must request abort separately and, after finalization, inspect whether
+safety recovery remains required. Tests prove archive completion precedes the
+finalization waiter completing.
+
+A desktop document workspace with pause/recovery controls is being implemented.
+Visual acceptance is pending; this published stage provides the backend document
+and execution APIs, not a completed graphical flow editor.

@@ -134,3 +134,24 @@ implementation.
   present columns require all declared dependencies. No placeholder NaNs are used.
 - The UI still offers the IV adapter. Generic plan authoring, PPMS file import,
   durable plans/results and device/pause/recovery screens remain future stages.
+
+## Plan documents and source reconnect (2026-10-11)
+
+- Version 1 Instrument Workbench JSON plans are distinct from PPMS's schema;
+  do not claim PPMS file import/alias parity. System.Text.Json and async file IO
+  use the existing SDK; no new persistence dependency was selected or added.
+- Workspace preview/save validates the whole plan without leases or driver IO.
+  File size, tree depth/node count and aggregate encoding allocation are bounded.
+  Atomic temporary-file replacement preserves the old file on validation failure
+  or cancellation before rename. No power-loss durability guarantee is claimed.
+- The field-voltage repository example is loaded from disk in acceptance tests
+  and produces 15 joint rows. Numeric metadata is supported; richer metadata,
+  results/settings/history/export and restart recovery remain unfinished.
+- Source Faulted can reconnect transport. A resource reconnect after failed stop
+  retains a separate fresh-stop requirement; it cannot enable output or write
+  parameters before successful stop confirmation. Pending live stops never overlap.
+- WaitForFinalizationAsync waits through result listeners but does not abort or
+  certify safety. A close workflow must separately abort and recover unsafe state.
+- Desktop plan/pause/recovery changes remain under implementation until native
+  layout and interaction inspection is completed. Do not infer visual quality
+  from a passing build or ViewModel tests.

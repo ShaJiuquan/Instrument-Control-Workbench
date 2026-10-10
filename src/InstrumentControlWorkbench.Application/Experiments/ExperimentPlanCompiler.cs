@@ -7,7 +7,8 @@ using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Application.Experiments;
 
-internal sealed record CompiledExperiment(ExperimentPlan Plan, DataSetSchema Schema, IReadOnlyList<InstrumentId> Devices);
+public sealed record ExperimentPlanPreview(DataSetSchema Schema, IReadOnlyList<InstrumentId> Devices, long MaximumStepExecutions);
+internal sealed record CompiledExperiment(ExperimentPlan Plan, DataSetSchema Schema, IReadOnlyList<InstrumentId> Devices, long MaximumStepExecutions);
 
 // Compilation reads capability metadata only. No lease or driver operation occurs
 // until every branch, scan value, unit and result dependency has been checked.
@@ -35,7 +36,7 @@ internal static class ExperimentPlanCompiler
         }
         var cost = Visit(plan.Root, variables, [], 0);
         if (cost > 10_000_000) throw new ArgumentOutOfRangeException(nameof(plan), "Plan exceeds the 10,000,000 step execution budget.");
-        return new(plan, new(columns.Values), Array.AsReadOnly(needed.OrderBy(id => id.Value, StringComparer.Ordinal).ToArray()));
+        return new(plan, new(columns.Values), Array.AsReadOnly(needed.OrderBy(id => id.Value, StringComparer.Ordinal).ToArray()), cost);
 
         DeviceDescriptor Device(InstrumentId id)
         {

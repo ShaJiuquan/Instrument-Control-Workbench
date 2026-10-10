@@ -41,6 +41,7 @@ internal sealed class RunExecutionContext : IDisposable
     public int RowsAcquired { get; set; }
     public long ExecutedSteps { get; set; }
     public RunDataSet? DataSet { get; set; }
+    public TaskCompletionSource Finalized { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public void Pause()
     {

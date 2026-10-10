@@ -35,6 +35,7 @@ public sealed class InstrumentStateMachine
     {
         return (current, evt) switch
         {
+            (InstrumentLifecycleState.Faulted, InstrumentLifecycleEvent.ConnectRequested) => InstrumentLifecycleState.Connecting,
             (InstrumentLifecycleState.Disconnected, InstrumentLifecycleEvent.ConnectRequested) => InstrumentLifecycleState.Connecting,
             (InstrumentLifecycleState.Connecting, InstrumentLifecycleEvent.Connected) => InstrumentLifecycleState.Idle,
             (InstrumentLifecycleState.Idle, InstrumentLifecycleEvent.ConfigureRequested) => InstrumentLifecycleState.Configuring,

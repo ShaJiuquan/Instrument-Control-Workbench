@@ -236,6 +236,8 @@ public sealed class DeviceRegistryTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => resources.ReleaseAsync(CancellationToken.None));
         bad.ConnectError = null;
         await resources.ConnectAllAsync(CancellationToken.None);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => resources.WriteAsync(bad.Definition.Device.Id,
+            bad.Definition.Target.Id, new(1, PhysicalUnit.Tesla), CancellationToken.None));
         Assert.Empty(await resources.StopAllAsync(CancellationToken.None));
         await resources.ReleaseAsync(CancellationToken.None);
         Assert.All(registry.Devices, d => Assert.False(leases.IsLeased(d.Id, DateTimeOffset.UtcNow)));

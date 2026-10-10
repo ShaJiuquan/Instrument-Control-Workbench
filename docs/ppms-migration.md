@@ -117,9 +117,16 @@ Avalonia views -> ViewModels -> Application use cases -> Core contracts
    The standard audit passes 102 tests (27 Core, 63 Application, 12 App),
    with zero build warnings/errors and changed-file formatting verification.
    See experiment-plans.md for supported semantics and recovery boundaries.
-6. **Data/history — pending.** Approved persistence/export dependencies, versioned
-   storage and plans, metadata/provenance, history queries and interrupted-run
-   recovery. Real data must survive application restart.
+6. **Plans/data/history — partially implemented.** Versioned UTF-8 JSON plans
+   support every typed step, source preparation, scan values and numeric metadata.
+   The application workspace validates loaded/saved documents against registered
+   capabilities without connecting hardware. Bounded parsing/encoding and atomic
+   replacement preserve previous files on validation failure/cancellation. The
+   repository's field/voltage example is loaded from disk and produces 15 rows
+   on fresh simulation sessions. The published stage passes 118 tests (28 Core,
+   78 Application, 12 App). See plan-documents.md. Persistent result history,
+   general sample/provenance metadata, settings, queries/export and interrupted-run
+   recovery remain pending; plan files do not prove result persistence.
 7. **Operator workflows — pending.** Flow editor, reusable steps, device panels,
    routing/sample settings and live/history views connected to the backend.
 8. **Acceptance — pending.** End-to-end representative PPMS experiments,

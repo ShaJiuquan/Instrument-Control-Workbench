@@ -53,6 +53,12 @@ public sealed partial class MeasurementRunService
             cancellationToken, ivPlot: true);
     }
 
+    public ExperimentPlanPreview PreviewPlan(ExperimentPlan plan)
+    {
+        var compiled = ExperimentPlanCompiler.Compile(plan, devices);
+        return new(compiled.Schema, compiled.Devices, compiled.MaximumStepExecutions);
+    }
+
     public Task StartPlanAsync(ExperimentPlan plan, CancellationToken cancellationToken)
         => StartAsync(ExperimentPlanCompiler.Compile(plan, devices), cancellationToken, ivPlot: false);
 
@@ -74,7 +80,7 @@ public sealed partial class MeasurementRunService
         }
         catch
         {
-            lock (admissionGate) { active = null; run.Dispose(); }
+            lock (admissionGate) { active = null; run.Finalized.TrySetResult(); run.Dispose(); }
             throw;
         }
         LatestDataSet = null;
@@ -138,7 +144,13 @@ public sealed partial class MeasurementRunService
         }, errors.Count == 0 ? $"{compiled.Plan.Name}: {result}." : string.Join("; ", errors.Select(e => e.Message)), CancellationToken.None);
         if (safetyErrors.Count > 0) run.Phase = RunExecutionPhase.SafetyRecoveryRequired;
         else await ReleaseRunAsync(run);
+        run.Finalized.TrySetResult();
         ThrowErrors(errors);
+    }
+
+    public Task WaitForFinalizationAsync(CancellationToken token)
+    {
+        lock (admissionGate) return active?.Finalized.Task.WaitAsync(token) ?? Task.CompletedTask;
     }
 
     public void Abort() { lock (admissionGate) active?.Abort(); }

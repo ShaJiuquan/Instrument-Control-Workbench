@@ -20,6 +20,7 @@ public sealed class DeviceRunResources
     private readonly SemaphoreSlim gate = new(1, 1);
     private readonly Dictionary<InstrumentId, Task<Exception?>> pendingStops = [];
     private readonly HashSet<InstrumentId> touched = [];
+    private readonly HashSet<InstrumentId> recoveryRequired = [];
     private bool released;
 
     internal DeviceRunResources(IEnumerable<IDeviceSession> sessions, RunId owner, InstrumentLeaseService leases, TimeSpan timeout)
@@ -142,6 +143,8 @@ public sealed class DeviceRunResources
                     return new DeviceCleanupFailure(pair.Key, new TimeoutException($"{pair.Key}: stop confirmation timed out; ownership is retained.", ex));
                 }
             }));
+            foreach (var pair in pendingStops)
+                if (pair.Value.IsCompleted && await pair.Value is null) recoveryRequired.Remove(pair.Key);
             return Array.AsReadOnly(failures.OfType<DeviceCleanupFailure>().ToArray());
         }
         finally { gate.Release(); }
@@ -191,6 +194,7 @@ public sealed class DeviceRunResources
             if (!pendingStops.ContainsKey(id)) pendingStops.Add(id, StopAndCaptureAsync(session));
             var error = await pendingStops[id].WaitAsync(timeout, token);
             if (error is not null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error).Throw();
+            recoveryRequired.Remove(id);
         }
         finally { gate.Release(); }
     }
@@ -253,15 +257,21 @@ public sealed class DeviceRunResources
     private async Task RequireStoppedTaskFinishedAsync(InstrumentId id)
     {
         Get(id);
-        if (pendingStops.TryGetValue(id, out var stop) && (!stop.IsCompleted || await stop is not null))
+        if (recoveryRequired.Contains(id) || pendingStops.TryGetValue(id, out var stop) && (!stop.IsCompleted || await stop is not null))
             throw new InvalidOperationException($"{id} requires stop recovery before observation or mutation.");
     }
 
     private async Task PrepareMutationAsync(InstrumentId id, bool reconnect = false)
     {
+        if (recoveryRequired.Contains(id) && !reconnect)
+            throw new InvalidOperationException($"{id} requires fresh stop confirmation after reconnect before it can be changed.");
         if (!pendingStops.TryGetValue(id, out var stop)) return;
-        if (!stop.IsCompleted || await stop is not null && !reconnect)
-            throw new InvalidOperationException($"{id} requires stop recovery before it can be changed.");
+        if (!stop.IsCompleted) throw new InvalidOperationException($"{id} has a live stop attempt.");
+        if (await stop is not null)
+        {
+            if (!reconnect) throw new InvalidOperationException($"{id} requires stop recovery before it can be changed.");
+            recoveryRequired.Add(id);
+        }
         // Connecting establishes transport only. A completed failed stop may
         // need reconnection before another confirmation can succeed; it never
         // authorizes output enable or overlaps a still-running stop attempt.

@@ -19,16 +19,20 @@ hardware, credentials, or proprietary experiment definitions.
 
 ## Current Status
 
-This repository is at the first instrument-control scaffold stage:
+The desktop prototype and execution foundation currently provide:
 
 - Avalonia MVVM desktop shell.
 - Keithley 2450-inspired source/meter ports.
 - Typed source/sense parameters with K2450-style validation limits.
 - Instrument lifecycle state machine.
-- Exclusive instrument lease service with TTL expiry.
-- Channel-based notification stream from backend services to ViewModels.
+- Manual leases with TTL expiry; non-expiring run ownership through safety confirmation and result finalization.
+- Broadcast notification subscriptions with typed device/step/row facts.
 - Mock Keithley 2450 SourceMeter driver.
-- Mock IV sweep flow with safe-stop cleanup.
+- IV recipes and typed multi-device plans share an executor with pause, abort, verified cleanup and retained unsafe ownership.
+- Simulated temperature, magnetic field and rotation controllers with explicit target/rate/readback/hold policies.
+- Nested scans, joint reads, iteration/conditions, delay and stability waits through the application API.
+- Versioned plan files with preflight validation, bounded JSON parsing and atomic replacement.
+- A runnable [field/voltage plan](examples/plans/field-voltage.plan.json) and [document format](docs/plan-documents.md).
 - xUnit coverage for state transitions, leases, validators, and sweep notify.
 - Four working pages: measurement, instrument connection/status, run data, events.
 - Data-backed live I–V plot with automatic scaling and pointer readout.
@@ -42,8 +46,10 @@ separate pages. Chinese text uses an explicit system-font fallback; no assets
 from third-party instrument software are included.
 
 Run data is currently session-only: restarting a scan replaces the previous
-points. Persistent history and export remain future work. Only one simulated
-Keithley 2450 is wired up; the mock does not enforce real current compliance.
+points. Persistent history and export remain future work. The published desktop retains its IV workflow; the multi-device plan APIs are
+tested separately. Plan/pause/recovery UI changes are under implementation.
+All current device profiles are simulation; the source mock does not enforce
+real current compliance.
 
 ## PPMS implementation program
 
@@ -53,7 +59,8 @@ See [migration scope and stage evidence](docs/ppms-migration.md) and the
 will be implemented in C#, borrowing OpenTAP lifecycle concepts without depending
 on OpenTAP itself. Parameters and run data now have typed units, validated
 dependencies and immutable recipe/instrument snapshots. They are populated by
-the working IV flow; persistent history and general PPMS execution remain pending.
+the working IV and generic plan flows. Versioned plans can be saved and loaded;
+persistent run history, PPMS JSON import and full command parity remain pending.
 
 ## Project Layout
 
@@ -83,8 +90,8 @@ XAML View
 ```
 
 The UI never calls a driver directly. All instrument access goes through the
-Application layer, which owns lifecycle transitions, exclusive leases, TTL
-refresh, safe stop, and notification publishing.
+Application layer, which owns lifecycle transitions, exclusive group leases,
+run finalization, safe-stop recovery and notification publishing.
 
 ## Run
 
