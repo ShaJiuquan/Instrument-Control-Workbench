@@ -20,7 +20,11 @@ public sealed partial class PpmsExperimentPlanImporter
             var parameter = voltage ? Keithley2450Parameters.SourceVoltage : Keithley2450Parameters.SourceCurrent;
             var points = Points(p["points"] is JsonObject or JsonArray ? p["points"]! : p, parameter.Unit, c, 0, p["points"] is not (JsonObject or JsonArray));
             if (voltage && points.Values.Any(q => Math.Abs(q.Value) > 200)) throw new FormatException("PPMS voltage scan points must lie in -200..200 V.");
-            var body = new SequenceStep(new(path + ".body"), [new DelayStep(new(path + ".settle"), Duration(p, "settle_s", 0.1)), .. Children(node, path, c, depth)]);
+            List<ExperimentStep> sourceChildren;
+            c.SourceScans.Push((source.Device, Text(p, "channel", voltage ? "" : "ch1").Trim()));
+            try { sourceChildren = Children(node, path, c, depth); }
+            finally { c.SourceScans.Pop(); }
+            var body = new SequenceStep(new(path + ".body"), [new DelayStep(new(path + ".settle"), Duration(p, "settle_s", 0.1)), .. sourceChildren]);
             var steps = new List<ExperimentStep> { new SourceOutputStep(new(path + ".off"), source.Device, false) };
             if (ChannelRoute(p, path, c, source.Device, voltage ? "" : "ch1") is { } route) steps.Add(route);
             steps.Add(Write(path + ".zero", source.Device, parameter, 0));

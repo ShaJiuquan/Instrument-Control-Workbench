@@ -143,6 +143,8 @@ public sealed partial class PpmsExperimentPlanImporter
             Text(p, "wait_mode", "stable").Trim().Equals("reached", StringComparison.OrdinalIgnoreCase) ? TimeSpan.Zero : Duration(p, "stable_duration_s", stable), TimeSpan.FromMilliseconds(50), Duration(p, "timeout_s", timeout));
     private static ExperimentStep Measurement(string name, JsonObject p, string path, ImportContext c)
     {
+        if (name is "meas_r" or "meas_r_sample" or "meas_r_2w" or "meas_r_4w" or "meas_r_hallbar" or "meas_r_vdp")
+            return Resistance(name, p, path, c);
         if (name is "measure_temp" or "measure_field" or "measure_angle")
         {
             Fields(p, "meas_type", "name"); var axis = Axis(name == "measure_temp" ? "temperature" : name[8..], c);

@@ -297,7 +297,7 @@ implementation.
   budgets as well as the raw tree. Invalid fields/functions/ranges/routes fail
   before IO; workspace capability preflight is still required after parsing.
 - Controller-status waits, persistent mode,
-  remaining BT semantics, aggregation, sample/resistance import, ranges/filtering,
+  remaining BT semantics, aggregation, remaining resistance modes/profile-file import, ranges/filtering,
   separate meter families, text DSL/database export and hardware remain required.
   See ppms-plan-import.md and the six-row field/voltage import acceptance.
 
@@ -322,3 +322,32 @@ implementation.
   re-executes and exports. See temperature-control.md. Actual firmware states,
   continuous/cooling/background modes, disabled control and hardware remain
   incomplete; the full migration goal stays active.
+
+## PPMS resistance and sample import follow-up
+
+- Runtime resistance aliases translate into native coherent V/I/R. The verified
+  `volt_dc` source/meter family is K2450; curr_dc/delta/pulse_delta/AC still require
+  their own device roles. Mode defaults remain curr_dc, which rejects instead of
+  silently converting to volt_dc. Finite numeric strings and declared parameter
+  aliases are accepted; conflicting aliases and invalid requests reject before IO.
+- ImportSampleRouting freezes the catalog, mode-wiring map, aliases and route
+  settle. IDs/numeric slots/unique names resolve deterministically. No active
+  profile files are guessed. Topology and preparation sensing mode must match.
+  Supplied 4-terminal profiles are simulation evidence, not proof of the bundled
+  PPMS two-terminal K2450 hardware wiring.
+- Owned channel/source settings park zero before compliance; sample group routing
+  and source cleanup stay in the engine. A separate post-enable AcquisitionSettle
+  now uses pause/cancellation-aware dwell and re-verifies routing before sampling.
+  VerifyMatrixRouteStep offers the same explicit read-only route condition in
+  native plans/documents.
+- Imported channel reads beneath the same source scan inherit its channel and
+  source ownership, verify route and retain current level/compliance/output.
+  Sample measurements reject enclosing scans of that same source, consistent
+  with their required cleanup ownership. Explicit managed reads need source
+  enable earlier in the same admitted plan; they do not adopt a manual output.
+- The two-field/three-sample file produces 26 rows, including full Hall/vdP
+  summaries and raw route identity; disk plans, fresh archives, re-execution and
+  CSV pass. Partial/faulted groups retain raw rows without fabricated summaries;
+  original and cleanup failures keep resources for recovery. See
+  ppms-resistance-import.md. Profile-file import, remaining acquisition modes,
+  environment columns/aggregation, settings/UI and hardware remain required.

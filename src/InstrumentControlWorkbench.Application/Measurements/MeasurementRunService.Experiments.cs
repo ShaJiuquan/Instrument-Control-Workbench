@@ -78,6 +78,9 @@ public sealed partial class MeasurementRunService
             case AssignValueStep assign:
                 run.Variables[assign.Variable] = Resolve(assign.Value, run);
                 break;
+            case VerifyMatrixRouteStep verification:
+                await run.Resources!.VerifyMatrixRouteAsync(verification.Device, verification.Closed, run.Token);
+                break;
             case RouteMatrixStep route:
                 await run.Resources!.RouteMatrixAsync(route.Device, route.Closed, run.Token);
                 await DwellAsync(run, route.Settle);
@@ -106,6 +109,8 @@ public sealed partial class MeasurementRunService
                     await DwellAsync(run, sampleRead.Settle);
                     await run.Resources.EnableSourceOutputAsync(context.SourceMeter, run.Token, context.SensingMode);
                 }
+                await DwellAsync(run, sampleRead.AcquisitionSettle);
+                await run.Resources!.VerifyMatrixRouteAsync(context.Matrix, context.Closed, run.Token);
                 await AcquireResistanceRowAsync(sampleRead.Acquisition, run, started, context);
                 if (!sampleRead.RoutingManagedExternally) await run.Resources!.DisableSourceOutputAsync(context.SourceMeter, run.Token);
                 break;

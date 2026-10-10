@@ -222,6 +222,13 @@ internal static class ExperimentPlanCompiler
                 case AssignValueStep assign:
                     BindVariable(assign.Variable, ValueUnit(assign.Value, known), known);
                     return 1;
+                case VerifyMatrixRouteStep verification:
+                    Device(verification.Device);
+                    var verifiedMatrix = registry.GetMatrixDefinition(verification.Device);
+                    verifiedMatrix.Validate(verification.Closed);
+                    foreach (var guard in verifiedMatrix.GuardedSources)
+                        if (Device(guard).StopPolicy != DeviceStopPolicy.OutputOff) throw new ArgumentException("Matrix guards must use output-off policy.");
+                    return 1;
                 case RouteMatrixStep route:
                     Device(route.Device);
                     var matrix = registry.GetMatrixDefinition(route.Device);

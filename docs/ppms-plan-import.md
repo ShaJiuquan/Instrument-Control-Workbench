@@ -64,6 +64,8 @@ routed acquisition and source/meter combinations remain migration work.
 | scan_voltage, scan_current | Prepared source step scans, routing, first level before output enable, settle before children |
 | read_temp/field/angle and aliases | Typed controller readback rows |
 | measure_voltage/current, basic name=voltage/current and aliases | Explicit integrated meter binding/mode, NPLC write, independent read row |
+| resistance / measure_r and aliases, mode=volt_dc | Owned channel or source-scan-managed coherent V/I/R, verified routing and output settling |
+| meas_r_sample / 2w / 4w / hallbar / vdp and aliases, mode=volt_dc | Frozen sample/wiring resolution, role-specific raw V/I/R, complete Hall/vdP analysis groups |
 
 The importer retains individual measurement rows with active nested axes. It does
 not implement Rust's consecutive-measurement aggregation into a single scan row.
@@ -107,7 +109,7 @@ live-origin failures, mode confirmation, pause/resume, cleanup and limitations.
 Continuous/ramp/cooling modes, disabled temperature-control settings,
 persistent magnet transitions, quench operations, state-based environment wait
 commands, conditional/parallel/retry/race/for_each BT semantics, measurement
-aggregation, resistance/sample import, filtering, manual ranges, changed source
+aggregation, remaining resistance modes/profile-file import, filtering, manual ranges, changed source
 functions, segment settle/mirror/repeat modifiers and additional instrument
 families remain required. They produce an import error, not a no-op or silent
 fallback. Numeric stability on bound controller ports does
@@ -136,3 +138,18 @@ extends this acceptance to three temperatures, two fields and two routed voltage
 (12 rows, four owned devices), native disk save/load, a fresh archive, re-execution
 and CSV export. Firmware status, thermal plant behavior and real transport
 acceptance are still separate work.
+
+## Resistance and sample import
+
+The [resistance import contract](ppms-resistance-import.md) adds current Rust
+measurement registry/schema aliases, finite numeric/string parameters, coherent
+actual V/I/R and explicit frozen sample-mode-wiring bindings. `volt_dc` uses the
+existing integrated source meter. Other resistance modes keep their original
+identity and reject until their actual source/meter execution paths exist.
+
+The [field/sample runtime file](../examples/plans/ppms-field-samples-import.json)
+executes 26 rows across two fields and three sample topologies, preserving raw
+routes, complete-group analysis, native save/load, fresh archive/re-execution
+and CSV. These supplied four-terminal profiles are simulations; the bundled
+PPMS physical K2450 wiring is two-wire and cannot establish four-terminal
+acceptance. No proprietary recipes or hardware addresses are used.

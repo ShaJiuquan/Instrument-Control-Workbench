@@ -17,7 +17,7 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
         var context = new ImportContext(bindings);
         var step = Decode(root, "ppms.root", context, 0);
         var plan = new ExperimentPlan(Text(root, "experiment_id", Text(root, "label", "Imported PPMS experiment")), step,
-            bindings.Preparations.Where(p => context.Sources.Contains(p.Device)), context.Metadata);
+            bindings.Preparations.Where(p => context.Sources.Contains(p.Device)), context.Metadata, context.UsesSamples ? bindings.Samples!.Routing : null);
         // Also bound generated wrapper nodes and the native document before returning.
         _ = new JsonExperimentPlanDocument().Serialize(plan);
         return plan;
@@ -41,6 +41,8 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
         public ExperimentImportBindings Bindings { get; } = bindings;
         public HashSet<InstrumentId> Sources { get; } = [];
         public Dictionary<string, Quantity> Metadata { get; } = [];
+        public bool UsesSamples { get; set; }
+        public Stack<(InstrumentId Device, string Channel)> SourceScans { get; } = new();
         public int Nodes { get; set; }
         public int Values { get; set; }
     }
@@ -106,6 +108,12 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
         "scan_temp" => "scan_temperature",
         "field" => "scan_field",
         "angle" => "scan_angle",
+        "resistance" or "measure_r" or "meas_resistance" or "measure_resistance" or "res" or "meas_res" or "meas-res" or "rxx" or "rxx_rxy" => "meas_r",
+        "measure_r_sample" or "sample_r" => "meas_r_sample",
+        "sample_r_2w" or "two_wire" => "meas_r_2w",
+        "sample_r_4w" or "four_wire" => "meas_r_4w",
+        "sample_r_hallbar" or "hallbar" or "rxx_rxy_sample" => "meas_r_hallbar",
+        "sample_r_vdp" or "vdp" or "van_der_pauw" => "meas_r_vdp",
         "meas_temp" or "read_temp" or "temperature" => "measure_temp",
         "meas_field" or "read_field" => "measure_field",
         "meas_angle" or "read_angle" => "measure_angle",

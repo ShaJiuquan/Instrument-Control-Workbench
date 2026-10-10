@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using InstrumentControlWorkbench.Core.Devices;
 using InstrumentControlWorkbench.Core.Instruments;
+using InstrumentControlWorkbench.Core.Routing;
 
 namespace InstrumentControlWorkbench.Core.Experiments;
 
@@ -28,11 +29,11 @@ public sealed class ExperimentImportBindings
     public ExperimentImportBindings(IEnumerable<KeyValuePair<string, InstrumentId>> instruments,
         IEnumerable<KeyValuePair<string, AxisControllerDefinition>> axes,
         IEnumerable<SourcePreparation>? preparations = null,
-        IEnumerable<KeyValuePair<string, ImportChannelRoute>>? channels = null)
+        IEnumerable<KeyValuePair<string, ImportChannelRoute>>? channels = null, ImportSampleRouting? samples = null)
     {
         ArgumentNullException.ThrowIfNull(instruments); ArgumentNullException.ThrowIfNull(axes);
         Instruments = Freeze(instruments); Axes = Freeze(axes);
-        Channels = Freeze(channels ?? []);
+        Channels = Freeze(channels ?? []); Samples = samples;
         var items = (preparations ?? []).ToArray();
         if (items.Length > 64 || items.Any(p => p is null) || items.Select(p => p.Device).Distinct().Count() != items.Length)
             throw new ArgumentException("Import preparations must name at most 64 distinct sources.");
@@ -42,7 +43,8 @@ public sealed class ExperimentImportBindings
     public IReadOnlyDictionary<string, AxisControllerDefinition> Axes { get; }
     public IReadOnlyDictionary<string, ImportChannelRoute> Channels { get; }
     public IReadOnlyList<SourcePreparation> Preparations { get; }
-    private static IReadOnlyDictionary<string, T> Freeze<T>(IEnumerable<KeyValuePair<string, T>> entries)
+    public ImportSampleRouting? Samples { get; }
+    internal static IReadOnlyDictionary<string, T> Freeze<T>(IEnumerable<KeyValuePair<string, T>> entries)
     {
         var result = new Dictionary<string, T>(StringComparer.OrdinalIgnoreCase);
         foreach (var entry in entries)

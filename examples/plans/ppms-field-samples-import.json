@@ -1,0 +1,75 @@
+{
+  "experiment_id": "PPMS field and three sample topologies",
+  "type": "sequence",
+  "children": [
+    {
+      "type": "scan",
+      "name": "field",
+      "source_line": 1,
+      "params": {
+        "points": [
+          0,
+          0.001
+        ],
+        "mode": "driven",
+        "wait_mode": "reached",
+        "tolerance_t": 0.0001,
+        "settle_s": 0,
+        "timeout_s": 5
+      },
+      "children": [
+        {
+          "type": "measurement",
+          "name": "meas_r_4w",
+          "source_line": 2,
+          "params": {
+            "meas_type": "meas_r_4w",
+            "sample_id": "sample1",
+            "mode": "volt_dc",
+            "voltage_v": 0.02,
+            "compliance_a": 0.001,
+            "nplc": 1,
+            "settle_s": 0.01,
+            "sensing_mode": "4wire",
+            "source_range_v": "auto",
+            "meter_range_a": "auto"
+          }
+        },
+        {
+          "type": "measurement",
+          "name": "meas_r_hallbar",
+          "source_line": 3,
+          "params": {
+            "meas_type": "meas_r_hallbar",
+            "sample_id": "sample2",
+            "mode": "volt_dc",
+            "voltage_v": 0.03,
+            "compliance_a": 0.001,
+            "nplc": 1,
+            "settle_s": 0.01,
+            "sensing_mode": "4wire",
+            "source_range_v": "auto",
+            "meter_range_a": "auto"
+          }
+        },
+        {
+          "type": "measurement",
+          "name": "meas_r_vdp",
+          "source_line": 4,
+          "params": {
+            "meas_type": "meas_r_vdp",
+            "sample_id": "sample3",
+            "mode": "volt_dc",
+            "voltage_v": 0.04,
+            "compliance_a": 0.001,
+            "nplc": 1,
+            "settle_s": 0.01,
+            "sensing_mode": "4wire",
+            "source_range_v": "auto",
+            "meter_range_a": "auto"
+          }
+        }
+      ]
+    }
+  ]
+}

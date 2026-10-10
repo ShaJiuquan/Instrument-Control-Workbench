@@ -45,6 +45,10 @@ public sealed partial class JsonExperimentPlanDocument
                 o["kind"] = "set"; o["address"] = EncodeAddress(s.Address); o["value"] = EncodeValue(s.Value); break;
             case AssignValueStep s:
                 o["kind"] = "assign"; o["variable"] = s.Variable.Value; o["value"] = EncodeValue(s.Value); break;
+            case VerifyMatrixRouteStep s:
+                o["kind"] = "verify_matrix_route"; o["device"] = s.Device.Value;
+                o["closed"] = new JsonArray(s.Closed.Select(p => (JsonNode)new JsonObject
+                { ["slot"] = p.Slot, ["row"] = p.Row, ["column"] = p.Column }).ToArray()); break;
             case RouteMatrixStep s:
                 o["kind"] = "route_matrix"; o["device"] = s.Device.Value; o["settleSeconds"] = s.Settle.TotalSeconds;
                 o["closed"] = new JsonArray(s.Closed.Select(p => (JsonNode)new JsonObject
@@ -62,7 +66,8 @@ public sealed partial class JsonExperimentPlanDocument
                 o["voltageColumn"] = acquisition.VoltageColumn.Value; o["currentColumn"] = acquisition.CurrentColumn.Value;
                 o["resistanceColumn"] = acquisition.ResistanceColumn.Value; o["minimumCurrent"] = EncodeQuantity(acquisition.MinimumCurrent);
                 o["binding"] = EncodeBinding(sample.Binding); o["settleSeconds"] = sample.Settle.TotalSeconds;
-                o["routingManagedExternally"] = sample.RoutingManagedExternally; break;
+                o["routingManagedExternally"] = sample.RoutingManagedExternally;
+                if (sample.AcquisitionSettle != TimeSpan.Zero) o["acquisitionSettleSeconds"] = sample.AcquisitionSettle.TotalSeconds; break;
             case ReadResistanceStep s:
                 o["kind"] = "read_resistance"; o["device"] = s.Device.Value; o["function"] = s.Function.ToString();
                 o["voltageColumn"] = s.VoltageColumn.Value; o["currentColumn"] = s.CurrentColumn.Value;
@@ -129,6 +134,13 @@ public sealed partial class JsonExperimentPlanDocument
             case "assign":
                 Object(o, "id", "kind", "variable", "value");
                 return new AssignValueStep(id, new(Text(o, "variable")), DecodeValue(o["value"]));
+            case "verify_matrix_route":
+                Object(o, "id", "kind", "device", "closed");
+                return new VerifyMatrixRouteStep(id, new(Text(o, "device")), Array(Required(o, "closed")).Select(p =>
+                {
+                    var point = Object(p, "slot", "row", "column");
+                    return new MatrixCrossPoint(Integer(point, "slot"), Integer(point, "row"), Integer(point, "column"));
+                }));
             case "route_matrix":
                 Object(o, "id", "kind", "device", "closed", "settleSeconds");
                 return new RouteMatrixStep(id, new(Text(o, "device")), Array(Required(o, "closed")).Select(p =>
@@ -150,10 +162,10 @@ public sealed partial class JsonExperimentPlanDocument
                     return new ReadChannel(new(Text(channel, "column")), DecodeAddress(channel["address"]));
                 }));
             case "read_sample_resistance":
-                Object(o, "id", "kind", "device", "function", "voltageColumn", "currentColumn", "resistanceColumn", "minimumCurrent", "binding", "settleSeconds", "routingManagedExternally");
+                Object(o, "id", "kind", "device", "function", "voltageColumn", "currentColumn", "resistanceColumn", "minimumCurrent", "binding", "settleSeconds", "routingManagedExternally", "acquisitionSettleSeconds");
                 return new ReadSampleResistanceStep(new(id, new(Text(o, "device")), NamedEnum<SourceFunction>(o, "function"),
                     new(Text(o, "voltageColumn")), new(Text(o, "currentColumn")), new(Text(o, "resistanceColumn")), DecodeQuantity(o["minimumCurrent"])),
-                    DecodeBinding(o["binding"]), Duration(o, "settleSeconds"), Boolean(o, "routingManagedExternally"));
+                    DecodeBinding(o["binding"]), Duration(o, "settleSeconds"), Boolean(o, "routingManagedExternally"), o.ContainsKey("acquisitionSettleSeconds") ? Duration(o, "acquisitionSettleSeconds") : TimeSpan.Zero);
             case "read_resistance":
                 Object(o, "id", "kind", "device", "function", "voltageColumn", "currentColumn", "resistanceColumn", "minimumCurrent");
                 return new ReadResistanceStep(id, new(Text(o, "device")), NamedEnum<SourceFunction>(o, "function"),

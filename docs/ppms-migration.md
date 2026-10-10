@@ -176,7 +176,14 @@ Avalonia views -> ViewModels -> Application use cases -> Core contracts
    hold confirmation. The 12-row temperature/field/routed-voltage runtime file
    saves, archives, reopens, re-executes and exports. Firmware status, remaining
    BT/controller/range/measurement semantics and hardware remain required.
-   See ppms-plan-import.md and temperature-control.md.
+   The resistance/sample follow-up translates current registry/schema aliases,
+   volt_dc parameters and frozen sample-mode wiring into ordinary owned or
+   scan-managed V/I/R and full Hall/vdP groups. Post-enable sampling waits and
+   explicit route verification are separate from relay settling. The 26-row
+   field/sample file saves, archives, reopens, re-executes and exports. Other
+   current/AC acquisition roles, profile-file import, measurement aggregation,
+   settings/UI and physical hardware remain required. See
+   ppms-resistance-import.md, ppms-plan-import.md and temperature-control.md.
 7. **Operator workflows — pending.** Flow editor, reusable steps, device panels,
    routing/sample settings and live/history views connected to the backend.
 8. **Acceptance — pending.** End-to-end representative PPMS experiments,

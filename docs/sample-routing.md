@@ -96,5 +96,13 @@ source functions, mixed samples, nested scans, external route verification,
 front-panel sensing-mode faults, pause/abort during settle, cancellation before
 archive delivery, context tampering, prefix changes and whole-tree preflight.
 The published desktop still lacks matrix/profile registration and settings UI;
-operator/device/hardware acceptance, PPMS file import and the remaining corrected
+operator/device/hardware acceptance, remaining PPMS profile/mode import and the remaining corrected
 measurements remain separate required work. No new dependency was added.
+
+PPMS `volt_dc` runtime measurement import now uses an `ImportSampleRouting`
+binding to freeze this catalog, an explicit mode-to-wiring map and optional
+sample aliases. It resolves two/four-wire and complete Hall/vdP groups through
+the same engine. `ReadSampleResistanceStep.AcquisitionSettle` adds a separate
+wait after source enable, followed by fresh accepted-route confirmation before
+acquisition. Legacy native steps default this wait to zero; their route settle
+semantics remain unchanged. See [PPMS resistance import](ppms-resistance-import.md).

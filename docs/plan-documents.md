@@ -97,3 +97,10 @@ selects a direct, unrounded set with hardware ramp off. This policy survives
 native documents and full-plan archives. Temperature mode/control flags in run
 instrument metadata describe the initial snapshot; subsequent changes are
 specified by the archived plan. See [temperature control](temperature-control.md).
+
+`verify_matrix_route` stores `device` and a bounded `closed` crosspoint list and
+performs observation only. Sample readings may optionally store
+`acquisitionSettleSeconds`, which waits after source enable. Older sample steps
+omit the key and retain a zero acquisition wait. Both additions survive full
+plan archives. Read [PPMS resistance import](ppms-resistance-import.md) for
+channel/sample source ownership and snapshot limitations.
