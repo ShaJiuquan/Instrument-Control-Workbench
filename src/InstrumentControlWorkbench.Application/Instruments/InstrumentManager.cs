@@ -107,18 +107,23 @@ public sealed partial class InstrumentManager : IDeviceSession
         await EnterOperationAsync(cancellationToken, owner);
         try
         {
-            Transition(InstrumentLifecycleEvent.ConfigureRequested);
-            await sourceMeter.ConfigureSourceAsync(source, cancellationToken);
-            await sourceMeter.ConfigureSenseAsync(sense, cancellationToken);
-            Transition(InstrumentLifecycleEvent.Configured);
-            var snapshot = await sourceMeter.GetSnapshotAsync(cancellationToken);
-            await PublishLogAsync($"Configured source {source.Level:0.###} {source.LevelUnit}, compliance {source.Compliance:0.###E+0} {source.ComplianceUnit}.", cancellationToken);
-            return await PublishSnapshotAsync(snapshot with { Lifecycle = lifecycle }, cancellationToken);
-        }
-        catch
-        {
-            Transition(InstrumentLifecycleEvent.FaultDetected);
-            throw;
+            if ((await ReadSourceSnapshotAsync(cancellationToken)).OutputEnabled)
+                throw new InvalidOperationException("Confirm output off before preparing source mode and configuration.");
+            try
+            {
+                Transition(InstrumentLifecycleEvent.ConfigureRequested);
+                await sourceMeter.ConfigureSourceAsync(source, cancellationToken);
+                await sourceMeter.ConfigureSenseAsync(sense, cancellationToken);
+                Transition(InstrumentLifecycleEvent.Configured);
+                var snapshot = await sourceMeter.GetSnapshotAsync(cancellationToken);
+                await PublishLogAsync($"Configured source {source.Level:0.###} {source.LevelUnit}, compliance {source.Compliance:0.###E+0} {source.ComplianceUnit}.", cancellationToken);
+                return await PublishSnapshotAsync(snapshot with { Lifecycle = lifecycle }, cancellationToken);
+            }
+            catch
+            {
+                Transition(InstrumentLifecycleEvent.FaultDetected);
+                throw;
+            }
         }
         finally
         {
@@ -128,6 +133,7 @@ public sealed partial class InstrumentManager : IDeviceSession
 
     public async Task EnterRunAsync(CancellationToken cancellationToken, RunId? owner = null)
     {
+        if (owner is null) throw new InvalidOperationException("Exclusive run resources are required before enabling source output.");
         await EnterOperationAsync(cancellationToken, owner);
         try
         {

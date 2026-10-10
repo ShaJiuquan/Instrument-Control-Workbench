@@ -91,3 +91,13 @@ implementation.
 - Source-mode-dependent parameters require explicit mode/compliance selection.
 - Actual transport adapters, remaining PPMS instruments, generic plan execution,
   persistent settings and device panels remain migration work.
+
+## Source preparation safety (2026-10-11)
+
+- InstrumentManager.EnterRunAsync requires a claimed run owner before output
+  enable. Manual source output must also use an exclusive resource scope.
+- ConfigureAsync confirms output is off before changing source mode/configuration.
+  A connected instrument with output already on is rejected until safe stop;
+  this rejection preserves its configuration and is not a driver-fault event.
+- The follow-up regression gate passes 77 tests. Actual startup recovery UX and
+  hardware transport acceptance remain pending.

@@ -15,6 +15,35 @@ namespace InstrumentControlWorkbench.Application.Tests;
 public sealed class DeviceRegistryTests
 {
     [Fact]
+    public async Task SourceOutputCannotBeEnabledWithoutRunOwnership()
+    {
+        var driver = new MockKeithley2450SourceMeter();
+        var manager = new InstrumentManager(driver, new NotificationHub());
+        await manager.ConnectAsync(CancellationToken.None);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => manager.EnterRunAsync(CancellationToken.None));
+        Assert.False((await driver.GetSnapshotAsync(CancellationToken.None)).OutputEnabled);
+    }
+
+    [Fact]
+    public async Task StartupWithLiveOutputCannotSilentlyReconfigureItsSourceMode()
+    {
+        var driver = new MockKeithley2450SourceMeter();
+        await driver.ConnectAsync(CancellationToken.None);
+        await driver.EnableOutputAsync(CancellationToken.None);
+        var manager = new InstrumentManager(driver, new NotificationHub());
+        await manager.ConnectAsync(CancellationToken.None);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => manager.ConfigureAsync(new(SourceFunction.Current, 1e-3, 10),
+            new(SenseFunction.Voltage, SensingMode.FourWire, 1, true), CancellationToken.None));
+        var unchanged = await driver.GetSnapshotAsync(CancellationToken.None);
+        Assert.Equal(SourceFunction.Voltage, unchanged.Source.Function);
+        Assert.True(unchanged.OutputEnabled);
+        await manager.SafeStopAsync("startup recovery", CancellationToken.None);
+        await manager.ConfigureAsync(new(SourceFunction.Current, 1e-3, 10),
+            new(SenseFunction.Voltage, SensingMode.FourWire, 1, true), CancellationToken.None);
+        Assert.Equal(SourceFunction.Current, (await driver.GetSnapshotAsync(CancellationToken.None)).Source.Function);
+    }
+
+    [Fact]
     public async Task OneRunCanOwnSourceTemperatureFieldAndAngleAndCleanUpByTheirPolicies()
     {
         var clock = new ManualTimeProvider();
