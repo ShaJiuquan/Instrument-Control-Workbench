@@ -32,12 +32,16 @@ enum names, not numeric enum values. A value expression is exactly one of
 
 Every step has `id` and `kind`. Supported kinds are `sequence`, `repeat`, `scan`,
 `for_each`, `set`, `assign`, `output`, `delay`, `read`, `read_resistance`,
-`wait_stable`, `if_else`, `route_matrix`, `read_sample_resistance`.
+`wait_stable`, `if_else`, `route_matrix`, `read_sample_resistance`,
+`read_source_sense`, `sample_analysis`.
 Their fields correspond to the typed models in `experiment-plans.md`; elapsed
 settings are explicitly named `seconds`, `dwellSeconds`, `stableSeconds`,
 `pollSeconds` and `timeoutSeconds`. Scan values are materialized as one unit and
 a numeric array, preserving descending, logarithmic and segmented values exactly.
 Source preparations include mode, level, compliance and sense configuration.
+`read_source_sense` specifies `device`, `function`, `voltageColumn` and
+`currentColumn`; see [source-sense-acquisition.md](source-sense-acquisition.md)
+and the nine-row field-source-sense.plan.json current-source example.
 Plan metadata carries numeric quantities; sample/provenance metadata is supplied
 separately to the run and persisted in its archive. `read_resistance` specifies
 `device`, `function`, `voltageColumn`, `currentColumn`, `resistanceColumn` and a

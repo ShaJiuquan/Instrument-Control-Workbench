@@ -15,6 +15,9 @@ public sealed partial class JsonExperimentPlanDocument
         var o = new JsonObject { ["id"] = step.Id.Value };
         switch (step)
         {
+            case ReadSourceSenseStep pair:
+                o["kind"] = "read_source_sense"; o["device"] = pair.Device.Value; o["function"] = pair.Function.ToString();
+                o["voltageColumn"] = pair.VoltageColumn.Value; o["currentColumn"] = pair.CurrentColumn.Value; break;
             case SampleAnalysisStep group:
                 o["kind"] = "sample_analysis";
                 var readings = new JsonArray();
@@ -87,6 +90,9 @@ public sealed partial class JsonExperimentPlanDocument
         var kind = Text(o, "kind");
         switch (kind)
         {
+            case "read_source_sense":
+                Object(o, "id", "kind", "device", "function", "voltageColumn", "currentColumn");
+                return new ReadSourceSenseStep(id, new(Text(o, "device")), NamedEnum<SourceFunction>(o, "function"), new(Text(o, "voltageColumn")), new(Text(o, "currentColumn")));
             case "sample_analysis":
                 Object(o, "id", "kind", "readings", "columns");
                 var groupReadings = new List<ReadSampleResistanceStep>();

@@ -41,6 +41,7 @@ offline model's stop state; disconnected Hardware descriptors cannot.
 | AssignValueStep | Assign a literal or variable with stable units |
 | SourceOutputStep | Enable/disable an implemented source-meter profile under ownership |
 | ReadStep | Read named channels sequentially into one committed row |
+| ReadSourceSenseStep | Read actual V/I from one integrated source-meter frame with its timestamp |
 | DelayStep | Wait cooperatively; pause preserves remaining duration |
 | IfElseStep | Compare matching numeric units and execute the selected branch |
 | WaitStableStep | Require readback within tolerance continuously for a duration, with polling and timeout |
@@ -65,6 +66,11 @@ identity/leases. Resume restores axis targets before enabling only previously
 enabled outputs. Abort during pause finalizes partial data without restoring
 outputs. A stability timeout excludes paused time, and its continuous stable
 window restarts after resume.
+
+Source configurations are captured before pause and verified before restoration;
+changing mode, level, compliance, sense settings or terminals rejects resume.
+See [source-sense-acquisition.md](source-sense-acquisition.md) for these checks and
+the actual-value IV data/plot contract.
 
 Each read commits the active axes, elapsed wall time and its measurement columns
 before notifying listeners. Local history receives committed rows first.

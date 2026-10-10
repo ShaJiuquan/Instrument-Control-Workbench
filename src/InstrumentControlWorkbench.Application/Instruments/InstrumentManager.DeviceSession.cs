@@ -77,9 +77,9 @@ public sealed partial class InstrumentManager
         try
         {
             var snapshot = await ReadSourceSnapshotAsync(token);
-            if (!snapshot.Connected || !snapshot.OutputEnabled) throw new InvalidOperationException("Resistance acquisition requires connected source output.");
-            if (snapshot.Source.Function != function) throw new InvalidOperationException("Source function differs from the resistance plan.");
-            if (requiredSensingMode is { } mode && snapshot.Sense.Mode != mode) throw new InvalidOperationException("Actual sensing mode differs from the sample topology.");
+            if (!snapshot.Connected || !snapshot.OutputEnabled) throw new InvalidOperationException("Source/sense acquisition requires connected source output.");
+            if (snapshot.Source.Function != function) throw new InvalidOperationException("Source function differs from the acquisition plan.");
+            if (requiredSensingMode is { } mode && snapshot.Sense.Mode != mode) throw new InvalidOperationException("Actual sensing mode differs from the required preparation or sample topology.");
             var senseFunction = function == SourceFunction.Voltage ? SenseFunction.Current : SenseFunction.Voltage;
             try
             {
@@ -88,7 +88,11 @@ public sealed partial class InstrumentManager
                 var reading = await sourceMeter.ReadSourceSenseAsync(token);
                 if (reading.Function != function || reading.SenseFunction != senseFunction)
                     throw new InvalidOperationException("Source/sense readback functions differ from the requested acquisition.");
-                await PublishSnapshotAsync((await ReadSourceSnapshotAsync(token)) with { Lifecycle = lifecycle }, token);
+                var after = await ReadSourceSnapshotAsync(token);
+                if (!after.Connected || !after.OutputEnabled || after.Source != snapshot.Source || after.Sense != (snapshot.Sense with { Function = senseFunction }) || after.Terminals != snapshot.Terminals ||
+                    requiredSensingMode is { } expectedMode && after.Sense.Mode != expectedMode)
+                    throw new InvalidOperationException("Source state or sensing configuration changed during acquisition.");
+                await PublishSnapshotAsync(after with { Lifecycle = lifecycle }, token);
                 return reading;
             }
             catch { Transition(InstrumentLifecycleEvent.FaultDetected); throw; }
@@ -127,6 +131,13 @@ public sealed partial class InstrumentManager
     {
         try { return await sourceMeter.GetSnapshotAsync(token); }
         catch { Transition(InstrumentLifecycleEvent.FaultDetected); throw; }
+    }
+
+    internal async Task<SourceMeterSnapshot> CaptureRunSourceStateAsync(RunId owner, CancellationToken token)
+    {
+        await EnterOperationAsync(token, owner);
+        try { return await ReadSourceSnapshotAsync(token); }
+        finally { operations.Exit(); }
     }
 
     private DeviceStatus ToDeviceStatus(SourceMeterSnapshot snapshot)

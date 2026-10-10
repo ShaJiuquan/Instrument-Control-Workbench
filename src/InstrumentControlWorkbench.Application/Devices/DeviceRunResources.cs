@@ -6,7 +6,7 @@ using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Application.Devices;
 
-internal sealed record DeviceResumeState(InstrumentId Device, bool OutputEnabled, ParameterId? Target, Quantity? TargetValue);
+internal sealed record DeviceResumeState(InstrumentId Device, bool OutputEnabled, ParameterId? Target, Quantity? TargetValue, SourceMeterSnapshot? SourceState = null);
 
 public sealed record DeviceCleanupFailure(InstrumentId InstrumentId, Exception Error);
 
@@ -117,7 +117,7 @@ public sealed class DeviceRunResources
         finally { gate.Release(); }
     }
 
-    public async Task EnableSourceOutputAsync(InstrumentId id, CancellationToken token, SensingMode? requiredSensingMode = null)
+    public async Task EnableSourceOutputAsync(InstrumentId id, CancellationToken token, SensingMode? requiredSensingMode = null, SourceMeterSnapshot? expectedResumeState = null)
     {
         await gate.WaitAsync(token);
         try
@@ -135,7 +135,9 @@ public sealed class DeviceRunResources
             touched.Add(id);
             var status = await manager.GetDeviceStatusAsync(token, Owner);
             if (!status.Connected) throw new InvalidOperationException($"{id} is disconnected.");
-            if (status.SafetyConfirmed) await manager.EnterRunAsync(token, Owner, requiredSensingMode);
+            if (status.SafetyConfirmed || expectedResumeState is not null) await manager.EnterRunAsync(token, Owner, requiredSensingMode, expectedResumeState);
+            else if (requiredSensingMode is { } mode && (await manager.CaptureRunSourceStateAsync(Owner, token)).Sense.Mode != mode)
+                throw new InvalidOperationException("Enabled source sensing mode differs from the required preparation.");
         }
         finally { gate.Release(); }
     }
@@ -351,8 +353,11 @@ public sealed class DeviceRunResources
         foreach (var session in sessions.Values)
         {
             var status = await GetStatusAsync(session.Descriptor.Id, token);
-            if (session is InstrumentManager)
-                result.Add(new(session.Descriptor.Id, status.Connected && !status.SafetyConfirmed, null, null));
+            if (session is InstrumentManager manager)
+            {
+                var snapshot = await manager.CaptureRunSourceStateAsync(Owner, token);
+                result.Add(new(session.Descriptor.Id, snapshot.Connected && snapshot.OutputEnabled, null, null, snapshot));
+            }
             else if (session is AxisControllerSession axis)
                 result.Add(new(session.Descriptor.Id, false, axis.Definition.Target.Id, status.Values[axis.Definition.Target.Id]));
             else if (session is not MatrixSwitchSession) throw new NotSupportedException($"Pause has no resume policy for {session.Descriptor.Id}.");
@@ -367,6 +372,13 @@ public sealed class DeviceRunResources
         try
         {
             RequireActive();
+            foreach (var state in states.Where(s => s.SourceState is not null))
+            {
+                var current = await ((InstrumentManager)Get(state.Device)).CaptureRunSourceStateAsync(Owner, token);
+                var expected = state.SourceState!;
+                if (!current.Connected || current.OutputEnabled || current.Source != expected.Source || current.Sense != expected.Sense || current.Terminals != expected.Terminals)
+                    throw new InvalidOperationException($"{state.Device}: source state or configuration changed while paused; resume refused.");
+            }
             foreach (var matrix in sessions.Values.OfType<MatrixSwitchSession>())
             {
                 await PrepareMutationAsync(matrix.Descriptor.Id);
@@ -378,7 +390,7 @@ public sealed class DeviceRunResources
         // Restore held axis targets first; source output stays off until these succeed.
         foreach (var state in states.Where(s => s.Target is not null))
             await WriteAsync(state.Device, state.Target!, state.TargetValue!.Value, token);
-        foreach (var state in states.Where(s => s.OutputEnabled)) await EnableSourceOutputAsync(state.Device, token);
+        foreach (var state in states.Where(s => s.OutputEnabled)) await EnableSourceOutputAsync(state.Device, token, expectedResumeState: state.SourceState);
     }
 
     private async Task RequireStoppedTaskFinishedAsync(InstrumentId id)

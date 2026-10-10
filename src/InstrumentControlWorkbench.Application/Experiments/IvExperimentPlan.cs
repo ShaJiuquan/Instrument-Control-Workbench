@@ -17,7 +17,7 @@ internal static class IvExperimentPlan
                 Keithley2450Parameters.SourceVoltage.Id,
                 ScanValues.Linear(new(recipe.StartVoltage, PhysicalUnit.Volt), new(recipe.StopVoltage, PhysicalUnit.Volt), recipe.Points),
                 TimeSpan.FromSeconds(recipe.DwellSeconds),
-                new ReadStep(new("current_read"), [new(Keithley2450Parameters.MeasuredCurrent.Id, new(device, Keithley2450Parameters.MeasuredCurrent.Id))])),
+                new ReadSourceSenseStep(new("source_sense_read"), device, SourceFunction.Voltage, Keithley2450Parameters.MeasuredVoltage.Id, Keithley2450Parameters.MeasuredCurrent.Id)),
         ]),
         [new(device, SourceFunction.Voltage, new(recipe.StartVoltage, PhysicalUnit.Volt), new(recipe.ComplianceAmps, PhysicalUnit.Ampere),
             new(SenseFunction.Current, SensingMode.FourWire, 1, true))],

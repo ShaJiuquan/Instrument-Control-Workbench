@@ -133,15 +133,21 @@ public sealed partial class InstrumentManager : IDeviceSession
         }
     }
 
-    public async Task EnterRunAsync(CancellationToken cancellationToken, RunId? owner = null, SensingMode? requiredSensingMode = null)
+    public async Task EnterRunAsync(CancellationToken cancellationToken, RunId? owner = null, SensingMode? requiredSensingMode = null, SourceMeterSnapshot? expectedResumeState = null)
     {
         if (owner is null) throw new InvalidOperationException("Exclusive run resources are required before enabling source output.");
         if (requiredSensingMode is { } required && !Enum.IsDefined(required)) throw new ArgumentOutOfRangeException(nameof(requiredSensingMode));
         await EnterOperationAsync(cancellationToken, owner);
         try
         {
-            if (requiredSensingMode is { } mode && (await ReadSourceSnapshotAsync(cancellationToken)).Sense.Mode != mode)
-                throw new InvalidOperationException("Actual sensing mode differs from the sample topology.");
+            if (requiredSensingMode is not null || expectedResumeState is not null)
+            {
+                var before = await ReadSourceSnapshotAsync(cancellationToken);
+                if (requiredSensingMode is { } mode && before.Sense.Mode != mode)
+                    throw new InvalidOperationException("Actual sensing mode differs from the required preparation or sample topology.");
+                if (expectedResumeState is { } expected && (!before.Connected || before.OutputEnabled || before.Source != expected.Source || before.Sense != expected.Sense || before.Terminals != expected.Terminals))
+                    throw new InvalidOperationException("Source configuration changed while paused; output will not be restored.");
+            }
             Transition(InstrumentLifecycleEvent.RunRequested);
             await sourceMeter.EnableOutputAsync(cancellationToken);
             var snapshot = await sourceMeter.GetSnapshotAsync(cancellationToken);

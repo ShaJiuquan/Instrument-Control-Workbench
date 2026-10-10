@@ -118,22 +118,26 @@ internal static class ExperimentPlanCompiler
             var left = ValueUnit(new VariableValue(condition.Variable), known);
             if (left != ValueUnit(condition.Value, known)) throw new ArgumentException("Comparison operands must have matching units.");
         }
+        void ValidateSourceSense(InstrumentId device, SourceFunction function, ParameterId voltageColumn, ParameterId currentColumn,
+            Dictionary<ParameterId, PhysicalUnit> known, IReadOnlyList<ParameterId> axes)
+        {
+            var sourceDevice = Source(device);
+            if (!preparations.TryGetValue(device, out var preparation) || preparation.Function != function ||
+                preparation.Sense.Function != (function == SourceFunction.Voltage ? SenseFunction.Current : SenseFunction.Voltage))
+                throw new ArgumentException("Paired reads need an explicit preparation with matching source and opposite sensing function.");
+            AddColumn(voltageColumn, new(voltageColumn,
+                function == SourceFunction.Voltage ? "Actual source voltage" : "Measured voltage", PhysicalUnit.Volt, ParameterAccess.Read),
+                new(device, sourceDevice.GetParameter(Keithley2450Parameters.MeasuredVoltage.Id).Id), [.. axes, Elapsed.Id]);
+            AddColumn(currentColumn, new(currentColumn,
+                function == SourceFunction.Current ? "Actual source current" : "Measured current", PhysicalUnit.Ampere, ParameterAccess.Read),
+                new(device, sourceDevice.GetParameter(Keithley2450Parameters.MeasuredCurrent.Id).Id), [.. axes, Elapsed.Id]);
+            BindVariable(voltageColumn, PhysicalUnit.Volt, known); BindVariable(currentColumn, PhysicalUnit.Ampere, known);
+        }
         void ValidateResistance(ReadResistanceStep resistance, Dictionary<ParameterId, PhysicalUnit> known, IReadOnlyList<ParameterId> axes)
         {
-            var sourceDevice = Source(resistance.Device);
-            if (!preparations.TryGetValue(resistance.Device, out var preparation) || preparation.Function != resistance.Function ||
-                preparation.Sense.Function != (resistance.Function == SourceFunction.Voltage ? SenseFunction.Current : SenseFunction.Voltage))
-                throw new ArgumentException("Resistance reads need an explicit preparation with matching source and opposite sensing function.");
-            AddColumn(resistance.VoltageColumn, new(resistance.VoltageColumn,
-                resistance.Function == SourceFunction.Voltage ? "Actual source voltage" : "Measured voltage", PhysicalUnit.Volt, ParameterAccess.Read),
-                new(resistance.Device, sourceDevice.GetParameter(Keithley2450Parameters.MeasuredVoltage.Id).Id), [.. axes, Elapsed.Id]);
-            AddColumn(resistance.CurrentColumn, new(resistance.CurrentColumn,
-                resistance.Function == SourceFunction.Current ? "Actual source current" : "Measured current", PhysicalUnit.Ampere, ParameterAccess.Read),
-                new(resistance.Device, sourceDevice.GetParameter(Keithley2450Parameters.MeasuredCurrent.Id).Id), [.. axes, Elapsed.Id]);
+            ValidateSourceSense(resistance.Device, resistance.Function, resistance.VoltageColumn, resistance.CurrentColumn, known, axes);
             AddColumn(resistance.ResistanceColumn, new(resistance.ResistanceColumn, "Resistance (V/I)", PhysicalUnit.Ohm, ParameterAccess.Read),
                 null, [.. axes, Elapsed.Id, resistance.VoltageColumn, resistance.CurrentColumn]);
-            BindVariable(resistance.VoltageColumn, PhysicalUnit.Volt, known);
-            BindVariable(resistance.CurrentColumn, PhysicalUnit.Ampere, known);
             BindVariable(resistance.ResistanceColumn, PhysicalUnit.Ohm, known);
         }
         long Visit(ExperimentStep step, Dictionary<ParameterId, PhysicalUnit> known, IReadOnlyList<ParameterId> axes, int depth)
@@ -143,6 +147,9 @@ internal static class ExperimentPlanCompiler
             if (!steps.Add(step.Id)) throw new ArgumentException($"Duplicate step ID {step.Id}.");
             switch (step)
             {
+                case ReadSourceSenseStep pair:
+                    ValidateSourceSense(pair.Device, pair.Function, pair.VoltageColumn, pair.CurrentColumn, known, axes);
+                    return 1;
                 case SampleAnalysisStep analysis:
                     analysis.ValidateRouting(plan.Routing ?? throw new ArgumentException("Sample analysis requires a frozen routing configuration."));
                     var analysisCost = checked(1 + analysis.Readings.Sum(child => Visit(child, known, axes, depth + 1)));

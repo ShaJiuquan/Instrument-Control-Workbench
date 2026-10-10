@@ -321,7 +321,12 @@ public sealed class RunLifecycleTests
             return ReadError is { } error && readCalls >= FailReadAt
                 ? Task.FromException<MeasurementValue>(error) : inner.ReadAsync(token);
         }
-        public Task<SourceSenseReading> ReadSourceSenseAsync(CancellationToken token) => inner.ReadSourceSenseAsync(token);
+        public Task<SourceSenseReading> ReadSourceSenseAsync(CancellationToken token)
+        {
+            readCalls++;
+            return ReadError is { } error && readCalls >= FailReadAt
+                ? Task.FromException<SourceSenseReading>(error) : inner.ReadSourceSenseAsync(token);
+        }
         public async Task SafeStopAsync(CancellationToken token)
         {
             StopCalls++;

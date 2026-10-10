@@ -80,14 +80,18 @@ public sealed partial class MeasurementRunService
                 await DwellAsync(run, route.Settle);
                 break;
             case SourceOutputStep output:
-                if (output.Enabled) await run.Resources!.EnableSourceOutputAsync(output.Device, run.Token);
+                if (output.Enabled) await run.Resources!.EnableSourceOutputAsync(output.Device, run.Token,
+                    run.DataSet!.Plan!.Preparations.SingleOrDefault(p => p.Device == output.Device)?.Sense.Mode);
                 else await run.Resources!.DisableSourceOutputAsync(output.Device, run.Token);
                 break;
             case DelayStep delay:
                 await DwellAsync(run, delay.Duration);
                 break;
             case ReadStep read:
-                await AcquireRowAsync(read, run, started, ivPlot);
+                await AcquireRowAsync(read, run, started);
+                break;
+            case ReadSourceSenseStep pair:
+                await AcquireSourceSenseRowAsync(pair, run, started, ivPlot);
                 break;
             case ReadSampleResistanceStep sampleRead:
                 var context = run.SampleRoutes[sampleRead.Id];
@@ -121,7 +125,7 @@ public sealed partial class MeasurementRunService
             RunId: run.Id.ToString(), Step: step.Id), CancellationToken.None);
     }
 
-    private async Task AcquireRowAsync(ReadStep read, RunExecutionContext run, IReadOnlyList<IRunResultListener> started, bool ivPlot)
+    private async Task AcquireRowAsync(ReadStep read, RunExecutionContext run, IReadOnlyList<IRunResultListener> started)
     {
         var values = new Dictionary<ParameterId, Quantity>(run.Axes);
         foreach (var channel in read.Channels)
@@ -133,20 +137,38 @@ public sealed partial class MeasurementRunService
         var now = DateTimeOffset.UtcNow;
         values[ExperimentPlanCompiler.Elapsed.Id] = new(run.Elapsed.Elapsed.TotalSeconds, PhysicalUnit.Second);
         var row = new MeasurementDataRow(now, values);
-        run.DataSet!.Append(row);
-        run.RowsAcquired++;
+        await CommitRowAsync(row, read.Id, run, started);
+    }
+
+    private async Task CommitRowAsync(MeasurementDataRow row, StepId step, RunExecutionContext run, IReadOnlyList<IRunResultListener> started)
+    {
+        run.DataSet!.Append(row); run.RowsAcquired++;
         // Commit to local history first even if an external listener cancels.
         foreach (var listener in started)
             await listener.OnRowAsync(run.Id, row, listener == History ? CancellationToken.None : run.Token);
         await notifications.PublishAsync(new(WorkbenchNotificationKind.DataRowReceived,
-            $"Acquired row {run.RowsAcquired}.", RunId: run.Id.ToString(), Step: read.Id, Row: row), CancellationToken.None);
+            $"Acquired row {run.RowsAcquired}.", RunId: run.Id.ToString(), Step: step, Row: row), CancellationToken.None);
+    }
+
+    private async Task AcquireSourceSenseRowAsync(ReadSourceSenseStep step, RunExecutionContext run, IReadOnlyList<IRunResultListener> started, bool ivPlot)
+    {
+        var mode = run.DataSet!.Plan!.Preparations.Single(p => p.Device == step.Device).Sense.Mode;
+        var frame = await run.Resources!.ReadSourceSenseAsync(step.Device, step.Function, run.Token, mode);
+        var voltage = step.Function == SourceFunction.Voltage ? frame.Source : frame.Sense;
+        var current = step.Function == SourceFunction.Current ? frame.Source : frame.Sense;
+        var values = new Dictionary<ParameterId, Quantity>(run.Axes)
+        {
+            [step.VoltageColumn] = voltage,
+            [step.CurrentColumn] = current,
+            [ExperimentPlanCompiler.Elapsed.Id] = new(run.Elapsed.Elapsed.TotalSeconds, PhysicalUnit.Second),
+        };
+        run.Variables[step.VoltageColumn] = voltage; run.Variables[step.CurrentColumn] = current;
+        await CommitRowAsync(new(frame.Timestamp, values), step.Id, run, started);
         if (ivPlot)
         {
-            var voltage = values[Keithley2450Parameters.SourceVoltage.Id].Value;
-            var current = values[Keithley2450Parameters.MeasuredCurrent.Id].Value;
-            var point = new MeasurementPoint(now, run.Elapsed.Elapsed, voltage, current, "V", "A");
+            var point = new MeasurementPoint(frame.Timestamp, run.Elapsed.Elapsed, voltage.Value, current.Value, "V", "A");
             await notifications.PublishAsync(new(WorkbenchNotificationKind.MeasurementPointReceived,
-                $"Point {voltage:0.###} V -> {current:0.###E+0} A", primaryInstrument, Point: point, RunId: run.Id.ToString()), CancellationToken.None);
+                $"Point {voltage.Value:0.###} V -> {current.Value:0.###E+0} A", step.Device, Point: point, RunId: run.Id.ToString()), CancellationToken.None);
         }
     }
 
@@ -165,14 +187,9 @@ public sealed partial class MeasurementRunService
             [ExperimentPlanCompiler.Elapsed.Id] = new(run.Elapsed.Elapsed.TotalSeconds, PhysicalUnit.Second),
         };
         var row = new MeasurementDataRow(reading.Timestamp, values, context);
-        run.DataSet!.Append(row);
         run.Variables[step.VoltageColumn] = voltage; run.Variables[step.CurrentColumn] = current;
         run.Variables[step.ResistanceColumn] = values[step.ResistanceColumn];
-        run.RowsAcquired++;
-        foreach (var listener in started)
-            await listener.OnRowAsync(run.Id, row, listener == History ? CancellationToken.None : run.Token);
-        await notifications.PublishAsync(new(WorkbenchNotificationKind.DataRowReceived,
-            $"Acquired resistance row {run.RowsAcquired}.", RunId: run.Id.ToString(), Step: step.Id, Row: row), CancellationToken.None);
+        await CommitRowAsync(row, step.Id, run, started);
     }
 
     private async Task WaitStableAsync(WaitStableStep wait, RunExecutionContext run)

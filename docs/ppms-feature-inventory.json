@@ -222,7 +222,12 @@
       "aliases": [
         "meas_current"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs; src/InstrumentControlWorkbench.Application/Experiments/IvExperimentPlan.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/SourceSenseExecutionTests.cs",
+        "limits": "K2450 coherent actual V/I frames in both source functions, generic nested scans and IV actual-value plot points with separate requested axis; plan/archive/CSV round-trip, acquisition configuration checks and pause restoration guards. Separate meters/ranges, full PPMS command decoding/aliases, compliance-quality flags and physical transport/acceptance remain pending."
+      }
     },
     {
       "id": "measure_voltage",
@@ -230,7 +235,12 @@
       "aliases": [
         "meas_voltage"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs; src/InstrumentControlWorkbench.Application/Experiments/IvExperimentPlan.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/SourceSenseExecutionTests.cs",
+        "limits": "K2450 coherent actual V/I frames in both source functions, generic nested scans and IV actual-value plot points with separate requested axis; plan/archive/CSV round-trip, acquisition configuration checks and pause restoration guards. Separate meters/ranges, full PPMS command decoding/aliases, compliance-quality flags and physical transport/acceptance remain pending."
+      }
     },
     {
       "id": "measure_charge",
@@ -279,7 +289,12 @@
         "iv",
         "measure_iv_sweep"
       ],
-      "status": "partial"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs; src/InstrumentControlWorkbench.Application/Experiments/IvExperimentPlan.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/SourceSenseExecutionTests.cs",
+        "limits": "K2450 coherent actual V/I frames in both source functions, generic nested scans and IV actual-value plot points with separate requested axis; plan/archive/CSV round-trip, acquisition configuration checks and pause restoration guards. Separate meters/ranges, full PPMS command decoding/aliases, compliance-quality flags and physical transport/acceptance remain pending."
+      }
     },
     {
       "id": "measure_vi",

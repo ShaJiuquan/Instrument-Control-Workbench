@@ -263,3 +263,20 @@ implementation.
   tolerance 1e-12 for platform math; finalized bytes retain SHA-256 checks.
 - All evidence is simulated/numeric. See sample-analysis.md and the Hall file
   acceptance. Full migration and native/hardware acceptance remain incomplete.
+
+## Coherent general/IV source-sense acquisition
+
+- ReadSourceSenseStep uses a single typed port frame in both source functions;
+  explicit preparation/sensing mode is required. Zero current is valid without
+  resistance division. IV preserves its requested voltage axis and emits plot
+  points from actual V/I and the frame timestamp.
+- Acquisition compares before/after source, sense and terminal snapshots before
+  committing the row. Pause captures full source settings; resume checks all
+  sources before axis restoration and checks each again before enabling output.
+  Configuration drift rejects restoration and enters normal cleanup.
+- Documents/archives/CSV retain the new kind and measured/requested columns;
+  legacy ReadStep remains sequential. The field/current disk example verifies
+  nine nested rows. Port coherence and snapshot checks are software contracts,
+  not proof of physical atomicity, compliance limiting or an interlock.
+- See source-sense-acquisition.md. Standalone meters, range/quality profiles,
+  PPMS command import, durable configuration, UI and hardware remain pending.

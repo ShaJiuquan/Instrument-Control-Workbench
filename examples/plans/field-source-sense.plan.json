@@ -1,0 +1,115 @@
+{
+  "format": "instrument-workbench-plan",
+  "version": 1,
+  "name": "Field-current coherent source/sense scan",
+  "preparations": [
+    {
+      "device": "k2450",
+      "function": "Current",
+      "level": {
+        "value": 0,
+        "unit": "Ampere"
+      },
+      "compliance": {
+        "value": 10,
+        "unit": "Volt"
+      },
+      "sense": {
+        "function": "Voltage",
+        "mode": "FourWire",
+        "nplc": 1,
+        "autoRange": true
+      }
+    }
+  ],
+  "metadata": {
+    "field_points": {
+      "value": 3,
+      "unit": "Dimensionless"
+    },
+    "current_points": {
+      "value": 3,
+      "unit": "Dimensionless"
+    }
+  },
+  "root": {
+    "id": "experiment",
+    "kind": "sequence",
+    "children": [
+      {
+        "id": "source_on",
+        "kind": "output",
+        "device": "k2450",
+        "enabled": true
+      },
+      {
+        "id": "field_scan",
+        "kind": "scan",
+        "axis": {
+          "device": "field",
+          "parameter": "field.target"
+        },
+        "column": "field_axis",
+        "values": {
+          "unit": "Tesla",
+          "values": [
+            0,
+            0.01,
+            0.02
+          ]
+        },
+        "dwellSeconds": 0,
+        "body": {
+          "id": "field_body",
+          "kind": "sequence",
+          "children": [
+            {
+              "id": "field_stable",
+              "kind": "wait_stable",
+              "readback": {
+                "device": "field",
+                "parameter": "field.readback"
+              },
+              "target": {
+                "variable": "field_axis"
+              },
+              "tolerance": {
+                "value": 0.0001,
+                "unit": "Tesla"
+              },
+              "stableSeconds": 0.05,
+              "pollSeconds": 0.05,
+              "timeoutSeconds": 5
+            },
+            {
+              "id": "current_scan",
+              "kind": "scan",
+              "axis": {
+                "device": "k2450",
+                "parameter": "k2450.source_current"
+              },
+              "column": "current_axis",
+              "values": {
+                "unit": "Ampere",
+                "values": [
+                  -1e-06,
+                  0,
+                  1e-06
+                ]
+              },
+              "dwellSeconds": 0,
+              "body": {
+                "id": "source_sense_read",
+                "kind": "read_source_sense",
+                "device": "k2450",
+                "function": "Current",
+                "voltageColumn": "measured_voltage",
+                "currentColumn": "actual_current"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

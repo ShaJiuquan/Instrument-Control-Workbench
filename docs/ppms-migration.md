@@ -158,6 +158,13 @@ Avalonia views -> ViewModels -> Application use cases -> Core contracts
    summaries. Corrected Hall/offset/quality analysis, separate source/meter
    profiles, settings/UI and physical wiring/hardware acceptance remain pending.
    See sample-routing.md and sample-analysis.md.
+   The source/sense follow-up exposes coherent actual V/I without requiring
+   resistance calculation in both source functions. IV rows/plots use actual
+   readbacks while preserving the requested axis. Full source configuration is
+   checked after acquisition and before pause restoration. A nine-row nested
+   field/current file, archive/CSV and fault/pause tests cover the simulated API.
+   See source-sense-acquisition.md; standalone meters, range/quality profiles,
+   PPMS decoding and hardware remain pending.
 7. **Operator workflows — pending.** Flow editor, reusable steps, device panels,
    routing/sample settings and live/history views connected to the backend.
 8. **Acceptance — pending.** End-to-end representative PPMS experiments,
