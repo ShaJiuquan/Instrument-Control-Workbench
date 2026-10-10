@@ -1,0 +1,146 @@
+{
+  "active": "channel1",
+  "profiles": {
+    "channel1": {
+      "channel_id": "Legacy Channel A",
+      "group_index": 1,
+      "name": "CH1",
+      "alias": "main contacts",
+      "notes": "Simulation fixture only",
+      "connections": [
+        {
+          "index": 1,
+          "key": "i_plus",
+          "label": "i_plus",
+          "route": {
+            "slot": 1,
+            "row": 8,
+            "col": 1,
+            "raw": "display-only-1"
+          },
+          "notes": "Fixture connection i_plus"
+        },
+        {
+          "index": 2,
+          "key": "i_minus",
+          "label": "i_minus",
+          "route": {
+            "slot": 1,
+            "row": 8,
+            "col": 2,
+            "raw": "display-only-2"
+          },
+          "notes": "Fixture connection i_minus"
+        },
+        {
+          "index": 3,
+          "key": "v_plus",
+          "label": "v_plus",
+          "route": {
+            "slot": 1,
+            "row": 8,
+            "col": 3,
+            "raw": "display-only-3"
+          },
+          "notes": "Fixture connection v_plus"
+        },
+        {
+          "index": 4,
+          "key": "v_minus",
+          "label": "v_minus",
+          "route": {
+            "slot": 1,
+            "row": 8,
+            "col": 4,
+            "raw": "display-only-4"
+          },
+          "notes": "Fixture connection v_minus"
+        },
+        {
+          "index": 5,
+          "key": "bias_plus",
+          "label": "bias_plus",
+          "route": {
+            "slot": 1,
+            "row": 8,
+            "col": 5,
+            "raw": "display-only-5"
+          },
+          "notes": "Fixture connection bias_plus"
+        },
+        {
+          "index": 6,
+          "key": "bias_minus",
+          "label": "bias_minus",
+          "route": {
+            "slot": 1,
+            "row": 8,
+            "col": 6,
+            "raw": "display-only-6"
+          },
+          "notes": "Fixture connection bias_minus"
+        },
+        {
+          "index": 7,
+          "key": "unused",
+          "label": "Unassigned",
+          "route": {
+            "slot": null,
+            "row": null,
+            "col": null,
+            "raw": ""
+          },
+          "enabled": false,
+          "notes": "Intentionally disabled"
+        }
+      ]
+    },
+    "channel2": {
+      "channel_id": "Channel2",
+      "group_index": 2,
+      "name": "CH2",
+      "connections": [
+        {
+          "index": 1,
+          "key": "i_plus",
+          "label": "i_plus",
+          "route": {
+            "slot": null,
+            "row": null,
+            "col": 7
+          }
+        },
+        {
+          "index": 2,
+          "key": "i_minus",
+          "label": "i_minus",
+          "route": {
+            "slot": null,
+            "row": null,
+            "col": 8
+          }
+        },
+        {
+          "index": 3,
+          "key": "v_plus",
+          "label": "v_plus",
+          "route": {
+            "slot": null,
+            "row": null,
+            "col": 9
+          }
+        },
+        {
+          "index": 4,
+          "key": "v_minus",
+          "label": "v_minus",
+          "route": {
+            "slot": null,
+            "row": null,
+            "col": 10
+          }
+        }
+      ]
+    }
+  }
+}

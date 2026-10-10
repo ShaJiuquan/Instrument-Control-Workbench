@@ -32,15 +32,13 @@ public sealed class ImportSampleRouting
     public SampleProfile ResolveSample(string query)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(query); query = query.Trim();
-        if (Aliases.TryGetValue(query, out var alias)) query = alias.Value;
-        var direct = Routing.Samples.SingleOrDefault(s => StringComparer.OrdinalIgnoreCase.Equals(s.Id.Value, query));
-        if (direct is not null) return direct;
-        if (uint.TryParse(query, NumberStyles.None, CultureInfo.InvariantCulture, out var number))
-        {
-            var numeric = Routing.Samples.SingleOrDefault(s => StringComparer.OrdinalIgnoreCase.Equals(s.Id.Value, "sample" + number.ToString(CultureInfo.InvariantCulture)));
-            if (numeric is not null) return numeric;
-        }
-        var named = Routing.Samples.Where(s => StringComparer.OrdinalIgnoreCase.Equals(s.Name, query)).ToArray();
-        return named.Length == 1 ? named[0] : throw new ArgumentException($"Sample '{query}' is unknown or has an ambiguous display name.");
+        Aliases.TryGetValue(query, out var alias);
+        var numeric = uint.TryParse(query, NumberStyles.None, CultureInfo.InvariantCulture, out var number)
+            ? "sample" + number.ToString(CultureInfo.InvariantCulture) : null;
+        var found = Routing.Samples.Where(s => StringComparer.OrdinalIgnoreCase.Equals(s.Id.Value, query) ||
+            alias is not null && StringComparer.OrdinalIgnoreCase.Equals(s.Id.Value, alias.Value) ||
+            numeric is not null && StringComparer.OrdinalIgnoreCase.Equals(s.Id.Value, numeric) ||
+            StringComparer.OrdinalIgnoreCase.Equals(s.Name, query)).ToArray();
+        return found.Length == 1 ? found[0] : throw new ArgumentException($"Sample '{query}' is unknown or ambiguous.");
     }
 }

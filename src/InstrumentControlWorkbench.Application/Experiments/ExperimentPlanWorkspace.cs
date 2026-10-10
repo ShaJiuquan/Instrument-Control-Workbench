@@ -1,12 +1,15 @@
 using InstrumentControlWorkbench.Application.Measurements;
 using InstrumentControlWorkbench.Core.Experiments;
+using InstrumentControlWorkbench.Core.Routing;
 
 namespace InstrumentControlWorkbench.Application.Experiments;
 
 public sealed record ValidatedPlanDocument(ExperimentPlan Plan, string Text, ExperimentPlanPreview Preview);
 
-public sealed class ExperimentPlanWorkspace(IExperimentPlanDocument documents, MeasurementRunService runs, IExperimentPlanImporter? importer = null)
+public sealed class ExperimentPlanWorkspace(IExperimentPlanDocument documents, MeasurementRunService runs, IExperimentPlanImporter? importer = null, IRoutingProfileImporter? routingProfiles = null)
 {
+    public Task<RoutingProfileCatalog> LoadRoutingProfilesAsync(string channelsPath, string samplesPath, string instrumentPortsPath, CancellationToken token)
+        => (routingProfiles ?? throw new InvalidOperationException("No routing profile importer is configured.")).LoadAsync(channelsPath, samplesPath, instrumentPortsPath, token);
     public ValidatedPlanDocument Import(string text, ExperimentImportBindings bindings)
         => Inspect((importer ?? throw new InvalidOperationException("No experiment importer is configured.")).Parse(text, bindings));
     public async Task<ValidatedPlanDocument> ImportAsync(string path, ExperimentImportBindings bindings, CancellationToken token)

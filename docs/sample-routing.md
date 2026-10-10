@@ -106,3 +106,10 @@ the same engine. `ReadSampleResistanceStep.AcquisitionSettle` adds a separate
 wait after source enable, followed by fresh accepted-route confirmation before
 acquisition. Legacy native steps default this wait to zero; their route settle
 semantics remain unchanged. See [PPMS resistance import](ppms-resistance-import.md).
+
+The PPMS three-file adapter now builds a frozen authored routing catalog with
+original IDs, aliases, descriptive fields and all physical layouts. Explicit
+supported device bindings create executable routes. Connection display row/raw
+fields are retained but never used as instrument port addresses. See
+[profile import](ppms-profile-import.md); settings editing and hardware remain
+required.

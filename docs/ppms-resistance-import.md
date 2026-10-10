@@ -116,7 +116,8 @@ source-scan context lifetime, numeric parsing, invalid/coupled limits, pause,
 abort, route drift during dwell, zero current, partial Hall read failure and
 original-plus-stop-failure ownership/recovery.
 
-PPMS `samples.json`/channel/instrument-port file conversion, the remaining
+PPMS file conversion now supplies these bindings (see ppms-profile-import.md).
+Persistent profile editing and the remaining
 resistance modes and source/meter roles, environment columns, consecutive-read
 aggregation, manual ranges/quality, dynamic preparation, settings/visual editor
 and physical hardware remain required. Native row layouts and explicit analysis

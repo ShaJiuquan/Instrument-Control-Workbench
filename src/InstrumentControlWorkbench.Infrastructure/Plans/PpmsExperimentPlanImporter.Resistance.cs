@@ -63,7 +63,7 @@ public sealed partial class PpmsExperimentPlanImporter
             var routingParams = (JsonObject)p.DeepClone();
             if ((!routingParams.ContainsKey("channel") || Text(routingParams, "channel").Trim().Length == 0) && scope.Device == source.Device)
                 routingParams["channel"] = scope.Channel;
-            route = ChannelRoute(routingParams, path, c, source.Device, "ch1");
+            route = ChannelRoute(routingParams, path, c, source.Device, "ch1", "volt_dc");
             if (route is not null) steps.Add(managed ? new VerifyMatrixRouteStep(route.Id, route.Device, route.Closed) : route);
         }
         if (!managed)

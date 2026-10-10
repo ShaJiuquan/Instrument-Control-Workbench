@@ -89,11 +89,15 @@ public sealed partial class PpmsExperimentPlanImporter
         steps.Add(new SourceOutputStep(new(path + ".on"), source.Device, true));
         return new SequenceStep(new(path), steps);
     }
-    private static RouteMatrixStep? ChannelRoute(JsonObject p, string path, ImportContext c, InstrumentId source, string fallback)
+    private static RouteMatrixStep? ChannelRoute(JsonObject p, string path, ImportContext c, InstrumentId source, string fallback, string? measurementMode = null)
     {
         var channel = Text(p, "channel", fallback).Trim();
         if (channel.Equals("none", StringComparison.OrdinalIgnoreCase)) return null;
-        if (!c.Bindings.Channels.TryGetValue(channel, out var binding) || binding.Source != source)
+        if (!c.Bindings.Channels.TryGetValue(channel, out var binding) && c.Bindings.ChannelProfiles is { } profiles)
+        {
+            binding = profiles.Resolve(channel, c.Bindings.Preparations.Single(p => p.Device == source).Sense.Mode, measurementMode); c.UsesChannelProfiles = true;
+        }
+        if (binding is null || binding.Source != source)
             throw new NotSupportedException($"Channel '{channel}' needs an explicit route for {source}; use channel='none' only for externally wired experiments.");
         return new(new(path + ".route"), binding.Route.Device, binding.Route.Closed, binding.Route.Settle);
     }

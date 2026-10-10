@@ -104,3 +104,9 @@ performs observation only. Sample readings may optionally store
 omit the key and retain a zero acquisition wait. Both additions survive full
 plan archives. Read [PPMS resistance import](ppms-resistance-import.md) for
 channel/sample source ownership and snapshot limitations.
+
+Routing profiles also preserve optional authored IDs/aliases, connection
+index/label/displayRow/raw/notes, sample material/substrate/notes, electrode
+notes, wiring labels and meter spacing. Empty metadata omits, retaining earlier
+encodings. New fields require a reader that understands these version-1
+extensions. See ppms-profile-import.md.

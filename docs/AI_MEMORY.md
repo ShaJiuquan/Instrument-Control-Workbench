@@ -297,7 +297,7 @@ implementation.
   budgets as well as the raw tree. Invalid fields/functions/ranges/routes fail
   before IO; workspace capability preflight is still required after parsing.
 - Controller-status waits, persistent mode,
-  remaining BT semantics, aggregation, remaining resistance modes/profile-file import, ranges/filtering,
+  remaining BT semantics, aggregation, remaining resistance modes/persistent profile editing, ranges/filtering,
   separate meter families, text DSL/database export and hardware remain required.
   See ppms-plan-import.md and the six-row field/voltage import acceptance.
 
@@ -349,5 +349,36 @@ implementation.
   summaries and raw route identity; disk plans, fresh archives, re-execution and
   CSV pass. Partial/faulted groups retain raw rows without fabricated summaries;
   original and cleanup failures keep resources for recovery. See
-  ppms-resistance-import.md. Profile-file import, remaining acquisition modes,
+  ppms-resistance-import.md. Persistent profile editing, remaining acquisition modes,
   environment columns/aggregation, settings/UI and hardware remain required.
+
+## PPMS routing configuration import follow-up
+
+- IRoutingProfileImporter is the format/file boundary. Workspace loads three
+  current PPMS routing files into RoutingProfileCatalog; parsing/binding has no
+  driver IO. All physical wiring layouts and mode maps are retained, including
+  unimplemented independent source/meter families. Only explicit known device
+  bindings become executable native wiring; they do not certify those families.
+- Catalog lookup accepts authored keys/IDs/names/aliases, numeric/channel forms
+  and channel __active__. Ambiguous candidates reject, including sample IDs that
+  conflict with a numeric slot. No expanded alias dictionary consumes the 64
+  channel budget. Applying profiles rejects competing routing authorities.
+- Native channel/sample/electrode/wiring models and version-1 documents preserve
+  authored descriptive fields, original IDs, labels, connection display row/raw,
+  notes and spacing. Execution uses wiring rows plus enabled connection columns;
+  display addresses are never a missing-column fallback. Hall/vdP algorithms do
+  not reinterpret spacing. Empty new fields omit, preserving old encodings.
+- Format budgets: each file 4 MiB/depth32/10000 values; catalogs/maps/lists64;
+  text8192 with existing native name/ID bounds. Unknown/duplicate schema data and
+  invalid/missing links reject. Async reads honor cancellation, BOM/strict UTF-8
+  and growth bounds. Files are read sequentially, not atomically across writers.
+- All four channel roles, polarity separation and four-wire independence are
+  enforced. Selected volt_dc channel wiring must match the authored mode map;
+  whole-plan card/device/sense/resource preflight still precedes connection.
+- The profile fixtures are newly authored simulation data. The existing 26-row
+  field/sample tree now imports with these files and saves/reopens/re-executes
+  native plans and archives with metadata. Local read-only actual-file acceptance
+  parsed six channels/samples/wirings and eight modes and round-tripped the native
+  plan without hardware. Bundled K2450 shared force/sense ports are preserved.
+  Settings/profile editing, remaining modes/runtime flags, UI/physical transport
+  and hardware still require work. See ppms-profile-import.md.

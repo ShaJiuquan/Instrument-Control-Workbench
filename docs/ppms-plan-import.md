@@ -109,7 +109,7 @@ live-origin failures, mode confirmation, pause/resume, cleanup and limitations.
 Continuous/ramp/cooling modes, disabled temperature-control settings,
 persistent magnet transitions, quench operations, state-based environment wait
 commands, conditional/parallel/retry/race/for_each BT semantics, measurement
-aggregation, remaining resistance modes/profile-file import, filtering, manual ranges, changed source
+aggregation, remaining resistance modes/persistent profile editing, filtering, manual ranges, changed source
 functions, segment settle/mirror/repeat modifiers and additional instrument
 families remain required. They produce an import error, not a no-op or silent
 fallback. Numeric stability on bound controller ports does
@@ -153,3 +153,11 @@ routes, complete-group analysis, native save/load, fresh archive/re-execution
 and CSV. These supplied four-terminal profiles are simulations; the bundled
 PPMS physical K2450 wiring is two-wire and cannot establish four-terminal
 acceptance. No proprietary recipes or hardware addresses are used.
+
+## Profile-file bindings
+
+Workspace can load the three current PPMS routing configuration files through
+IRoutingProfileImporter. The frozen catalog binds explicit supported devices
+and resolves channel/sample aliases without hard-coded route reconstruction.
+See [PPMS profile import](ppms-profile-import.md) for metadata, validation and
+the independent-source/meter and hardware boundaries.

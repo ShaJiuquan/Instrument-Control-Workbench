@@ -1,0 +1,197 @@
+{
+  "active": "sample1",
+  "samples": {
+    "sample1": {
+      "sample_id": "Legacy specimen 1",
+      "name": "Specimen 1",
+      "topology": "four_wire",
+      "material": "Calibration film",
+      "substrate": "Simulation substrate",
+      "notes": "Fixture metadata, not a real sample",
+      "geometry": {
+        "width_m": 0.001,
+        "length_m": 0.002,
+        "thickness_m": 1e-06,
+        "spacing_m": 0.0015
+      },
+      "electrodes": [
+        {
+          "label": "I+",
+          "link": {
+            "channel": "channel1",
+            "connection": "i_plus"
+          },
+          "notes": "Contact I+"
+        },
+        {
+          "label": "I-",
+          "link": {
+            "channel": "channel1",
+            "connection": "i_minus"
+          },
+          "notes": "Contact I-"
+        },
+        {
+          "label": "V+",
+          "link": {
+            "channel": "channel1",
+            "connection": "v_plus"
+          },
+          "notes": "Contact V+"
+        },
+        {
+          "label": "V-",
+          "link": {
+            "channel": "channel1",
+            "connection": "v_minus"
+          },
+          "notes": "Contact V-"
+        }
+      ]
+    },
+    "sample2": {
+      "sample_id": "Legacy specimen 2",
+      "name": "Specimen 2",
+      "topology": "hall_bar",
+      "material": "Calibration film",
+      "substrate": "Simulation substrate",
+      "notes": "Fixture metadata, not a real sample",
+      "geometry": {
+        "width_m": 0.001,
+        "length_m": 0.002,
+        "thickness_m": 1e-06,
+        "spacing_m": 0.0015
+      },
+      "electrodes": [
+        {
+          "label": "I+",
+          "link": {
+            "channel": "channel1",
+            "connection": "i_plus"
+          },
+          "notes": "Contact I+"
+        },
+        {
+          "label": "I-",
+          "link": {
+            "channel": "channel1",
+            "connection": "i_minus"
+          },
+          "notes": "Contact I-"
+        },
+        {
+          "label": "Vxx+",
+          "link": {
+            "channel": "channel1",
+            "connection": "v_plus"
+          },
+          "notes": "Contact Vxx+"
+        },
+        {
+          "label": "Vxx-",
+          "link": {
+            "channel": "channel1",
+            "connection": "v_minus"
+          },
+          "notes": "Contact Vxx-"
+        },
+        {
+          "label": "Vxy+",
+          "link": {
+            "channel": "channel2",
+            "connection": "v_plus"
+          },
+          "notes": "Contact Vxy+"
+        },
+        {
+          "label": "Vxy-",
+          "link": {
+            "channel": "channel2",
+            "connection": "v_minus"
+          },
+          "notes": "Contact Vxy-"
+        }
+      ]
+    },
+    "sample3": {
+      "sample_id": "Legacy specimen 3",
+      "name": "Specimen 3",
+      "topology": "van_der_pauw",
+      "material": "Calibration film",
+      "substrate": "Simulation substrate",
+      "notes": "Fixture metadata, not a real sample",
+      "geometry": {
+        "width_m": 0.001,
+        "length_m": 0.002,
+        "thickness_m": 1e-06,
+        "spacing_m": 0.0015
+      },
+      "electrodes": [
+        {
+          "label": "A",
+          "link": {
+            "channel": "channel1",
+            "connection": "i_plus"
+          },
+          "notes": "Contact A"
+        },
+        {
+          "label": "B",
+          "link": {
+            "channel": "channel1",
+            "connection": "i_minus"
+          },
+          "notes": "Contact B"
+        },
+        {
+          "label": "C",
+          "link": {
+            "channel": "channel1",
+            "connection": "v_plus"
+          },
+          "notes": "Contact C"
+        },
+        {
+          "label": "D",
+          "link": {
+            "channel": "channel1",
+            "connection": "v_minus"
+          },
+          "notes": "Contact D"
+        }
+      ]
+    },
+    "sample4": {
+      "sample_id": "Legacy specimen 4",
+      "name": "Specimen 4",
+      "topology": "two_wire",
+      "material": "Calibration film",
+      "substrate": "Simulation substrate",
+      "notes": "Fixture metadata, not a real sample",
+      "geometry": {
+        "width_m": 0.001,
+        "length_m": 0.002,
+        "thickness_m": 1e-06,
+        "spacing_m": 0.0015
+      },
+      "electrodes": [
+        {
+          "label": "A",
+          "link": {
+            "channel": "channel1",
+            "connection": "i_plus"
+          },
+          "notes": "Contact A"
+        },
+        {
+          "label": "B",
+          "link": {
+            "channel": "channel1",
+            "connection": "i_minus"
+          },
+          "notes": "Contact B"
+        }
+      ]
+    }
+  }
+}

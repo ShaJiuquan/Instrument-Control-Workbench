@@ -181,9 +181,16 @@ Avalonia views -> ViewModels -> Application use cases -> Core contracts
    scan-managed V/I/R and full Hall/vdP groups. Post-enable sampling waits and
    explicit route verification are separate from relay settling. The 26-row
    field/sample file saves, archives, reopens, re-executes and exports. Other
-   current/AC acquisition roles, profile-file import, measurement aggregation,
+   current/AC acquisition roles, persistent profile editing, measurement aggregation,
    settings/UI and physical hardware remain required. See
    ppms-resistance-import.md, ppms-plan-import.md and temperature-control.md.
+   The profile-file follow-up parses all three routing schemas, preserves authored
+   metadata and unbound physical families in a frozen catalog, and binds explicit
+   supported devices. Channel/sample aliases resolve without duplicate route maps.
+   The 26-row file now executes from imported profiles and round-trips metadata in
+   native plans/archives. Actual bundled files were parsed and converted locally
+   without hardware. Editing/settings, remaining runtime flags/families and
+   hardware remain required. See ppms-profile-import.md.
 7. **Operator workflows — pending.** Flow editor, reusable steps, device panels,
    routing/sample settings and live/history views connected to the backend.
 8. **Acceptance — pending.** End-to-end representative PPMS experiments,

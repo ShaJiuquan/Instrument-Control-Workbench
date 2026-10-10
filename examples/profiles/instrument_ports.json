@@ -1,0 +1,54 @@
+{
+  "wiring": {
+    "k2450": {
+      "label": "Simulated independent force/sense ports",
+      "source_plus": {
+        "row": 1
+      },
+      "source_minus": {
+        "row": 2
+      },
+      "sense_plus": {
+        "row": 3
+      },
+      "sense_minus": {
+        "row": 4
+      }
+    },
+    "k2450_two_wire": {
+      "label": "Simulated shared two-wire ports",
+      "source_plus": {
+        "row": 1
+      },
+      "source_minus": {
+        "row": 2
+      },
+      "sense_plus": {
+        "row": 1
+      },
+      "sense_minus": {
+        "row": 2
+      }
+    },
+    "k6221_k2182": {
+      "label": "Unbound independent current-source/meter",
+      "source_plus": {
+        "row": 5
+      },
+      "source_minus": {
+        "row": 6
+      },
+      "sense_plus": {
+        "row": 7
+      },
+      "sense_minus": {
+        "row": 8
+      }
+    }
+  },
+  "mode_wiring": {
+    "volt_dc": "k2450",
+    "curr_dc": "k6221_k2182",
+    "curr_delta": "k6221_k2182"
+  }
+}
