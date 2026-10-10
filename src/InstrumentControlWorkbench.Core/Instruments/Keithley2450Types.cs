@@ -56,6 +56,8 @@ public static class Keithley2450Limits
 {
     public static void Validate(SourceSetpoint setpoint)
     {
+        ArgumentNullException.ThrowIfNull(setpoint);
+        if (!Enum.IsDefined(setpoint.Function)) throw new ArgumentOutOfRangeException(nameof(setpoint), "Unknown source function.");
         if (!double.IsFinite(setpoint.Level))
         {
             throw new ArgumentOutOfRangeException(nameof(setpoint), "Source level must be finite.");
@@ -80,6 +82,9 @@ public static class Keithley2450Limits
 
     public static void Validate(SenseConfiguration sense)
     {
+        ArgumentNullException.ThrowIfNull(sense);
+        if (!Enum.IsDefined(sense.Function) || !Enum.IsDefined(sense.Mode))
+            throw new ArgumentOutOfRangeException(nameof(sense), "Unknown sense function or wiring mode.");
         Keithley2450Parameters.Nplc.ValidateWrite(new(sense.Nplc, PhysicalUnit.Dimensionless));
     }
 }

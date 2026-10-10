@@ -72,3 +72,22 @@ implementation.
   resources. Dwell timers react to pause. Pause/recovery UI is still migration work.
 - A finalizer failure faults RunOutcome while retaining the acquired data set.
 - Desktop manual configuration/start commands also check backend ownership.
+
+## Device platform foundation (2026-10-11)
+
+- DeviceRegistry uses IDeviceSession application contracts. InstrumentManager
+  and AxisControllerSession share the same ownership gate; the legacy IV path
+  and new multi-device path cannot bypass each other's active leases.
+- Group lease acquisition is atomic. Claims do not touch hardware, so an
+  admission failure rolls back its own claims and never stops a foreign owner.
+- DeviceRunResources retains each pending stop task and requires fresh successful
+  stop confirmation for all devices before release. Explicit recovery retries
+  completed failures; output/parameter mutations invalidate previous success.
+- Source stop means confirmed output-off. Axis stop means hold current position,
+  not magnet zero or temperature shutdown. No hardware safety certification is
+  implied. These simulation profiles are explicitly DriverKind.Simulation.
+- Temperature rate is Kelvin/minute, field rate Tesla/second, rotation rate
+  Degree/second. TimeProvider-backed simulators have no detached background task.
+- Source-mode-dependent parameters require explicit mode/compliance selection.
+- Actual transport adapters, remaining PPMS instruments, generic plan execution,
+  persistent settings and device panels remain migration work.

@@ -13,6 +13,9 @@ public enum PhysicalUnit
     Hertz,
     Coulomb,
     Pascal,
+    KelvinPerMinute,
+    TeslaPerSecond,
+    DegreePerSecond,
 }
 
 public readonly record struct Quantity

@@ -1,5 +1,7 @@
+using InstrumentControlWorkbench.Core.Devices;
 using InstrumentControlWorkbench.Core.Instruments;
 using InstrumentControlWorkbench.Core.Instruments.Ports;
+using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Infrastructure.Drivers;
 
@@ -12,8 +14,19 @@ public sealed class MockKeithley2450SourceMeter : ISourceMeterPort
     private bool outputEnabled;
     private DateTimeOffset lastHeartbeat = DateTimeOffset.MinValue;
 
-    public InstrumentId Id { get; } = new("k2450");
+    public MockKeithley2450SourceMeter(InstrumentId? id = null)
+    {
+        Id = id ?? new("k2450");
+        Descriptor = new(Id, "K2450", DisplayName, DriverKind.Simulation, DeviceStopPolicy.OutputOff,
+            [Keithley2450Parameters.SourceVoltage, Keithley2450Parameters.SourceCurrent,
+             Keithley2450Parameters.CurrentCompliance, Keithley2450Parameters.VoltageCompliance,
+             Keithley2450Parameters.MeasuredCurrent, Keithley2450Parameters.MeasuredVoltage,
+             Keithley2450Parameters.MeasuredResistance, Keithley2450Parameters.Nplc]);
+    }
+
+    public InstrumentId Id { get; }
     public string DisplayName => "Keithley 2450 SourceMeter";
+    public DeviceDescriptor Descriptor { get; }
 
     public async Task<SourceMeterSnapshot> ConnectAsync(CancellationToken cancellationToken)
     {
@@ -107,8 +120,8 @@ public sealed class MockKeithley2450SourceMeter : ISourceMeterPort
 
             var measured = sense.Function switch
             {
-                SenseFunction.Current => MockCurrentFromVoltage(source.Level),
-                SenseFunction.Voltage => source.Level * 0.998,
+                SenseFunction.Current => source.Function == SourceFunction.Voltage ? MockCurrentFromVoltage(source.Level) : source.Level * 0.998,
+                SenseFunction.Voltage => (source.Function == SourceFunction.Voltage ? source.Level : source.Level / 2.2e-3) * 0.998,
                 SenseFunction.Resistance => 1_000.0 + Math.Abs(source.Level) * 12.0,
                 _ => 0.0,
             };
@@ -161,6 +174,18 @@ public sealed class MockKeithley2450SourceMeter : ISourceMeterPort
     public Task SafeStopAsync(CancellationToken cancellationToken)
     {
         return DisableOutputAsync(cancellationToken);
+    }
+
+    public async Task DisconnectAsync(CancellationToken cancellationToken)
+    {
+        await operationLock.WaitAsync(cancellationToken);
+        try
+        {
+            if (outputEnabled) throw new InvalidOperationException("Disable output before disconnecting the source meter.");
+            connected = false;
+            lastHeartbeat = DateTimeOffset.Now;
+        }
+        finally { operationLock.Release(); }
     }
 
     private SourceMeterSnapshot Snapshot(InstrumentLifecycleState lifecycle)

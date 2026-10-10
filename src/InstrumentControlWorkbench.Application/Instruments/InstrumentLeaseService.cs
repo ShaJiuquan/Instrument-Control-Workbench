@@ -30,6 +30,25 @@ public sealed class InstrumentLeaseService
         }
     }
 
+    public IReadOnlyList<InstrumentLease> AcquireRunExclusive(IEnumerable<InstrumentId> instrumentIds, RunId owner, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(instrumentIds);
+        ArgumentNullException.ThrowIfNull(owner);
+        var ids = instrumentIds.Distinct().ToArray();
+        if (ids.Length == 0) throw new ArgumentException("A resource group must not be empty.", nameof(instrumentIds));
+        foreach (var id in ids) ArgumentException.ThrowIfNullOrWhiteSpace(id.Value);
+        lock (gate)
+        {
+            RemoveExpired(now);
+            foreach (var id in ids)
+                if (leases.ContainsKey(id)) throw new InvalidOperationException($"{id} is already leased.");
+            var acquired = ids.Select(id => new InstrumentLease(id, owner.ToString(), InstrumentLeaseMode.Exclusive,
+                now, DateTimeOffset.MaxValue, InstrumentLeaseLifetime.RunOwned)).ToArray();
+            foreach (var lease in acquired) leases.Add(lease.InstrumentId, lease);
+            return Array.AsReadOnly(acquired);
+        }
+    }
+
     public InstrumentLease AcquireExclusive(InstrumentId instrumentId, string ownerRunId, DateTimeOffset now)
     {
         lock (gate)

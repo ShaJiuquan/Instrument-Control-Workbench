@@ -275,6 +275,8 @@ public sealed class RunLifecycleTests
         public int StopCalls { get; private set; }
         public InstrumentId Id => inner.Id;
         public string DisplayName => inner.DisplayName;
+        public Core.Devices.DeviceDescriptor Descriptor => inner.Descriptor;
+        public Task DisconnectAsync(CancellationToken token) => inner.DisconnectAsync(token);
         public Task<SourceMeterSnapshot> ConnectAsync(CancellationToken token) => inner.ConnectAsync(token);
         public Task<SourceMeterSnapshot> GetSnapshotAsync(CancellationToken token) => inner.GetSnapshotAsync(token);
         public Task<SourceMeterSnapshot> HeartbeatAsync(CancellationToken token) => inner.HeartbeatAsync(token);

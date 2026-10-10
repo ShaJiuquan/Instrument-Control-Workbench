@@ -81,12 +81,24 @@ Avalonia views -> ViewModels -> Application use cases -> Core contracts
    the run stays active through finalization. Independent notification subscribers
    receive ordered facts with a single publication timestamp. Tests cover conflict,
    retained unsafe ownership, non-cooperative stop, original/cleanup errors, paused
-   abort, long-dwell pause and archive ordering/failure. These are backend APIs;
-   The stage passes 56 tests across Core, Application and App with warnings-as-errors.
+   abort, long-dwell pause and archive ordering/failure. This stage passed 56 tests
+   across Core, Application and App with warnings-as-errors. These are backend APIs;
    pause/recovery controls and generic PPMS plan execution remain pending.
-4. **Device/platform boundary — pending.** Capability registry and routing,
-   multiple instruments, settings and actual transport adapters. Mock and real
-   device paths remain visibly distinct.
+4. **Device/platform boundary — partially implemented.** Immutable capability
+   descriptors and parameter/status validation; a registry of independent device
+   instances; shared manual/run authorization; atomic group leases and rollback;
+   run resource groups with retained cleanup tasks, per-device errors, recovery
+   and verified release. K2450 current/voltage/readback and disconnect paths share
+   the same ownership gate as existing IV execution. Deterministic temperature,
+   field and rotation simulators implement target, rate, evolving readback and
+   hold, using explicit Kelvin/minute, Tesla/second and Degree/second units. No
+   automatic field return to zero is implemented. Device metadata explicitly says
+   Simulation. The standard audit passes 75 tests (23 Core, 40 Application,
+   12 App), with a warnings-as-errors build. Changed C# files pass formatting
+   verification. Hardware transports, other instrument families, saved settings,
+   heartbeat automation and device UI integration remain pending. The desktop
+   still presents its existing K2450 workflow; the new registry is exercised
+   through its application API and acceptance tests, not a new device screen.
 5. **PPMS execution parity — pending.** Implement the inventory's command,
    measurement, scan and control-flow families with typed validation and tests.
 6. **Data/history — pending.** Approved persistence/export dependencies, versioned
@@ -115,7 +127,23 @@ waits for every started listener; no archive timeout or persistent retry queue i
 claimed. Drivers and row listeners must honor cancellation during acquisition;
 the bounded quarantine path covers safety cleanup, not arbitrary driver reads.
 Notifications use unbounded subscriber queues; retention/backpressure and the
-remaining source-meter-only ports still require platform work.
+remaining source-meter-specific configuration APIs still require platform work.
+
+Device groups deliberately retain all their resources if any stop confirmation
+fails. `DeviceRunResources.StopAllAsync(retryFailed: true)` retries only completed
+failed attempts; live timed-out attempts stay attached. `ReleaseAsync` requires
+fresh successful confirmation for every resource. Parameter writes or source
+output enable invalidate prior confirmation. Stop policy means output-off for a
+source and hold-current-position for an axis; it is not a claim that a magnet has
+been de-energized or a cryostat is physically safe. Axis limits and mock field slew
+are simulation settings, not hardware certification. Conditional source parameters
+require explicit source-mode/compliance configuration before writing.
+
+The captured PPMS `safe_state.rs` deliberately retains magnetic field; its
+`environment_hold_commands.rs` freezes field/temperature/angle at their current
+readbacks. These are the semantic references for this stage. Full restoration,
+wait-for-stability, matrix routing and BT command decoding are separate remaining
+requirements, not registered no-op implementations.
 
 The optional global formatting check still reports pre-existing formatting in
 `ViewLocator.cs`, `ViewModelBase.cs`, `Program.cs` and `ParameterDataSetTests.cs`.

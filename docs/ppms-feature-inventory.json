@@ -8,7 +8,7 @@
   },
   "statusMeaning": {
     "pending": "No C# implementation verified yet",
-    "partial": "Basic K2450 mock IV only; full PPMS behavior is not implemented",
+    "partial": "A tested subset of PPMS behavior exists; full command semantics and hardware acceptance remain incomplete",
     "implemented": "Requires linked implementation and meaningful acceptance tests",
     "hardwareVerified": "Requires protocol and real-device evidence in addition to tests"
   },
@@ -21,7 +21,12 @@
         "temperature_set",
         "temp_set"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Devices/AxisControllerSession.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/DeviceRegistryTests.cs",
+        "limits": "AxisControllerSession + simulated Kelvin/KelvinPerMinute target/rate/readback; PPMS wait/stability and hardware control strategies pending"
+      }
     },
     {
       "id": "set_field",
@@ -29,7 +34,12 @@
       "aliases": [
         "field_set"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Devices/AxisControllerSession.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/DeviceRegistryTests.cs",
+        "limits": "AxisControllerSession + simulated Tesla target/readback/hold; PPMS field control modes, wait/stability and hardware adapter pending"
+      }
     },
     {
       "id": "set_current",
@@ -62,7 +72,12 @@
         "angle_set",
         "rotator.set_angle"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Devices/AxisControllerSession.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/DeviceRegistryTests.cs",
+        "limits": "AxisControllerSession + simulated Degree/DegreePerSecond target/rate/readback/hold; PPMS wait/stability and hardware adapter pending"
+      }
     },
     {
       "id": "set_gate",
@@ -136,7 +151,12 @@
         "meas_temp",
         "read_temp"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Devices/AxisControllerSession.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/DeviceRegistryTests.cs",
+        "limits": "DeviceRegistry typed temperature.readback; PPMS measurement/result plan dispatch pending"
+      }
     },
     {
       "id": "measure_field",
@@ -145,7 +165,12 @@
         "meas_field",
         "read_field"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Devices/AxisControllerSession.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/DeviceRegistryTests.cs",
+        "limits": "DeviceRegistry typed field.readback; PPMS measurement/result plan dispatch pending"
+      }
     },
     {
       "id": "measure_angle",
@@ -154,7 +179,12 @@
         "meas_angle",
         "read_angle"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Devices/AxisControllerSession.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/DeviceRegistryTests.cs",
+        "limits": "DeviceRegistry typed angle.readback; PPMS measurement/result plan dispatch pending"
+      }
     },
     {
       "id": "measure_r",

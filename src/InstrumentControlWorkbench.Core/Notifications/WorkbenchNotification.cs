@@ -1,3 +1,4 @@
+using InstrumentControlWorkbench.Core.Devices;
 using InstrumentControlWorkbench.Core.Instruments;
 using InstrumentControlWorkbench.Core.Measurements;
 
@@ -16,6 +17,7 @@ public enum WorkbenchNotificationKind
     RunFinalizing,
     SafetyStateChanged,
     LogAppended,
+    DeviceStateChanged,
 }
 
 public sealed record WorkbenchNotification(
@@ -25,7 +27,8 @@ public sealed record WorkbenchNotification(
     SourceMeterSnapshot? Snapshot = null,
     MeasurementPoint? Point = null,
     string? RunId = null,
-    DateTimeOffset? Timestamp = null)
+    DateTimeOffset? Timestamp = null,
+    DeviceStatus? Device = null)
 {
     public DateTimeOffset OccurredAt => Timestamp ?? DateTimeOffset.Now;
 }

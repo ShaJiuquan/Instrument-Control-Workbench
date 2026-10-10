@@ -1,5 +1,7 @@
+using InstrumentControlWorkbench.Application.Devices;
 using InstrumentControlWorkbench.Application.Notifications;
 using InstrumentControlWorkbench.Core.Data;
+using InstrumentControlWorkbench.Core.Devices;
 using InstrumentControlWorkbench.Core.Instruments;
 using InstrumentControlWorkbench.Core.Instruments.Ports;
 using InstrumentControlWorkbench.Core.Notifications;
@@ -7,54 +9,33 @@ using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Application.Instruments;
 
-public sealed class InstrumentManager
+public sealed partial class InstrumentManager : IDeviceSession
 {
     private readonly ISourceMeterPort sourceMeter;
     private readonly NotificationHub notifications;
     private readonly InstrumentStateMachine stateMachine = new();
-    private readonly SemaphoreSlim operationGate = new(1, 1);
+    private readonly InstrumentOperationGate operations;
     private InstrumentLifecycleState lifecycle = InstrumentLifecycleState.Disconnected;
-    private RunId? runOwner;
 
     public InstrumentManager(ISourceMeterPort sourceMeter, NotificationHub notifications)
     {
+        ArgumentNullException.ThrowIfNull(sourceMeter);
+        ArgumentNullException.ThrowIfNull(notifications);
+        if (sourceMeter.Descriptor.Id != sourceMeter.Id || sourceMeter.Descriptor.StopPolicy != DeviceStopPolicy.OutputOff)
+            throw new ArgumentException("Source-meter identity and output-off policy must match its descriptor.", nameof(sourceMeter));
         this.sourceMeter = sourceMeter;
         this.notifications = notifications;
+        operations = new(sourceMeter.Id);
     }
 
     public InstrumentId InstrumentId => sourceMeter.Id;
 
-    internal async Task ClaimRunAsync(RunId owner, CancellationToken cancellationToken)
-    {
-        await operationGate.WaitAsync(cancellationToken);
-        try
-        {
-            if (runOwner is not null) throw new InvalidOperationException($"{InstrumentId} is owned by {runOwner}.");
-            runOwner = owner;
-        }
-        finally { operationGate.Release(); }
-    }
-
-    internal async Task ReleaseRunAsync(RunId owner, CancellationToken cancellationToken)
-    {
-        await operationGate.WaitAsync(cancellationToken);
-        try
-        {
-            if (runOwner != owner) throw new InvalidOperationException($"{owner} does not own {InstrumentId}.");
-            runOwner = null;
-        }
-        finally { operationGate.Release(); }
-    }
-
-    private async Task EnterOperationAsync(CancellationToken cancellationToken, RunId? owner)
-    {
-        await operationGate.WaitAsync(cancellationToken);
-        if (runOwner != owner)
-        {
-            operationGate.Release();
-            throw new InvalidOperationException($"{InstrumentId} is reserved by another operation.");
-        }
-    }
+    public DeviceDescriptor Descriptor => sourceMeter.Descriptor;
+    internal Task ClaimRunAsync(RunId owner, CancellationToken token) => operations.ClaimAsync(owner, token);
+    internal Task ReleaseRunAsync(RunId owner, CancellationToken token) => operations.ReleaseAsync(owner, token);
+    Task IDeviceSession.ClaimRunAsync(RunId owner, CancellationToken token) => ClaimRunAsync(owner, token);
+    Task IDeviceSession.ReleaseRunAsync(RunId owner, CancellationToken token) => ReleaseRunAsync(owner, token);
+    private Task EnterOperationAsync(CancellationToken token, RunId? owner) => operations.EnterAsync(token, owner);
 
     public async Task<InstrumentParameterSnapshot> CaptureParametersAsync(CancellationToken cancellationToken, RunId? owner = null)
     {
@@ -80,7 +61,7 @@ public sealed class InstrumentManager
         }
         finally
         {
-            operationGate.Release();
+            operations.Exit();
         }
     }
 
@@ -112,7 +93,7 @@ public sealed class InstrumentManager
         }
         finally
         {
-            operationGate.Release();
+            operations.Exit();
         }
     }
 
@@ -121,6 +102,8 @@ public sealed class InstrumentManager
         SenseConfiguration sense,
         CancellationToken cancellationToken, RunId? owner = null)
     {
+        Keithley2450Limits.Validate(source);
+        Keithley2450Limits.Validate(sense);
         await EnterOperationAsync(cancellationToken, owner);
         try
         {
@@ -139,7 +122,7 @@ public sealed class InstrumentManager
         }
         finally
         {
-            operationGate.Release();
+            operations.Exit();
         }
     }
 
@@ -160,7 +143,7 @@ public sealed class InstrumentManager
         }
         finally
         {
-            operationGate.Release();
+            operations.Exit();
         }
     }
 
@@ -182,7 +165,7 @@ public sealed class InstrumentManager
         }
         finally
         {
-            operationGate.Release();
+            operations.Exit();
         }
     }
 
@@ -218,7 +201,7 @@ public sealed class InstrumentManager
         }
         finally
         {
-            operationGate.Release();
+            operations.Exit();
         }
     }
 
@@ -234,7 +217,7 @@ public sealed class InstrumentManager
                 await PublishSnapshotAsync(snapshot with { Lifecycle = lifecycle }, cancellationToken);
             }
         }
-        finally { operationGate.Release(); }
+        finally { operations.Exit(); }
     }
 
     private void Transition(InstrumentLifecycleEvent evt)
@@ -249,7 +232,7 @@ public sealed class InstrumentManager
                 WorkbenchNotificationKind.InstrumentStateChanged,
                 $"{snapshot.Identifier}: {snapshot.Lifecycle}",
                 snapshot.InstrumentId,
-                snapshot),
+                snapshot, Device: ToDeviceStatus(snapshot)),
             cancellationToken);
         return snapshot;
     }
