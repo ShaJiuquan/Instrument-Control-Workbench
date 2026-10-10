@@ -474,7 +474,8 @@ implementation.
   lease acquisition; existing live runtime remains immutable during offline save.
 - Default factory supports simulated K2450/K3706/three axes, multiple distinct
   identities/names and disabled hardware templates. Unsupported physical drivers
-  reject; this does not implement TCP/VISA/serial communication. Published desktop
+  reject; native K2450 TCP support is recorded below, while VISA/serial and other
+  physical models remain unsupported. Published desktop
   composition/operator controls still require integration and native acceptance.
 - Device tests execute/import/archive the 28-row field/sample fixture from a fresh
   native config, edit/save while paused, preserve old source identity and apply
@@ -534,3 +535,36 @@ implementation.
   Native 1060x720 acceptance remains blocked by freshly observed locked Mac;
   all App/App.Tests changes are excluded from this backend stage. See
   configured-workbench-startup.md. Whole migration goal remains active.
+
+## Native K2450 TCP protocol stage
+
+- Infrastructure TcpScpiTransport uses SDK sockets only: no constructor IO,
+  explicit open, serialized bounded ASCII LF/CRLF exchanges, per-exchange timeout,
+  rejection of surplus/unrequested bytes and close on dispatched failure/cancel.
+  Queued cancellation preserves active owner; async disposal drains active IO.
+- Native-SCPI-only TcpKeithley2450SourceMeter checks full manufacturer/model
+  identity and language without reset/mode change, reconciles actual registers,
+  validates Core coupled limits before writes, chooses valid intermediate write
+  order and requires exact setting readback. Output-on function change rejects.
+  Both source functions enable their own actual readback for one source/sense pair;
+  format/count and device errors confirm before rows. NaN/overflow/malformed data
+  never become fabricated observations. Disconnected hardware status values are
+  absent rather than presenting initial/last-known parameters as live facts.
+  Hardware parameter capture also rejects while disconnected, both before initial
+  connect and after interrupted IO; cached values cannot enter a new snapshot.
+- The configured factory registers only K2450 SourceMeter TCP with LF/CRLF.
+  Other enabled unsupported hardware still rejects the full set before creation.
+  Independently authored loopback template is disabled/null-primary; no lab IO.
+- Forty-four focused cases cover transport edge/fault paths, identity/mode rejection,
+  both functions, coupled writes, errors/readback refusal, live mode/disconnect
+  guards, pause/resume/abort/archive, group stop refusal and reconnect recovery.
+  Saved native config/plan startup executes via selected-primary and generic
+  engines and reopens actual hardware identity/source data. Protocol tests are
+  not hardware certification; hardwareVerified remains false.
+- SCPI behavior checked against official 2450 reference manual E, while current
+  Rust k2450_reads/writes and TCP runtime were inspected read-only at unchanged
+  35763295f63b612f70af9dc55983644f437c18ea. No Rust edits, private lab addresses or
+  vendor manual redistributed. Exact write equality rejects physical rounding;
+  manual ranges, autozero/filter/quality flags, other physical families and native
+  visual acceptance remain work. See k2450-tcp.md. UI changes are excluded from
+  this backend stage and the whole migration goal remains active.

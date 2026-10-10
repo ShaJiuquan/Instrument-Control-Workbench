@@ -28,6 +28,7 @@ The desktop prototype and execution foundation currently provide:
 - Manual leases with TTL expiry; non-expiring run ownership through safety confirmation and result finalization.
 - Broadcast notification subscriptions with typed device/step/row facts.
 - Mock Keithley 2450 SourceMeter driver.
+- Native-SCPI K2450 raw TCP adapter behind the same execution/resource ports, with [protocol acceptance and hardware limits](docs/k2450-tcp.md).
 - IV recipes and typed multi-device plans share an executor with pause, abort, verified cleanup and retained unsafe ownership.
 - Simulated temperature, magnetic field and rotation controllers with explicit target/rate/readback/hold policies.
 - Nested scans, joint reads, iteration/conditions, delay and stability waits through the application API.
@@ -52,8 +53,9 @@ plans and durable run history/export are tested through the application API; the
 desktop integration is pending native acceptance. See [run archive format and
 recovery limits](docs/run-archives.md). Plan/pause/recovery/history UI changes are
 under implementation.
-All current device profiles are simulation; the source mock does not enforce
-real current compliance.
+The published desktop defaults to simulation; the source mock does not enforce
+real current compliance. The configured backend additionally supports K2450 TCP
+with local protocol tests; actual hardware acceptance remains pending.
 
 ## PPMS implementation program
 
@@ -74,7 +76,7 @@ src/
   InstrumentControlWorkbench.App/             Avalonia UI
   InstrumentControlWorkbench.Application/     Use cases, leases, notify, state orchestration
   InstrumentControlWorkbench.Core/            Domain models and use-case types
-  InstrumentControlWorkbench.Infrastructure/  Mock adapters and future IO
+  InstrumentControlWorkbench.Infrastructure/  Mock/TCP adapters, documents and archives
 tests/
   InstrumentControlWorkbench.Core.Tests/      Unit tests
   InstrumentControlWorkbench.Application.Tests/
@@ -91,7 +93,7 @@ XAML View
   -> MeasurementRunService
   -> InstrumentManager + InstrumentLeaseService + NotificationHub
   -> ISourceMeterPort
-  -> MockKeithley2450SourceMeter
+  -> MockKeithley2450SourceMeter / TcpKeithley2450SourceMeter
 ```
 
 The UI never calls a driver directly. All instrument access goes through the

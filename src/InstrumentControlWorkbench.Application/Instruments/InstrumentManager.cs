@@ -43,6 +43,8 @@ public sealed partial class InstrumentManager : IDeviceSession
         try
         {
             var snapshot = await sourceMeter.GetSnapshotAsync(cancellationToken);
+            if (!snapshot.Connected && Descriptor.DriverKind == DriverKind.Hardware)
+                throw new InvalidOperationException("Connect hardware before capturing observed parameters; initial or last-known values are not a fresh snapshot.");
             var voltageSource = snapshot.Source.Function == SourceFunction.Voltage;
             var level = voltageSource ? Keithley2450Parameters.SourceVoltage : Keithley2450Parameters.SourceCurrent;
             var compliance = voltageSource ? Keithley2450Parameters.CurrentCompliance : Keithley2450Parameters.VoltageCompliance;

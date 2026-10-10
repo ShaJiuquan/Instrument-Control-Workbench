@@ -9,6 +9,11 @@ public sealed class ConfiguredDeviceFactory(TimeProvider? clock = null) : IConfi
     public void Validate(DeviceConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
+        if (configuration.Connection is TcpDeviceConnection tcp && configuration.Category == ConfiguredDeviceCategory.SourceMeter && configuration.Model.Equals("K2450", StringComparison.OrdinalIgnoreCase))
+        {
+            if (tcp.Terminator is not ("\n" or "\r\n" or "\\n" or "\\r\\n")) throw new NotSupportedException("K2450 TCP requires LF or CRLF command termination.");
+            return;
+        }
         if (configuration.Connection is not SimulationDeviceConnection)
             throw new NotSupportedException($"{configuration.Id}: no hardware adapter is registered for {configuration.Model} and {configuration.Connection.GetType().Name}.");
         var supported = (configuration.Category, configuration.Model.ToUpperInvariant()) switch
@@ -25,6 +30,8 @@ public sealed class ConfiguredDeviceFactory(TimeProvider? clock = null) : IConfi
     public ConfiguredDevicePorts Create(DeviceConfiguration configuration)
     {
         Validate(configuration);
+        if (configuration.Connection is TcpDeviceConnection tcp)
+            return new(new TcpKeithley2450SourceMeter(configuration.Id, configuration.DisplayName, tcp));
         return configuration.Category switch
         {
             ConfiguredDeviceCategory.SourceMeter => new(new MockKeithley2450SourceMeter(configuration.Id, configuration.DisplayName)),

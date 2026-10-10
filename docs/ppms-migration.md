@@ -230,6 +230,15 @@ Avalonia views -> ViewModels -> Application use cases -> Core contracts
    snapshots and fresh archives. Local desktop startup/device/settings draft is
    wired and ViewModel-tested but still awaits native visual acceptance. See
    configured-workbench-startup.md.
+   The first physical-transport adapter now registers native-SCPI K2450 raw TCP
+   behind the same Core port and Application lifecycle. Owned loopback acceptance
+   covers fresh register reconciliation, actual paired source/sense data,
+   valid coupled configuration order, output/readback guards, cancellation
+   invalidation, retained unsafe ownership and explicit reconnect recovery.
+   Saved config/plan execution and archive reload work with or without selected
+   primary. No hardware was contacted; real acceptance, other physical adapters,
+   range/filter/quality features and native operator acceptance remain pending.
+   See k2450-tcp.md.
 7. **Operator workflows — pending.** Flow editor, reusable steps, device panels,
    routing/sample settings and live/history views connected to the backend.
 8. **Acceptance — pending.** End-to-end representative PPMS experiments,

@@ -146,7 +146,7 @@ public sealed partial class InstrumentManager
         var level = voltage ? Keithley2450Parameters.SourceVoltage : Keithley2450Parameters.SourceCurrent;
         var compliance = voltage ? Keithley2450Parameters.CurrentCompliance : Keithley2450Parameters.VoltageCompliance;
         return new(Descriptor, lifecycle, snapshot.Connected, (snapshot.Connected || Descriptor.DriverKind == DriverKind.Simulation) && !snapshot.OutputEnabled,
-            snapshot.LastHeartbeat, new Dictionary<ParameterId, Quantity>
+            snapshot.LastHeartbeat, !snapshot.Connected && Descriptor.DriverKind == DriverKind.Hardware ? new Dictionary<ParameterId, Quantity>() : new Dictionary<ParameterId, Quantity>
             {
                 [level.Id] = new(snapshot.Source.Level, level.Unit),
                 [compliance.Id] = new(snapshot.Source.Compliance, compliance.Unit),

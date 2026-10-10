@@ -1,0 +1,24 @@
+{
+  "format": "instrument-workbench-devices",
+  "version": 1,
+  "primarySource": null,
+  "devices": [
+    {
+      "id": "tcp-smu",
+      "model": "K2450",
+      "displayName": "K2450 TCP template (disabled)",
+      "category": "SourceMeter",
+      "enabled": false,
+      "connection": {
+        "transport": "tcp",
+        "host": "127.0.0.1",
+        "port": 5025,
+        "terminator": "\n",
+        "timeoutSeconds": 5
+      }
+    }
+  ],
+  "aliases": {
+    "k2450": "tcp-smu"
+  }
+}

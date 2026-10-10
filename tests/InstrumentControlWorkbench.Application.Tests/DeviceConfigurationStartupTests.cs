@@ -64,7 +64,7 @@ public sealed class DeviceConfigurationStartupTests
         var folder = Path.Combine(Path.GetTempPath(), "startup-hardware-" + Guid.NewGuid().ToString("N"));
         try
         {
-            var seed = await Catalog(); var bad = new DeviceConfigurationCatalog(null, [.. seed.Devices, new(new("hardware"), "K2450", "Real source", ConfiguredDeviceCategory.SourceMeter, new TcpDeviceConnection("127.0.0.1", 5025, "\n", TimeSpan.FromSeconds(1)))], seed.Aliases);
+            var seed = await Catalog(); var bad = new DeviceConfigurationCatalog(null, [.. seed.Devices, new(new("hardware"), "K2450", "Real source", ConfiguredDeviceCategory.SourceMeter, new VisaDeviceConnection("TCPIP0::127.0.0.1::INSTR"))], seed.Aliases);
             var path = Path.Combine(folder, "devices.json"); var doc = new JsonDeviceConfigurationDocument(); await doc.SaveAsync(path, bad, Token); var original = await File.ReadAllTextAsync(path); var factory = new Factory();
             await Assert.ThrowsAsync<NotSupportedException>(() => new DeviceConfigurationStartup(doc, factory, new(TimeSpan.FromSeconds(5)), new()).StartAsync(path, seed, Token));
             Assert.Equal(0, factory.Created); Assert.Equal(original, await File.ReadAllTextAsync(path));

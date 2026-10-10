@@ -50,13 +50,16 @@ It checks returned instance/name/driver kind, execution category, axis units and
 matrix cards/guard references. Construction claims no lease and performs no IO.
 The factory contract prohibits constructor IO; connection is owned by sessions.
 
-The default Infrastructure factory currently builds the existing simulated K2450,
+The default Infrastructure factory builds the existing simulated K2450,
 K3706, temperature, magnetic-field and rotation profiles. It supports distinct IDs
 and names for multiple instances, with independent state. Unsupported enabled
 models or physical transports reject explicitly; there is no automatic mock
 fallback. Disabled hardware templates remain in the saved document and are
 excluded from the runtime/import bindings. Matrix profiles require explicit cards
 and guard IDs; the PPMS connection file does not supply these.
+The factory also registers native-SCPI K2450 over raw TCP, with constructor-free
+IO and explicit connection. Its protocol/recovery evidence and physical limits
+are recorded in [k2450-tcp.md](k2450-tcp.md); real-device acceptance is pending.
 
 ```csharp
 var settings = new DeviceConfigurationWorkspace(
@@ -112,7 +115,7 @@ source identity in its archive, and apply a different primary source in the next
 runtime. Excitation output-off, route cleanup and reusable leases use the existing
 safety lifecycle. Local actual-file import evidence is recorded in AI_MEMORY.md.
 
-Physical TCP/VISA/serial adapters, database/environment precedence, device-specific
+Additional physical TCP/VISA/serial adapters, database/environment precedence, device-specific
 parameter settings, discovery/plugins, native operator panels/restart UX and
-hardware acceptance remain required. This stage is configuration/startup foundation,
-not physical driver or full PPMS configuration parity.
+hardware acceptance remain required. Configuration/startup and the first TCP
+adapter do not establish full PPMS configuration or hardware parity.
