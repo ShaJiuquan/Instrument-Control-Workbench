@@ -280,3 +280,23 @@ implementation.
   not proof of physical atomicity, compliance limiting or an interlock.
 - See source-sense-acquisition.md. Standalone meters, range/quality profiles,
   PPMS command import, durable configuration, UI and hardware remain pending.
+
+## PPMS runtime-tree import
+
+- IExperimentPlanImporter is a real Core format boundary used by the Application
+  workspace for import/preflight; Infrastructure translates PPMS runtime JSON
+  into existing plans. No direct importer-to-driver path or second interpreter.
+- Bindings freeze explicit instrument instances, axis definitions, source
+  preparations and channel crosspoints. Unknown/default active routes and
+  unmapped devices are not guessed. An off-only command does not apply an unused
+  preparation. Source configuration parks zero before compliance changes and
+  source scans configure their first level before output enable.
+- Source-line metadata persists through native plans/archive/CSV. Repeat's
+  default three cycles, pre-child delays, PPMS spacing/single-point and segment
+  first-point removal are retained. Generated wrappers and aggregate points have
+  budgets as well as the raw tree. Invalid fields/functions/ranges/routes fail
+  before IO; workspace capability preflight is still required after parsing.
+- Software temperature ramps/scans, controller-status waits, persistent mode,
+  remaining BT semantics, aggregation, sample/resistance import, ranges/filtering,
+  separate meter families, text DSL/database export and hardware remain required.
+  See ppms-plan-import.md and the six-row field/voltage import acceptance.

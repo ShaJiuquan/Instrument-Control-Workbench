@@ -165,6 +165,13 @@ Avalonia views -> ViewModels -> Application use cases -> Core contracts
    field/current file, archive/CSV and fault/pause tests cover the simulated API.
    See source-sense-acquisition.md; standalone meters, range/quality profiles,
    PPMS decoding and hardware remain pending.
+   The import follow-up adds a separate bounded PPMS runtime-tree codec and
+   Application import/preflight APIs. Explicit source/controller/channel bindings,
+   source-line metadata, repeat/delay, environment settings and step field/angle/
+   source scans translate into native plans. The real-schema six-row matrix-routed
+   field/voltage fixture executes, saves/reloads, archives and exports. Software
+   temperature ramps/scans, remaining BT/controller/range/measurement semantics
+   still reject instead of silently degrading. See ppms-plan-import.md.
 7. **Operator workflows — pending.** Flow editor, reusable steps, device panels,
    routing/sample settings and live/history views connected to the backend.
 8. **Acceptance — pending.** End-to-end representative PPMS experiments,

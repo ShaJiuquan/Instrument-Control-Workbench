@@ -13,8 +13,9 @@ The envelope is `format: "instrument-workbench-plan"`, `version: 1`, `name`,
 `preparations`, `metadata` and `root`. These are required. An optional `routing`
 catalog freezes sample/channel/wiring configuration into the plan. Unknown fields, duplicate
 fields, unsupported versions and unknown step kinds are rejected. This format
-is intentionally identified separately from PPMS JSON; PPMS alias/schema import
-is still migration work. A file must be UTF-8, with an optional BOM on load.
+is intentionally identified separately from PPMS JSON. A separate
+[PPMS runtime-tree import API](ppms-plan-import.md) converts a verified subset
+to this native format; full PPMS aliases/schema semantics remain migration work. A file must be UTF-8, with an optional BOM on load.
 
 See the runnable [field/voltage example](../examples/plans/field-voltage.plan.json).
 It needs registered instances `k2450` and `field`, matching the simulation

@@ -5,8 +5,12 @@ namespace InstrumentControlWorkbench.Application.Experiments;
 
 public sealed record ValidatedPlanDocument(ExperimentPlan Plan, string Text, ExperimentPlanPreview Preview);
 
-public sealed class ExperimentPlanWorkspace(IExperimentPlanDocument documents, MeasurementRunService runs)
+public sealed class ExperimentPlanWorkspace(IExperimentPlanDocument documents, MeasurementRunService runs, IExperimentPlanImporter? importer = null)
 {
+    public ValidatedPlanDocument Import(string text, ExperimentImportBindings bindings)
+        => Inspect((importer ?? throw new InvalidOperationException("No experiment importer is configured.")).Parse(text, bindings));
+    public async Task<ValidatedPlanDocument> ImportAsync(string path, ExperimentImportBindings bindings, CancellationToken token)
+        => Inspect(await (importer ?? throw new InvalidOperationException("No experiment importer is configured.")).LoadAsync(path, bindings, token));
     public ValidatedPlanDocument Validate(string text) => Inspect(documents.Parse(text));
     public ValidatedPlanDocument Inspect(ExperimentPlan plan)
     {

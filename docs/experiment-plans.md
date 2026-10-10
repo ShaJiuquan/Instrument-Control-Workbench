@@ -80,8 +80,11 @@ all result finalizers. Different measurement branches have optional schema
 columns; present columns still require their declared axes/time. No placeholder
 NaNs stand in for missing measurements.
 
-This stage has no PPMS JSON/alias importer, durable storage, parallel/race/retry
-BT semantics, or real hardware transport. The inventory marks relevant families
+The native format now has a separate bounded PPMS runtime-tree importer; see
+[ppms-plan-import.md](ppms-plan-import.md) for explicit bindings and unsupported
+semantics. Durable run archives are documented in run-archives.md. There is no
+parallel/race/retry
+BT execution or real hardware transport. The inventory marks relevant families
 partial. Tests in `ExperimentExecutionTests` demonstrate a 3 x 3 field/voltage
 scan, conditional/iterator rows, pause restoration, abort, stability timeout,
 preflight failures, runtime limits and explicit reconnect recovery. These are
