@@ -42,9 +42,10 @@ no protection across independent application processes.
 `ConfiguredDeviceRuntime` is startup construction, not a hot-reload operation.
 It validates every enabled entry through the injected Core factory before creating
 any ports, then wraps each in existing Application sessions and a shared registry.
-A null primary supports axes-only startup/manual/resource management without
-creating an unused SMU. The current MeasurementRunService constructor still needs
-a selected source meter; general axes-only plan execution remains migration work.
+A null primary supports axes-only startup, manual control and generic plan
+execution without creating an unused SMU. MeasurementRunService accepts the
+registry directly; primary source selection is required only for legacy SMU
+recipe shortcuts. See source-independent-execution.md.
 It checks returned instance/name/driver kind, execution category, axis units and
 matrix cards/guard references. Construction claims no lease and performs no IO.
 The factory contract prohibits constructor IO; connection is owned by sessions.
@@ -63,8 +64,7 @@ var settings = new DeviceConfigurationWorkspace(
 var saved = await settings.LoadAsync(devicePath, token);
 var runtime = new ConfiguredDeviceRuntime(saved.Catalog,
     new ConfiguredDeviceFactory(), leases, notifications);
-var runs = new MeasurementRunService(runtime.PrimarySource, leases,
-    notifications, resultListeners, deviceRegistry: runtime.Registry);
+var runs = new MeasurementRunService(runtime.Registry, notifications, resultListeners);
 var deviceBindings = runtime.CreateImportBindings(preparations);
 // Bind the authored routing catalog explicitly, then import/preflight the plan.
 ```

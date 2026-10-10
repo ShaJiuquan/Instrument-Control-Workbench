@@ -1,0 +1,90 @@
+{
+  "format": "instrument-workbench-plan",
+  "version": 1,
+  "name": "Controller-only temperature / field / angle scan",
+  "preparations": [],
+  "metadata": {},
+  "root": {
+    "id": "root",
+    "kind": "sequence",
+    "children": [
+      {
+        "id": "temperature_hold",
+        "kind": "software_temperature_ramp",
+        "device": "thermal-1",
+        "target": {
+          "constant": {
+            "value": 300,
+            "unit": "Kelvin"
+          }
+        },
+        "rate": {
+          "value": 5,
+          "unit": "KelvinPerMinute"
+        }
+      },
+      {
+        "id": "scan_field",
+        "kind": "scan",
+        "axis": {
+          "device": "magnet-1",
+          "parameter": "field.target"
+        },
+        "column": "field_set",
+        "values": {
+          "unit": "Tesla",
+          "values": [
+            0,
+            0.001
+          ]
+        },
+        "dwellSeconds": 0.01,
+        "body": {
+          "id": "scan_angle",
+          "kind": "scan",
+          "axis": {
+            "device": "rotation-1",
+            "parameter": "angle.target"
+          },
+          "column": "angle_set",
+          "values": {
+            "unit": "Degree",
+            "values": [
+              0,
+              0.01,
+              0.02
+            ]
+          },
+          "dwellSeconds": 0.005,
+          "body": {
+            "id": "joint_read",
+            "kind": "read",
+            "channels": [
+              {
+                "column": "temperature_actual",
+                "address": {
+                  "device": "thermal-1",
+                  "parameter": "temperature.readback"
+                }
+              },
+              {
+                "column": "field_actual",
+                "address": {
+                  "device": "magnet-1",
+                  "parameter": "field.readback"
+                }
+              },
+              {
+                "column": "angle_actual",
+                "address": {
+                  "device": "rotation-1",
+                  "parameter": "angle.readback"
+                }
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

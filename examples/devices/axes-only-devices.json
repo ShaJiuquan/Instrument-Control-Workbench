@@ -1,0 +1,42 @@
+{
+  "format": "instrument-workbench-devices",
+  "version": 1,
+  "primarySource": null,
+  "devices": [
+    {
+      "id": "magnet-1",
+      "model": "SIM-FIELD",
+      "displayName": "Magnet simulator",
+      "category": "Field",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      }
+    },
+    {
+      "id": "thermal-1",
+      "model": "SIM-TEMPERATURE",
+      "displayName": "Temperature simulator",
+      "category": "Temperature",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      }
+    },
+    {
+      "id": "rotation-1",
+      "model": "ROTATOR",
+      "displayName": "Angle simulator",
+      "category": "Rotation",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      }
+    }
+  ],
+  "aliases": {
+    "field": "magnet-1",
+    "temperature": "thermal-1",
+    "angle": "rotation-1"
+  }
+}

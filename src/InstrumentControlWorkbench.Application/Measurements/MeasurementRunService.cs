@@ -14,7 +14,7 @@ namespace InstrumentControlWorkbench.Application.Measurements;
 
 public sealed partial class MeasurementRunService
 {
-    private readonly InstrumentId primaryInstrument;
+    private readonly InstrumentId? primaryInstrument;
     private readonly DeviceRegistry devices;
     private readonly NotificationHub notifications;
     private readonly IRunResultListener[] listeners;
@@ -26,9 +26,18 @@ public sealed partial class MeasurementRunService
     public MeasurementRunService(InstrumentManager instrumentManager, InstrumentLeaseService leaseService,
         NotificationHub notifications, IEnumerable<IRunResultListener>? resultListeners = null, TimeSpan? safetyTimeout = null,
         DeviceRegistry? deviceRegistry = null)
+        : this(deviceRegistry ?? new DeviceRegistry([instrumentManager], leaseService), notifications, resultListeners, safetyTimeout)
     {
+        ArgumentNullException.ThrowIfNull(instrumentManager);
         primaryInstrument = instrumentManager.InstrumentId;
-        devices = deviceRegistry ?? new DeviceRegistry([instrumentManager], leaseService);
+    }
+
+    // Generic execution depends on registered capabilities, not a selected SMU.
+    public MeasurementRunService(DeviceRegistry deviceRegistry, NotificationHub notifications,
+        IEnumerable<IRunResultListener>? resultListeners = null, TimeSpan? safetyTimeout = null)
+    {
+        ArgumentNullException.ThrowIfNull(deviceRegistry); ArgumentNullException.ThrowIfNull(notifications);
+        devices = deviceRegistry;
         this.notifications = notifications;
         this.safetyTimeout = safetyTimeout ?? TimeSpan.FromSeconds(5);
         if (this.safetyTimeout <= TimeSpan.Zero || this.safetyTimeout > TimeSpan.FromMilliseconds(uint.MaxValue - 1))
@@ -49,12 +58,13 @@ public sealed partial class MeasurementRunService
     {
         ArgumentNullException.ThrowIfNull(recipe);
         recipe.Validate();
-        return StartAsync(ExperimentPlanCompiler.Compile(IvExperimentPlan.Create(primaryInstrument, recipe), devices),
+        var source = primaryInstrument ?? throw new InvalidOperationException("Select a primary source meter for the IV shortcut, or supply an explicitly bound experiment plan.");
+        return StartAsync(ExperimentPlanCompiler.Compile(IvExperimentPlan.Create(source, recipe), devices),
             cancellationToken, ivPlot: true, metadata);
     }
 
     public Task StartVoltageResistanceAsync(VoltageResistanceRecipe recipe, CancellationToken token, RunMetadata? metadata = null)
-        => StartPlanAsync(VoltageResistancePlan.Create(primaryInstrument, recipe), token, metadata);
+        => StartPlanAsync(VoltageResistancePlan.Create(primaryInstrument ?? throw new InvalidOperationException("Select a primary source meter for the resistance shortcut, or supply an explicitly bound experiment plan."), recipe), token, metadata);
 
     public Task StartSampleResistanceAsync(SampleResistanceRecipe recipe, CancellationToken token, RunMetadata? metadata = null)
         => StartPlanAsync(SampleResistancePlan.Create(recipe), token, metadata);
@@ -77,7 +87,12 @@ public sealed partial class MeasurementRunService
         lock (admissionGate)
         {
             if (active is not null) throw new InvalidOperationException("A run is active or requires safety recovery.");
-            run = new(token) { SampleRoutes = compiled.SampleRoutes };
+            run = new(token)
+            {
+                SampleRoutes = compiled.SampleRoutes,
+                NotificationInstrument = primaryInstrument is { } primary && compiled.Devices.Contains(primary) ? primary
+                    : compiled.Devices.Count == 1 ? compiled.Devices[0] : null,
+            };
             active = run;
         }
         try
@@ -254,5 +269,5 @@ public sealed partial class MeasurementRunService
     }
 
     private ValueTask PublishAsync(RunExecutionContext run, WorkbenchNotificationKind kind, string message, CancellationToken token)
-        => notifications.PublishAsync(new(kind, message, primaryInstrument, RunId: run.Id.ToString()), token);
+        => notifications.PublishAsync(new(kind, message, run.NotificationInstrument, RunId: run.Id.ToString()), token);
 }

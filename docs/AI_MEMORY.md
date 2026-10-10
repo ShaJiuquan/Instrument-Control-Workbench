@@ -486,6 +486,28 @@ implementation.
   or hardware IO and no original source/config changes. No lab addresses copied
   into the independently authored fixtures or published documentation.
 - Null primary supports axes-only configuration/startup/manual/resource cleanup
-  without constructing an unused SMU. The current MeasurementRunService still
-  requires a selected SMU; decoupling general axes-only plan execution remains
-  work. Native null primary and partial rotator-only import are verified.
+  without constructing an unused SMU. MeasurementRunService now accepts
+  the registry directly for generic execution. Native null primary and partial
+  rotator-only import are verified; legacy IV/resistance shortcuts still need an
+  explicit primary selection.
+
+## Source-independent execution
+
+- Generic MeasurementRunService construction accepts DeviceRegistry/NotificationHub
+  and listeners, with no placeholder InstrumentManager. The same compiler,
+  admission, interpreter, pause/resume, stop/quarantine/recovery and finalization
+  path executes axis-only, explicitly bound SMU and resource-free control plans.
+- Legacy IV/resistance convenience recipes retain selected-source behavior and
+  reject missing selection before IO. Run lifecycle notifications use only a
+  participating legacy primary or the sole actual resource; multi-resource generic
+  and resource-free runs have null InstrumentId and the actual RunId. Per-device
+  notifications/snapshots retain their own IDs. An unrelated primary is untouched.
+- Independently authored axes-only config/native scan and PPMS import fixtures
+  execute 6 joint rows and 24 rows (six groups of three raw plus one wide row),
+  persist/reopen/export and replay on fresh runtimes with no SMU. Twelve acceptance
+  cases cover pause/resume/abort, independent read/hold faults, retained group
+  claims/recovery, listener finalization/error, pre-cancel/preflight and foreign
+  live-source exclusion. See source-independent-execution.md.
+- This is simulated/backend acceptance. Native composition/editor acceptance,
+  hardware transports, DB/env precedence and other migration inventory work remain;
+  the whole goal remains active.

@@ -1,0 +1,71 @@
+{
+  "experiment_id": "Controller-only PPMS nested acquisition",
+  "type": "scan",
+  "name": "scan_temperature",
+  "source_line": 1,
+  "params": {
+    "points": [
+      300
+    ],
+    "wait_mode": "reached",
+    "timeout_s": 5,
+    "settle_s": 0
+  },
+  "children": [
+    {
+      "type": "scan",
+      "name": "scan_field",
+      "source_line": 2,
+      "params": {
+        "points": [
+          0,
+          0.001
+        ],
+        "wait_mode": "reached",
+        "timeout_s": 5,
+        "settle_s": 0,
+        "tolerance_t": 0.0001
+      },
+      "children": [
+        {
+          "type": "scan",
+          "name": "scan_angle",
+          "source_line": 3,
+          "params": {
+            "points": [
+              0,
+              0.01,
+              0.02
+            ],
+            "wait_mode": "reached",
+            "timeout_s": 5,
+            "settle_s": 0
+          },
+          "children": [
+            {
+              "type": "measurement",
+              "name": "measure_temp",
+              "label": "Temperature",
+              "source_line": 4,
+              "params": {}
+            },
+            {
+              "type": "measurement",
+              "name": "measure_field",
+              "label": "Field",
+              "source_line": 5,
+              "params": {}
+            },
+            {
+              "type": "measurement",
+              "name": "measure_angle",
+              "label": "Angle",
+              "source_line": 6,
+              "params": {}
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -217,6 +217,13 @@ Avalonia views -> ViewModels -> Application use cases -> Core contracts
    Published desktop composition, physical adapters, DB/env precedence and
    operator restart/device-specific settings remain pending. See
    device-configuration.md.
+   Generic execution now accepts DeviceRegistry directly with no selected SMU.
+   Three-controller native and imported PPMS scan fixtures execute, archive,
+   export and replay with no placeholder source. Resource-free control plans and
+   explicit SMU bindings share the same lifecycle. Pause/abort, independent stop
+   failures, retained ownership/recovery and listener finalization are verified;
+   legacy IV/resistance shortcuts still require explicit primary selection.
+   See source-independent-execution.md.
 7. **Operator workflows — pending.** Flow editor, reusable steps, device panels,
    routing/sample settings and live/history views connected to the backend.
 8. **Acceptance — pending.** End-to-end representative PPMS experiments,

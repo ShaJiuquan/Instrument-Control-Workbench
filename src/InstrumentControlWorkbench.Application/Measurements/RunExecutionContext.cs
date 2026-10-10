@@ -2,6 +2,7 @@ using System.Diagnostics;
 using InstrumentControlWorkbench.Application.Devices;
 using InstrumentControlWorkbench.Core.Data;
 using InstrumentControlWorkbench.Core.Experiments;
+using InstrumentControlWorkbench.Core.Instruments;
 using InstrumentControlWorkbench.Core.Measurements;
 using InstrumentControlWorkbench.Core.Parameters;
 using InstrumentControlWorkbench.Core.Routing;
@@ -35,6 +36,7 @@ internal sealed class RunExecutionContext : IDisposable
     public CancellationToken Token => cancellation.Token;
     public volatile RunExecutionPhase Phase = RunExecutionPhase.Starting;
     public DeviceRunResources? Resources { get; set; }
+    public InstrumentId? NotificationInstrument { get; init; }
     public Dictionary<ParameterId, Quantity> Variables { get; } = [];
     public Dictionary<ParameterId, Quantity> Axes { get; } = [];
     public TimeSpan PausedDuration { get; set; }
