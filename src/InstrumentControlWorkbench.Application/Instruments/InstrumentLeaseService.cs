@@ -1,3 +1,4 @@
+using InstrumentControlWorkbench.Core.Data;
 using InstrumentControlWorkbench.Core.Instruments;
 
 namespace InstrumentControlWorkbench.Application.Instruments;
@@ -10,7 +11,23 @@ public sealed class InstrumentLeaseService
 
     public InstrumentLeaseService(TimeSpan defaultTtl)
     {
+        if (defaultTtl <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(defaultTtl));
         this.defaultTtl = defaultTtl;
+    }
+
+    public InstrumentLease AcquireRunExclusive(InstrumentId instrumentId, RunId owner, DateTimeOffset now)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(instrumentId.Value);
+        ArgumentNullException.ThrowIfNull(owner);
+        lock (gate)
+        {
+            RemoveExpired(now);
+            if (leases.ContainsKey(instrumentId)) throw new InvalidOperationException($"{instrumentId} is already leased.");
+            var lease = new InstrumentLease(instrumentId, owner.ToString(), InstrumentLeaseMode.Exclusive,
+                now, DateTimeOffset.MaxValue, InstrumentLeaseLifetime.RunOwned);
+            leases.Add(instrumentId, lease);
+            return lease;
+        }
     }
 
     public InstrumentLease AcquireExclusive(InstrumentId instrumentId, string ownerRunId, DateTimeOffset now)
@@ -40,12 +57,13 @@ public sealed class InstrumentLeaseService
     {
         lock (gate)
         {
+            RemoveExpired(now);
             if (!leases.TryGetValue(instrumentId, out var existing) || existing.OwnerRunId != ownerRunId)
             {
                 throw new InvalidOperationException($"{ownerRunId} does not own {instrumentId}.");
             }
 
-            var refreshed = existing with { ExpiresAt = now.Add(defaultTtl) };
+            var refreshed = existing.Lifetime == InstrumentLeaseLifetime.RunOwned ? existing : existing with { ExpiresAt = now.Add(defaultTtl) };
             leases[instrumentId] = refreshed;
             return refreshed;
         }

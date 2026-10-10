@@ -1,4 +1,5 @@
 using InstrumentControlWorkbench.Application.Notifications;
+using InstrumentControlWorkbench.Core.Data;
 using InstrumentControlWorkbench.Core.Instruments;
 using InstrumentControlWorkbench.Core.Instruments.Ports;
 using InstrumentControlWorkbench.Core.Notifications;
@@ -13,6 +14,7 @@ public sealed class InstrumentManager
     private readonly InstrumentStateMachine stateMachine = new();
     private readonly SemaphoreSlim operationGate = new(1, 1);
     private InstrumentLifecycleState lifecycle = InstrumentLifecycleState.Disconnected;
+    private RunId? runOwner;
 
     public InstrumentManager(ISourceMeterPort sourceMeter, NotificationHub notifications)
     {
@@ -22,9 +24,41 @@ public sealed class InstrumentManager
 
     public InstrumentId InstrumentId => sourceMeter.Id;
 
-    public async Task<InstrumentParameterSnapshot> CaptureParametersAsync(CancellationToken cancellationToken)
+    internal async Task ClaimRunAsync(RunId owner, CancellationToken cancellationToken)
     {
         await operationGate.WaitAsync(cancellationToken);
+        try
+        {
+            if (runOwner is not null) throw new InvalidOperationException($"{InstrumentId} is owned by {runOwner}.");
+            runOwner = owner;
+        }
+        finally { operationGate.Release(); }
+    }
+
+    internal async Task ReleaseRunAsync(RunId owner, CancellationToken cancellationToken)
+    {
+        await operationGate.WaitAsync(cancellationToken);
+        try
+        {
+            if (runOwner != owner) throw new InvalidOperationException($"{owner} does not own {InstrumentId}.");
+            runOwner = null;
+        }
+        finally { operationGate.Release(); }
+    }
+
+    private async Task EnterOperationAsync(CancellationToken cancellationToken, RunId? owner)
+    {
+        await operationGate.WaitAsync(cancellationToken);
+        if (runOwner != owner)
+        {
+            operationGate.Release();
+            throw new InvalidOperationException($"{InstrumentId} is reserved by another operation.");
+        }
+    }
+
+    public async Task<InstrumentParameterSnapshot> CaptureParametersAsync(CancellationToken cancellationToken, RunId? owner = null)
+    {
+        await EnterOperationAsync(cancellationToken, owner);
         try
         {
             var snapshot = await sourceMeter.GetSnapshotAsync(cancellationToken);
@@ -50,9 +84,9 @@ public sealed class InstrumentManager
         }
     }
 
-    public async Task<SourceMeterSnapshot> ConnectAsync(CancellationToken cancellationToken)
+    public async Task<SourceMeterSnapshot> ConnectAsync(CancellationToken cancellationToken, RunId? owner = null)
     {
-        await operationGate.WaitAsync(cancellationToken);
+        await EnterOperationAsync(cancellationToken, owner);
         try
         {
             if (lifecycle == InstrumentLifecycleState.Idle)
@@ -66,7 +100,7 @@ public sealed class InstrumentManager
             }
 
             Transition(InstrumentLifecycleEvent.ConnectRequested);
-            await PublishLogAsync("Connecting mock Keithley 2450.", cancellationToken);
+            await PublishLogAsync($"Connecting {sourceMeter.DisplayName}.", cancellationToken);
             var snapshot = await sourceMeter.ConnectAsync(cancellationToken);
             Transition(InstrumentLifecycleEvent.Connected);
             return await PublishSnapshotAsync(snapshot with { Lifecycle = lifecycle }, cancellationToken);
@@ -85,9 +119,9 @@ public sealed class InstrumentManager
     public async Task<SourceMeterSnapshot> ConfigureAsync(
         SourceSetpoint source,
         SenseConfiguration sense,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, RunId? owner = null)
     {
-        await operationGate.WaitAsync(cancellationToken);
+        await EnterOperationAsync(cancellationToken, owner);
         try
         {
             Transition(InstrumentLifecycleEvent.ConfigureRequested);
@@ -109,9 +143,9 @@ public sealed class InstrumentManager
         }
     }
 
-    public async Task EnterRunAsync(CancellationToken cancellationToken)
+    public async Task EnterRunAsync(CancellationToken cancellationToken, RunId? owner = null)
     {
-        await operationGate.WaitAsync(cancellationToken);
+        await EnterOperationAsync(cancellationToken, owner);
         try
         {
             Transition(InstrumentLifecycleEvent.RunRequested);
@@ -119,15 +153,20 @@ public sealed class InstrumentManager
             var snapshot = await sourceMeter.GetSnapshotAsync(cancellationToken);
             await PublishSnapshotAsync(snapshot with { Lifecycle = lifecycle }, cancellationToken);
         }
+        catch
+        {
+            Transition(InstrumentLifecycleEvent.FaultDetected);
+            throw;
+        }
         finally
         {
             operationGate.Release();
         }
     }
 
-    public async Task<MeasurementValue> SetAndReadAsync(SourceSetpoint setpoint, CancellationToken cancellationToken)
+    public async Task<MeasurementValue> SetAndReadAsync(SourceSetpoint setpoint, CancellationToken cancellationToken, RunId? owner = null)
     {
-        await operationGate.WaitAsync(cancellationToken);
+        await EnterOperationAsync(cancellationToken, owner);
         try
         {
             await sourceMeter.ConfigureSourceAsync(setpoint, cancellationToken);
@@ -136,15 +175,20 @@ public sealed class InstrumentManager
             await PublishSnapshotAsync(snapshot with { Lifecycle = lifecycle }, cancellationToken);
             return value;
         }
+        catch
+        {
+            Transition(InstrumentLifecycleEvent.FaultDetected);
+            throw;
+        }
         finally
         {
             operationGate.Release();
         }
     }
 
-    public async Task SafeStopAsync(string reason, CancellationToken cancellationToken)
+    public async Task SafeStopAsync(string reason, CancellationToken cancellationToken, RunId? owner = null)
     {
-        await operationGate.WaitAsync(CancellationToken.None);
+        await EnterOperationAsync(cancellationToken, owner);
         try
         {
             if (lifecycle == InstrumentLifecycleState.Running)
@@ -153,11 +197,12 @@ public sealed class InstrumentManager
             }
 
             await sourceMeter.SafeStopAsync(cancellationToken);
+            var snapshot = await sourceMeter.GetSnapshotAsync(cancellationToken);
+            if (snapshot.OutputEnabled) throw new InvalidOperationException("Safe stop did not confirm output off; the instrument remains reserved.");
             if (lifecycle is InstrumentLifecycleState.Stopping or InstrumentLifecycleState.Faulted)
             {
                 Transition(InstrumentLifecycleEvent.SafeStateReached);
             }
-            var snapshot = await sourceMeter.GetSnapshotAsync(cancellationToken);
             await PublishSnapshotAsync(snapshot with { Lifecycle = lifecycle }, cancellationToken);
             await notifications.PublishAsync(
                 new WorkbenchNotification(
@@ -166,20 +211,30 @@ public sealed class InstrumentManager
                     sourceMeter.Id),
                 cancellationToken);
         }
+        catch
+        {
+            Transition(InstrumentLifecycleEvent.FaultDetected);
+            throw;
+        }
         finally
         {
             operationGate.Release();
         }
     }
 
-    public async Task CheckHeartbeatAsync(TimeSpan ttl, CancellationToken cancellationToken)
+    public async Task CheckHeartbeatAsync(TimeSpan ttl, CancellationToken cancellationToken, RunId? owner = null)
     {
-        var snapshot = await sourceMeter.HeartbeatAsync(cancellationToken);
-        if (DateTimeOffset.Now - snapshot.LastHeartbeat > ttl)
+        await EnterOperationAsync(cancellationToken, owner);
+        try
         {
-            Transition(InstrumentLifecycleEvent.HeartbeatExpired);
-            await PublishSnapshotAsync(snapshot with { Lifecycle = lifecycle }, cancellationToken);
+            var snapshot = await sourceMeter.HeartbeatAsync(cancellationToken);
+            if (DateTimeOffset.Now - snapshot.LastHeartbeat > ttl)
+            {
+                Transition(InstrumentLifecycleEvent.HeartbeatExpired);
+                await PublishSnapshotAsync(snapshot with { Lifecycle = lifecycle }, cancellationToken);
+            }
         }
+        finally { operationGate.Release(); }
     }
 
     private void Transition(InstrumentLifecycleEvent evt)

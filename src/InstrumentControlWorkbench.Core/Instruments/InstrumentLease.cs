@@ -6,12 +6,15 @@ public enum InstrumentLeaseMode
     SharedRead,
 }
 
+public enum InstrumentLeaseLifetime { SessionTtl, RunOwned }
+
 public sealed record InstrumentLease(
     InstrumentId InstrumentId,
     string OwnerRunId,
     InstrumentLeaseMode Mode,
     DateTimeOffset AcquiredAt,
-    DateTimeOffset ExpiresAt)
+    DateTimeOffset ExpiresAt,
+    InstrumentLeaseLifetime Lifetime = InstrumentLeaseLifetime.SessionTtl)
 {
-    public bool IsExpired(DateTimeOffset now) => now >= ExpiresAt;
+    public bool IsExpired(DateTimeOffset now) => Lifetime == InstrumentLeaseLifetime.SessionTtl && now >= ExpiresAt;
 }

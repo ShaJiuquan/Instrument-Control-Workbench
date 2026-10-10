@@ -23,9 +23,10 @@ re-litigate them or accidentally undo them.
 
 ## Current Known Debt
 
-- NotificationHub is a single-reader channel, not a broadcast hub.
-- Run data currently holds only the last run in memory. It is explicitly marked
-  as session-only and is replaced on the next run; there is no disk history yet.
+- NotificationHub broadcasts to independent subscriptions. Queues remain
+  unbounded; consumers must manage subscription lifetimes.
+- LatestDataSet is the latest run; InMemoryRunHistory keeps terminal snapshots
+  for this process. Neither is disk history or restart recovery.
 - The mock driver does not model current compliance enforcement. Its readings
   must not be used as evidence of real hardware protection.
 
@@ -57,3 +58,17 @@ These are tracked as design debt, not as permission to copy the pattern.
 
 Dependencies not listed here require a short evaluation and user choice before
 implementation.
+
+## C# execution migration (2026-10-10)
+
+- The user chose an independent C# execution engine inspired by OpenTAP,
+  not an OpenTAP package integration. Publish stage commits to GitHub only;
+  Gitee synchronization is deferred. See ppms-migration.md and its inventory.
+- IV runs own leases until output is verified off and result listeners finish.
+  Cleanup failure/timeout retains ownership and requires RecoverSafetyAsync.
+  Do not expire these leases on heartbeat TTL or report cleanup success merely
+  because a stop command returned.
+- Pause cooperatively stops output at a checkpoint and retains run identity and
+  resources. Dwell timers react to pause. Pause/recovery UI is still migration work.
+- A finalizer failure faults RunOutcome while retaining the acquired data set.
+- Desktop manual configuration/start commands also check backend ownership.

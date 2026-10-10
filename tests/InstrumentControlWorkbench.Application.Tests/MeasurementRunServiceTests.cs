@@ -3,8 +3,8 @@ using InstrumentControlWorkbench.Application.Measurements;
 using InstrumentControlWorkbench.Application.Notifications;
 using InstrumentControlWorkbench.Core.Measurements;
 using InstrumentControlWorkbench.Core.Notifications;
-using InstrumentControlWorkbench.Infrastructure.Drivers;
 using InstrumentControlWorkbench.Core.Parameters;
+using InstrumentControlWorkbench.Infrastructure.Drivers;
 
 namespace InstrumentControlWorkbench.Application.Tests;
 
@@ -81,7 +81,7 @@ public sealed class MeasurementRunServiceTests
     }
 
     [Fact]
-    public async Task DriverValidationFailureSafelyStopsAndAllowsRetry()
+    public async Task InvalidRecipeIsRejectedBeforeHardwareAndAllowsRetry()
     {
         var hub = new NotificationHub();
         var driver = new MockKeithley2450SourceMeter();
@@ -93,8 +93,8 @@ public sealed class MeasurementRunServiceTests
         Assert.False((await driver.GetSnapshotAsync(CancellationToken.None)).OutputEnabled);
         var seen = new List<WorkbenchNotification>();
         while (hub.Reader.TryRead(out var n)) seen.Add(n);
-        Assert.True(seen.FindIndex(n => n.Kind == WorkbenchNotificationKind.SafetyStateChanged) < seen.FindIndex(n => n.Kind == WorkbenchNotificationKind.RunFaulted));
-        Assert.Contains(seen, n => n.Kind == WorkbenchNotificationKind.RunFaulted);
+        Assert.Empty(seen);
+        Assert.False((await driver.GetSnapshotAsync(CancellationToken.None)).Connected);
         await service.StartIvSweepAsync(new IvSweepRecipe("retry", 0, 0.1, 2, 105e-6, 0.02), CancellationToken.None);
     }
 

@@ -11,6 +11,9 @@ public enum WorkbenchNotificationKind
     RunCompleted,
     RunAborted,
     RunFaulted,
+    RunPaused,
+    RunResumed,
+    RunFinalizing,
     SafetyStateChanged,
     LogAppended,
 }

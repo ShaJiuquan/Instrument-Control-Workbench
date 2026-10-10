@@ -72,9 +72,18 @@ Avalonia views -> ViewModels -> Application use cases -> Core contracts
    Warnings-as-errors build and 35 tests passed, including unit/dependency
    rejection, snapshot isolation, consecutive runs and aborted partial data.
    No persistence or general experiment engine is claimed at this stage.
-3. **Execution/resource foundation — pending.** Unique run context, serialized
-   admission, resource ownership, cancellation/pause, bounded safe-stop,
-   failure-preserving cleanup, result listeners and isolated consecutive runs.
+3. **Execution/resource foundation — implemented for the IV use case.** Unique
+   run contexts, serialized admission, run-owned non-expiring leases, device
+   ownership checks, cooperative pause/resume with output-off confirmation,
+   interruptible dwell, bounded safe-stop and explicit safety recovery. A timed-out
+   cleanup task remains attached to its run; recovery cannot overlap it. Execution
+   and cleanup failures are preserved together. Result listeners receive snapshots;
+   the run stays active through finalization. Independent notification subscribers
+   receive ordered facts with a single publication timestamp. Tests cover conflict,
+   retained unsafe ownership, non-cooperative stop, original/cleanup errors, paused
+   abort, long-dwell pause and archive ordering/failure. These are backend APIs;
+   The stage passes 56 tests across Core, Application and App with warnings-as-errors.
+   pause/recovery controls and generic PPMS plan execution remain pending.
 4. **Device/platform boundary — pending.** Capability registry and routing,
    multiple instruments, settings and actual transport adapters. Mock and real
    device paths remain visibly distinct.
@@ -97,10 +106,21 @@ imports in `App.axaml.cs`, the explicitly allowed composition root. This is not
 a ViewModel-to-driver dependency. A later gate improvement should distinguish
 those cases without removing actual boundary checks.
 
-Only the latest data set is retained by the current service. Old data objects
-remain independently valid if held by a caller, but persistent history is not
-implemented. Existing single-reader notifications and source-meter-only ports
-are tracked migration work, not architectural patterns to extend unchanged.
+The service retains finalized snapshots for the current process in
+`InMemoryRunHistory`. It has no disk persistence or restart recovery. Data-set
+terminal state describes acquisition/cleanup; `RunOutcome` also reports result
+listener failures. A successfully acquired data set can therefore be completed
+while its overall outcome is faulted by an archive error. Finalization currently
+waits for every started listener; no archive timeout or persistent retry queue is
+claimed. Drivers and row listeners must honor cancellation during acquisition;
+the bounded quarantine path covers safety cleanup, not arbitrary driver reads.
+Notifications use unbounded subscriber queues; retention/backpressure and the
+remaining source-meter-only ports still require platform work.
+
+The optional global formatting check still reports pre-existing formatting in
+`ViewLocator.cs`, `ViewModelBase.cs`, `Program.cs` and `ParameterDataSetTests.cs`.
+Stage 3 changed C# files were formatted separately without rewriting unrelated
+files. The standard warnings-as-errors build/test audit remains the commit gate.
 
 Full-goal completion requires evidence against every inventory entry and the
 additional families above. A green small test suite, registered names, mock UI,

@@ -67,6 +67,12 @@ public sealed class RunDataSet
     public DateTimeOffset? FinishedAt { get { lock (gate) return finishedAt; } }
     public IReadOnlyList<MeasurementDataRow> Rows { get { lock (gate) return Array.AsReadOnly(rows.ToArray()); } }
 
+    public RunDataSetSnapshot Capture()
+    {
+        lock (gate)
+            return new(Id, Name, StartedAt, finishedAt, state, Schema, Recipe, Instruments, Array.AsReadOnly(rows.ToArray()));
+    }
+
     public void Append(MeasurementDataRow row)
     {
         Schema.ValidateRow(row);
@@ -90,3 +96,8 @@ public sealed class RunDataSet
         }
     }
 }
+
+public sealed record RunDataSetSnapshot(
+    RunId Id, string Name, DateTimeOffset StartedAt, DateTimeOffset? FinishedAt,
+    MeasurementRunState State, DataSetSchema Schema, IReadOnlyDictionary<string, Quantity> Recipe,
+    IReadOnlyList<InstrumentParameterSnapshot> Instruments, IReadOnlyList<MeasurementDataRow> Rows);

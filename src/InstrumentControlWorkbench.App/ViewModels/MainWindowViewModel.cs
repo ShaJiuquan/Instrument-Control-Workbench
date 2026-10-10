@@ -76,7 +76,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     public bool IsInstrumentsPage => Page == WorkbenchPage.Instruments;
     public bool IsDataPage => Page == WorkbenchPage.Data;
     public bool IsEventsPage => Page == WorkbenchPage.Events;
-    public bool CanEdit => !IsBusy && !IsConnecting;
+    public bool CanEdit => !IsBusy && !IsConnecting && !runService.HasActiveRun;
     public bool HasPoints => CompletedPoints > 0;
     public bool HasOperationError => !string.IsNullOrEmpty(OperationError);
     public string PageTitle => Page switch

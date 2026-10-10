@@ -8,6 +8,23 @@ namespace InstrumentControlWorkbench.App.Tests;
 
 public sealed class OperatorCommandTests
 {
+    [Fact]
+    public async Task BackendOwnershipLocksManualCommandsEvenWhenTheUiDidNotStartTheRun()
+    {
+        var hub = new NotificationHub();
+        var manager = new InstrumentManager(new MockKeithley2450SourceMeter(), hub);
+        var service = new MeasurementRunService(manager, new InstrumentLeaseService(TimeSpan.FromSeconds(5)), hub);
+        await using var vm = new MainWindowViewModel(manager, service, hub);
+        var running = service.StartIvSweepAsync(new("external run", 0, 0.1, 3, 105e-6, 10), CancellationToken.None);
+        Assert.False(vm.IsBusy);
+        Assert.False(vm.CanEdit);
+        Assert.False(vm.StartRunCommand.CanExecute(null));
+        Assert.False(vm.ConnectCommand.CanExecute(null));
+        service.Abort();
+        await running;
+        Assert.True(vm.CanEdit);
+    }
+
     private static MainWindowViewModel Create()
     {
         var hub = new NotificationHub();
