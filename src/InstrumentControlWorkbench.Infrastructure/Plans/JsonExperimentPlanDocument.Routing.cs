@@ -25,7 +25,7 @@ public sealed partial class JsonExperimentPlanDocument
         }).ToArray()),
         ["samples"] = new JsonArray(config.Samples.Select(s => (JsonNode)EncodeSample(s)).ToArray()),
     };
-    private static JsonObject EncodeChannel(ChannelProfile channel)
+    internal static JsonObject EncodeChannel(ChannelProfile channel)
     {
         var result = new JsonObject
         {
@@ -48,7 +48,7 @@ public sealed partial class JsonExperimentPlanDocument
     private static void OptionalText(JsonObject target, string key, string value)
     { if (value.Length != 0) target[key] = value; }
     private static string ProfileText(JsonObject source, string key) => source.ContainsKey(key) ? Text(source, key) : "";
-    private static JsonObject EncodeSample(SampleProfile sample)
+    internal static JsonObject EncodeSample(SampleProfile sample)
     {
         var result = new JsonObject
         {
@@ -76,36 +76,38 @@ public sealed partial class JsonExperimentPlanDocument
     private static RoutingConfiguration DecodeRouting(JsonNode node)
     {
         var o = Object(node, "matrix", "channels", "wirings", "samples");
-        var channels = Array(Required(o, "channels")).Select(v =>
-        {
-            var c = Object(v, "id", "name", "connections", "originalId", "groupIndex", "alias", "notes");
-            return new ChannelProfile(new(Text(c, "id")), Text(c, "name"), Array(Required(c, "connections")).Select(i =>
-            {
-                var connection = Object(i, "key", "slot", "column", "enabled", "index", "label", "displayRow", "raw", "notes");
-                return new ChannelConnection(new(Text(connection, "key")), connection["slot"]?.GetValue<int>(), connection["column"]?.GetValue<int>(), Boolean(connection, "enabled"), connection["index"]?.GetValue<int>(), ProfileText(connection, "label"), connection["displayRow"]?.GetValue<int>(), ProfileText(connection, "raw"), ProfileText(connection, "notes"));
-            }), ProfileText(c, "originalId"), c["groupIndex"]?.GetValue<int>(), ProfileText(c, "alias"), ProfileText(c, "notes"));
-        });
+        var channels = Array(Required(o, "channels")).Select(DecodeChannel);
         var wirings = Array(Required(o, "wirings")).Select(v =>
         {
             var w = Object(v, "id", "sourceMeter", "sourcePlus", "sourceMinus", "sensePlus", "senseMinus", "label");
             return new InstrumentWiringProfile(new(Text(w, "id")), new(Text(w, "sourceMeter")), DecodePort(w["sourcePlus"]), DecodePort(w["sourceMinus"]), DecodePort(w["sensePlus"]), DecodePort(w["senseMinus"]), ProfileText(w, "label"));
         });
-        var samples = Array(Required(o, "samples")).Select(v =>
-        {
-            var s = Object(v, "id", "name", "topology", "electrodes", "geometry", "originalId", "material", "substrate", "notes");
-            SampleGeometry? geometry = null;
-            if (s.ContainsKey("geometry"))
-            {
-                var g = Object(Required(s, "geometry"), "width", "length", "thickness", "spacing");
-                geometry = new(g["width"] is { } w ? DecodeQuantity(w) : null, g["length"] is { } l ? DecodeQuantity(l) : null, g["thickness"] is { } t ? DecodeQuantity(t) : null, g["spacing"] is { } space ? DecodeQuantity(space) : null);
-            }
-            return new SampleProfile(new(Text(s, "id")), Text(s, "name"), NamedEnum<SampleTopology>(s, "topology"), Array(Required(s, "electrodes")).Select(i =>
-            {
-                var e = Object(i, "label", "channel", "connection", "enabled", "notes");
-                return new SampleElectrode(new(Text(e, "label")), new(Text(e, "channel")), new(Text(e, "connection")), Boolean(e, "enabled"), ProfileText(e, "notes"));
-            }), geometry, ProfileText(s, "originalId"), ProfileText(s, "material"), ProfileText(s, "substrate"), ProfileText(s, "notes"));
-        });
+        var samples = Array(Required(o, "samples")).Select(DecodeSample);
         return new(new(Text(o, "matrix")), channels, wirings, samples);
+    }
+    internal static ChannelProfile DecodeChannel(JsonNode? v)
+    {
+        var c = Object(v, "id", "name", "connections", "originalId", "groupIndex", "alias", "notes");
+        return new ChannelProfile(new(Text(c, "id")), Text(c, "name"), Array(Required(c, "connections")).Select(i =>
+        {
+            var connection = Object(i, "key", "slot", "column", "enabled", "index", "label", "displayRow", "raw", "notes");
+            return new ChannelConnection(new(Text(connection, "key")), connection["slot"]?.GetValue<int>(), connection["column"]?.GetValue<int>(), Boolean(connection, "enabled"), connection["index"]?.GetValue<int>(), ProfileText(connection, "label"), connection["displayRow"]?.GetValue<int>(), ProfileText(connection, "raw"), ProfileText(connection, "notes"));
+        }), ProfileText(c, "originalId"), c["groupIndex"]?.GetValue<int>(), ProfileText(c, "alias"), ProfileText(c, "notes"));
+    }
+    internal static SampleProfile DecodeSample(JsonNode? v)
+    {
+        var s = Object(v, "id", "name", "topology", "electrodes", "geometry", "originalId", "material", "substrate", "notes");
+        SampleGeometry? geometry = null;
+        if (s.ContainsKey("geometry"))
+        {
+            var g = Object(Required(s, "geometry"), "width", "length", "thickness", "spacing");
+            geometry = new(g["width"] is { } w ? DecodeQuantity(w) : null, g["length"] is { } l ? DecodeQuantity(l) : null, g["thickness"] is { } t ? DecodeQuantity(t) : null, g["spacing"] is { } space ? DecodeQuantity(space) : null);
+        }
+        return new SampleProfile(new(Text(s, "id")), Text(s, "name"), NamedEnum<SampleTopology>(s, "topology"), Array(Required(s, "electrodes")).Select(i =>
+        {
+            var e = Object(i, "label", "channel", "connection", "enabled", "notes");
+            return new SampleElectrode(new(Text(e, "label")), new(Text(e, "channel")), new(Text(e, "connection")), Boolean(e, "enabled"), ProfileText(e, "notes"));
+        }), geometry, ProfileText(s, "originalId"), ProfileText(s, "material"), ProfileText(s, "substrate"), ProfileText(s, "notes"));
     }
     private static JsonObject EncodePort(MatrixPort port) => new() { ["slot"] = port.Slot, ["row"] = port.Row };
     private static MatrixPort DecodePort(JsonNode? node)

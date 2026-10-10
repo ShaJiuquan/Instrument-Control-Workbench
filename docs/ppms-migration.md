@@ -182,7 +182,7 @@ Avalonia views -> ViewModels -> Application use cases -> Core contracts
    explicit route verification are separate from relay settling. The field/sample
    file now retains 26 original records plus two scan points,
    28 rows in total, and saves, archives, reopens, re-executes and exports. Other
-   current/AC acquisition roles, persistent profile editing, settings/UI and physical hardware remain required. See
+   current/AC acquisition roles, device/settings UI and physical hardware remain required. See
    ppms-resistance-import.md, ppms-plan-import.md and temperature-control.md.
    The profile-file follow-up parses all three routing schemas, preserves authored
    metadata and unbound physical families in a frozen catalog, and binds explicit
@@ -190,8 +190,12 @@ Avalonia views -> ViewModels -> Application use cases -> Core contracts
    The field/sample file now executes 28 rows from imported profiles and
    round-trips metadata in
    native plans/archives. Actual bundled files were parsed and converted locally
-   without hardware. Editing/settings, remaining runtime flags/families and
-   hardware remain required. See ppms-profile-import.md.
+   without hardware. Native offline catalog editing and atomic file persistence
+   now retain all layouts independently of device binding. Paused-run edits leave
+   the captured plan unchanged; a fresh document binds/imports the next run.
+   Device/settings UI, PPMS write-back/database migration, remaining runtime
+   flags/families and hardware remain required. See ppms-profile-import.md and
+   routing-profile-workspace.md.
    The measurement-group follow-up collects consecutive scan measurements and
    scan-local parallel wrappers into complete wide points with bounded input
    identity. Raw/analysis rows, partial failures and resource recovery are retained;

@@ -120,7 +120,9 @@ The bundled K2450 wiring shares force/sense rows. Import preserves that wiring
 and cannot certify four-terminal sample operation. The fixture's independent
 four-row wiring is simulation evidence only.
 
-Persistent settings editing, writing profiles back to PPMS files/database,
+Native offline catalog persistence and typed editing are available through
+`RoutingProfileWorkspace`; see [routing-profile-workspace.md](routing-profile-workspace.md).
+Device/settings editing, writing profiles back to PPMS files/database,
 separate-source/meter acquisition, additional runtime routing flags, instrument
 transport/card protocols, native profile controls and hardware acceptance remain
 required by the full migration goal.

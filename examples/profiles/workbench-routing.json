@@ -1,0 +1,430 @@
+{
+  "format": "instrument-workbench-routing",
+  "version": 1,
+  "activeChannel": "channel1",
+  "activeSample": "sample1",
+  "channels": [
+    {
+      "id": "channel1",
+      "name": "CH1",
+      "connections": [
+        {
+          "key": "i_plus",
+          "slot": 1,
+          "column": 1,
+          "enabled": true,
+          "label": "i_plus",
+          "raw": "display-only-1",
+          "notes": "Fixture connection i_plus",
+          "index": 1,
+          "displayRow": 8
+        },
+        {
+          "key": "i_minus",
+          "slot": 1,
+          "column": 2,
+          "enabled": true,
+          "label": "i_minus",
+          "raw": "display-only-2",
+          "notes": "Fixture connection i_minus",
+          "index": 2,
+          "displayRow": 8
+        },
+        {
+          "key": "v_plus",
+          "slot": 1,
+          "column": 3,
+          "enabled": true,
+          "label": "v_plus",
+          "raw": "display-only-3",
+          "notes": "Fixture connection v_plus",
+          "index": 3,
+          "displayRow": 8
+        },
+        {
+          "key": "v_minus",
+          "slot": 1,
+          "column": 4,
+          "enabled": true,
+          "label": "v_minus",
+          "raw": "display-only-4",
+          "notes": "Fixture connection v_minus",
+          "index": 4,
+          "displayRow": 8
+        },
+        {
+          "key": "bias_plus",
+          "slot": 1,
+          "column": 5,
+          "enabled": true,
+          "label": "bias_plus",
+          "raw": "display-only-5",
+          "notes": "Fixture connection bias_plus",
+          "index": 5,
+          "displayRow": 8
+        },
+        {
+          "key": "bias_minus",
+          "slot": 1,
+          "column": 6,
+          "enabled": true,
+          "label": "bias_minus",
+          "raw": "display-only-6",
+          "notes": "Fixture connection bias_minus",
+          "index": 6,
+          "displayRow": 8
+        },
+        {
+          "key": "unused",
+          "slot": null,
+          "column": null,
+          "enabled": false,
+          "label": "Unassigned",
+          "notes": "Intentionally disabled",
+          "index": 7
+        }
+      ],
+      "originalId": "Legacy Channel A",
+      "alias": "main contacts",
+      "notes": "Simulation fixture only",
+      "groupIndex": 1
+    },
+    {
+      "id": "channel2",
+      "name": "CH2",
+      "connections": [
+        {
+          "key": "i_plus",
+          "slot": null,
+          "column": 7,
+          "enabled": true,
+          "label": "i_plus",
+          "index": 1
+        },
+        {
+          "key": "i_minus",
+          "slot": null,
+          "column": 8,
+          "enabled": true,
+          "label": "i_minus",
+          "index": 2
+        },
+        {
+          "key": "v_plus",
+          "slot": null,
+          "column": 9,
+          "enabled": true,
+          "label": "v_plus",
+          "index": 3
+        },
+        {
+          "key": "v_minus",
+          "slot": null,
+          "column": 10,
+          "enabled": true,
+          "label": "v_minus",
+          "index": 4
+        }
+      ],
+      "originalId": "Channel2",
+      "groupIndex": 2
+    }
+  ],
+  "samples": [
+    {
+      "id": "sample1",
+      "name": "Specimen 1",
+      "topology": "FourWire",
+      "electrodes": [
+        {
+          "label": "I+",
+          "channel": "channel1",
+          "connection": "i_plus",
+          "enabled": true,
+          "notes": "Contact I+"
+        },
+        {
+          "label": "I-",
+          "channel": "channel1",
+          "connection": "i_minus",
+          "enabled": true,
+          "notes": "Contact I-"
+        },
+        {
+          "label": "V+",
+          "channel": "channel1",
+          "connection": "v_plus",
+          "enabled": true,
+          "notes": "Contact V+"
+        },
+        {
+          "label": "V-",
+          "channel": "channel1",
+          "connection": "v_minus",
+          "enabled": true,
+          "notes": "Contact V-"
+        }
+      ],
+      "originalId": "Legacy specimen 1",
+      "material": "Calibration film",
+      "substrate": "Simulation substrate",
+      "notes": "Fixture metadata, not a real sample",
+      "geometry": {
+        "width": {
+          "value": 0.001,
+          "unit": "Meter"
+        },
+        "length": {
+          "value": 0.002,
+          "unit": "Meter"
+        },
+        "thickness": {
+          "value": 1E-06,
+          "unit": "Meter"
+        },
+        "spacing": {
+          "value": 0.0015,
+          "unit": "Meter"
+        }
+      }
+    },
+    {
+      "id": "sample2",
+      "name": "Specimen 2",
+      "topology": "HallBar",
+      "electrodes": [
+        {
+          "label": "I+",
+          "channel": "channel1",
+          "connection": "i_plus",
+          "enabled": true,
+          "notes": "Contact I+"
+        },
+        {
+          "label": "I-",
+          "channel": "channel1",
+          "connection": "i_minus",
+          "enabled": true,
+          "notes": "Contact I-"
+        },
+        {
+          "label": "Vxx+",
+          "channel": "channel1",
+          "connection": "v_plus",
+          "enabled": true,
+          "notes": "Contact Vxx+"
+        },
+        {
+          "label": "Vxx-",
+          "channel": "channel1",
+          "connection": "v_minus",
+          "enabled": true,
+          "notes": "Contact Vxx-"
+        },
+        {
+          "label": "Vxy+",
+          "channel": "channel2",
+          "connection": "v_plus",
+          "enabled": true,
+          "notes": "Contact Vxy+"
+        },
+        {
+          "label": "Vxy-",
+          "channel": "channel2",
+          "connection": "v_minus",
+          "enabled": true,
+          "notes": "Contact Vxy-"
+        }
+      ],
+      "originalId": "Legacy specimen 2",
+      "material": "Calibration film",
+      "substrate": "Simulation substrate",
+      "notes": "Fixture metadata, not a real sample",
+      "geometry": {
+        "width": {
+          "value": 0.001,
+          "unit": "Meter"
+        },
+        "length": {
+          "value": 0.002,
+          "unit": "Meter"
+        },
+        "thickness": {
+          "value": 1E-06,
+          "unit": "Meter"
+        },
+        "spacing": {
+          "value": 0.0015,
+          "unit": "Meter"
+        }
+      }
+    },
+    {
+      "id": "sample3",
+      "name": "Specimen 3",
+      "topology": "VanDerPauw",
+      "electrodes": [
+        {
+          "label": "A",
+          "channel": "channel1",
+          "connection": "i_plus",
+          "enabled": true,
+          "notes": "Contact A"
+        },
+        {
+          "label": "B",
+          "channel": "channel1",
+          "connection": "i_minus",
+          "enabled": true,
+          "notes": "Contact B"
+        },
+        {
+          "label": "C",
+          "channel": "channel1",
+          "connection": "v_plus",
+          "enabled": true,
+          "notes": "Contact C"
+        },
+        {
+          "label": "D",
+          "channel": "channel1",
+          "connection": "v_minus",
+          "enabled": true,
+          "notes": "Contact D"
+        }
+      ],
+      "originalId": "Legacy specimen 3",
+      "material": "Calibration film",
+      "substrate": "Simulation substrate",
+      "notes": "Fixture metadata, not a real sample",
+      "geometry": {
+        "width": {
+          "value": 0.001,
+          "unit": "Meter"
+        },
+        "length": {
+          "value": 0.002,
+          "unit": "Meter"
+        },
+        "thickness": {
+          "value": 1E-06,
+          "unit": "Meter"
+        },
+        "spacing": {
+          "value": 0.0015,
+          "unit": "Meter"
+        }
+      }
+    },
+    {
+      "id": "sample4",
+      "name": "Specimen 4",
+      "topology": "TwoWire",
+      "electrodes": [
+        {
+          "label": "A",
+          "channel": "channel1",
+          "connection": "i_plus",
+          "enabled": true,
+          "notes": "Contact A"
+        },
+        {
+          "label": "B",
+          "channel": "channel1",
+          "connection": "i_minus",
+          "enabled": true,
+          "notes": "Contact B"
+        }
+      ],
+      "originalId": "Legacy specimen 4",
+      "material": "Calibration film",
+      "substrate": "Simulation substrate",
+      "notes": "Fixture metadata, not a real sample",
+      "geometry": {
+        "width": {
+          "value": 0.001,
+          "unit": "Meter"
+        },
+        "length": {
+          "value": 0.002,
+          "unit": "Meter"
+        },
+        "thickness": {
+          "value": 1E-06,
+          "unit": "Meter"
+        },
+        "spacing": {
+          "value": 0.0015,
+          "unit": "Meter"
+        }
+      }
+    }
+  ],
+  "wirings": [
+    {
+      "id": "k2450",
+      "label": "Simulated independent force/sense ports",
+      "sourcePlus": {
+        "slot": 1,
+        "row": 1
+      },
+      "sourceMinus": {
+        "slot": 1,
+        "row": 2
+      },
+      "sensePlus": {
+        "slot": 1,
+        "row": 3
+      },
+      "senseMinus": {
+        "slot": 1,
+        "row": 4
+      }
+    },
+    {
+      "id": "k2450_two_wire",
+      "label": "Simulated shared two-wire ports",
+      "sourcePlus": {
+        "slot": 1,
+        "row": 1
+      },
+      "sourceMinus": {
+        "slot": 1,
+        "row": 2
+      },
+      "sensePlus": {
+        "slot": 1,
+        "row": 1
+      },
+      "senseMinus": {
+        "slot": 1,
+        "row": 2
+      }
+    },
+    {
+      "id": "k6221_k2182",
+      "label": "Unbound independent current-source/meter",
+      "sourcePlus": {
+        "slot": 1,
+        "row": 5
+      },
+      "sourceMinus": {
+        "slot": 1,
+        "row": 6
+      },
+      "sensePlus": {
+        "slot": 1,
+        "row": 7
+      },
+      "senseMinus": {
+        "slot": 1,
+        "row": 8
+      }
+    }
+  ],
+  "modeWirings": {
+    "volt_dc": "k2450",
+    "curr_dc": "k6221_k2182",
+    "curr_delta": "k6221_k2182"
+  }
+}

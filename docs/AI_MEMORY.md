@@ -432,3 +432,23 @@ implementation.
   mixed-sample/profile and new six-row field-point fixtures save/archive/re-execute;
   hardware/quality/remaining modes, durable settings and native UI remain pending.
   See environment-acquisition.md. The full migration goal remains active.
+
+## Native routing document and offline edits
+
+- Core IRoutingProfileDocument separates authored physical catalogs from bound
+  run configurations. Application RoutingProfileWorkspace owns offline use cases;
+  Infrastructure SDK JSON/file IO implements version 1 bounded persistence.
+  Shared channel/sample native codecs preserve existing plan compatibility.
+- Typed upsert/delete/active/mode operations rebuild the whole immutable catalog;
+  active keys and electrode/mode references validate before save. No silent delete
+  cascade, driver operation, fabricated combined source/meter or device ID.
+- 12 MiB/depth 32/100000-value budgets, strict UTF-8/BOM and duplicate/unknown
+  fields; temporary sibling save/flush/rename preserves previous data on failure
+  and aggregates cleanup errors. Last writer wins; no CAS or power-loss promise.
+- Native profile fixture round-trips all PPMS fixture metadata/unbound layouts.
+  Saved shared ports still reject four-wire preflight before connection. A run
+  paused after acquisition can coexist with offline save; its 28 archived rows
+  keep old names, fresh profile load sees the edit, fresh archived plan executes.
+- Device settings, PPMS write-back/database, additional runtime flags/families,
+  native profile UI and hardware acceptance remain required. No UI files included
+  in this backend stage; see routing-profile-workspace.md. Goal remains active.
