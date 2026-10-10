@@ -30,16 +30,24 @@ public sealed partial class PpmsExperimentPlanImporter
             steps.Add(new ScanStep(new(path + ".scan"), new(source.Device, parameter.Id), new(path + ".axis"), points, TimeSpan.Zero, body));
             return new SequenceStep(new(path), steps);
         }
-        if (name == "scan_temperature") throw new NotSupportedException("Temperature step scans require the PPMS software-ramp controller, which is not migrated yet.");
-        if (name is not ("scan_field" or "scan_angle")) throw new NotSupportedException($"Scan '{name}' is not migrated.");
+        if (name is not ("scan_temperature" or "scan_field" or "scan_angle")) throw new NotSupportedException($"Scan '{name}' is not migrated.");
         var role = name[5..]; var axis = Axis(role, c); var (_, rateKey, toleranceKey, tolerance, stable, timeout) = AxisDefaults(role);
-        Fields(p, ["points", "start", "end", "step", "points_mode", "scan_mode", "sample_mode", "wait_mode", "settle_s", "timeout_s", "stable_duration_s", toleranceKey, .. (role == "field" ? new[] { "mode" } : new[] { rateKey })]);
+        Fields(p, ["points", "start", "end", "step", "points_mode", "scan_mode", "sample_mode", "wait_mode", "settle_s", "timeout_s", "stable_duration_s", toleranceKey, .. (role == "field" ? new[] { "mode" } : role == "temperature" ? new[] { rateKey, "enable_control" } : new[] { rateKey })]);
         Choice(p, "scan_mode", "step", "step"); Choice(p, "sample_mode", "step", "step"); Choice(p, "wait_mode", "stable", "stable", "reached");
         if (role == "field") Choice(p, "mode", "driven", "driven");
         var values = Points(p["points"] is JsonObject or JsonArray ? p["points"]! : p, axis.Target.Unit, c, 0, p["points"] is not (JsonObject or JsonArray));
         var column = new ParameterId(path + ".axis");
         var wait = Stability(path + ".stable", axis, new VariableValue(column), p, toleranceKey, role == "field" ? 0.0005 : tolerance, stable, timeout);
         var children = new SequenceStep(new(path + ".body"), [wait, new DelayStep(new(path + ".settle"), Duration(p, "settle_s", 0)), .. Children(node, path, c, depth)]);
+        if (role == "temperature")
+        {
+            if (!Boolean(p, "enable_control", true)) throw new NotSupportedException("Temperature scans with disabled control are not migrated.");
+            foreach (var value in values.Values) { TemperatureRampPath.ValidateTemperature(value); axis.Target.ValidateWrite(value); }
+            var rate = new Quantity(Number(p, rateKey, 5), PhysicalUnit.KelvinPerMinute);
+            var ramp = new SoftwareTemperatureRampStep(new(path + ".ramp"), axis.Device.Id, new VariableValue(column), rate);
+            return new ForEachStep(new(path + ".scan"), column, values,
+                new SequenceStep(new(path + ".point"), [ramp, children]));
+        }
         var scan = new ScanStep(new(path + ".scan"), new(axis.Device.Id, axis.Target.Id), column, values, TimeSpan.Zero, children);
         if (role == "field") return scan;
         return new SequenceStep(new(path), [Write(path + ".rate", axis.Device.Id, axis.Rate, Number(p, rateKey, 5)), scan]);

@@ -3,11 +3,12 @@ using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Infrastructure.Drivers;
 
-public sealed class MockAxisController : IAxisControllerPort
+public sealed class MockAxisController : ITemperatureControlPort
 {
     private readonly object gate = new();
     private readonly TimeProvider clock;
     private bool connected;
+    private TemperatureControlConfiguration temperatureControl = new(true, true);
     private double target;
     private double readback;
     private double rate;
@@ -60,6 +61,29 @@ public sealed class MockAxisController : IAxisControllerPort
         token.ThrowIfCancellationRequested();
         lock (gate) { RequireConnected(); Advance(); rate = value.Value; }
         return Task.CompletedTask;
+    }
+
+    public Task PrepareSoftwareRampAsync(Quantity initialTarget, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        Definition.Target.ValidateWrite(initialTarget);
+        lock (gate) { RequireTemperatureControl(); RequireConnected(); Advance(); target = initialTarget.Value; temperatureControl = new(false, true); }
+        return Task.CompletedTask;
+    }
+    public Task SetHardwareRampAsync(Quantity value, CancellationToken token)
+    {
+        Definition.Rate.ValidateWrite(value); token.ThrowIfCancellationRequested();
+        lock (gate) { RequireTemperatureControl(); RequireConnected(); Advance(); rate = value.Value; temperatureControl = new(true, true); }
+        return Task.CompletedTask;
+    }
+    public Task<TemperatureControlConfiguration> ReadControlConfigurationAsync(CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        lock (gate) { RequireTemperatureControl(); RequireConnected(); return Task.FromResult(temperatureControl); }
+    }
+    private void RequireTemperatureControl()
+    {
+        if (!Definition.SupportsSoftwareTemperatureRamp) throw new NotSupportedException("This axis has no temperature-control profile.");
     }
 
     public Task HoldAsync(CancellationToken token)

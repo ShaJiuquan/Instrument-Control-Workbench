@@ -52,6 +52,73 @@ public sealed class PpmsPlanImportTests
         }
         finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
     }
+    [Fact]
+    public async Task TemperatureFieldVoltageRuntimeFileRunsTwelveRoutedRowsAndReopensForExecution()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), $"ppms-temperature-import-{Guid.NewGuid():N}");
+        try
+        {
+            RunId id;
+            await using (var archive = new FileRunArchive(Path.Combine(folder, "runs")))
+            {
+                var b = new Bench(archive);
+                var document = await b.Workspace.ImportAsync(Path.Combine(AppContext.BaseDirectory, "plans", "ppms-temperature-field-voltage-import.json"), b.Bindings, Token);
+                Assert.Contains("software_temperature_ramp", document.Text); Assert.Contains("for_each", document.Text);
+                Assert.False((await b.Temperature.GetSnapshotAsync(Token)).Connected);
+                var nativePath = Path.Combine(folder, "converted.plan.json"); await b.Workspace.SaveAsync(nativePath, document.Text, Token);
+                await b.Runs.StartPlanAsync((await b.Workspace.LoadAsync(nativePath, Token)).Plan, Token);
+                var data = b.Runs.LatestDataSet!; Assert.Equal(12, data.Rows.Count); Assert.Equal(4, data.Instruments.Count);
+                Assert.Equal(new[] { 300.0, 300, 300, 300, 300.01, 300.01, 300.01, 300.01, 300.02, 300.02, 300.02, 300.02 }, data.Rows.Select(r => r.Values[new("ppms.root.0.axis")].Value));
+                Assert.All(data.Rows, row => { Assert.Equal(3, row.Values[new("ppms.root.0.axis.total")].Value); data.Schema.ValidateRow(row); });
+                var controller = await b.Temperature.GetSnapshotAsync(Token); Assert.Equal(controller.Readback, controller.Target); Assert.False(controller.Moving);
+                Assert.Equal(new TemperatureControlConfiguration(false, true), await b.Temperature.ReadControlConfigurationAsync(Token));
+                Assert.False((await b.Source.GetSnapshotAsync(Token)).OutputEnabled); Assert.Empty((await b.Matrix.GetSnapshotAsync(Token)).Closed);
+                id = data.Id;
+            }
+            await using var reopened = new FileRunArchive(Path.Combine(folder, "runs")); var saved = await reopened.LoadAsync(id, Token);
+            Assert.Equal(12, saved.DataSet.Rows.Count); Assert.Equal(4, saved.DataSet.Plan!.Metadata["ppms.root.0.0.0.0.source_line"].Value);
+            var fresh = new Bench(); await fresh.Runs.StartPlanAsync(saved.DataSet.Plan, Token); Assert.Equal(12, fresh.Runs.LatestDataSet!.Rows.Count);
+            var csv = Path.Combine(folder, "temperature.csv"); await reopened.ExportCsvAsync(id, csv, Token); Assert.Contains("ppms.root.0.axis", await File.ReadAllTextAsync(csv));
+        }
+        finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
+    }
+    [Theory]
+    [InlineData("software", 5, true)]
+    [InlineData("auto", 5, true)]
+    [InlineData("auto", 0, true)]
+    [InlineData("hardware", 0, true)]
+    [InlineData("hardware", 5, false)]
+    public async Task TemperatureStrategiesAndAbsentPositiveRateUseExplicitControlSemantics(string strategy, double rate, bool software)
+    {
+        var b = new Bench(); var tree = Node("command", "set_temp", new() { ["target_k"] = 300.05, ["ramp_strategy"] = strategy, ["rate_k_per_min"] = rate, ["wait_mode"] = "none" });
+        var document = b.Workspace.Import(tree.ToJsonString(), b.Bindings);
+        Assert.Equal(software, document.Text.Contains("software_temperature_ramp", StringComparison.Ordinal)); await b.Runs.StartPlanAsync(document.Plan, Token);
+        Assert.Equal(!software, (await b.Temperature.ReadControlConfigurationAsync(Token)).HardwareRampEnabled);
+    }
+    [Theory]
+    [InlineData("disabled")]
+    [InlineData("small_rate")]
+    [InlineData("large_rate")]
+    [InlineData("target")]
+    [InlineData("scan_disabled")]
+    [InlineData("scan_rate")]
+    [InlineData("sampling")]
+    public async Task UnsupportedTemperaturePoliciesRejectBeforeConnect(string fault)
+    {
+        var b = new Bench(); var p = new JsonObject { ["target_k"] = 300, ["wait_mode"] = "none" }; var node = Node("command", "set_temp", p);
+        switch (fault)
+        {
+            case "disabled": Object(node)["enable_control"] = false; break;
+            case "small_rate": Object(node)["rate_k_per_min"] = 0.001; break;
+            case "large_rate": Object(node)["rate_k_per_min"] = 21; break;
+            case "target": Object(node)["target_k"] = 311; break;
+            case "scan_disabled": node = Node("scan", "scan_temp", new() { ["points"] = new JsonArray(300), ["enable_control"] = false }); break;
+            case "scan_rate": node = Node("scan", "scan_temp", new() { ["points"] = new JsonArray(300), ["rate_k_per_min"] = 0 }); break;
+            case "sampling": node = Node("scan", "scan_temp", new() { ["points"] = new JsonArray(300), ["sample_mode"] = "continuous" }); break;
+        }
+        Assert.Throws<FormatException>(() => b.Workspace.Import(node.ToJsonString(), b.Bindings));
+        Assert.False((await b.Temperature.GetSnapshotAsync(Token)).Connected); Assert.False((await b.Source.GetSnapshotAsync(Token)).Connected);
+    }
     [Theory]
     [InlineData("set_temp", "target_k", 300)]
     [InlineData("FIELD_SET", "target_t", 0)]
@@ -145,9 +212,9 @@ public sealed class PpmsPlanImportTests
             case "duplicate":
                 Assert.Throws<FormatException>(() => b.Workspace.Import("{\"type\":\"sequence\",\"type\":\"command\",\"children\":[]}", b.Bindings)); break;
             case "persistent": node = Node("command", "field_set", new() { ["target_t"] = 0.1, ["mode"] = "persistent" }); break;
-            case "temperature_scan": node = Node("scan", "scan_temp", new() { ["points"] = new JsonArray(300) }, Node("measurement", "read_temp")); break;
+            case "temperature_scan": node = Node("scan", "scan_temp", new() { ["points"] = new JsonArray(300), ["scan_mode"] = "continuous" }, Node("measurement", "read_temp")); break;
             case "source_voltage_limit": Object(node)["points"] = new JsonArray(205); break;
-            case "software_temperature": node = Node("command", "set_temp", new() { ["target_k"] = 300, ["ramp_strategy"] = "software" }); break;
+            case "software_temperature": node = Node("command", "set_temp", new() { ["target_k"] = 300, ["ramp_strategy"] = "unknown" }); break;
         }
         if (damage != "duplicate")
         {
@@ -251,14 +318,14 @@ public sealed class PpmsPlanImportTests
     private sealed class Bench
     {
         public NotificationHub Hub { get; } = new(); public MockKeithley2450SourceMeter Source { get; } = new();
-        public MockAxisController Field { get; } = MockEnvironmentCatalog.Field(); public MockMatrixSwitch Matrix { get; }
+        public MockAxisController Field { get; } = MockEnvironmentCatalog.Field(); public MockAxisController Temperature { get; } = MockEnvironmentCatalog.Temperature(); public MockMatrixSwitch Matrix { get; }
         public MeasurementRunService Runs { get; }
         public ExperimentPlanWorkspace Workspace { get; }
         public ExperimentImportBindings Bindings { get; }
         public Bench(IRunResultListener? archive = null, SourceFunction function = SourceFunction.Voltage)
         {
             var manager = new InstrumentManager(Source, Hub); var leases = new InstrumentLeaseService(TimeSpan.FromSeconds(5));
-            var temperature = MockEnvironmentCatalog.Temperature(); var angle = MockEnvironmentCatalog.Angle();
+            var temperature = Temperature; var angle = MockEnvironmentCatalog.Angle();
             var descriptor = new DeviceDescriptor(new("matrix"), "K3706", "Matrix", DriverKind.Simulation, DeviceStopPolicy.OpenRunAddedConnections, []);
             Matrix = new(new(descriptor, [new(1, 4, 6)], [Source.Id]));
             var devices = new DeviceRegistry([manager, new AxisControllerSession(Field, Hub), new AxisControllerSession(temperature, Hub), new AxisControllerSession(angle, Hub), new MatrixSwitchSession(Matrix, Hub)], leases);

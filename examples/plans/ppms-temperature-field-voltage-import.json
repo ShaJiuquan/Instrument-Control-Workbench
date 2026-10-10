@@ -1,0 +1,81 @@
+{
+  "experiment_id": "PPMS imported temperature-field-voltage scan",
+  "type": "sequence",
+  "children": [
+    {
+      "type": "scan",
+      "name": "scan_temp",
+      "source_line": 1,
+      "params": {
+        "points": [
+          300,
+          300.01,
+          300.02
+        ],
+        "scan_mode": "step",
+        "sample_mode": "step",
+        "rate_k_per_min": 5,
+        "wait_mode": "reached",
+        "tolerance_k": 0.0005,
+        "settle_s": 0,
+        "timeout_s": 5
+      },
+      "children": [
+        {
+          "type": "scan",
+          "name": "field",
+          "source_line": 2,
+          "params": {
+            "points": [
+              0,
+              0.001
+            ],
+            "scan_mode": "step",
+            "sample_mode": "step",
+            "mode": "driven",
+            "tolerance_t": 0.0001,
+            "stable_duration_s": 0,
+            "settle_s": 0,
+            "timeout_s": 5
+          },
+          "children": [
+            {
+              "type": "scan",
+              "name": "scan_voltage",
+              "source_line": 3,
+              "params": {
+                "points": [
+                  -0.01,
+                  0.01
+                ],
+                "voltage_mode": "source",
+                "channel": "ch1",
+                "source_range_v": "auto",
+                "compliance_a": 0.0001,
+                "settle_s": 0.01
+              },
+              "children": [
+                {
+                  "type": "measurement",
+                  "name": "meas_current",
+                  "source_line": 4,
+                  "params": {
+                    "meas_type": "basic",
+                    "name": "current",
+                    "instrument": "k2450",
+                    "channel": "",
+                    "sensing_mode": "4wire",
+                    "nplc": 1,
+                    "meter_range_a": "auto",
+                    "filter_enabled": false,
+                    "filter_count": 10
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

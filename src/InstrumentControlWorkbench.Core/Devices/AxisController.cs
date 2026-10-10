@@ -5,7 +5,7 @@ namespace InstrumentControlWorkbench.Core.Devices;
 public sealed record AxisControllerDefinition
 {
     public AxisControllerDefinition(DeviceDescriptor device, ParameterDescriptor target, ParameterDescriptor readback,
-        ParameterDescriptor rate)
+        ParameterDescriptor rate, bool supportsSoftwareTemperatureRamp = false)
     {
         ArgumentNullException.ThrowIfNull(device);
         ArgumentNullException.ThrowIfNull(target);
@@ -27,12 +27,16 @@ public sealed record AxisControllerDefinition
             throw new ArgumentException("Axis rate must have the matching unit and a strictly positive minimum.", nameof(rate));
         foreach (var parameter in new[] { target, readback, rate })
             if (device.GetParameter(parameter.Id) != parameter) throw new ArgumentException("Axis parameters must match its device descriptor.");
+        if (supportsSoftwareTemperatureRamp && (target.Unit != PhysicalUnit.Kelvin || target.Minimum is not { Value: >= 1 } || target.Maximum is not { Value: <= 310 }))
+            throw new ArgumentException("Software temperature ramp requires a bounded 1..310 K controller profile.");
+        SupportsSoftwareTemperatureRamp = supportsSoftwareTemperatureRamp;
         Device = device;
         Target = target;
         Readback = readback;
         Rate = rate;
     }
 
+    public bool SupportsSoftwareTemperatureRamp { get; }
     public DeviceDescriptor Device { get; }
     public ParameterDescriptor Target { get; }
     public ParameterDescriptor Readback { get; }

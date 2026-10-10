@@ -100,12 +100,30 @@ public sealed partial class PpmsExperimentPlanImporter
     private static ExperimentStep SetAxis(string role, JsonObject p, string path, ImportContext c)
     {
         var axis = Axis(role, c); var (targetKey, rateKey, toleranceKey, tolerance, stable, timeout) = AxisDefaults(role);
-        Fields(p, [targetKey, "wait_mode", toleranceKey, "stable_duration_s", "settle_s", "timeout_s", .. (role == "field" ? new[] { "mode" } : role == "temperature" ? new[] { rateKey, "ramp_strategy" } : new[] { rateKey })]);
+        Fields(p, [targetKey, "wait_mode", toleranceKey, "stable_duration_s", "settle_s", "timeout_s", .. (role == "field" ? new[] { "mode" } : role == "temperature" ? new[] { rateKey, "ramp_strategy", "enable_control" } : new[] { rateKey })]);
         if (role == "field") Choice(p, "mode", "driven", "driven");
-        if (role == "temperature") Choice(p, "ramp_strategy", "software", "hardware");
+        if (role == "temperature") Choice(p, "ramp_strategy", "software", "software", "hardware", "auto");
         var target = Number(p, targetKey); var steps = new List<ExperimentStep>();
-        if (role != "field") steps.Add(Write(path + ".rate", axis.Device.Id, axis.Rate, Number(p, rateKey, 5)));
-        steps.Add(Write(path + ".target", axis.Device.Id, axis.Target, target));
+        if (role == "temperature")
+        {
+            if (!Boolean(p, "enable_control", true)) throw new NotSupportedException("Temperature sets with disabled control are not migrated.");
+            TemperatureRampPath.ValidateTemperature(new(target, PhysicalUnit.Kelvin));
+            var requestedRate = Number(p, rateKey, 0);
+            Quantity? rate = requestedRate > 0 ? new(requestedRate, PhysicalUnit.KelvinPerMinute) : null;
+            if (rate is { } positiveRate) TemperatureRampPath.ValidateRate(positiveRate);
+            var strategy = Text(p, "ramp_strategy", "software").Trim().ToLowerInvariant();
+            if (strategy == "hardware" && rate is { } hardwareRate)
+            {
+                steps.Add(Write(path + ".rate", axis.Device.Id, axis.Rate, hardwareRate.Value));
+                steps.Add(Write(path + ".target", axis.Device.Id, axis.Target, target));
+            }
+            else steps.Add(new SoftwareTemperatureRampStep(new(path + ".target"), axis.Device.Id, new ConstantValue(new(target, PhysicalUnit.Kelvin)), rate));
+        }
+        else
+        {
+            if (role != "field") steps.Add(Write(path + ".rate", axis.Device.Id, axis.Rate, Number(p, rateKey, 5)));
+            steps.Add(Write(path + ".target", axis.Device.Id, axis.Target, target));
+        }
         Choice(p, "wait_mode", "stable", "stable", "reached", "none");
         if (Text(p, "wait_mode", "stable").Trim().ToLowerInvariant() != "none")
             steps.Add(Stability(path + ".stable", axis, new ConstantValue(new(target, axis.Target.Unit)), p, toleranceKey, tolerance,

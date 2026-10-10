@@ -170,8 +170,13 @@ Avalonia views -> ViewModels -> Application use cases -> Core contracts
    source-line metadata, repeat/delay, environment settings and step field/angle/
    source scans translate into native plans. The real-schema six-row matrix-routed
    field/voltage fixture executes, saves/reloads, archives and exports. Software
-   temperature ramps/scans, remaining BT/controller/range/measurement semantics
-   still reject instead of silently degrading. See ppms-plan-import.md.
+   temperature ramps/scans are added in the follow-up: an explicit temperature
+   port confirms control mode, the executor migrates the current Rust one-second
+   millikelvin stepping, and pause/abort/fault cleanup retains ownership until
+   hold confirmation. The 12-row temperature/field/routed-voltage runtime file
+   saves, archives, reopens, re-executes and exports. Firmware status, remaining
+   BT/controller/range/measurement semantics and hardware remain required.
+   See ppms-plan-import.md and temperature-control.md.
 7. **Operator workflows — pending.** Flow editor, reusable steps, device panels,
    routing/sample settings and live/history views connected to the backend.
 8. **Acceptance — pending.** End-to-end representative PPMS experiments,

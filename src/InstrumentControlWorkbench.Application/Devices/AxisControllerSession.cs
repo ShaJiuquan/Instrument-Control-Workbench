@@ -7,7 +7,7 @@ using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Application.Devices;
 
-public sealed class AxisControllerSession : IDeviceSession
+public sealed partial class AxisControllerSession : IDeviceSession
 {
     private readonly IAxisControllerPort port;
     private readonly InstrumentOperationGate operations;
@@ -16,6 +16,8 @@ public sealed class AxisControllerSession : IDeviceSession
 
     public AxisControllerSession(IAxisControllerPort port, NotificationHub notifications)
     {
+        if (port.Definition.SupportsSoftwareTemperatureRamp && port is not ITemperatureControlPort)
+            throw new ArgumentException("Temperature ramp capability requires a temperature-control port.", nameof(port));
         this.port = port;
         this.notifications = notifications;
         operations = new(port.Definition.Device.Id);
@@ -77,9 +79,17 @@ public sealed class AxisControllerSession : IDeviceSession
         try
         {
             if (parameter == port.Definition.Target.Id) await port.SetTargetAsync(value, token);
-            else if (parameter == port.Definition.Rate.Id) await port.SetRateAsync(value, token);
+            else if (parameter == port.Definition.Rate.Id)
+            {
+                if (Definition.SupportsSoftwareTemperatureRamp) await ((ITemperatureControlPort)port).SetHardwareRampAsync(value, token);
+                else await port.SetRateAsync(value, token);
+            }
             else throw new NotSupportedException($"{Descriptor.Id} cannot write {parameter}.");
-            await PublishAsync(await port.GetSnapshotAsync(token), token);
+            var snapshot = await port.GetSnapshotAsync(token);
+            if (Definition.SupportsSoftwareTemperatureRamp && parameter == Definition.Rate.Id &&
+                (!snapshot.Connected || snapshot.Rate != value || await ((ITemperatureControlPort)port).ReadControlConfigurationAsync(token) != new TemperatureControlConfiguration(true, true)))
+                throw new InvalidOperationException("Hardware temperature ramp or control configuration did not confirm.");
+            await PublishAsync(snapshot, token);
         }
         catch { faulted = true; throw; }
         finally { operations.Exit(); }

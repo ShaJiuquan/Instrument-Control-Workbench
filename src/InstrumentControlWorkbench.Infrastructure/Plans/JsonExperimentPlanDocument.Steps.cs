@@ -15,6 +15,9 @@ public sealed partial class JsonExperimentPlanDocument
         var o = new JsonObject { ["id"] = step.Id.Value };
         switch (step)
         {
+            case SoftwareTemperatureRampStep temperature:
+                o["kind"] = "software_temperature_ramp"; o["device"] = temperature.Device.Value; o["target"] = EncodeValue(temperature.Target);
+                if (temperature.Rate is { } rate) o["rate"] = EncodeQuantity(rate); break;
             case ReadSourceSenseStep pair:
                 o["kind"] = "read_source_sense"; o["device"] = pair.Device.Value; o["function"] = pair.Function.ToString();
                 o["voltageColumn"] = pair.VoltageColumn.Value; o["currentColumn"] = pair.CurrentColumn.Value; break;
@@ -90,6 +93,9 @@ public sealed partial class JsonExperimentPlanDocument
         var kind = Text(o, "kind");
         switch (kind)
         {
+            case "software_temperature_ramp":
+                Object(o, "id", "kind", "device", "target", "rate");
+                return new SoftwareTemperatureRampStep(id, new(Text(o, "device")), DecodeValue(o["target"]), o.ContainsKey("rate") ? DecodeQuantity(o["rate"]) : null);
             case "read_source_sense":
                 Object(o, "id", "kind", "device", "function", "voltageColumn", "currentColumn");
                 return new ReadSourceSenseStep(id, new(Text(o, "device")), NamedEnum<SourceFunction>(o, "function"), new(Text(o, "voltageColumn")), new(Text(o, "currentColumn")));

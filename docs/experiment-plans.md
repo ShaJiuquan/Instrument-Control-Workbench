@@ -33,6 +33,7 @@ offline model's stop state; disconnected Hardware descriptors cannot.
 
 | Model | Behavior |
 | --- | --- |
+| SoftwareTemperatureRampStep | Confirmed temperature control, live origin, optional integer-millikelvin ramp; separate stability wait ([contract](temperature-control.md)) |
 | SequenceStep | Run children in order; empty sequence is allowed |
 | RepeatStep | Execute body for a positive bounded count |
 | ScanStep | Write each typed axis value, run body, then dwell; nesting creates outer/inner axes |

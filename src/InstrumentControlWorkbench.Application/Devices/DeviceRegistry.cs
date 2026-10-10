@@ -23,6 +23,8 @@ public sealed class DeviceRegistry
     }
 
     public IReadOnlyList<DeviceDescriptor> Devices { get; }
+    public AxisControllerDefinition GetAxisDefinition(InstrumentId id) => Get(id) is AxisControllerSession axis ? axis.Definition
+        : throw new NotSupportedException($"{id} has no axis-controller execution profile.");
     public MatrixSwitchDefinition GetMatrixDefinition(InstrumentId id) => Get(id) is MatrixSwitchSession matrix ? matrix.Definition
         : throw new NotSupportedException($"{id} has no matrix-routing execution profile.");
     public Task<DeviceStatus> ConnectAsync(InstrumentId id, CancellationToken token) => GetManual(id).ConnectDeviceAsync(token);

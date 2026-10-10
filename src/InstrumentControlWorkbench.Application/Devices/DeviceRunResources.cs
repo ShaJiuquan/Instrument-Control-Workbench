@@ -6,7 +6,7 @@ using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Application.Devices;
 
-internal sealed record DeviceResumeState(InstrumentId Device, bool OutputEnabled, ParameterId? Target, Quantity? TargetValue, SourceMeterSnapshot? SourceState = null);
+internal sealed record DeviceResumeState(InstrumentId Device, bool OutputEnabled, ParameterId? Target, Quantity? TargetValue, SourceMeterSnapshot? SourceState = null, TemperatureControlConfiguration? TemperatureState = null);
 
 public sealed record DeviceCleanupFailure(InstrumentId InstrumentId, Exception Error);
 
@@ -113,6 +113,31 @@ public sealed class DeviceRunResources
             token.ThrowIfCancellationRequested();
             touched.Add(id);
             await manager.ConfigureAsync(source, sense, token, Owner);
+        }
+        finally { gate.Release(); }
+    }
+
+    internal async Task<Quantity> BeginSoftwareTemperatureRampAsync(InstrumentId id, Quantity target, CancellationToken token)
+    {
+        await gate.WaitAsync(token);
+        try
+        {
+            RequireActive();
+            var axis = Get(id) as AxisControllerSession ?? throw new NotSupportedException($"{id} is not an axis controller.");
+            await PrepareMutationAsync(id); touched.Add(id);
+            return await axis.BeginSoftwareTemperatureRampAsync(target, Owner, token);
+        }
+        finally { gate.Release(); }
+    }
+    internal async Task WriteSoftwareTemperatureTargetAsync(InstrumentId id, Quantity target, CancellationToken token)
+    {
+        await gate.WaitAsync(token);
+        try
+        {
+            RequireActive();
+            var axis = Get(id) as AxisControllerSession ?? throw new NotSupportedException($"{id} is not an axis controller.");
+            await PrepareMutationAsync(id); touched.Add(id);
+            await axis.WriteSoftwareTemperatureTargetAsync(target, Owner, token);
         }
         finally { gate.Release(); }
     }
@@ -333,13 +358,19 @@ public sealed class DeviceRunResources
                 else
                 {
                     var status = await session.GetDeviceStatusAsync(token, Owner);
+                    var configuration = new Dictionary<string, string>
+                    {
+                        ["driver_kind"] = session.Descriptor.DriverKind.ToString(),
+                        ["stop_policy"] = session.Descriptor.StopPolicy.ToString(),
+                    };
+                    if (session is AxisControllerSession axis && axis.Definition.SupportsSoftwareTemperatureRamp)
+                    {
+                        var temperature = await axis.CaptureTemperatureConfigurationAsync(Owner, token);
+                        configuration["hardware_ramp_enabled"] = temperature.HardwareRampEnabled.ToString();
+                        configuration["temperature_control_enabled"] = temperature.ControlEnabled.ToString();
+                    }
                     result.Add(new(id, session.Descriptor.Model, status.Timestamp,
-                        status.Values.Select(v => new ParameterSnapshot(session.Descriptor.GetParameter(v.Key), v.Value)),
-                        new Dictionary<string, string>
-                        {
-                            ["driver_kind"] = session.Descriptor.DriverKind.ToString(),
-                            ["stop_policy"] = session.Descriptor.StopPolicy.ToString(),
-                        }));
+                        status.Values.Select(v => new ParameterSnapshot(session.Descriptor.GetParameter(v.Key), v.Value)), configuration));
                 }
             }
             return result.AsReadOnly();
@@ -359,7 +390,7 @@ public sealed class DeviceRunResources
                 result.Add(new(session.Descriptor.Id, snapshot.Connected && snapshot.OutputEnabled, null, null, snapshot));
             }
             else if (session is AxisControllerSession axis)
-                result.Add(new(session.Descriptor.Id, false, axis.Definition.Target.Id, status.Values[axis.Definition.Target.Id]));
+                result.Add(new(session.Descriptor.Id, false, axis.Definition.Target.Id, status.Values[axis.Definition.Target.Id], TemperatureState: axis.Definition.SupportsSoftwareTemperatureRamp ? await axis.CaptureTemperatureConfigurationAsync(Owner, token) : null));
             else if (session is not MatrixSwitchSession) throw new NotSupportedException($"Pause has no resume policy for {session.Descriptor.Id}.");
         }
         return result.AsReadOnly();
@@ -379,6 +410,14 @@ public sealed class DeviceRunResources
                 if (!current.Connected || current.OutputEnabled || current.Source != expected.Source || current.Sense != expected.Sense || current.Terminals != expected.Terminals)
                     throw new InvalidOperationException($"{state.Device}: source state or configuration changed while paused; resume refused.");
             }
+            foreach (var state in states.Where(s => s.TemperatureState is not null))
+            {
+                // External control drift invalidates the old pause hold proof.
+                // A failed check must trigger fresh hold confirmation in cleanup.
+                await PrepareMutationAsync(state.Device);
+                if (await ((AxisControllerSession)Get(state.Device)).CaptureTemperatureConfigurationAsync(Owner, token) != state.TemperatureState)
+                    throw new InvalidOperationException($"{state.Device}: temperature control changed while paused; resume refused.");
+            }
             foreach (var matrix in sessions.Values.OfType<MatrixSwitchSession>())
             {
                 await PrepareMutationAsync(matrix.Descriptor.Id);
@@ -389,7 +428,15 @@ public sealed class DeviceRunResources
         finally { gate.Release(); }
         // Restore held axis targets first; source output stays off until these succeed.
         foreach (var state in states.Where(s => s.Target is not null))
-            await WriteAsync(state.Device, state.Target!, state.TargetValue!.Value, token);
+        {
+            if (state.TemperatureState is { } configuration)
+            {
+                await gate.WaitAsync(token);
+                try { await PrepareMutationAsync(state.Device); touched.Add(state.Device); await ((AxisControllerSession)Get(state.Device)).RestoreTemperatureTargetAsync(state.TargetValue!.Value, configuration, Owner, token); }
+                finally { gate.Release(); }
+            }
+            else await WriteAsync(state.Device, state.Target!, state.TargetValue!.Value, token);
+        }
         foreach (var state in states.Where(s => s.OutputEnabled)) await EnableSourceOutputAsync(state.Device, token, expectedResumeState: state.SourceState);
     }
 

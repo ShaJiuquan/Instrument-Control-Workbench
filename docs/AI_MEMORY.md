@@ -296,7 +296,29 @@ implementation.
   first-point removal are retained. Generated wrappers and aggregate points have
   budgets as well as the raw tree. Invalid fields/functions/ranges/routes fail
   before IO; workspace capability preflight is still required after parsing.
-- Software temperature ramps/scans, controller-status waits, persistent mode,
+- Controller-status waits, persistent mode,
   remaining BT semantics, aggregation, sample/resistance import, ranges/filtering,
   separate meter families, text DSL/database export and hardware remain required.
   See ppms-plan-import.md and the six-row field/voltage import acceptance.
+
+## Software temperature control follow-up
+
+- The independent engine now executes SoftwareTemperatureRampStep. A real
+  ITemperatureControlPort capability is required; generic axis targets are not
+  treated as sufficient proof of temperature control. Hardware rate writes use
+  its explicit mode-setting/confirmation path.
+- Live readback is validated before control mutation. Preparing software mode
+  parks at that origin before enabling control. Read failure has no cached/target
+  fallback. Each target write confirms hardware-ramp-off/control-on and target
+  readback. Positive rates use the current Rust one-second integer-millikelvin
+  algorithm; direct sets remain unrounded. Minimum rate quantization is explicit.
+- Pause holds current temperature and retains the group. Config drift rejects
+  restoration before source enable and invalidates prior hold proof for fresh
+  cleanup. Failed holds quarantine resources until explicit recovery. Cleanup
+  holds temperature, never implies heater-off, zero kelvin or automatic cooldown.
+- PPMS sets support software/hardware/auto and direct-no-rate semantics. Step
+  temperature scans translate to iterator + ramp + numeric stability + children.
+  The 12-row temperature/field/routed-voltage file saves, archives, reopens,
+  re-executes and exports. See temperature-control.md. Actual firmware states,
+  continuous/cooling/background modes, disabled control and hardware remain
+  incomplete; the full migration goal stays active.

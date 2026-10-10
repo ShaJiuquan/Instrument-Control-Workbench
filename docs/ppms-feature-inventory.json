@@ -23,12 +23,12 @@
       ],
       "status": "partial",
       "evidence": {
-        "implementation": "src/InstrumentControlWorkbench.Application/Devices/AxisControllerSession.cs",
-        "tests": "tests/InstrumentControlWorkbench.Application.Tests/DeviceRegistryTests.cs",
-        "limits": "AxisControllerSession + simulated Kelvin/KelvinPerMinute target/rate/readback; PPMS wait/stability and hardware control strategies pending",
+        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Temperature.cs; src/InstrumentControlWorkbench.Application/Devices/AxisControllerSession.Temperature.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/SoftwareTemperatureExecutionTests.cs; tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs",
+        "limits": "Temperature sets support confirmed software/hardware/auto and direct-no-rate semantics; step temperature scans use native iterator/software ramp/numeric stability/children. Continuous/cooling/background modes, disabled temperature control, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See temperature-control.md.",
         "importImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs; src/InstrumentControlWorkbench.Application/Experiments/ExperimentPlanWorkspace.cs",
         "importTests": "tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs",
-        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature setting requires explicit hardware strategy; software ramps/temperature scans, continuous modes, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
+        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature sets support confirmed software/hardware/auto and direct-no-rate semantics; step temperature scans use native iterator/software ramp/numeric stability/children. Continuous/cooling/background modes, disabled temperature control, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
       }
     },
     {
@@ -44,7 +44,7 @@
         "limits": "AxisControllerSession + simulated Tesla target/readback/hold; PPMS field control modes, wait/stability and hardware adapter pending",
         "importImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs; src/InstrumentControlWorkbench.Application/Experiments/ExperimentPlanWorkspace.cs",
         "importTests": "tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs",
-        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature setting requires explicit hardware strategy; software ramps/temperature scans, continuous modes, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
+        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature sets support confirmed software/hardware/auto and direct-no-rate semantics; step temperature scans use native iterator/software ramp/numeric stability/children. Continuous/cooling/background modes, disabled temperature control, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
       }
     },
     {
@@ -57,7 +57,7 @@
       "evidence": {
         "importImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs; src/InstrumentControlWorkbench.Application/Experiments/ExperimentPlanWorkspace.cs",
         "importTests": "tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs",
-        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature setting requires explicit hardware strategy; software ramps/temperature scans, continuous modes, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
+        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature sets support confirmed software/hardware/auto and direct-no-rate semantics; step temperature scans use native iterator/software ramp/numeric stability/children. Continuous/cooling/background modes, disabled temperature control, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
       }
     },
     {
@@ -70,7 +70,7 @@
       "evidence": {
         "importImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs; src/InstrumentControlWorkbench.Application/Experiments/ExperimentPlanWorkspace.cs",
         "importTests": "tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs",
-        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature setting requires explicit hardware strategy; software ramps/temperature scans, continuous modes, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
+        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature sets support confirmed software/hardware/auto and direct-no-rate semantics; step temperature scans use native iterator/software ramp/numeric stability/children. Continuous/cooling/background modes, disabled temperature control, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
       }
     },
     {
@@ -95,7 +95,7 @@
         "limits": "AxisControllerSession + simulated Degree/DegreePerSecond target/rate/readback/hold; PPMS wait/stability and hardware adapter pending",
         "importImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs; src/InstrumentControlWorkbench.Application/Experiments/ExperimentPlanWorkspace.cs",
         "importTests": "tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs",
-        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature setting requires explicit hardware strategy; software ramps/temperature scans, continuous modes, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
+        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature sets support confirmed software/hardware/auto and direct-no-rate semantics; step temperature scans use native iterator/software ramp/numeric stability/children. Continuous/cooling/background modes, disabled temperature control, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
       }
     },
     {
@@ -177,7 +177,7 @@
         "limits": "DeviceRegistry typed temperature.readback; PPMS measurement/result plan dispatch pending",
         "importImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs; src/InstrumentControlWorkbench.Application/Experiments/ExperimentPlanWorkspace.cs",
         "importTests": "tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs",
-        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature setting requires explicit hardware strategy; software ramps/temperature scans, continuous modes, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
+        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature sets support confirmed software/hardware/auto and direct-no-rate semantics; step temperature scans use native iterator/software ramp/numeric stability/children. Continuous/cooling/background modes, disabled temperature control, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
       }
     },
     {
@@ -194,7 +194,7 @@
         "limits": "DeviceRegistry typed field.readback; PPMS measurement/result plan dispatch pending",
         "importImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs; src/InstrumentControlWorkbench.Application/Experiments/ExperimentPlanWorkspace.cs",
         "importTests": "tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs",
-        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature setting requires explicit hardware strategy; software ramps/temperature scans, continuous modes, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
+        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature sets support confirmed software/hardware/auto and direct-no-rate semantics; step temperature scans use native iterator/software ramp/numeric stability/children. Continuous/cooling/background modes, disabled temperature control, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
       }
     },
     {
@@ -211,7 +211,7 @@
         "limits": "DeviceRegistry typed angle.readback; PPMS measurement/result plan dispatch pending",
         "importImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs; src/InstrumentControlWorkbench.Application/Experiments/ExperimentPlanWorkspace.cs",
         "importTests": "tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs",
-        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature setting requires explicit hardware strategy; software ramps/temperature scans, continuous modes, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
+        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature sets support confirmed software/hardware/auto and direct-no-rate semantics; step temperature scans use native iterator/software ramp/numeric stability/children. Continuous/cooling/background modes, disabled temperature control, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
       }
     },
     {
@@ -257,7 +257,7 @@
         "limits": "K2450 coherent actual V/I frames in both source functions, generic nested scans and IV actual-value plot points with separate requested axis; plan/archive/CSV round-trip, acquisition configuration checks and pause restoration guards. Separate meters/ranges, full PPMS command decoding/aliases, compliance-quality flags and physical transport/acceptance remain pending.",
         "importImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs; src/InstrumentControlWorkbench.Application/Experiments/ExperimentPlanWorkspace.cs",
         "importTests": "tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs",
-        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature setting requires explicit hardware strategy; software ramps/temperature scans, continuous modes, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
+        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature sets support confirmed software/hardware/auto and direct-no-rate semantics; step temperature scans use native iterator/software ramp/numeric stability/children. Continuous/cooling/background modes, disabled temperature control, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
       }
     },
     {
@@ -273,7 +273,7 @@
         "limits": "K2450 coherent actual V/I frames in both source functions, generic nested scans and IV actual-value plot points with separate requested axis; plan/archive/CSV round-trip, acquisition configuration checks and pause restoration guards. Separate meters/ranges, full PPMS command decoding/aliases, compliance-quality flags and physical transport/acceptance remain pending.",
         "importImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs; src/InstrumentControlWorkbench.Application/Experiments/ExperimentPlanWorkspace.cs",
         "importTests": "tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs",
-        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature setting requires explicit hardware strategy; software ramps/temperature scans, continuous modes, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
+        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature sets support confirmed software/hardware/auto and direct-no-rate semantics; step temperature scans use native iterator/software ramp/numeric stability/children. Continuous/cooling/background modes, disabled temperature control, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
       }
     },
     {
@@ -372,7 +372,12 @@
       "aliases": [
         "scan_temp"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Temperature.cs; src/InstrumentControlWorkbench.Application/Devices/AxisControllerSession.Temperature.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/SoftwareTemperatureExecutionTests.cs; tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs",
+        "limits": "Temperature sets support confirmed software/hardware/auto and direct-no-rate semantics; step temperature scans use native iterator/software ramp/numeric stability/children. Continuous/cooling/background modes, disabled temperature control, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See temperature-control.md."
+      }
     },
     {
       "id": "scan_temperature_v2",
@@ -393,7 +398,7 @@
         "limits": "Typed plan API supports relevant scan/control/numeric wait subset; PPMS decoder and controller-specific semantics still pending",
         "importImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs; src/InstrumentControlWorkbench.Application/Experiments/ExperimentPlanWorkspace.cs",
         "importTests": "tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs",
-        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature setting requires explicit hardware strategy; software ramps/temperature scans, continuous modes, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
+        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature sets support confirmed software/hardware/auto and direct-no-rate semantics; step temperature scans use native iterator/software ramp/numeric stability/children. Continuous/cooling/background modes, disabled temperature control, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
       }
     },
     {
@@ -430,7 +435,7 @@
       "evidence": {
         "importImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs; src/InstrumentControlWorkbench.Application/Experiments/ExperimentPlanWorkspace.cs",
         "importTests": "tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs",
-        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature setting requires explicit hardware strategy; software ramps/temperature scans, continuous modes, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
+        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature sets support confirmed software/hardware/auto and direct-no-rate semantics; step temperature scans use native iterator/software ramp/numeric stability/children. Continuous/cooling/background modes, disabled temperature control, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
       }
     },
     {
@@ -461,7 +466,7 @@
       "evidence": {
         "importImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs; src/InstrumentControlWorkbench.Application/Experiments/ExperimentPlanWorkspace.cs",
         "importTests": "tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs",
-        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature setting requires explicit hardware strategy; software ramps/temperature scans, continuous modes, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
+        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature sets support confirmed software/hardware/auto and direct-no-rate semantics; step temperature scans use native iterator/software ramp/numeric stability/children. Continuous/cooling/background modes, disabled temperature control, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
       }
     },
     {
@@ -475,7 +480,7 @@
         "limits": "Typed plan API supports relevant scan/control/numeric wait subset; PPMS decoder and controller-specific semantics still pending",
         "importImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs; src/InstrumentControlWorkbench.Application/Experiments/ExperimentPlanWorkspace.cs",
         "importTests": "tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs",
-        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature setting requires explicit hardware strategy; software ramps/temperature scans, continuous modes, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
+        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature sets support confirmed software/hardware/auto and direct-no-rate semantics; step temperature scans use native iterator/software ramp/numeric stability/children. Continuous/cooling/background modes, disabled temperature control, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
       }
     },
     {
@@ -586,7 +591,7 @@
       "evidence": {
         "importImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs; src/InstrumentControlWorkbench.Application/Experiments/ExperimentPlanWorkspace.cs",
         "importTests": "tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs",
-        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature setting requires explicit hardware strategy; software ramps/temperature scans, continuous modes, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
+        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature sets support confirmed software/hardware/auto and direct-no-rate semantics; step temperature scans use native iterator/software ramp/numeric stability/children. Continuous/cooling/background modes, disabled temperature control, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
       }
     },
     {
@@ -597,7 +602,7 @@
       "evidence": {
         "importImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs; src/InstrumentControlWorkbench.Application/Experiments/ExperimentPlanWorkspace.cs",
         "importTests": "tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs",
-        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature setting requires explicit hardware strategy; software ramps/temperature scans, continuous modes, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
+        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature sets support confirmed software/hardware/auto and direct-no-rate semantics; step temperature scans use native iterator/software ramp/numeric stability/children. Continuous/cooling/background modes, disabled temperature control, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
       }
     },
     {
@@ -608,7 +613,7 @@
       "evidence": {
         "importImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs; src/InstrumentControlWorkbench.Application/Experiments/ExperimentPlanWorkspace.cs",
         "importTests": "tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs",
-        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature setting requires explicit hardware strategy; software ramps/temperature scans, continuous modes, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
+        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature sets support confirmed software/hardware/auto and direct-no-rate semantics; step temperature scans use native iterator/software ramp/numeric stability/children. Continuous/cooling/background modes, disabled temperature control, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
       }
     },
     {
@@ -708,7 +713,7 @@
         "limits": "Typed plan API supports relevant scan/control/numeric wait subset; PPMS decoder and controller-specific semantics still pending",
         "importImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs; src/InstrumentControlWorkbench.Application/Experiments/ExperimentPlanWorkspace.cs",
         "importTests": "tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs",
-        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature setting requires explicit hardware strategy; software ramps/temperature scans, continuous modes, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
+        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature sets support confirmed software/hardware/auto and direct-no-rate semantics; step temperature scans use native iterator/software ramp/numeric stability/children. Continuous/cooling/background modes, disabled temperature control, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
       }
     },
     {
@@ -836,7 +841,7 @@
       "evidence": {
         "importImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs; src/InstrumentControlWorkbench.Application/Experiments/ExperimentPlanWorkspace.cs",
         "importTests": "tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs",
-        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature setting requires explicit hardware strategy; software ramps/temperature scans, continuous modes, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
+        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature sets support confirmed software/hardware/auto and direct-no-rate semantics; step temperature scans use native iterator/software ramp/numeric stability/children. Continuous/cooling/background modes, disabled temperature control, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
       }
     },
     {
@@ -887,7 +892,7 @@
         "limits": "Typed plan API supports relevant scan/control/numeric wait subset; PPMS decoder and controller-specific semantics still pending",
         "importImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs; src/InstrumentControlWorkbench.Application/Experiments/ExperimentPlanWorkspace.cs",
         "importTests": "tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs",
-        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature setting requires explicit hardware strategy; software ramps/temperature scans, continuous modes, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
+        "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature sets support confirmed software/hardware/auto and direct-no-rate semantics; step temperature scans use native iterator/software ramp/numeric stability/children. Continuous/cooling/background modes, disabled temperature control, persistent/controller status semantics, full BT nodes, sample/resistance import, aggregation, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md."
       }
     },
     {

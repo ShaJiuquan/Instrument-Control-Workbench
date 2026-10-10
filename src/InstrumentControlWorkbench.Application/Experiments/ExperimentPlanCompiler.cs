@@ -147,6 +147,19 @@ internal static class ExperimentPlanCompiler
             if (!steps.Add(step.Id)) throw new ArgumentException($"Duplicate step ID {step.Id}.");
             switch (step)
             {
+                case SoftwareTemperatureRampStep temperature:
+                    Device(temperature.Device);
+                    var controller = registry.GetAxisDefinition(temperature.Device);
+                    if (!controller.SupportsSoftwareTemperatureRamp) throw new NotSupportedException("Controller does not implement software temperature ramps.");
+                    if (ValueUnit(temperature.Target, known) != PhysicalUnit.Kelvin) throw new ArgumentException("Temperature targets require Kelvin.");
+                    if (temperature.Target is ConstantValue temperatureTarget)
+                    {
+                        controller.Target.ValidateWrite(temperatureTarget.Value);
+                        if (temperature.Rate is not null) controller.Target.ValidateWrite(new(TemperatureRampPath.MilliKelvin(temperatureTarget.Value) / 1000.0, PhysicalUnit.Kelvin));
+                    }
+                    // Live readback is not available at preflight: bound the path
+                    // using the complete declared controller range.
+                    return temperature.Rate is { } temperatureRate ? checked(1 + Math.Max(1, new TemperatureRampPath(controller.Target.Minimum!.Value, controller.Target.Maximum!.Value, temperatureRate).UpdateCount)) : 2;
                 case ReadSourceSenseStep pair:
                     ValidateSourceSense(pair.Device, pair.Function, pair.VoltageColumn, pair.CurrentColumn, known, axes);
                     return 1;

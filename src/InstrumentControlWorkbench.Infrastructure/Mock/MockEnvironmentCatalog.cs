@@ -24,6 +24,6 @@ public static class MockEnvironmentCatalog
         var rate = new ParameterDescriptor(new($"{prefix}.rate"), $"{name} rate", rateUnit, ParameterAccess.ReadWrite, new(minRate, rateUnit), new(maxRate, rateUnit));
         var device = new DeviceDescriptor(id, $"SIM-{prefix.ToUpperInvariant()}", name, DriverKind.Simulation,
             DeviceStopPolicy.HoldCurrentPosition, [target, readback, rate]);
-        return new(new(device, target, readback, rate), new(initial, unit), new(initialRate, rateUnit), clock);
+        return new(new(device, target, readback, rate, unit == PhysicalUnit.Kelvin), new(initial, unit), new(initialRate, rateUnit), clock);
     }
 }

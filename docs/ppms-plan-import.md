@@ -55,10 +55,11 @@ routed acquisition and source/meter combinations remain migration work.
 | delay / wait_before | Delay before optional children; Rust default 1 second |
 | wait / sleep with wait_kind=wait | Interruptible duration; default 5 seconds |
 | set_field, set_angle and aliases | Typed target/rate writes, numeric stability and settle |
-| set_temperature and aliases with ramp_strategy=hardware | Bound controller rate/target, numeric stability and settle |
+| set_temperature and aliases | Software ramp by default; explicit hardware ramp or direct setting, numeric stability and settle |
 | set_voltage / voltage_set, set_current / current_set | Matching prepared source function, optional explicit route, parked zero, compliance/level and output enable |
 | k2450.set_output / set_output_enabled | Owned output state change |
 | k2450.set_source_level, set_compliance, set_nplc | Typed configuration writes with explicit function checks |
+| scan_temperature / scan_temp | Software-ramped step scan; numeric stability, settle, then children |
 | scan_field / field, scan_angle / angle | Step scans; stability and settle occur before children |
 | scan_voltage, scan_current | Prepared source step scans, routing, first level before output enable, settle before children |
 | read_temp/field/angle and aliases | Typed controller readback rows |
@@ -81,16 +82,35 @@ endpoint. This deliberately does not call native `ScanValues.Segmented`, whose
 boundary deduplication has different semantics. PPMS voltage set/scan requests
 retain the original -200..200 V bound in addition to native capability checks.
 
+## Temperature settings and step scans
+
+The default software strategy follows the current Rust PPMS controller: live
+origin, integer millikelvin targets, a fixed one-second tick, rounded rate/60
+steps with a one-millikelvin minimum, and a clamped final target without a final
+sleep. A positive rate must be 0.01..20 K/min. An absent/nonpositive set-command
+rate performs a direct, unrounded target write with hardware ramp off. Explicit
+hardware strategy with a positive rate programs the hardware ramp; `auto` uses
+software for a positive rate and disables hardware ramp for a direct set.
+`wait_mode=none` still awaits software target programming before subsequent
+commands. It skips the separate numeric stability wait, not the ramp itself.
+
+A temperature step scan defaults to 5 K/min. It translates to a native
+`ForEachStep` followed by software ramp, stability, settle and children for each
+point. It does not use an immediate target-writing `ScanStep`, which would jump
+to the final temperature before ramping. The requested axis, its one-based index
+and total are recorded independently of any explicit measured-temperature row.
+The separate [temperature-control contract](temperature-control.md) describes
+live-origin failures, mode confirmation, pause/resume, cleanup and limitations.
+
 ## Explicit incomplete work
 
-Software temperature ramps and temperature scans, continuous/ramp/cooling modes,
+Continuous/ramp/cooling modes, disabled temperature-control settings,
 persistent magnet transitions, quench operations, state-based environment wait
 commands, conditional/parallel/retry/race/for_each BT semantics, measurement
 aggregation, resistance/sample import, filtering, manual ranges, changed source
 functions, segment settle/mirror/repeat modifiers and additional instrument
 families remain required. They produce an import error, not a no-op or silent
-fallback. Hardware temperature setting must be explicit; an omitted/default
-software strategy is rejected. Numeric stability on bound controller ports does
+fallback. Numeric stability on bound controller ports does
 not certify PPMS firmware holding/stable states or a physical interlock.
 
 Documents are bounded to 4 MiB UTF-8, depth 128, 10,000 raw nodes and an aggregate
@@ -110,3 +130,9 @@ native plan, reopen a fresh archive, re-execute it and export CSV. Additional
 cases cover aliases, both source functions, configuration commands, repeat/delay,
 spacing, unsupported routes/ranges/modes, budgets, preflight, cancellation and
 paused abort. This is simulated API acceptance, not full PPMS or hardware parity.
+
+The [temperature/field/voltage tree](../examples/plans/ppms-temperature-field-voltage-import.json)
+extends this acceptance to three temperatures, two fields and two routed voltages
+(12 rows, four owned devices), native disk save/load, a fresh archive, re-execution
+and CSV export. Firmware status, thermal plant behavior and real transport
+acceptance are still separate work.

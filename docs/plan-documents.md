@@ -90,3 +90,10 @@ Sample profiles may include positive meter-valued geometry. `sample_analysis`
 groups two Hall or eight vdP `read_sample_resistance` children and four typed
 derived column declarations; child nodes count toward the existing budgets.
 See [sample-analysis.md](sample-analysis.md) for analyzed execution and row evidence.
+
+The `software_temperature_ramp` step stores `device`, a typed `target` expression
+and an optional `rate` quantity in KelvinPerMinute. Omitting rate explicitly
+selects a direct, unrounded set with hardware ramp off. This policy survives
+native documents and full-plan archives. Temperature mode/control flags in run
+instrument metadata describe the initial snapshot; subsequent changes are
+specified by the archived plan. See [temperature control](temperature-control.md).
