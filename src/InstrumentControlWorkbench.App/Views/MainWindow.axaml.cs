@@ -1,11 +1,23 @@
 using Avalonia.Controls;
+using InstrumentControlWorkbench.App.ViewModels;
 
 namespace InstrumentControlWorkbench.App.Views;
 
 public partial class MainWindow : Window
 {
-    public MainWindow()
+    private bool cleanupComplete;
+    private bool cleanupStarted;
+    public MainWindow() => InitializeComponent();
+
+    protected override async void OnClosing(WindowClosingEventArgs e)
     {
-        InitializeComponent();
+        if (cleanupComplete) { base.OnClosing(e); return; }
+        e.Cancel = true;
+        base.OnClosing(e);
+        if (cleanupStarted) return;
+        cleanupStarted = true;
+        if (DataContext is MainWindowViewModel viewModel) await viewModel.DisposeAsync();
+        cleanupComplete = true;
+        Close();
     }
 }

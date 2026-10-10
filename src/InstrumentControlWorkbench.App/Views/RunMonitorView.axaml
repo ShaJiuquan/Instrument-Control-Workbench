@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:views="using:InstrumentControlWorkbench.App.Views"
+             xmlns:controls="using:InstrumentControlWorkbench.App.Controls"
+             x:Class="InstrumentControlWorkbench.App.Views.RunMonitorView" x:DataType="vm:MainWindowViewModel">
+  <Border Classes="panel">
+    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
+      <Grid ColumnDefinitions="*,Auto" Margin="20,18,20,0">
+        <StackPanel Spacing="6">
+          <TextBlock Text="实时采集" Classes="section"/>
+          <TextBlock Text="{Binding RunSample}" Classes="caption" TextTrimming="CharacterEllipsis"/>
+        </StackPanel>
+        <Border Grid.Column="1" Classes="badge" VerticalAlignment="Top"><TextBlock Text="{Binding StatusText}"/></Border>
+      </Grid>
+      <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="20,17,20,8">
+        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+          <Border Background="{DynamicResource AccentSoft}" CornerRadius="5" Padding="12,7"><TextBlock Text="I–V 特性" Foreground="{DynamicResource Accent}" FontSize="11"/></Border>
+          <TextBlock Text="自动缩放" Classes="caption" FontSize="10" VerticalAlignment="Center"/>
+        </StackPanel>
+        <Button Grid.Column="1" Content="数据表" Classes.selected="{Binding ShowTable}" Command="{Binding ToggleTableCommand}" MinHeight="28" Padding="10,5" ToolTip.Tip="展开或收起当前采集数据"/>
+      </Grid>
+      <controls:MeasurementPlot Grid.Row="2" Points="{Binding PlotPoints}" MinHeight="110" ClipToBounds="True" Margin="12,5,18,0"/>
+      <views:PointTableView Grid.Row="3" IsVisible="{Binding ShowTable}" Height="92"/>
+      <Border Grid.Row="4" Padding="20,13,20,17">
+        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
+          <Grid ColumnDefinitions="17,8,*" VerticalAlignment="Center" Margin="0,0,12,0">
+            <Border Background="{DynamicResource Accent}" Height="2" VerticalAlignment="Center"/>
+            <TextBlock Grid.Column="2" Text="{Binding RunSample}" Classes="caption" TextTrimming="CharacterEllipsis"/>
+          </Grid>
+          <TextBlock Grid.Column="1" Text="{Binding CompletedSummary}" Classes="caption"/>
+          <ProgressBar Grid.Row="1" Grid.ColumnSpan="2" Value="{Binding ProgressPercent}" Minimum="0" Maximum="100" Height="3" Margin="0,12,0,0"/>
+        </Grid>
+      </Border>
+    </Grid>
+  </Border>
+</UserControl>

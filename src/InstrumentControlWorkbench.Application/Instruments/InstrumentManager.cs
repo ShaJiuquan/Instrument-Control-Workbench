@@ -26,6 +26,16 @@ public sealed class InstrumentManager
         await operationGate.WaitAsync(cancellationToken);
         try
         {
+            if (lifecycle == InstrumentLifecycleState.Idle)
+            {
+                var current = await sourceMeter.GetSnapshotAsync(cancellationToken);
+                if (current.Connected)
+                {
+                    return await PublishSnapshotAsync(current with { Lifecycle = lifecycle }, cancellationToken);
+                }
+                Transition(InstrumentLifecycleEvent.Disconnected);
+            }
+
             Transition(InstrumentLifecycleEvent.ConnectRequested);
             await PublishLogAsync("Connecting mock Keithley 2450.", cancellationToken);
             var snapshot = await sourceMeter.ConnectAsync(cancellationToken);
@@ -114,7 +124,10 @@ public sealed class InstrumentManager
             }
 
             await sourceMeter.SafeStopAsync(cancellationToken);
-            Transition(InstrumentLifecycleEvent.SafeStateReached);
+            if (lifecycle is InstrumentLifecycleState.Stopping or InstrumentLifecycleState.Faulted)
+            {
+                Transition(InstrumentLifecycleEvent.SafeStateReached);
+            }
             var snapshot = await sourceMeter.GetSnapshotAsync(cancellationToken);
             await PublishSnapshotAsync(snapshot with { Lifecycle = lifecycle }, cancellationToken);
             await notifications.PublishAsync(

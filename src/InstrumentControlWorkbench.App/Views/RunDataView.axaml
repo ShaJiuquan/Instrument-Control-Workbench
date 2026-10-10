@@ -1,0 +1,20 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels"
+             xmlns:views="using:InstrumentControlWorkbench.App.Views"
+             xmlns:controls="using:InstrumentControlWorkbench.App.Controls"
+             x:Class="InstrumentControlWorkbench.App.Views.RunDataView" x:DataType="vm:MainWindowViewModel">
+<Border Classes="panel">
+  <Grid RowDefinitions="Auto,*">
+    <StackPanel Margin="23,20" Spacing="13">
+      <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{Binding RunId}" Classes="mono" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="{Binding StatusText}" Classes="secondary"/></Grid>
+      <Grid ColumnDefinitions="70,*"><TextBlock Text="样品" Classes="caption"/><TextBlock Grid.Column="1" Text="{Binding RunSample}"/></Grid>
+      <Grid ColumnDefinitions="70,*"><TextBlock Text="扫描配置" Classes="caption"/><TextBlock Grid.Column="1" Text="{Binding RunRecipeSummary}" TextWrapping="Wrap"/></Grid>
+      <TextBlock Text="当前会话数据 · 重新运行会替换此记录 · 尚未写入磁盘" Classes="caption"/>
+    </StackPanel>
+    <Grid Grid.Row="1">
+      <views:PointTableView/>
+      <StackPanel IsVisible="{Binding !HasPoints}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8"><TextBlock Text="还没有采集数据" FontSize="17" FontWeight="Medium" HorizontalAlignment="Center"/><TextBlock Text="完成一次测量后，在这里检查原始读数。" Classes="secondary"/></StackPanel>
+    </Grid>
+  </Grid>
+</Border>
+</UserControl>

@@ -30,6 +30,20 @@ This repository is at the first instrument-control scaffold stage:
 - Mock Keithley 2450 SourceMeter driver.
 - Mock IV sweep flow with safe-stop cleanup.
 - xUnit coverage for state transitions, leases, validators, and sweep notify.
+- Four working pages: measurement, instrument connection/status, run data, events.
+- Data-backed live I–V plot with automatic scaling and pointer readout.
+- Validated scan configuration and state-aware start/connect/stop commands.
+
+The workspace follows the visual direction of the companion Rust/egui PPMS
+Studio: dark navy navigation, a quiet light workspace, purple acquisition
+traces, separate live readouts, a large plot on the left, and compact scan
+configuration on the right. Device details, current-run data, and events have
+separate pages. Chinese text uses an explicit system-font fallback; no assets
+from third-party instrument software are included.
+
+Run data is currently session-only: restarting a scan replaces the previous
+points. Persistent history and export remain future work. Only one simulated
+Keithley 2450 is wired up; the mock does not enforce real current compliance.
 
 ## Project Layout
 
@@ -42,6 +56,7 @@ src/
 tests/
   InstrumentControlWorkbench.Core.Tests/      Unit tests
   InstrumentControlWorkbench.Application.Tests/
+  InstrumentControlWorkbench.App.Tests/       Input and command-state tests
 docs/
   roadmap.md                                  Implementation plan
 ```

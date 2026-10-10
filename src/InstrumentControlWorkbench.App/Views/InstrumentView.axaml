@@ -1,0 +1,41 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels"
+             xmlns:views="using:InstrumentControlWorkbench.App.Views"
+             xmlns:controls="using:InstrumentControlWorkbench.App.Controls"
+             x:Class="InstrumentControlWorkbench.App.Views.InstrumentView" x:DataType="vm:MainWindowViewModel">
+<Grid ColumnDefinitions="260,20,*">
+  <Border Classes="panel" VerticalAlignment="Top" Padding="18">
+    <StackPanel Spacing="13">
+      <TextBlock Text="已接入的仪器" Classes="caption"/>
+      <Border Background="#F3F0FF" BorderBrush="#DED6FC" BorderThickness="1" CornerRadius="5" Padding="14">
+        <StackPanel Spacing="8"><TextBlock Text="Keithley 2450" FontWeight="SemiBold"/><TextBlock Text="SourceMeter · 仿真驱动" Classes="caption"/><TextBlock Text="{Binding ConnectionText}" Foreground="{DynamicResource Accent}" FontSize="12"/></StackPanel>
+      </Border>
+      <TextBlock Text="当前只有这台设备接入控制服务。" Classes="caption" TextWrapping="Wrap"/>
+    </StackPanel>
+  </Border>
+  <Border Grid.Column="2" Classes="panel">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel Margin="26" Spacing="23">
+        <Grid ColumnDefinitions="*,Auto"><StackPanel Spacing="5"><TextBlock Text="Keithley 2450 SourceMeter" FontSize="18" FontWeight="Normal"/><TextBlock Text="电压源 / 电流测量" Classes="secondary"/></StackPanel><Button Grid.Column="1" Content="连接仪器" Command="{Binding ConnectCommand}" VerticalAlignment="Center"/></Grid>
+        <Border Classes="divider"/>
+        <StackPanel Spacing="14">
+          <TextBlock Text="连接信息" Classes="section"/>
+          <Grid ColumnDefinitions="140,*"><TextBlock Text="驱动" Classes="secondary"/><TextBlock Grid.Column="1" Text="Mock · Local simulation"/></Grid>
+          <Grid ColumnDefinitions="140,*"><TextBlock Text="仪器 ID" Classes="secondary"/><TextBlock Grid.Column="1" Text="{Binding InstrumentId}" Classes="mono"/></Grid>
+          <Grid ColumnDefinitions="140,*"><TextBlock Text="设备标识" Classes="secondary"/><TextBlock Grid.Column="1" Text="{Binding Identifier}" Classes="mono" TextWrapping="Wrap"/></Grid>
+          <Grid ColumnDefinitions="140,*"><TextBlock Text="生命周期" Classes="secondary"/><TextBlock Grid.Column="1" Text="{Binding Lifecycle}" Classes="mono"/></Grid>
+        </StackPanel>
+        <Border Classes="divider"/>
+        <StackPanel Spacing="14">
+          <TextBlock Text="最近一次状态回报" Classes="section"/>
+          <Grid ColumnDefinitions="140,*"><TextBlock Text="源电压设定回报" Classes="secondary"/><TextBlock Grid.Column="1" Text="{Binding ReadbackVoltage}" Classes="mono"/></Grid>
+          <Grid ColumnDefinitions="140,*"><TextBlock Text="电流限制回报" Classes="secondary"/><TextBlock Grid.Column="1" Text="{Binding ReadbackCompliance}" Classes="mono"/></Grid>
+          <Grid ColumnDefinitions="140,*"><TextBlock Text="输出" Classes="secondary"/><TextBlock Grid.Column="1" Text="{Binding SafetyText}"/></Grid>
+          <Grid ColumnDefinitions="140,*"><TextBlock Text="更新时间" Classes="secondary"/><TextBlock Grid.Column="1" Text="{Binding LastUpdate}" Classes="mono"/></Grid>
+        </StackPanel>
+        <Border Background="#F5F6FA" CornerRadius="5" Padding="15"><TextBlock Text="仿真模式不会连接真实硬件。这里显示的是驱动状态快照；仿真读数不代表真实仪器的限流保护动作。" Classes="caption" TextWrapping="Wrap"/></Border>
+      </StackPanel>
+    </ScrollViewer>
+  </Border>
+</Grid>
+</UserControl>

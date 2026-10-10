@@ -1,0 +1,30 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels"
+             x:Class="InstrumentControlWorkbench.App.Views.ReadoutStripView" x:DataType="vm:MainWindowViewModel">
+  <Grid ColumnDefinitions="*,14,*,14,*">
+    <Border Classes="panel" Padding="18,13">
+      <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="*,Auto">
+        <TextBlock Text="电流读数 / CURRENT" Classes="eyebrow"/>
+        <Path Grid.Column="1" Data="M 1,12 L 5,12 L 8,3 L 12,21 L 16,8 L 21,8" Stroke="{DynamicResource Accent}" StrokeThickness="1.7" Width="19" Height="19" Stretch="Uniform"/>
+        <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"><TextBlock Text="{Binding LatestCurrent}" Classes="metric"/><TextBlock Text="mA" Classes="caption" VerticalAlignment="Bottom" Margin="0,0,0,5"/></StackPanel>
+        <TextBlock Grid.Row="2" Text="四线测量 · 电流通道" Classes="caption" FontSize="10"/>
+      </Grid>
+    </Border>
+    <Border Grid.Column="2" Classes="panel" Padding="18,13">
+      <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="*,Auto">
+        <TextBlock Text="源电压 / VOLTAGE" Classes="eyebrow"/>
+        <Path Grid.Column="1" Data="M 13,1 L 4,13 L 11,13 L 8,23 L 20,9 L 13,9 Z" Stroke="{DynamicResource Teal}" StrokeThickness="1.5" Width="18" Height="19" Stretch="Uniform"/>
+        <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"><TextBlock Text="{Binding LatestVoltage}" Classes="metric"/><TextBlock Text="V" Classes="caption" VerticalAlignment="Bottom" Margin="0,0,0,5"/></StackPanel>
+        <TextBlock Grid.Row="2" Text="扫描读数 · Source voltage" Classes="caption" FontSize="10"/>
+      </Grid>
+    </Border>
+    <Border Grid.Column="4" Classes="panel" Padding="18,13">
+      <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="*,Auto">
+        <TextBlock Text="运行时间 / ELAPSED" Classes="eyebrow"/>
+        <Path Grid.Column="1" Data="M 12,5 A 8,8 0 1 1 11.99,5 M 12,8 L 12,13 L 16,15 M 9,1 L 15,1 M 12,1 L 12,5" Stroke="#D6902F" StrokeThickness="1.5" Width="19" Height="19" Stretch="Uniform"/>
+        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Elapsed}" Classes="metric" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="2" Text="{Binding PointCountText}" Classes="caption" FontSize="10"/>
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>

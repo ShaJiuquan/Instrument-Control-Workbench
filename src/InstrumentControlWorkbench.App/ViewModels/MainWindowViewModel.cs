@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
@@ -11,246 +12,236 @@ using InstrumentControlWorkbench.Application.Notifications;
 using InstrumentControlWorkbench.Core.Instruments;
 using InstrumentControlWorkbench.Core.Measurements;
 using InstrumentControlWorkbench.Core.Notifications;
-using InstrumentControlWorkbench.Infrastructure.Drivers;
 
 namespace InstrumentControlWorkbench.App.ViewModels;
 
-public partial class MainWindowViewModel : ViewModelBase
+public enum WorkbenchPage { Measurement, Instruments, Data, Events }
+public enum OperatorRunState { Ready, Starting, Running, Stopping, Completed, Aborted, Faulted }
+
+public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
 {
-    public string AppTitle => "Instrument Control Workbench";
-    public string WorkspaceName => "Default lab workspace";
-    public string WorkspaceSubtitle => "6 instruments - 1 active run";
-    public string BackendStatus => "Mock bench";
-    public string RunningCount => ActiveRunState == "Running" ? "1 running" : "0 running";
-    public string QueuedCount => "0 queued";
-    public string FailedCount => "0 failed";
-    public string SafetyState => OutputEnabled ? "Output enabled" : "Safe output off";
-    public string OutputState => OutputEnabled ? "ON" : "OFF";
-    public string ConnectionState => Connected ? "Connected" : "Disconnected";
-    public string SourceLevelDisplay => $"{SourceLevel:0.000} V";
-    public string ComplianceDisplay => $"{ComplianceAmps * 1_000_000:0.###} uA";
-    public string SweepSummary => $"{SweepPoints} pts  {StartVoltage:0.###} V -> {StopVoltage:0.###} V";
-    public string CompletedSummary => $"{CompletedPoints}/{Math.Max(2, SweepPoints)} points";
-    public double ProgressPercent => Math.Max(2, SweepPoints) == 0 ? 0 : CompletedPoints * 100.0 / Math.Max(2, SweepPoints);
-    public string LeaseStatus => ActiveRunState == "Running" ? "Exclusive lease active" : "No active lease";
-    public string SourceRangeText => $"{StartVoltage:0.###} V to {StopVoltage:0.###} V";
-    public string DwellText => $"{DwellSeconds:0.###} s / point";
-    public string StartVoltageText
-    {
-        get => StartVoltage.ToString("0.###");
-        set
-        {
-            if (double.TryParse(value, out var parsed))
-            {
-                StartVoltage = parsed;
-            }
-        }
-    }
-
-    public string StopVoltageText
-    {
-        get => StopVoltage.ToString("0.###");
-        set
-        {
-            if (double.TryParse(value, out var parsed))
-            {
-                StopVoltage = parsed;
-            }
-        }
-    }
-
-    public string ComplianceText
-    {
-        get => ComplianceAmps.ToString("0.#########");
-        set
-        {
-            if (double.TryParse(value, out var parsed))
-            {
-                ComplianceAmps = parsed;
-            }
-        }
-    }
-
-    public string SweepPointsText
-    {
-        get => SweepPoints.ToString();
-        set
-        {
-            if (int.TryParse(value, out var parsed))
-            {
-                SweepPoints = Math.Max(2, parsed);
-            }
-        }
-    }
-
-    public string DwellSecondsText
-    {
-        get => DwellSeconds.ToString("0.###");
-        set
-        {
-            if (double.TryParse(value, out var parsed))
-            {
-                DwellSeconds = Math.Max(0.02, parsed);
-            }
-        }
-    }
-
     private readonly NotificationHub notifications;
     private readonly InstrumentManager instrumentManager;
     private readonly MeasurementRunService runService;
-    private readonly CancellationTokenSource notificationCancellation = new();
+    private readonly CancellationTokenSource lifetime = new();
+    private readonly Task notificationListener;
+    private bool disposed;
+    private bool closing;
+    private int plannedPoints = 21;
 
-    public ObservableCollection<NavItem> WorkspaceNav { get; } = new();
-    public ObservableCollection<NavItem> ControlNav { get; } = new();
-    public ObservableCollection<NavItem> DataNav { get; } = new();
-    public ObservableCollection<NavItem> SystemNav { get; } = new();
-    public ObservableCollection<InstrumentCard> Instruments { get; } = new();
-    public ObservableCollection<JobRow> Jobs { get; } = new();
+    public MainWindowViewModel(InstrumentManager instrumentManager, MeasurementRunService runService, NotificationHub notifications)
+    {
+        this.instrumentManager = instrumentManager;
+        this.runService = runService;
+        this.notifications = notifications;
+        InstrumentId = instrumentManager.InstrumentId.Value;
+        EventLog.Add("工作台已就绪。当前使用 Keithley 2450 仿真驱动。");
+        notificationListener = ListenForNotificationsAsync(lifetime.Token);
+    }
+
+    public string InstrumentId { get; }
+    public ObservableCollection<MeasurementPoint> PlotPoints { get; } = new();
     public ObservableCollection<MeasurementPointRow> RecentPoints { get; } = new();
     public ObservableCollection<string> EventLog { get; } = new();
 
-    public MainWindowViewModel()
-    {
-        notifications = new NotificationHub();
-        var driver = new MockKeithley2450SourceMeter();
-        instrumentManager = new InstrumentManager(driver, notifications);
-        var leases = new InstrumentLeaseService(TimeSpan.FromSeconds(5));
-        runService = new MeasurementRunService(instrumentManager, leases, notifications);
-
-        InstrumentName = driver.DisplayName;
-        InstrumentId = driver.Id.Value;
-        BuildShellData();
-        EventLog.Add("Ready. Mock Keithley 2450 is available.");
-        _ = ListenForNotificationsAsync(notificationCancellation.Token);
-    }
-
-    [ObservableProperty] private string instrumentName = "";
-    [ObservableProperty] private string instrumentId = "";
-    [ObservableProperty] private string lifecycle = "Disconnected";
-    [ObservableProperty] private string identifier = "not connected";
+    [ObservableProperty] private WorkbenchPage page = WorkbenchPage.Measurement;
+    [ObservableProperty] private OperatorRunState runState = OperatorRunState.Ready;
+    [ObservableProperty] private bool isBusy;
+    [ObservableProperty] private bool isConnecting;
     [ObservableProperty] private bool connected;
     [ObservableProperty] private bool outputEnabled;
-    [ObservableProperty] private string sourceFunction = "Voltage";
-    [ObservableProperty] private double sourceLevel;
-    [ObservableProperty] private double complianceAmps = 105e-6;
-    [ObservableProperty] private string senseFunction = "Current";
-    [ObservableProperty] private string sensingMode = "FourWire";
-    [ObservableProperty] private string lastHeartbeat = "-";
-    [ObservableProperty] private string activeRunName = "IV sweep";
-    [ObservableProperty] private string activeRunState = "Idle";
-    [ObservableProperty] private string elapsed = "00:00:00";
-    [ObservableProperty] private double startVoltage = -0.2;
-    [ObservableProperty] private double stopVoltage = 0.8;
-    [ObservableProperty] private int sweepPoints = 21;
-    [ObservableProperty] private double dwellSeconds = 0.1;
-    [ObservableProperty] private string latestReading = "-";
+    [ObservableProperty] private bool hasSnapshot;
+    [ObservableProperty] private bool showTable;
+    [ObservableProperty] private string identifier = "尚未连接";
+    [ObservableProperty] private string lifecycle = "Disconnected";
+    [ObservableProperty] private string sampleName = "Sample A01";
+    [ObservableProperty] private string startVoltageText = "-0.2";
+    [ObservableProperty] private string stopVoltageText = "0.8";
+    [ObservableProperty] private string sweepPointsText = "21";
+    [ObservableProperty] private string dwellSecondsText = "0.1";
+    [ObservableProperty] private string complianceText = "105";
+    [ObservableProperty] private string runId = "尚未运行";
+    [ObservableProperty] private string runRecipeSummary = "启动后记录本次扫描配置";
+    [ObservableProperty] private string runSample = "—";
+    [ObservableProperty] private string elapsed = "00:00.00";
+    [ObservableProperty] private string lastUpdate = "—";
+    [ObservableProperty] private string latestCurrent = "—";
+    [ObservableProperty] private string latestVoltage = "—";
+    [ObservableProperty] private string readbackVoltage = "—";
+    [ObservableProperty] private string readbackCompliance = "—";
     [ObservableProperty] private int completedPoints;
+    [ObservableProperty] private string operationError = "";
 
+    public bool IsMeasurementPage => Page == WorkbenchPage.Measurement;
+    public bool IsInstrumentsPage => Page == WorkbenchPage.Instruments;
+    public bool IsDataPage => Page == WorkbenchPage.Data;
+    public bool IsEventsPage => Page == WorkbenchPage.Events;
+    public bool CanEdit => !IsBusy && !IsConnecting;
+    public bool HasPoints => CompletedPoints > 0;
+    public bool HasOperationError => !string.IsNullOrEmpty(OperationError);
+    public string PageTitle => Page switch
+    {
+        WorkbenchPage.Measurement => "测量工作台",
+        WorkbenchPage.Instruments => "仪器与连接",
+        WorkbenchPage.Data => "运行数据",
+        _ => "事件记录",
+    };
+    public string PageDescription => Page switch
+    {
+        WorkbenchPage.Measurement => "配置扫描，观察读数，检查测量结果。",
+        WorkbenchPage.Instruments => "查看已接入的设备与最近一次状态回报。",
+        WorkbenchPage.Data => "查看当前会话最近一次运行的数据与固定配置。",
+        _ => "查看连接、采集与停止过程中的事件。",
+    };
+    public string ConnectionText => IsConnecting ? "正在连接" : Connected ? "已连接" : "未连接";
+    public string SafetyText => !HasSnapshot ? "输出状态未知" : OutputEnabled ? "输出已启用" : "已回报输出关闭";
+    public string StatusText => RunState switch
+    {
+        OperatorRunState.Starting => "准备测量",
+        OperatorRunState.Running => "正在采集",
+        OperatorRunState.Stopping => "正在停止 · 等待关断回报",
+        OperatorRunState.Completed => "测量完成",
+        OperatorRunState.Aborted => "测量已停止",
+        OperatorRunState.Faulted => "运行异常",
+        _ => "准备就绪",
+    };
+    public string CompletedSummary => $"{CompletedPoints} / {plannedPoints}";
+    public double ProgressPercent => CompletedPoints * 100.0 / plannedPoints;
+    public string PointCountText => $"{CompletedPoints} 个采集点";
+    public string LastEvent => EventLog.Count > 0 ? EventLog[0] : "工作台就绪";
+    public string ValidationError => TryGetRecipe(out _, out var error) ? "" : error;
+    public bool HasValidationError => ValidationError.Length > 0;
+    public string PlanSummary => TryGetRecipe(out var recipe, out _)
+        ? $"{recipe.Points} 点  ·  {recipe.StartVoltage:0.###} → {recipe.StopVoltage:0.###} V  ·  间隔 {recipe.DwellSeconds:0.###} s"
+        : "请检查扫描参数";
+
+    partial void OnPageChanged(WorkbenchPage value)
+    {
+        OnPropertyChanged(nameof(IsMeasurementPage));
+        OnPropertyChanged(nameof(IsInstrumentsPage));
+        OnPropertyChanged(nameof(IsDataPage));
+        OnPropertyChanged(nameof(IsEventsPage));
+        OnPropertyChanged(nameof(PageTitle));
+        OnPropertyChanged(nameof(PageDescription));
+    }
+    partial void OnRunStateChanged(OperatorRunState value)
+    {
+        OnPropertyChanged(nameof(StatusText));
+        AbortRunCommand.NotifyCanExecuteChanged();
+    }
+    partial void OnIsBusyChanged(bool value) => NotifyCommandState();
+    partial void OnIsConnectingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ConnectionText));
+        NotifyCommandState();
+    }
+    partial void OnConnectedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ConnectionText));
+        NotifyCommandState();
+    }
     partial void OnOutputEnabledChanged(bool value)
     {
-        OnPropertyChanged(nameof(SafetyState));
-        OnPropertyChanged(nameof(OutputState));
+        OnPropertyChanged(nameof(SafetyText));
+        StartRunCommand.NotifyCanExecuteChanged();
     }
-
-    partial void OnConnectedChanged(bool value) => OnPropertyChanged(nameof(ConnectionState));
-    partial void OnSourceLevelChanged(double value) => OnPropertyChanged(nameof(SourceLevelDisplay));
-    partial void OnStartVoltageChanged(double value)
-    {
-        OnPropertyChanged(nameof(SweepSummary));
-        OnPropertyChanged(nameof(SourceRangeText));
-        OnPropertyChanged(nameof(StartVoltageText));
-    }
-
-    partial void OnStopVoltageChanged(double value)
-    {
-        OnPropertyChanged(nameof(SweepSummary));
-        OnPropertyChanged(nameof(SourceRangeText));
-        OnPropertyChanged(nameof(StopVoltageText));
-    }
-
-    partial void OnComplianceAmpsChanged(double value)
-    {
-        OnPropertyChanged(nameof(ComplianceDisplay));
-        OnPropertyChanged(nameof(ComplianceText));
-    }
-
-    partial void OnDwellSecondsChanged(double value)
-    {
-        OnPropertyChanged(nameof(DwellText));
-        OnPropertyChanged(nameof(DwellSecondsText));
-    }
-
-    partial void OnActiveRunStateChanged(string value)
-    {
-        OnPropertyChanged(nameof(LeaseStatus));
-        OnPropertyChanged(nameof(RunningCount));
-    }
-    partial void OnSweepPointsChanged(int value)
-    {
-        OnPropertyChanged(nameof(SweepSummary));
-        OnPropertyChanged(nameof(CompletedSummary));
-        OnPropertyChanged(nameof(ProgressPercent));
-        OnPropertyChanged(nameof(SweepPointsText));
-    }
-
+    partial void OnHasSnapshotChanged(bool value) => OnPropertyChanged(nameof(SafetyText));
+    partial void OnOperationErrorChanged(string value) => OnPropertyChanged(nameof(HasOperationError));
     partial void OnCompletedPointsChanged(int value)
     {
         OnPropertyChanged(nameof(CompletedSummary));
         OnPropertyChanged(nameof(ProgressPercent));
+        OnPropertyChanged(nameof(PointCountText));
+        OnPropertyChanged(nameof(HasPoints));
+    }
+    partial void OnStartVoltageTextChanged(string value) => NotifyRecipeChanged();
+    partial void OnStopVoltageTextChanged(string value) => NotifyRecipeChanged();
+    partial void OnSweepPointsTextChanged(string value) => NotifyRecipeChanged();
+    partial void OnDwellSecondsTextChanged(string value) => NotifyRecipeChanged();
+    partial void OnComplianceTextChanged(string value) => NotifyRecipeChanged();
+
+    private void NotifyRecipeChanged()
+    {
+        OnPropertyChanged(nameof(ValidationError));
+        OnPropertyChanged(nameof(HasValidationError));
+        OnPropertyChanged(nameof(PlanSummary));
+        StartRunCommand.NotifyCanExecuteChanged();
+    }
+    private void NotifyCommandState()
+    {
+        OnPropertyChanged(nameof(CanEdit));
+        StartRunCommand.NotifyCanExecuteChanged();
+        ConnectCommand.NotifyCanExecuteChanged();
+        AbortRunCommand.NotifyCanExecuteChanged();
     }
 
-    [RelayCommand]
+    [RelayCommand] private void OpenMeasurement() => Page = WorkbenchPage.Measurement;
+    [RelayCommand] private void OpenInstruments() => Page = WorkbenchPage.Instruments;
+    [RelayCommand] private void OpenData() => Page = WorkbenchPage.Data;
+    [RelayCommand] private void OpenEvents() => Page = WorkbenchPage.Events;
+    [RelayCommand] private void ToggleTable() => ShowTable = !ShowTable;
+
+    private bool CanConnect() => !closing && CanEdit && !Connected;
+    [RelayCommand(CanExecute = nameof(CanConnect))]
     private async Task ConnectAsync()
     {
-        try
-        {
-            await instrumentManager.ConnectAsync(CancellationToken.None);
-        }
-        catch (Exception ex)
-        {
-            EventLog.Insert(0, $"Connect failed: {ex.Message}");
-        }
+        IsConnecting = true;
+        OperationError = "";
+        try { ApplySnapshot(await instrumentManager.ConnectAsync(lifetime.Token)); }
+        catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
+        catch (Exception ex) { OperationError = $"连接失败：{ex.Message}"; }
+        finally { IsConnecting = false; }
     }
 
-    [RelayCommand]
+    private bool CanStartRun() => !closing && CanEdit && !OutputEnabled && TryGetRecipe(out _, out _);
+    [RelayCommand(CanExecute = nameof(CanStartRun))]
     private async Task StartRunAsync()
     {
-        try
-        {
-            RecentPoints.Clear();
-            CompletedPoints = 0;
-            ActiveRunState = "Starting";
-            var recipe = new IvSweepRecipe(
-                ActiveRunName,
-                StartVoltage,
-                StopVoltage,
-                Math.Max(2, SweepPoints),
-                ComplianceAmps,
-                Math.Max(0.02, DwellSeconds));
-            await runService.StartIvSweepAsync(recipe, CancellationToken.None);
-        }
+        if (!CanStartRun() || !TryGetRecipe(out var recipe, out _)) return;
+        IsBusy = true;
+        OperationError = "";
+        plannedPoints = recipe.Points;
+        PlotPoints.Clear();
+        RecentPoints.Clear();
+        CompletedPoints = 0;
+        OnPropertyChanged(nameof(CompletedSummary));
+        RunState = OperatorRunState.Starting;
+        Elapsed = "00:00.00";
+        LatestCurrent = "—";
+        LatestVoltage = "—";
+        RunSample = string.IsNullOrWhiteSpace(SampleName) ? "未命名样品" : SampleName.Trim();
+        RunRecipeSummary = $"{recipe.StartVoltage:0.###} → {recipe.StopVoltage:0.###} V · {recipe.Points} 点 · {recipe.DwellSeconds:0.###} s · 限流 {recipe.ComplianceAmps * 1e6:0.###} µA";
+        try { await runService.StartIvSweepAsync(recipe, lifetime.Token); }
+        catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
         catch (Exception ex)
         {
-            ActiveRunState = "Faulted";
-            EventLog.Insert(0, $"Run failed: {ex.Message}");
+            RunState = OperatorRunState.Faulted;
+            OperationError = $"测量失败：{ex.Message}";
         }
+        finally { IsBusy = false; }
     }
 
-    [RelayCommand]
+    private bool CanAbortRun() => IsBusy && RunState != OperatorRunState.Stopping;
+    [RelayCommand(CanExecute = nameof(CanAbortRun))]
     private void AbortRun()
     {
+        RunState = OperatorRunState.Stopping;
         runService.Abort();
-        EventLog.Insert(0, "Abort requested by operator.");
+        AppendEvent($"{DateTimeOffset.Now:HH:mm:ss}  操作员请求停止采集；等待设备关断回报。");
     }
+
+    private bool TryGetRecipe(out IvSweepRecipe recipe, out string error) => SweepConfiguration.TryCreate(
+        StartVoltageText, StopVoltageText, SweepPointsText, DwellSecondsText, ComplianceText, out recipe, out error);
 
     private async Task ListenForNotificationsAsync(CancellationToken cancellationToken)
     {
-        await foreach (var notification in notifications.Reader.ReadAllAsync(cancellationToken))
+        try
         {
-            Dispatcher.UIThread.Post(() => ApplyNotification(notification));
+            await foreach (var notification in notifications.Reader.ReadAllAsync(cancellationToken))
+                Dispatcher.UIThread.Post(() => { if (!disposed) ApplyNotification(notification); });
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
     }
-
     private void ApplyNotification(WorkbenchNotification notification)
     {
         switch (notification.Kind)
@@ -259,114 +250,62 @@ public partial class MainWindowViewModel : ViewModelBase
                 ApplySnapshot(snapshot);
                 break;
             case WorkbenchNotificationKind.MeasurementPointReceived when notification.Point is { } point:
-                CompletedPoints += 1;
+                PlotPoints.Add(point);
+                CompletedPoints = PlotPoints.Count;
                 RecentPoints.Insert(0, MeasurementPointRow.FromPoint(CompletedPoints, point));
-                LatestReading = $"{point.SourceValue:0.###} {point.SourceUnit} -> {point.MeasuredValue:0.###E+0} {point.MeasuredUnit}";
-                Elapsed = point.Elapsed.ToString(@"hh\:mm\:ss");
-                ActiveRunState = "Running";
+                LatestVoltage = $"{point.SourceValue:0.000}";
+                LatestCurrent = $"{point.MeasuredValue * 1e3:0.0000}";
+                Elapsed = point.Elapsed.ToString(@"mm\:ss\.ff", CultureInfo.InvariantCulture);
+                if (RunState != OperatorRunState.Stopping) RunState = OperatorRunState.Running;
                 break;
             case WorkbenchNotificationKind.RunStarted:
-                ActiveRunState = "Running";
+                RunId = notification.RunId ?? "—";
+                if (RunState != OperatorRunState.Stopping) RunState = OperatorRunState.Running;
                 break;
-            case WorkbenchNotificationKind.RunCompleted:
-                ActiveRunState = "Completed";
-                break;
-            case WorkbenchNotificationKind.RunAborted:
-                ActiveRunState = "Aborted";
-                break;
-            case WorkbenchNotificationKind.RunFaulted:
-                ActiveRunState = "Faulted";
-                break;
+            case WorkbenchNotificationKind.RunCompleted: RunState = OperatorRunState.Completed; break;
+            case WorkbenchNotificationKind.RunAborted: RunState = OperatorRunState.Aborted; break;
+            case WorkbenchNotificationKind.RunFaulted: RunState = OperatorRunState.Faulted; break;
         }
-
-        EventLog.Insert(0, $"{notification.OccurredAt:HH:mm:ss}  {notification.Message}");
-        while (EventLog.Count > 80)
-        {
-            EventLog.RemoveAt(EventLog.Count - 1);
-        }
+        AppendEvent($"{notification.OccurredAt:HH:mm:ss}  {notification.Message}");
     }
-
+    private void AppendEvent(string message)
+    {
+        EventLog.Insert(0, message);
+        while (EventLog.Count > 200) EventLog.RemoveAt(EventLog.Count - 1);
+        OnPropertyChanged(nameof(LastEvent));
+    }
     private void ApplySnapshot(SourceMeterSnapshot snapshot)
     {
         Identifier = snapshot.Identifier;
         Lifecycle = snapshot.Lifecycle.ToString();
         Connected = snapshot.Connected;
+        HasSnapshot = true;
         OutputEnabled = snapshot.OutputEnabled;
-        SourceFunction = snapshot.Source.Function.ToString();
-        SourceLevel = snapshot.Source.Level;
-        ComplianceAmps = snapshot.Source.Compliance;
-        SenseFunction = snapshot.Sense.Function.ToString();
-        SensingMode = snapshot.Sense.Mode.ToString();
-        LastHeartbeat = snapshot.LastHeartbeat == DateTimeOffset.MinValue ? "-" : snapshot.LastHeartbeat.ToString("HH:mm:ss.fff");
+        ReadbackVoltage = $"{snapshot.Source.Level:0.000} V";
+        ReadbackCompliance = $"{snapshot.Source.Compliance * 1e6:0.###} µA";
+        LastUpdate = snapshot.LastHeartbeat == DateTimeOffset.MinValue ? "—" : snapshot.LastHeartbeat.ToString("HH:mm:ss.fff");
     }
-
-    private void BuildShellData()
+    public async ValueTask DisposeAsync()
     {
-        WorkspaceNav.Add(new NavItem("Overview", "OV", "", false));
-        WorkspaceNav.Add(new NavItem("Instruments", "IN", "6", true));
-        WorkspaceNav.Add(new NavItem("Experiments", "EX", "3", false));
-        WorkspaceNav.Add(new NavItem("Measurements", "ME", "", false));
-
-        ControlNav.Add(new NavItem("Connections", "CN", "2", false));
-        ControlNav.Add(new NavItem("Source/Meter", "SM", "", false));
-        ControlNav.Add(new NavItem("Scripts", "SC", "4", false));
-        ControlNav.Add(new NavItem("Workflows", "WF", "1", false));
-
-        DataNav.Add(new NavItem("Live Data", "LD", "", false));
-        DataNav.Add(new NavItem("History", "HI", "18", false));
-        DataNav.Add(new NavItem("Plot", "PL", "", false));
-        DataNav.Add(new NavItem("Export", "EX", "", false));
-
-        SystemNav.Add(new NavItem("Jobs", "JB", "0", false));
-        SystemNav.Add(new NavItem("Logs", "LG", "", false));
-        SystemNav.Add(new NavItem("Safety", "SF", "", false));
-        SystemNav.Add(new NavItem("Settings", "ST", "", false));
-
-        Instruments.Add(new InstrumentCard("Keithley 2450 SourceMeter", "k2450", "SMU", "TCP 127.0.0.1:5025", "Disconnected", "source meter", "selected"));
-        Instruments.Add(new InstrumentCard("Keithley 2182A Nanovoltmeter", "k2182a", "Meter", "GPIB0::7::INSTR", "Idle", "nanovoltmeter", ""));
-        Instruments.Add(new InstrumentCard("SR830 Lock-in Amplifier", "sr830", "Lock-in", "GPIB0::8::INSTR", "Idle", "ac measurement", ""));
-        Instruments.Add(new InstrumentCard("K6221 Current Source", "k6221", "Source", "GPIB0::12::INSTR", "Disconnected", "current source", ""));
-        Instruments.Add(new InstrumentCard("K3706 Switch Matrix", "k3706", "Switch", "TCP 127.0.0.1:5026", "Stale", "matrix", ""));
-        Instruments.Add(new InstrumentCard("Temperature Controller", "temp", "Env", "COM4", "Idle", "environment", ""));
-
-        Jobs.Add(new JobRow("Idle", "IV sweep recipe", "ready", "No active run"));
-        Jobs.Add(new JobRow("Ready", "Instrument poller", "background", "TTL heartbeat 5 s"));
+        if (disposed) return;
+        closing = true;
+        NotifyCommandState();
+        runService.Abort();
+        var runTask = StartRunCommand.ExecutionTask;
+        var connectTask = ConnectCommand.ExecutionTask;
+        if (runTask is not null) await runTask;
+        if (connectTask is not null) await connectTask;
+        disposed = true;
+        lifetime.Cancel();
+        await notificationListener;
+        lifetime.Dispose();
     }
 }
 
-public sealed record MeasurementPointRow(
-    string Index,
-    string Time,
-    string Source,
-    string Measured,
-    string Status)
+public sealed record MeasurementPointRow(string Index, string Time, string Source, string Measured)
 {
-    public static MeasurementPointRow FromPoint(int index, MeasurementPoint point)
-    {
-        return new MeasurementPointRow(
-            index.ToString("000"),
-            point.Elapsed.ToString(@"mm\:ss\.ff"),
-            $"{point.SourceValue,7:0.000} {point.SourceUnit}",
-            $"{point.MeasuredValue,10:0.000E+0} {point.MeasuredUnit}",
-            "OK");
-    }
+    public static MeasurementPointRow FromPoint(int index, MeasurementPoint point) => new(
+        index.ToString("0000", CultureInfo.InvariantCulture),
+        point.Elapsed.ToString(@"mm\:ss\.ff", CultureInfo.InvariantCulture),
+        $"{point.SourceValue:0.000000}", $"{point.MeasuredValue:0.000000E+0}");
 }
-
-public sealed record NavItem(string Label, string Glyph, string Count, bool Selected)
-{
-    public bool HasCount => !string.IsNullOrWhiteSpace(Count);
-}
-
-public sealed record InstrumentCard(
-    string Name,
-    string Id,
-    string Role,
-    string Address,
-    string State,
-    string Detail,
-    string SelectedToken)
-{
-    public bool IsSelected => SelectedToken == "selected";
-}
-
-public sealed record JobRow(string Status, string Title, string Type, string Detail);

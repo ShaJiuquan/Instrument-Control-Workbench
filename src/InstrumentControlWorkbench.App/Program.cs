@@ -1,5 +1,6 @@
-﻿using Avalonia;
+using Avalonia;
 using System;
+using Avalonia.Media;
 
 namespace InstrumentControlWorkbench.App;
 
@@ -17,5 +18,18 @@ sealed class Program
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .WithInterFont()
+            .With(new FontManagerOptions
+            {
+                DefaultFamilyName = "avares://Avalonia.Fonts.Inter/Assets#Inter",
+                FontFallbacks =
+                [
+                    new FontFallback
+                    {
+                        FontFamily = new FontFamily(OperatingSystem.IsMacOS()
+                            ? "Hiragino Sans GB"
+                            : OperatingSystem.IsWindows() ? "Microsoft YaHei" : "Noto Sans CJK SC")
+                    }
+                ]
+            })
             .LogToTrace();
 }

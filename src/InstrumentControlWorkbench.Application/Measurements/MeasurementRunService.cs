@@ -37,12 +37,11 @@ public sealed class MeasurementRunService
         leaseService.AcquireExclusive(instrumentManager.InstrumentId, runId, startedAt);
         activeRunCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
-        await notifications.PublishAsync(
-            new WorkbenchNotification(WorkbenchNotificationKind.RunStarted, $"Started {recipe.Name}.", instrumentManager.InstrumentId, RunId: runId),
-            cancellationToken);
-
         try
         {
+            await notifications.PublishAsync(
+                new WorkbenchNotification(WorkbenchNotificationKind.RunStarted, $"Started {recipe.Name}.", instrumentManager.InstrumentId, RunId: runId),
+                activeRunCancellation.Token);
             await instrumentManager.ConnectAsync(activeRunCancellation.Token);
             await instrumentManager.ConfigureAsync(
                 new SourceSetpoint(SourceFunction.Voltage, recipe.StartVoltage, recipe.ComplianceAmps),

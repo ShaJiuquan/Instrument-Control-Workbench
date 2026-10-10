@@ -23,12 +23,29 @@ re-litigate them or accidentally undo them.
 
 ## Current Known Debt
 
-- `MainWindow.axaml` is a monolithic prototype shell.
-- `MainWindowViewModel` constructs a mock driver and services directly.
-- Demo data is mixed into the primary ViewModel.
-- Navigation selected state is not represented cleanly in the XAML.
-- The "Live Plot" is a hard-coded canvas placeholder.
 - NotificationHub is a single-reader channel, not a broadcast hub.
+- Run data currently holds only the last run in memory. It is explicitly marked
+  as session-only and is replaced on the next run; there is no disk history yet.
+- The mock driver does not model current compliance enforcement. Its readings
+  must not be used as evidence of real hardware protection.
+
+## Workbench UI (2026-10-10)
+
+- Four functional pages: measurement, instruments, current run data, events.
+- MainWindow composes named views; shared visual values live in Workbench.axaml.
+- Visual direction follows the companion Rust/egui PPMS Studio: navy navigation,
+  light workspace, purple accent, separate readout cards, left plot/right setup.
+- Readout values and units are separate typography; Chinese glyphs use an explicit
+  platform font fallback. No new fonts or plotting dependencies were introduced.
+- Configuration can scroll at the minimum 1060 x 720 size while start/stop stay
+  pinned; the plot and optional point table share the remaining vertical space.
+- App startup constructs the driver/services and injects them into the ViewModel.
+- MeasurementPlot draws received MeasurementPoint data with Avalonia's existing
+  drawing API. It is a small I–V renderer, not a general analysis plotting library.
+- Start validates text and explicit units; configuration locks during runs.
+- Stop means request cancellation and wait for output-off notifications. There
+  is no software button claiming to be a physical emergency stop.
+- Closing the window awaits running commands and stops the notification listener.
 
 These are tracked as design debt, not as permission to copy the pattern.
 
@@ -40,4 +57,3 @@ These are tracked as design debt, not as permission to copy the pattern.
 
 Dependencies not listed here require a short evaluation and user choice before
 implementation.
-

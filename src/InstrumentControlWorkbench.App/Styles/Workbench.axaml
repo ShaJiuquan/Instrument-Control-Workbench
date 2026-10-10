@@ -1,0 +1,55 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Styles.Resources>
+    <SolidColorBrush x:Key="Surface">#FFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="Workspace">#F5F6FA</SolidColorBrush>
+    <SolidColorBrush x:Key="Line">#E7EAF1</SolidColorBrush>
+    <SolidColorBrush x:Key="Ink">#1D2537</SolidColorBrush>
+    <SolidColorBrush x:Key="Secondary">#7D8698</SolidColorBrush>
+    <SolidColorBrush x:Key="Accent">#7458E8</SolidColorBrush>
+    <SolidColorBrush x:Key="AccentSoft">#F3F0FF</SolidColorBrush>
+    <SolidColorBrush x:Key="Teal">#26A4B3</SolidColorBrush>
+    <FontFamily x:Key="Mono">avares://Avalonia.Fonts.Inter/Assets#Inter</FontFamily>
+  </Styles.Resources>
+  <Style Selector="TextBlock"><Setter Property="FontWeight" Value="Normal"/><Setter Property="Foreground" Value="{DynamicResource Ink}"/><Setter Property="FontSize" Value="12"/></Style>
+  <Style Selector="TextBlock.secondary"><Setter Property="Foreground" Value="{DynamicResource Secondary}"/></Style>
+  <Style Selector="TextBlock.caption"><Setter Property="Foreground" Value="{DynamicResource Secondary}"/><Setter Property="FontSize" Value="11"/></Style>
+  <Style Selector="TextBlock.eyebrow"><Setter Property="Foreground" Value="{DynamicResource Secondary}"/><Setter Property="FontSize" Value="10"/><Setter Property="LetterSpacing" Value="0.8"/></Style>
+  <Style Selector="TextBlock.section"><Setter Property="FontWeight" Value="Medium"/><Setter Property="FontSize" Value="16"/></Style>
+  <Style Selector="TextBlock.mono"><Setter Property="FontFamily" Value="{DynamicResource Mono}"/><Setter Property="FontSize" Value="12"/></Style>
+  <Style Selector="TextBlock.metric"><Setter Property="FontFamily" Value="{DynamicResource Mono}"/><Setter Property="FontSize" Value="28"/><Setter Property="FontWeight" Value="Normal"/></Style>
+  <Style Selector="TextBlock.error"><Setter Property="Foreground" Value="#BD3C39"/><Setter Property="TextWrapping" Value="Wrap"/><Setter Property="FontSize" Value="11"/></Style>
+  <Style Selector="Border.panel"><Setter Property="Background" Value="{DynamicResource Surface}"/><Setter Property="BorderBrush" Value="{DynamicResource Line}"/><Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="9"/><Setter Property="BoxShadow" Value="0 2 4 0 #041D2537"/></Style>
+  <Style Selector="Border.divider"><Setter Property="Height" Value="1"/><Setter Property="Background" Value="{DynamicResource Line}"/></Style>
+  <Style Selector="Button"><Setter Property="FontWeight" Value="Normal"/><Setter Property="MinHeight" Value="32"/><Setter Property="CornerRadius" Value="5"/><Setter Property="Padding" Value="12,6"/><Setter Property="FontSize" Value="12"/><Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="{DynamicResource Line}"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Foreground" Value="{DynamicResource Ink}"/></Style>
+  <Style Selector="Button:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource AccentSoft}"/><Setter Property="BorderBrush" Value="#DCD4FA"/></Style>
+  <Style Selector="Button:disabled /template/ ContentPresenter"><Setter Property="Background" Value="#F9FAFC"/><Setter Property="Foreground" Value="#BCC3CF"/><Setter Property="BorderBrush" Value="{DynamicResource Line}"/></Style>
+  <Style Selector="Button.primary"><Setter Property="Background" Value="{DynamicResource Accent}"/><Setter Property="Foreground" Value="White"/><Setter Property="BorderThickness" Value="0"/></Style>
+  <Style Selector="Button.primary TextBlock"><Setter Property="Foreground" Value="White"/></Style>
+  <Style Selector="Button.primary:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="#6549D7"/><Setter Property="Foreground" Value="White"/></Style>
+  <Style Selector="Button.primary:disabled /template/ ContentPresenter"><Setter Property="Background" Value="#E5DFF8"/><Setter Property="Foreground" Value="#A298BE"/></Style>
+  <Style Selector="Button.primary:disabled TextBlock"><Setter Property="Foreground" Value="#A298BE"/></Style>
+  <Style Selector="Button.stop"><Setter Property="Foreground" Value="#A45C5A"/></Style>
+  <Style Selector="Button.stop:disabled /template/ ContentPresenter"><Setter Property="Background" Value="White"/><Setter Property="Foreground" Value="#BCC3CF"/><Setter Property="BorderBrush" Value="{DynamicResource Line}"/></Style>
+  <Style Selector="Button.selected"><Setter Property="Background" Value="{DynamicResource AccentSoft}"/><Setter Property="Foreground" Value="{DynamicResource Accent}"/><Setter Property="BorderBrush" Value="#DCD4FA"/></Style>
+  <Style Selector="Button.nav"><Setter Property="HorizontalAlignment" Value="Stretch"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="MinHeight" Value="40"/><Setter Property="Margin" Value="12,3"/><Setter Property="Padding" Value="0"/><Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="Foreground" Value="#A1ADC2"/><Setter Property="CornerRadius" Value="6"/></Style>
+  <Style Selector="Button.nav TextBlock"><Setter Property="Foreground" Value="#A1ADC2"/><Setter Property="FontSize" Value="12"/></Style>
+  <Style Selector="Button.nav Path"><Setter Property="Stroke" Value="#A1ADC2"/><Setter Property="StrokeThickness" Value="1.5"/><Setter Property="Width" Value="17"/><Setter Property="Height" Value="17"/><Setter Property="Stretch" Value="Uniform"/></Style>
+  <Style Selector="Button.nav.active"><Setter Property="Background" Value="#312F4F"/></Style>
+  <Style Selector="Button.nav.active TextBlock"><Setter Property="Foreground" Value="#D0C5FF"/></Style>
+  <Style Selector="Button.nav.active Path"><Setter Property="Stroke" Value="#C6B6FF"/></Style>
+  <Style Selector="Button.nav Border.indicator"><Setter Property="Background" Value="Transparent"/></Style>
+  <Style Selector="Button.nav.active Border.indicator"><Setter Property="Background" Value="#A18AFF"/></Style>
+  <Style Selector="Button.nav:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="#212B3E"/></Style>
+  <Style Selector="TextBox"><Setter Property="FontWeight" Value="Normal"/><Setter Property="MinHeight" Value="34"/><Setter Property="CornerRadius" Value="5"/><Setter Property="BorderBrush" Value="{DynamicResource Line}"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Padding" Value="10,6"/><Setter Property="FontSize" Value="13"/><Setter Property="Background" Value="{DynamicResource Workspace}"/></Style>
+  <Style Selector="TextBox.numeric"><Setter Property="FontFamily" Value="{DynamicResource Mono}"/><Setter Property="Padding" Value="10,6,34,6"/></Style>
+  <Style Selector="TextBox:focus"><Setter Property="BorderBrush" Value="{DynamicResource Accent}"/></Style>
+  <Style Selector="Border.badge"><Setter Property="Background" Value="#F5F6FA"/><Setter Property="CornerRadius" Value="5"/><Setter Property="Padding" Value="9,5"/></Style>
+  <Style Selector="Border.badge TextBlock"><Setter Property="FontSize" Value="10"/><Setter Property="Foreground" Value="#7D8698"/></Style>
+  <Style Selector="Border.badge.connected"><Setter Property="Background" Value="#EDF8F3"/></Style>
+  <Style Selector="Border.badge.connected TextBlock"><Setter Property="Foreground" Value="#199E74"/></Style>
+  <Style Selector="Border.badge.output"><Setter Property="Background" Value="#FFF5E6"/></Style>
+  <Style Selector="Border.badge.output TextBlock"><Setter Property="Foreground" Value="#B88632"/></Style>
+  <Style Selector="ProgressBar"><Setter Property="Foreground" Value="{DynamicResource Accent}"/><Setter Property="Background" Value="#EEEAF9"/><Setter Property="MinHeight" Value="3"/></Style>
+  <Style Selector="ListBox"><Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/></Style>
+  <Style Selector="ListBoxItem"><Setter Property="Padding" Value="18,10"/><Setter Property="MinHeight" Value="34"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/></Style>
+</Styles>

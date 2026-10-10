@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels"
+             x:Class="InstrumentControlWorkbench.App.Views.MeasurementSetupView" x:DataType="vm:MainWindowViewModel">
+  <Border Classes="panel">
+    <Grid RowDefinitions="Auto,*,Auto">
+      <StackPanel Margin="18,18,18,0" Spacing="6">
+        <TextBlock Text="测量配置" Classes="section"/>
+        <TextBlock Text="Keithley 2450 · 线性扫描" Classes="caption"/>
+      </StackPanel>
+      <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="18,14,18,12" Spacing="12" IsEnabled="{Binding CanEdit}">
+          <StackPanel Spacing="6"><TextBlock Text="样品名称" Classes="caption"/><TextBox Text="{Binding SampleName, Mode=TwoWay}" Watermark="输入样品标识"/></StackPanel>
+          <StackPanel Spacing="9">
+            <TextBlock Text="扫描范围" Classes="caption"/>
+            <Grid ColumnDefinitions="*,10,*">
+              <StackPanel Spacing="6"><TextBlock Text="起始电压" FontSize="10" Classes="secondary"/><Grid><TextBox Classes="numeric" Text="{Binding StartVoltageText, Mode=TwoWay}"/><TextBlock Text="V" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" IsHitTestVisible="False"/></Grid></StackPanel>
+              <StackPanel Grid.Column="2" Spacing="6"><TextBlock Text="终止电压" FontSize="10" Classes="secondary"/><Grid><TextBox Classes="numeric" Text="{Binding StopVoltageText, Mode=TwoWay}"/><TextBlock Text="V" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" IsHitTestVisible="False"/></Grid></StackPanel>
+            </Grid>
+            <Grid ColumnDefinitions="*,10,*">
+              <StackPanel Spacing="6"><TextBlock Text="采集点数" FontSize="10" Classes="secondary"/><TextBox Text="{Binding SweepPointsText, Mode=TwoWay}"/></StackPanel>
+              <StackPanel Grid.Column="2" Spacing="6"><TextBlock Text="采集间隔" FontSize="10" Classes="secondary"/><Grid><TextBox Classes="numeric" Text="{Binding DwellSecondsText, Mode=TwoWay}"/><TextBlock Text="s" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" IsHitTestVisible="False"/></Grid></StackPanel>
+            </Grid>
+          </StackPanel>
+          <Border Classes="divider"/>
+          <StackPanel Spacing="6"><TextBlock Text="电流限制设定" Classes="caption"/><Grid><TextBox Classes="numeric" Text="{Binding ComplianceText, Mode=TwoWay}"/><TextBlock Text="µA" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" IsHitTestVisible="False"/></Grid></StackPanel>
+          <TextBlock Text="{Binding ValidationError}" Classes="error" IsVisible="{Binding HasValidationError}"/>
+          <Border Background="{DynamicResource Workspace}" CornerRadius="5" Padding="10,8"><TextBlock Text="仿真读数不代表真实限流保护。结束或停止后，服务请求关闭输出。" Classes="caption" FontSize="10" TextWrapping="Wrap"/></Border>
+        </StackPanel>
+      </ScrollViewer>
+      <Border Grid.Row="2" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="18,13,18,16">
+        <StackPanel Spacing="10">
+          <TextBlock Text="{Binding PlanSummary}" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+          <Grid ColumnDefinitions="*,10,Auto">
+            <Button AutomationProperties.Name="开始测量" Classes="primary" Command="{Binding StartRunCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" MinHeight="36">
+              <StackPanel Orientation="Horizontal" Spacing="9"><Path Data="M 0,0 L 0,10 L 8,5 Z" Fill="White" Width="8" Height="10" VerticalAlignment="Center"/><TextBlock Text="开始测量"/></StackPanel>
+            </Button>
+            <Button Grid.Column="2" Classes="stop" Command="{Binding AbortRunCommand}" Content="停止" MinHeight="36"/>
+          </Grid>
+          <TextBlock Text="{Binding SafetyText}" Classes="caption" FontSize="10" HorizontalAlignment="Center"/>
+        </StackPanel>
+      </Border>
+    </Grid>
+  </Border>
+</UserControl>

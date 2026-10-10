@@ -1,0 +1,18 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels"
+             xmlns:views="using:InstrumentControlWorkbench.App.Views"
+             xmlns:controls="using:InstrumentControlWorkbench.App.Controls"
+             x:Class="InstrumentControlWorkbench.App.Views.PointTableView" x:DataType="vm:MainWindowViewModel">
+<Grid RowDefinitions="36,*">
+  <Border Background="#F9FAFC" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,1" Padding="18,0">
+    <Grid ColumnDefinitions="64,120,*,*" VerticalAlignment="Center">
+      <TextBlock Text="#" Classes="caption"/><TextBlock Grid.Column="1" Text="经过时间" Classes="caption"/><TextBlock Grid.Column="2" Text="源电压 / V" Classes="caption"/><TextBlock Grid.Column="3" Text="电流 / A" Classes="caption"/>
+    </Grid>
+  </Border>
+  <ListBox Grid.Row="1" ItemsSource="{Binding RecentPoints}" SelectionMode="Single">
+    <ListBox.ItemTemplate><DataTemplate x:DataType="vm:MeasurementPointRow">
+      <Grid ColumnDefinitions="64,120,*,*"><TextBlock Text="{Binding Index}" Classes="mono"/><TextBlock Grid.Column="1" Text="{Binding Time}" Classes="mono"/><TextBlock Grid.Column="2" Text="{Binding Source}" Classes="mono"/><TextBlock Grid.Column="3" Text="{Binding Measured}" Classes="mono"/></Grid>
+    </DataTemplate></ListBox.ItemTemplate>
+  </ListBox>
+</Grid>
+</UserControl>
