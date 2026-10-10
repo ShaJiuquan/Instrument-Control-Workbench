@@ -27,7 +27,8 @@ public sealed class MeasurementRunService
         this.leaseService = leaseService;
         this.notifications = notifications;
         this.safetyTimeout = safetyTimeout ?? TimeSpan.FromSeconds(5);
-        if (this.safetyTimeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(safetyTimeout));
+        if (this.safetyTimeout <= TimeSpan.Zero || this.safetyTimeout > TimeSpan.FromMilliseconds(uint.MaxValue - 1))
+            throw new ArgumentOutOfRangeException(nameof(safetyTimeout), "Safety timeout must be positive and fit the runtime timer range.");
         History = new InMemoryRunHistory();
         listeners = [History, .. resultListeners ?? []];
         if (listeners.Any(l => l is null) || listeners.Distinct().Count() != listeners.Length)

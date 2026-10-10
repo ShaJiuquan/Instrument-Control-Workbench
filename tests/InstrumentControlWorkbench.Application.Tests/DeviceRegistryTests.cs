@@ -15,6 +15,21 @@ namespace InstrumentControlWorkbench.Application.Tests;
 public sealed class DeviceRegistryTests
 {
     [Fact]
+    public async Task OversizedSafetyTimeoutIsRejectedBeforeOwningOrConnectingDevices()
+    {
+        var hub = new NotificationHub();
+        var driver = new MockKeithley2450SourceMeter();
+        var manager = new InstrumentManager(driver, hub);
+        var leases = new InstrumentLeaseService(TimeSpan.FromSeconds(5));
+        var registry = new DeviceRegistry([manager], leases);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new MeasurementRunService(manager, leases, hub, safetyTimeout: TimeSpan.MaxValue));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => registry.AcquireRunAsync([driver.Id], RunId.New(),
+            CancellationToken.None, TimeSpan.MaxValue));
+        Assert.False(leases.IsLeased(driver.Id, DateTimeOffset.UtcNow));
+        Assert.False((await driver.GetSnapshotAsync(CancellationToken.None)).Connected);
+    }
+
+    [Fact]
     public async Task SourceOutputCannotBeEnabledWithoutRunOwnership()
     {
         var driver = new MockKeithley2450SourceMeter();

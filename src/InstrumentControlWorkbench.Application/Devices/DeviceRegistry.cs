@@ -38,7 +38,8 @@ public sealed class DeviceRegistry
         var requested = ids.Distinct().OrderBy(id => id.Value, StringComparer.Ordinal).Select(Get).ToArray();
         if (requested.Length == 0) throw new ArgumentException("A run requires at least one device.", nameof(ids));
         var timeout = safetyTimeout ?? TimeSpan.FromSeconds(5);
-        if (timeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(safetyTimeout));
+        if (timeout <= TimeSpan.Zero || timeout > TimeSpan.FromMilliseconds(uint.MaxValue - 1))
+            throw new ArgumentOutOfRangeException(nameof(safetyTimeout), "Safety timeout must be positive and fit the runtime timer range.");
         leases.AcquireRunExclusive(requested.Select(d => d.Descriptor.Id), owner, DateTimeOffset.UtcNow);
         var claimed = new List<IDeviceSession>();
         try
