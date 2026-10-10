@@ -71,6 +71,10 @@ public sealed partial class MeasurementRunService
             case AssignValueStep assign:
                 run.Variables[assign.Variable] = Resolve(assign.Value, run);
                 break;
+            case RouteMatrixStep route:
+                await run.Resources!.RouteMatrixAsync(route.Device, route.Closed, run.Token);
+                await DwellAsync(run, route.Settle);
+                break;
             case SourceOutputStep output:
                 if (output.Enabled) await run.Resources!.EnableSourceOutputAsync(output.Device, run.Token);
                 else await run.Resources!.DisableSourceOutputAsync(output.Device, run.Token);

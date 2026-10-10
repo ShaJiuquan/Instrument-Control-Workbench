@@ -1,0 +1,96 @@
+{
+  "format": "instrument-workbench-plan",
+  "version": 1,
+  "name": "Two matrix routes with coherent resistance acquisition",
+  "preparations": [
+    {
+      "device": "k2450",
+      "function": "Voltage",
+      "level": {
+        "value": 0.01,
+        "unit": "Volt"
+      },
+      "compliance": {
+        "value": 0.001,
+        "unit": "Ampere"
+      },
+      "sense": {
+        "function": "Current",
+        "mode": "TwoWire",
+        "nplc": 1,
+        "autoRange": true
+      }
+    }
+  ],
+  "metadata": {},
+  "root": {
+    "id": "experiment",
+    "kind": "sequence",
+    "children": [
+      {
+        "id": "route1",
+        "kind": "route_matrix",
+        "device": "K3706:SIM01",
+        "settleSeconds": 0.02,
+        "closed": [
+          {
+            "slot": 1,
+            "row": 2,
+            "column": 2
+          }
+        ]
+      },
+      {
+        "id": "on1",
+        "kind": "output",
+        "device": "k2450",
+        "enabled": true
+      },
+      {
+        "id": "read1",
+        "kind": "read_resistance",
+        "device": "k2450",
+        "function": "Voltage",
+        "voltageColumn": "voltage",
+        "currentColumn": "current",
+        "resistanceColumn": "resistance",
+        "minimumCurrent": {
+          "value": 1e-15,
+          "unit": "Ampere"
+        }
+      },
+      {
+        "id": "route2",
+        "kind": "route_matrix",
+        "device": "K3706:SIM01",
+        "settleSeconds": 0.02,
+        "closed": [
+          {
+            "slot": 1,
+            "row": 2,
+            "column": 3
+          }
+        ]
+      },
+      {
+        "id": "on2",
+        "kind": "output",
+        "device": "k2450",
+        "enabled": true
+      },
+      {
+        "id": "read2",
+        "kind": "read_resistance",
+        "device": "k2450",
+        "function": "Voltage",
+        "voltageColumn": "voltage",
+        "currentColumn": "current",
+        "resistanceColumn": "resistance",
+        "minimumCurrent": {
+          "value": 1e-15,
+          "unit": "Ampere"
+        }
+      }
+    ]
+  }
+}

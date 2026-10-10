@@ -560,13 +560,23 @@
       "id": "k3706.open_channel",
       "nodeType": "command",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Devices/MatrixSwitchSession.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/MatrixRoutingTests.cs",
+        "limits": "Typed card/crosspoint reconcile on deterministic simulation: source-off guard, break-before-make/readback, run-added cleanup, pause/verified resume, retained ownership/recovery, saved plans/archive. Existing PPMS command decoding, sample/channel/electrode profiles, actual card/protocol limits, routing UI and hardware acceptance remain pending."
+      }
     },
     {
       "id": "k3706.close_channel",
       "nodeType": "command",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Application/Devices/MatrixSwitchSession.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/MatrixRoutingTests.cs",
+        "limits": "Typed card/crosspoint reconcile on deterministic simulation: source-off guard, break-before-make/readback, run-added cleanup, pause/verified resume, retained ownership/recovery, saved plans/archive. Existing PPMS command decoding, sample/channel/electrode profiles, actual card/protocol limits, routing UI and hardware acceptance remain pending."
+      }
     },
     {
       "id": "sr830.set_sensitivity",

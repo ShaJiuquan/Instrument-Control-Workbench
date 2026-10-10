@@ -5,7 +5,7 @@ using InstrumentControlWorkbench.Core.Parameters;
 namespace InstrumentControlWorkbench.Core.Devices;
 
 public enum DriverKind { Simulation, Hardware }
-public enum DeviceStopPolicy { OutputOff, HoldCurrentPosition }
+public enum DeviceStopPolicy { OutputOff, HoldCurrentPosition, OpenRunAddedConnections }
 
 public sealed record DeviceDescriptor
 {

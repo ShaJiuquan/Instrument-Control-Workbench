@@ -205,3 +205,22 @@ implementation.
 - PPMS matrix/channel routing, explicit source/meter ranges, K6221/K2182/SR830
   modes, sample topology, recoverable quality rows, aliases and physical device
   evidence remain outstanding. See resistance-measurements.md.
+
+## Matrix routing (2026-10-11)
+
+- Typed matrix definitions name configured cards and all guarded excitation sources.
+  Preflight adds guards to atomic admission. Infrastructure owns the port/mock;
+  Application owns baseline capture, source-off ordering and route reconciliation.
+- Route operations park sources with fresh confirmation, open before closing and
+  verify both stages. Explicit output enable verifies routing again. Final cleanup
+  waits for excitation-off and opens current-minus-initial connections, never
+  automatically reclosing old routes. Failed initial snapshots cannot authorize
+  routing or blind open-all fallback. Reconnect preserves the original baseline.
+- Pause keeps and verifies relays while excitation is off; held proof cannot release
+  a group. Resume verifies all matrices, including when excitation was already off.
+  A direct session stop cannot bypass guarded relay cleanup. Stop failures/timeouts
+  retain all leases; a live stop task cannot overlap another operation.
+- Documents/archives support route_matrix and matrix configuration snapshots.
+  This remains a typed simulation subset; PPMS aliases, sample/channel topology,
+  card protocols, routing settings/UI and hardware acceptance are pending.
+  See matrix-routing.md for limits and reference semantics.

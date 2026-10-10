@@ -153,6 +153,14 @@ internal static class ExperimentPlanCompiler
                 case AssignValueStep assign:
                     BindVariable(assign.Variable, ValueUnit(assign.Value, known), known);
                     return 1;
+                case RouteMatrixStep route:
+                    Device(route.Device);
+                    var matrix = registry.GetMatrixDefinition(route.Device);
+                    matrix.Validate(route.Closed);
+                    foreach (var guardedSource in matrix.GuardedSources)
+                        if (Device(guardedSource).StopPolicy != DeviceStopPolicy.OutputOff)
+                            throw new ArgumentException($"{guardedSource}: matrix excitation guard must use output-off policy.");
+                    return 1;
                 case SourceOutputStep output:
                     Source(output.Device);
                     return 1;

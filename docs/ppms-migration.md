@@ -141,7 +141,13 @@ Avalonia views -> ViewModels -> Application use cases -> Core contracts
    backend stage passes 159 tests (35 Core, 112 Application, 12 App). Only the
    tested `measure_r` subset changes to partial; channel/matrix routing, explicit
    ranges, other resistance modes, PPMS import and hardware remain pending.
-   See resistance-measurements.md.
+   See resistance-measurements.md. The matrix follow-up adds typed card/crosspoint
+   routing and a two-channel resistance file, source-off-before-relay ordering,
+   break-before-make readback, baseline-preserving final cleanup, held-route pause
+   and verified resume, quarantined failures/timeouts and explicit recovery. Plans
+   and archives retain routing/configuration. This is still a simulation/API subset:
+   sample/electrode topology, PPMS command import, actual card protocols and routing
+   UI remain pending. See matrix-routing.md.
 7. **Operator workflows — pending.** Flow editor, reusable steps, device panels,
    routing/sample settings and live/history views connected to the backend.
 8. **Acceptance — pending.** End-to-end representative PPMS experiments,
@@ -182,8 +188,8 @@ require explicit source-mode/compliance configuration before writing.
 The captured PPMS `safe_state.rs` deliberately retains magnetic field; its
 `environment_hold_commands.rs` freezes field/temperature/angle at their current
 readbacks. These are the semantic references for this stage. Generic pause target restoration and numeric readback stability now exist;
-PPMS controller-specific stability/status rules, matrix routing and BT command
-and alias decoding remain separate requirements.
+PPMS controller-specific stability/status rules, full sample/channel routing and
+BT command and alias decoding remain separate requirements.
 
 The optional global formatting check still reports pre-existing formatting in
 `ViewLocator.cs`, `ViewModelBase.cs`, `Program.cs` and `ParameterDataSetTests.cs`.

@@ -20,6 +20,7 @@ public sealed class DeviceRunResources
     private readonly SemaphoreSlim gate = new(1, 1);
     private readonly Dictionary<InstrumentId, Task<Exception?>> pendingStops = [];
     private readonly HashSet<InstrumentId> touched = [];
+    private readonly HashSet<InstrumentId> heldRoutes = [];
     private readonly HashSet<InstrumentId> recoveryRequired = [];
     private bool released;
 
@@ -124,6 +125,12 @@ public sealed class DeviceRunResources
             RequireActive();
             var manager = Get(id) as InstrumentManager ?? throw new NotSupportedException($"{id} has no source-output capability.");
             await PrepareMutationAsync(id);
+            foreach (var matrix in sessions.Values.OfType<MatrixSwitchSession>().Where(m => m.Definition.GuardedSources.Contains(id)))
+            {
+                await PrepareMutationAsync(matrix.Descriptor.Id);
+                touched.Add(matrix.Descriptor.Id);
+                await matrix.ConfirmHeldRouteAsync(Owner, token);
+            }
             token.ThrowIfCancellationRequested();
             touched.Add(id);
             var status = await manager.GetDeviceStatusAsync(token, Owner);
@@ -133,38 +140,103 @@ public sealed class DeviceRunResources
         finally { gate.Release(); }
     }
 
-    public async Task<IReadOnlyList<DeviceCleanupFailure>> StopAllAsync(CancellationToken token, bool retryFailed = false)
+    public async Task RouteMatrixAsync(InstrumentId id, IReadOnlyList<MatrixCrossPoint> desired, CancellationToken token)
     {
         await gate.WaitAsync(token);
         try
         {
             RequireActive();
-            foreach (var session in sessions.Values)
+            var matrix = Get(id) as MatrixSwitchSession ?? throw new NotSupportedException($"{id} has no matrix capability.");
+            matrix.Definition.Validate(desired);
+            if (desired.Count > 4096 || desired.Distinct().Count() != desired.Count) throw new ArgumentException("Desired matrix connections must be unique and within the software budget.", nameof(desired));
+            var guards = GetGuards(matrix);
+            await PrepareMutationAsync(id);
+            foreach (var guard in guards)
             {
-                var id = session.Descriptor.Id;
-                if (!touched.Contains(id)) continue;
-                if (retryFailed && pendingStops.TryGetValue(id, out var previous) && previous.IsCompleted && await previous is not null)
-                    pendingStops.Remove(id);
-                if (!pendingStops.ContainsKey(id)) pendingStops.Add(id, StopAndCaptureAsync(session));
+                await PrepareMutationAsync(guard.Descriptor.Id);
+                token.ThrowIfCancellationRequested();
+                touched.Add(guard.Descriptor.Id);
+                pendingStops.Add(guard.Descriptor.Id, StopAndCaptureAsync(guard));
             }
-            // All stop attempts have started before waiting for any one adapter.
-            var failures = await Task.WhenAll(pendingStops.Select(async pair =>
-            {
-                try
-                {
-                    var error = await pair.Value.WaitAsync(timeout, token);
-                    return error is null ? null : new DeviceCleanupFailure(pair.Key, error);
-                }
-                catch (TimeoutException ex)
-                {
-                    return new DeviceCleanupFailure(pair.Key, new TimeoutException($"{pair.Key}: stop confirmation timed out; ownership is retained.", ex));
-                }
-            }));
-            foreach (var pair in pendingStops)
-                if (pair.Value.IsCompleted && await pair.Value is null) recoveryRequired.Remove(pair.Key);
-            return Array.AsReadOnly(failures.OfType<DeviceCleanupFailure>().ToArray());
+            var failures = await AwaitStopsAsync(guards.Select(g => g.Descriptor.Id), token);
+            if (failures.Count != 0) throw new AggregateException("Excitation-off confirmation failed; no matrix relays were changed.", failures.Select(f => f.Error));
+            token.ThrowIfCancellationRequested(); touched.Add(id);
+            await matrix.ReconcileAsync(desired, Owner, token);
         }
         finally { gate.Release(); }
+    }
+
+    public async Task<IReadOnlyList<DeviceCleanupFailure>> StopAllAsync(CancellationToken token, bool retryFailed = false, bool preserveRouting = false)
+    {
+        await gate.WaitAsync(token);
+        try
+        {
+            RequireActive();
+            foreach (var pair in pendingStops.ToArray())
+            {
+                if (!pair.Value.IsCompleted) continue;
+                if (heldRoutes.Contains(pair.Key) && !preserveRouting || retryFailed && await pair.Value is not null)
+                { pendingStops.Remove(pair.Key); heldRoutes.Remove(pair.Key); }
+            }
+            var matrices = sessions.Values.OfType<MatrixSwitchSession>().Where(m => touched.Contains(m.Descriptor.Id)).ToArray();
+            // A new relay cleanup needs fresh excitation-off proof. Never replace a
+            // live or failed source stop; recovery alone may retry failed attempts.
+            foreach (var matrix in matrices.Where(m => m.HasRoutingMutations && !pendingStops.ContainsKey(m.Descriptor.Id)))
+                foreach (var guard in GetGuards(matrix))
+                {
+                    touched.Add(guard.Descriptor.Id);
+                    if (pendingStops.TryGetValue(guard.Descriptor.Id, out var old) && old.IsCompleted && await old is null)
+                        pendingStops.Remove(guard.Descriptor.Id);
+                }
+            foreach (var session in sessions.Values.Where(s => s is not MatrixSwitchSession && touched.Contains(s.Descriptor.Id)))
+                if (!pendingStops.ContainsKey(session.Descriptor.Id)) pendingStops.Add(session.Descriptor.Id, StopAndCaptureAsync(session));
+            // All non-matrix stops begin together; only confirmed excitation-off
+            // permits a later matrix relay write. Axis failure retains ownership
+            // but does not prevent relay cleanup when excitation is confirmed off.
+            var failures = new List<DeviceCleanupFailure>(await AwaitStopsAsync(pendingStops.Keys.Where(id => Get(id) is not MatrixSwitchSession).ToArray(), token));
+            foreach (var matrix in matrices)
+            {
+                var id = matrix.Descriptor.Id;
+                if (pendingStops.ContainsKey(id)) continue;
+                if (matrix.HasRoutingMutations && GetGuards(matrix).Any(g => failures.Any(f => f.InstrumentId == g.Descriptor.Id)))
+                {
+                    recoveryRequired.Add(id);
+                    failures.Add(new(id, new InvalidOperationException($"{id}: matrix cleanup deferred until excitation-off is confirmed; ownership is retained.")));
+                    continue;
+                }
+                if (preserveRouting) heldRoutes.Add(id);
+                pendingStops.Add(id, StopAndCaptureAsync(matrix, preserveRouting));
+            }
+            failures.AddRange(await AwaitStopsAsync(pendingStops.Keys.Where(id => Get(id) is MatrixSwitchSession).ToArray(), token));
+            foreach (var pair in pendingStops)
+                if (pair.Value.IsCompleted && await pair.Value is null) recoveryRequired.Remove(pair.Key);
+            return failures.AsReadOnly();
+        }
+        finally { gate.Release(); }
+    }
+
+    private IDeviceSession[] GetGuards(MatrixSwitchSession matrix)
+    {
+        var guards = matrix.Definition.GuardedSources.Select(Get).ToArray();
+        if (guards.Any(g => g.Descriptor.StopPolicy != DeviceStopPolicy.OutputOff)) throw new InvalidOperationException("Matrix excitation guards must confirm output-off.");
+        return guards;
+    }
+
+    private async Task<IReadOnlyList<DeviceCleanupFailure>> AwaitStopsAsync(IEnumerable<InstrumentId> ids, CancellationToken token)
+    {
+        var failures = await Task.WhenAll(ids.Select(async id =>
+        {
+            try
+            {
+                var error = await pendingStops[id].WaitAsync(timeout, token);
+                return error is null ? null : new DeviceCleanupFailure(id, error);
+            }
+            catch (TimeoutException ex)
+            {
+                return new DeviceCleanupFailure(id, new TimeoutException($"{id}: stop confirmation timed out; ownership is retained.", ex));
+            }
+        }));
+        return Array.AsReadOnly(failures.OfType<DeviceCleanupFailure>().ToArray());
     }
 
     public async Task ReleaseAsync(CancellationToken token)
@@ -174,7 +246,7 @@ public sealed class DeviceRunResources
         {
             RequireActive();
             foreach (var id in touched)
-                if (!pendingStops.TryGetValue(id, out var stop) || !stop.IsCompleted || await stop is not null)
+                if (heldRoutes.Contains(id) || recoveryRequired.Contains(id) || !pendingStops.TryGetValue(id, out var stop) || !stop.IsCompleted || await stop is not null)
                     throw new InvalidOperationException($"{id} has not confirmed its stop policy; all resources remain reserved.");
             // Once release starts, finish releasing the confirmed-safe group even
             // if the caller cancels; no half-released resource group is exposed.
@@ -231,6 +303,8 @@ public sealed class DeviceRunResources
                 touched.Add(id);
                 if (session is InstrumentManager source)
                     result.Add(await source.CaptureParametersAsync(token, Owner));
+                else if (session is MatrixSwitchSession matrix)
+                    result.Add(await matrix.CaptureParametersAsync(Owner, token));
                 else
                 {
                     var status = await session.GetDeviceStatusAsync(token, Owner);
@@ -258,13 +332,26 @@ public sealed class DeviceRunResources
                 result.Add(new(session.Descriptor.Id, status.Connected && !status.SafetyConfirmed, null, null));
             else if (session is AxisControllerSession axis)
                 result.Add(new(session.Descriptor.Id, false, axis.Definition.Target.Id, status.Values[axis.Definition.Target.Id]));
-            else throw new NotSupportedException($"Pause has no resume policy for {session.Descriptor.Id}.");
+            else if (session is not MatrixSwitchSession) throw new NotSupportedException($"Pause has no resume policy for {session.Descriptor.Id}.");
         }
         return result.AsReadOnly();
     }
 
     internal async Task RestoreResumeStateAsync(IReadOnlyList<DeviceResumeState> states, CancellationToken token)
     {
+        // Verify every held route even when no source was enabled before pause.
+        await gate.WaitAsync(token);
+        try
+        {
+            RequireActive();
+            foreach (var matrix in sessions.Values.OfType<MatrixSwitchSession>())
+            {
+                await PrepareMutationAsync(matrix.Descriptor.Id);
+                touched.Add(matrix.Descriptor.Id);
+                await matrix.ConfirmHeldRouteAsync(Owner, token);
+            }
+        }
+        finally { gate.Release(); }
         // Restore held axis targets first; source output stays off until these succeed.
         foreach (var state in states.Where(s => s.Target is not null))
             await WriteAsync(state.Device, state.Target!, state.TargetValue!.Value, token);
@@ -293,14 +380,21 @@ public sealed class DeviceRunResources
         // need reconnection before another confirmation can succeed; it never
         // authorizes output enable or overlaps a still-running stop attempt.
         pendingStops.Remove(id);
+        heldRoutes.Remove(id);
     }
 
-    private async Task<Exception?> StopAndCaptureAsync(IDeviceSession session)
+    private async Task<Exception?> StopAndCaptureAsync(IDeviceSession session, bool preserveRouting = false)
     {
         using var deadline = new CancellationTokenSource(timeout);
         try
         {
-            var status = await session.StopDeviceAsync(deadline.Token, Owner);
+            if (session is MatrixSwitchSession matrix && preserveRouting)
+            {
+                await matrix.ConfirmHeldRouteAsync(Owner, deadline.Token);
+                return null;
+            }
+            var status = session is MatrixSwitchSession routed ? await routed.StopAfterSourcesAsync(deadline.Token, Owner)
+                : await session.StopDeviceAsync(deadline.Token, Owner);
             if (!status.SafetyConfirmed) throw new InvalidOperationException($"{session.Descriptor.Id} did not confirm {session.Descriptor.StopPolicy}.");
             return null;
         }

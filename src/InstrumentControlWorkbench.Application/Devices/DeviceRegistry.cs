@@ -23,6 +23,8 @@ public sealed class DeviceRegistry
     }
 
     public IReadOnlyList<DeviceDescriptor> Devices { get; }
+    public MatrixSwitchDefinition GetMatrixDefinition(InstrumentId id) => Get(id) is MatrixSwitchSession matrix ? matrix.Definition
+        : throw new NotSupportedException($"{id} has no matrix-routing execution profile.");
     public Task<DeviceStatus> ConnectAsync(InstrumentId id, CancellationToken token) => GetManual(id).ConnectDeviceAsync(token);
     public Task DisconnectAsync(InstrumentId id, CancellationToken token) => GetManual(id).DisconnectDeviceAsync(token);
     public Task<DeviceStatus> GetStatusAsync(InstrumentId id, CancellationToken token) => GetManual(id).GetDeviceStatusAsync(token);

@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using InstrumentControlWorkbench.Core.Devices;
 using InstrumentControlWorkbench.Core.Experiments;
 using InstrumentControlWorkbench.Core.Instruments;
 using InstrumentControlWorkbench.Core.Parameters;
@@ -30,6 +31,10 @@ public sealed partial class JsonExperimentPlanDocument
                 o["kind"] = "set"; o["address"] = EncodeAddress(s.Address); o["value"] = EncodeValue(s.Value); break;
             case AssignValueStep s:
                 o["kind"] = "assign"; o["variable"] = s.Variable.Value; o["value"] = EncodeValue(s.Value); break;
+            case RouteMatrixStep s:
+                o["kind"] = "route_matrix"; o["device"] = s.Device.Value; o["settleSeconds"] = s.Settle.TotalSeconds;
+                o["closed"] = new JsonArray(s.Closed.Select(p => (JsonNode)new JsonObject
+                { ["slot"] = p.Slot, ["row"] = p.Row, ["column"] = p.Column }).ToArray()); break;
             case SourceOutputStep s:
                 o["kind"] = "output"; o["device"] = s.Device.Value; o["enabled"] = s.Enabled; break;
             case DelayStep s:
@@ -88,6 +93,13 @@ public sealed partial class JsonExperimentPlanDocument
             case "assign":
                 Object(o, "id", "kind", "variable", "value");
                 return new AssignValueStep(id, new(Text(o, "variable")), DecodeValue(o["value"]));
+            case "route_matrix":
+                Object(o, "id", "kind", "device", "closed", "settleSeconds");
+                return new RouteMatrixStep(id, new(Text(o, "device")), Array(Required(o, "closed")).Select(p =>
+                {
+                    var point = Object(p, "slot", "row", "column");
+                    return new MatrixCrossPoint(Integer(point, "slot"), Integer(point, "row"), Integer(point, "column"));
+                }), Duration(o, "settleSeconds"));
             case "output":
                 Object(o, "id", "kind", "device", "enabled");
                 return new SourceOutputStep(id, new(Text(o, "device")), Boolean(o, "enabled"));

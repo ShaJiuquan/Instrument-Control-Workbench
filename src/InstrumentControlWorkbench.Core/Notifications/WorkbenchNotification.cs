@@ -23,6 +23,7 @@ public enum WorkbenchNotificationKind
     DataRowReceived,
     StepStarted,
     StepCompleted,
+    MatrixRoutingChanged,
 }
 
 public sealed record WorkbenchNotification(

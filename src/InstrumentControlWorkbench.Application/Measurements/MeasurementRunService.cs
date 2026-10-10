@@ -190,9 +190,9 @@ public sealed partial class MeasurementRunService
         if (run.Resources is { } resources)
         {
             var saved = await resources.CaptureResumeStateAsync(run.Token);
-            ThrowErrors((await resources.StopAllAsync(CancellationToken.None)).Select(e => e.Error).ToArray());
+            ThrowErrors((await resources.StopAllAsync(CancellationToken.None, preserveRouting: true)).Select(e => e.Error).ToArray());
             run.Phase = RunExecutionPhase.Paused;
-            await PublishAsync(run, WorkbenchNotificationKind.RunPaused, "Paused with device stop policies confirmed; resources remain reserved.", CancellationToken.None);
+            await PublishAsync(run, WorkbenchNotificationKind.RunPaused, "Paused with device pause policies confirmed; resources remain reserved.", CancellationToken.None);
             await resume.WaitAsync(run.Token);
             run.Token.ThrowIfCancellationRequested();
             await resources.RestoreResumeStateAsync(saved, run.Token);
