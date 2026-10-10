@@ -2,6 +2,7 @@ using InstrumentControlWorkbench.Application.Notifications;
 using InstrumentControlWorkbench.Core.Instruments;
 using InstrumentControlWorkbench.Core.Instruments.Ports;
 using InstrumentControlWorkbench.Core.Notifications;
+using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Application.Instruments;
 
@@ -20,6 +21,34 @@ public sealed class InstrumentManager
     }
 
     public InstrumentId InstrumentId => sourceMeter.Id;
+
+    public async Task<InstrumentParameterSnapshot> CaptureParametersAsync(CancellationToken cancellationToken)
+    {
+        await operationGate.WaitAsync(cancellationToken);
+        try
+        {
+            var snapshot = await sourceMeter.GetSnapshotAsync(cancellationToken);
+            var voltageSource = snapshot.Source.Function == SourceFunction.Voltage;
+            var level = voltageSource ? Keithley2450Parameters.SourceVoltage : Keithley2450Parameters.SourceCurrent;
+            var compliance = voltageSource ? Keithley2450Parameters.CurrentCompliance : Keithley2450Parameters.VoltageCompliance;
+            return new InstrumentParameterSnapshot(snapshot.InstrumentId, snapshot.Identifier, DateTimeOffset.UtcNow,
+                [new(level, new(snapshot.Source.Level, level.Unit)),
+                 new(compliance, new(snapshot.Source.Compliance, compliance.Unit)),
+                 new(Keithley2450Parameters.Nplc, new(snapshot.Sense.Nplc, PhysicalUnit.Dimensionless))],
+                new Dictionary<string, string>
+                {
+                    ["source_function"] = snapshot.Source.Function.ToString(),
+                    ["sense_function"] = snapshot.Sense.Function.ToString(),
+                    ["sensing_mode"] = snapshot.Sense.Mode.ToString(),
+                    ["terminals"] = snapshot.Terminals.ToString(),
+                    ["output_enabled"] = snapshot.OutputEnabled.ToString(),
+                });
+        }
+        finally
+        {
+            operationGate.Release();
+        }
+    }
 
     public async Task<SourceMeterSnapshot> ConnectAsync(CancellationToken cancellationToken)
     {

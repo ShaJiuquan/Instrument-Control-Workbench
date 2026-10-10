@@ -45,6 +45,16 @@ Run data is currently session-only: restarting a scan replaces the previous
 points. Persistent history and export remain future work. Only one simulated
 Keithley 2450 is wired up; the mock does not enforce real current compliance.
 
+## PPMS implementation program
+
+The C# PPMS implementation is progressing on `codex/ppms-csharp-platform`.
+See [migration scope and stage evidence](docs/ppms-migration.md) and the
+[PPMS feature inventory](docs/ppms-feature-inventory.json). The execution engine
+will be implemented in C#, borrowing OpenTAP lifecycle concepts without depending
+on OpenTAP itself. Parameters and run data now have typed units, validated
+dependencies and immutable recipe/instrument snapshots. They are populated by
+the working IV flow; persistent history and general PPMS execution remain pending.
+
 ## Project Layout
 
 ```text

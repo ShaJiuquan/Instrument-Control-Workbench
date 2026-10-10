@@ -1,0 +1,858 @@
+{
+  "source": {
+    "repository": "ppms_newVersion_1.0",
+    "commit": "35763295f63b612f70af9dc55983644f437c18ea",
+    "date": "2026-10-10",
+    "schema": "src/tauri/src-tauri/schema/commands.json",
+    "node_registry": "src/tauri/src-tauri/src/service/experiment/nested_experiment_service/registry.rs"
+  },
+  "statusMeaning": {
+    "pending": "No C# implementation verified yet",
+    "partial": "Basic K2450 mock IV only; full PPMS behavior is not implemented",
+    "implemented": "Requires linked implementation and meaningful acceptance tests",
+    "hardwareVerified": "Requires protocol and real-device evidence in addition to tests"
+  },
+  "features": [
+    {
+      "id": "set_temperature",
+      "nodeType": "command",
+      "aliases": [
+        "set_temp",
+        "temperature_set",
+        "temp_set"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "set_field",
+      "nodeType": "command",
+      "aliases": [
+        "field_set"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "set_current",
+      "nodeType": "command",
+      "aliases": [
+        "current_set"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "set_voltage",
+      "nodeType": "command",
+      "aliases": [
+        "voltage_set"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "set_bias",
+      "nodeType": "command",
+      "aliases": [
+        "bias_set"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "set_angle",
+      "nodeType": "command",
+      "aliases": [
+        "angle_set",
+        "rotator.set_angle"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "set_gate",
+      "nodeType": "command",
+      "aliases": [
+        "gate_set"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "temp_config",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "field_config",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "zero_angle",
+      "nodeType": "command",
+      "aliases": [
+        "angle_zero",
+        "rotator.zero"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "instrument_config",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "temp_ramp_on",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "temp_ramp_off",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "temp_control_on",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "temp_control_off",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "temp_set_config",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "measure_temp",
+      "nodeType": "measurement",
+      "aliases": [
+        "meas_temp",
+        "read_temp"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "measure_field",
+      "nodeType": "measurement",
+      "aliases": [
+        "meas_field",
+        "read_field"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "measure_angle",
+      "nodeType": "measurement",
+      "aliases": [
+        "meas_angle",
+        "read_angle"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "measure_r",
+      "nodeType": "measurement",
+      "aliases": [
+        "meas_res",
+        "meas_resistance",
+        "measure_resistance"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "measure_r_sample",
+      "nodeType": "measurement",
+      "aliases": [
+        "measure_r_sample",
+        "sample_r",
+        "meas_r_sample"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "measure_current",
+      "nodeType": "measurement",
+      "aliases": [
+        "meas_current"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "measure_voltage",
+      "nodeType": "measurement",
+      "aliases": [
+        "meas_voltage"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "measure_charge",
+      "nodeType": "measurement",
+      "aliases": [
+        "meas_charge",
+        "read_charge"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "electrode_test",
+      "nodeType": "measurement",
+      "aliases": [
+        "test_electrodes",
+        "continuity_test"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "measure_polarization_readout",
+      "nodeType": "measurement",
+      "aliases": [
+        "pol_readout",
+        "polarization_readout",
+        "polread"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "measure_dvdi_point",
+      "nodeType": "measurement",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "measure_didv_point",
+      "nodeType": "measurement",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "measure_iv",
+      "nodeType": "scan",
+      "aliases": [
+        "iv",
+        "measure_iv_sweep"
+      ],
+      "status": "partial"
+    },
+    {
+      "id": "measure_vi",
+      "nodeType": "scan",
+      "aliases": [
+        "vi",
+        "measure_vi_sweep"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "measure_dvdi",
+      "nodeType": "scan",
+      "aliases": [
+        "dvdi",
+        "measure_dvdi_sweep"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "measure_didv",
+      "nodeType": "scan",
+      "aliases": [
+        "didv",
+        "measure_didv_sweep"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "measure_polarization",
+      "nodeType": "scan",
+      "aliases": [
+        "polarization_sweep",
+        "measure_polarization_sweep"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "scan_temperature",
+      "nodeType": "scan",
+      "aliases": [
+        "scan_temp"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "scan_temperature_v2",
+      "nodeType": "scan_v2",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "scan_field",
+      "nodeType": "scan",
+      "aliases": [
+        "field"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "scan_field_ramp",
+      "nodeType": "scan",
+      "aliases": [
+        "field_ramp"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "scan_temp_ramp",
+      "nodeType": "scan",
+      "aliases": [
+        "temperature_ramp"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "scan_temp_cooling",
+      "nodeType": "scan",
+      "aliases": [
+        "temperature_cooling"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "scan_angle",
+      "nodeType": "scan",
+      "aliases": [
+        "angle"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "scan_angle_ramp",
+      "nodeType": "scan",
+      "aliases": [
+        "angle_ramp"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "scan_number",
+      "nodeType": "scan",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "scan_time",
+      "nodeType": "scan",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "scan_current",
+      "nodeType": "scan",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "scan_voltage",
+      "nodeType": "scan",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "scan_bias",
+      "nodeType": "scan",
+      "aliases": [
+        "scan_gate",
+        "gate"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "cooling_down",
+      "nodeType": "command",
+      "aliases": [
+        "cool_down"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "sample_exchange",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "go_to_base",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "go_to_base_soft",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "sample_exchange_soft",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "cancel_current_command",
+      "nodeType": "command",
+      "aliases": [
+        "cancel_command",
+        "cancel"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "k2182.set_nplc",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "k2182.set_range",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "k2182.set_filter",
+      "nodeType": "command",
+      "aliases": [
+        "k2182.set_fiter"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "k6221.set_current",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "k6221.set_compliance",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "k6221.set_output",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "k6221.set_range",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "k2450.set_source_function",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "k2450.set_source_level",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "k2450.set_output",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "k2450.set_nplc",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "k6485.set_nplc",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "k6485.set_range",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "k6485.set_zero_check",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "k6514.set_function",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "k6514.set_nplc",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "k3706.open_channel",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "k3706.close_channel",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "sr830.set_sensitivity",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "sr830.set_time_constant",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "sr830.configure_ref",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "save_data_path",
+      "nodeType": "command",
+      "aliases": [
+        "set_data_path"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "end_save",
+      "nodeType": "command",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "wait",
+      "nodeType": "command",
+      "aliases": [
+        "sleep"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "ramp_field",
+      "nodeType": "command",
+      "aliases": [
+        "field_ramp"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "reset_quench",
+      "nodeType": "command",
+      "aliases": [
+        "reset_quench_state"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "field_set_mode",
+      "nodeType": "command",
+      "aliases": [
+        "set_driven_mode"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "field_set_ramp_rate",
+      "nodeType": "command",
+      "aliases": [
+        "field.set_ramp_rate"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "switch_magnets_off",
+      "nodeType": "command",
+      "aliases": [
+        "magnets_off"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "wait_field",
+      "nodeType": "command",
+      "aliases": [
+        "wait_field_holding",
+        "wait_field_stable"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "wait_temp",
+      "nodeType": "command",
+      "aliases": [
+        "wait_temp_stable",
+        "wait_temp_reached",
+        "wait_temperature",
+        "wait_temp_state"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "wait_angle",
+      "nodeType": "command",
+      "aliases": [
+        "wait_angle_state"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "fallback",
+      "nodeType": "fallback",
+      "aliases": [
+        "selector",
+        "try_alternatives"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "retry",
+      "nodeType": "retry",
+      "aliases": [
+        "retry_on_failure"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "timeout",
+      "nodeType": "timeout",
+      "aliases": [
+        "with_timeout"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "parallel",
+      "nodeType": "parallel",
+      "aliases": [
+        "concurrent"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "force_success",
+      "nodeType": "force_success",
+      "aliases": [
+        "ignore_error",
+        "optional"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "delay",
+      "nodeType": "delay",
+      "aliases": [
+        "wait_before"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "if_then_else",
+      "nodeType": "if_then_else",
+      "aliases": [
+        "conditional",
+        "branch"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "then",
+      "nodeType": "sequence",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "else",
+      "nodeType": "sequence",
+      "aliases": [],
+      "status": "pending"
+    },
+    {
+      "id": "switch",
+      "nodeType": "switch",
+      "aliases": [
+        "select_case"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "repeat",
+      "nodeType": "repeat",
+      "aliases": [
+        "loop",
+        "repeat_n"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "force_failure",
+      "nodeType": "force_failure",
+      "aliases": [
+        "always_fail"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "inverter",
+      "nodeType": "inverter",
+      "aliases": [
+        "not",
+        "negate"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "subtree",
+      "nodeType": "subtree",
+      "aliases": [
+        "scope",
+        "isolated"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "for_each",
+      "nodeType": "for_each",
+      "aliases": [
+        "iterate"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "while",
+      "nodeType": "while",
+      "aliases": [
+        "while_true",
+        "loop_until"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "scan_pol_voltage",
+      "nodeType": "scan",
+      "aliases": [],
+      "status": "pending"
+    }
+  ],
+  "runtimeNodeKinds": [
+    {
+      "id": "sequence",
+      "status": "pending"
+    },
+    {
+      "id": "fallback",
+      "status": "pending"
+    },
+    {
+      "id": "parallel",
+      "status": "pending"
+    },
+    {
+      "id": "race",
+      "status": "pending"
+    },
+    {
+      "id": "race_leader",
+      "status": "pending"
+    },
+    {
+      "id": "if_then_else",
+      "status": "pending"
+    },
+    {
+      "id": "switch",
+      "status": "pending"
+    },
+    {
+      "id": "subtree",
+      "status": "pending"
+    },
+    {
+      "id": "for_each",
+      "status": "pending"
+    },
+    {
+      "id": "retry",
+      "status": "pending"
+    },
+    {
+      "id": "timeout",
+      "status": "pending"
+    },
+    {
+      "id": "delay",
+      "status": "pending"
+    },
+    {
+      "id": "repeat",
+      "status": "pending"
+    },
+    {
+      "id": "force_success",
+      "status": "pending"
+    },
+    {
+      "id": "force_failure",
+      "status": "pending"
+    },
+    {
+      "id": "inverter",
+      "status": "pending"
+    },
+    {
+      "id": "while",
+      "status": "pending"
+    },
+    {
+      "id": "scan",
+      "status": "pending"
+    },
+    {
+      "id": "scan_v2",
+      "status": "pending"
+    },
+    {
+      "id": "measurement",
+      "status": "pending"
+    },
+    {
+      "id": "command",
+      "status": "pending"
+    }
+  ]
+}
