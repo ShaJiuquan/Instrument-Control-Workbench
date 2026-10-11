@@ -12,7 +12,9 @@ public sealed partial class MeasurementRunService
         run.MeasurementInputs = inputs;
         try
         {
-            foreach (var member in step.Members) await ExecuteStepAsync(member.Body, run, listeners, ivPlot);
+            foreach (var member in step.Members)
+                if (await ExecuteStepAsync(member.Body, run, listeners, ivPlot) != StepOutcome.Success)
+                    throw new InvalidOperationException("A measurement group member returned an unsupported workflow result.");
             run.Token.ThrowIfCancellationRequested(); await PauseCheckpointAsync(run);
         }
         finally { run.MeasurementInputs = null; }

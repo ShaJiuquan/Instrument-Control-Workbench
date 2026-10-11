@@ -981,7 +981,12 @@
         "selector",
         "try_alternatives"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Core/Experiments/ControlSteps.cs; src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Control.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs",
+        "tests": "tests/InstrumentControlWorkbench.Core.Tests/ControlStepTests.cs; tests/InstrumentControlWorkbench.Application.Tests/ControlFlowTests*.cs",
+        "limits": "Typed logical status and PPMS shape verified. Exceptions remain errors; broad Rust error-swallowing parity and generic recovery/timeout/parallel/script/subtree/background/native UI/hardware remain. See workflow-control.md."
+      }
     },
     {
       "id": "retry",
@@ -989,7 +994,12 @@
       "aliases": [
         "retry_on_failure"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Core/Experiments/ControlSteps.cs; src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Control.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs",
+        "tests": "tests/InstrumentControlWorkbench.Core.Tests/ControlStepTests.cs; tests/InstrumentControlWorkbench.Application.Tests/ControlFlowTests*.cs",
+        "limits": "Typed logical status and PPMS shape verified. Exceptions remain errors; broad Rust error-swallowing parity and generic recovery/timeout/parallel/script/subtree/background/native UI/hardware remain. See workflow-control.md."
+      }
     },
     {
       "id": "timeout",
@@ -1019,7 +1029,12 @@
         "ignore_error",
         "optional"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Core/Experiments/ControlSteps.cs; src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Control.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs",
+        "tests": "tests/InstrumentControlWorkbench.Core.Tests/ControlStepTests.cs; tests/InstrumentControlWorkbench.Application.Tests/ControlFlowTests*.cs",
+        "limits": "Typed logical status and PPMS shape verified. Exceptions remain errors; broad Rust error-swallowing parity and generic recovery/timeout/parallel/script/subtree/background/native UI/hardware remain. See workflow-control.md."
+      }
     },
     {
       "id": "delay",
@@ -1097,7 +1112,12 @@
       "aliases": [
         "always_fail"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Core/Experiments/ControlSteps.cs; src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Control.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs",
+        "tests": "tests/InstrumentControlWorkbench.Core.Tests/ControlStepTests.cs; tests/InstrumentControlWorkbench.Application.Tests/ControlFlowTests*.cs",
+        "limits": "Typed logical status and PPMS shape verified. Exceptions remain errors; broad Rust error-swallowing parity and generic recovery/timeout/parallel/script/subtree/background/native UI/hardware remain. See workflow-control.md."
+      }
     },
     {
       "id": "inverter",
@@ -1106,7 +1126,12 @@
         "not",
         "negate"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Core/Experiments/ControlSteps.cs; src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Control.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs",
+        "tests": "tests/InstrumentControlWorkbench.Core.Tests/ControlStepTests.cs; tests/InstrumentControlWorkbench.Application.Tests/ControlFlowTests*.cs",
+        "limits": "Typed logical status and PPMS shape verified. Exceptions remain errors; broad Rust error-swallowing parity and generic recovery/timeout/parallel/script/subtree/background/native UI/hardware remain. See workflow-control.md."
+      }
     },
     {
       "id": "subtree",
@@ -1437,5 +1462,21 @@
       "Full remaining PPMS/BT/background/DB/packaging scope"
     ],
     "reference": "iteration-scans.md"
+  },
+  "workflowControls": {
+    "status": "partial",
+    "implemented": [
+      "Typed native conditions, ordered fallback, bounded retry/backoff and result effects",
+      "Status propagation across existing parents, original logical failure identity and typed notifications",
+      "Nested branch/attempt axes, variable isolation/definite availability, grouped data and quality",
+      "No exception/cancellation/safety masking; retained whole-group recovery, local TCP errors and pause/backoff tests",
+      "Native/import/save/fresh archive/CSV/re-execution and five-row fixture;62 cases (9 Core53 Application)"
+    ],
+    "remaining": [
+      "Explicit generic recovery of driver/other exceptions and full Rust semantics",
+      "Timeout/parallel/subtree/background/script conditions and full BT scope",
+      "Native flow/operator/history/plots and remaining hardware/PPMS/DB/packaging acceptance"
+    ],
+    "reference": "workflow-control.md"
   }
 }

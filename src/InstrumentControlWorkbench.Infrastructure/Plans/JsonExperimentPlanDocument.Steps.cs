@@ -37,6 +37,16 @@ public sealed partial class JsonExperimentPlanDocument
                 var children = new JsonArray();
                 foreach (var child in s.Children) children.Add(EncodeStep(child, depth + 1, ref count));
                 o["children"] = children; break;
+            case ConditionStep s:
+                o["kind"] = "condition"; o["variable"] = s.Condition.Variable.Value; o["operator"] = s.Condition.Operator.ToString(); o["value"] = EncodeValue(s.Condition.Value); break;
+            case FallbackStep s:
+                o["kind"] = "fallback"; var branches = new JsonArray();
+                foreach (var child in s.Children) branches.Add(EncodeStep(child, depth + 1, ref count));
+                o["children"] = branches; break;
+            case RetryStep s:
+                o["kind"] = "retry"; o["maxAttempts"] = s.MaxAttempts; o["delaySeconds"] = s.Delay.TotalSeconds; o["body"] = EncodeStep(s.Body, depth + 1, ref count); break;
+            case ResultDecoratorStep s:
+                o["kind"] = "result_decorator"; o["effect"] = s.Effect.ToString(); o["body"] = EncodeStep(s.Body, depth + 1, ref count); break;
             case RepeatStep s:
                 o["kind"] = "repeat"; o["cycles"] = s.Cycles; o["body"] = EncodeStep(s.Body, depth + 1, ref count); break;
             case ScanStep s:
@@ -149,6 +159,19 @@ public sealed partial class JsonExperimentPlanDocument
                 var children = new List<ExperimentStep>();
                 foreach (var child in Array(Required(o, "children"))) children.Add(DecodeStep(child, depth + 1, ref count));
                 return new SequenceStep(id, children);
+            case "condition":
+                Object(o, "id", "kind", "variable", "operator", "value");
+                return new ConditionStep(id, new(new(Text(o, "variable")), NamedEnum<ComparisonOperator>(o, "operator"), DecodeValue(o["value"])));
+            case "fallback":
+                Object(o, "id", "kind", "children"); var branches = new List<ExperimentStep>();
+                foreach (var child in Array(o["children"])) branches.Add(DecodeStep(child ?? throw new FormatException("Null fallback branch."), depth + 1, ref count));
+                return new FallbackStep(id, branches);
+            case "retry":
+                Object(o, "id", "kind", "maxAttempts", "delaySeconds", "body");
+                return new RetryStep(id, Integer(o, "maxAttempts"), Duration(o, "delaySeconds"), DecodeStep(Required(o, "body"), depth + 1, ref count));
+            case "result_decorator":
+                Object(o, "id", "kind", "effect", "body");
+                return new ResultDecoratorStep(id, NamedEnum<ResultEffect>(o, "effect"), DecodeStep(Required(o, "body"), depth + 1, ref count));
             case "repeat":
                 Object(o, "id", "kind", "cycles", "body");
                 return new RepeatStep(id, Integer(o, "cycles"), DecodeStep(Required(o, "body"), depth + 1, ref count));

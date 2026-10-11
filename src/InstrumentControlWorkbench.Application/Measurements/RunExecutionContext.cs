@@ -46,6 +46,7 @@ internal sealed class RunExecutionContext : IDisposable
     public List<MeasurementDataRow>? MeasurementInputs { get; set; }
     public MeasurementDataRow? LastRow { get; set; }
     public long ExecutedSteps { get; set; }
+    public StepId? LastWorkflowFailure { get; set; }
     public RunDataSet? DataSet { get; set; }
     public IReadOnlyDictionary<StepId, ResolvedSampleRoute> SampleRoutes { get; set; } = new Dictionary<StepId, ResolvedSampleRoute>();
     public TaskCompletionSource Finalized { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);

@@ -793,3 +793,25 @@ K6221 raw socket1394 confirmed by manufacturer; fresh pure-DC/armed evidence and
 zeroing abort semantics still unresolved, so do not register a guessed hardware
 adapter. See iteration-scans.md and k6221-tcp-investigation.md. Whole goal active;
 full controllers/BT/background/DB/native UI/packaging/lab remain unfinished.
+
+
+## Workflow controls and typed results (2026-10-11)
+
+Core StepOutcome Success/Failure distinct from exceptions; native typed condition,
+fallback, bounded retry/backoff and ForceSuccess/ForceFailure/Invert decorator.
+Existing sequence/repeat/scans/iterators/if-else propagate status and halt children;
+terminal logical failure preserves originating step via PlanFailedException and
+normal stop/retained recovery. Typed StepCompleted outcomes; branch/attempt/total
+axes, retained valid failed-branch rows and grouped quality; variable entry-scope
+isolation and conservative definite availability (including removed if-else vars).
+All branches and worst retry cost preflight before IO; strict native version1/
+PPMS wrappers with source lines and child/count/delay checks. Rust broad catches
+are not copied: driver/timeout/routing/listener/cancellation/safety exceptions
+never become success or implicit retry. Existing acquisition-specific policies
+stay explicit.62 new cases (9 Core53 Application), including local TCP negative
+read, pause/backoff, cancellation, listener fault, retained failed hold and both
+logical/safety causes, native grouped archive/CSV/re-execution and PPMS fixture.
+No dependencies, Rust writes, lab IO or29 App drafts changed. Native Mac inspection
+still locked this stage; no new UI acceptance/liveness. Full PPMS/controllers/BT
+exception recovery/timeout/parallel/background/DB/UI/packaging/hardware remains.
+See workflow-control.md; whole goal active.

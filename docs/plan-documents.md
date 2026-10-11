@@ -133,3 +133,15 @@ CSV re-execution. Existing iterators default to immediate execution. See
 [iteration-scans.md](iteration-scans.md) and the five-row repository example.
 K6221 raw TCP/mode safety is still under investigation; no hardware adapter or
 UI changes are included. The full migration goal remains active.
+
+
+## Workflow result controls (2026-10-11)
+
+Native typed condition/fallback/retry/result decorators and PPMS control-node
+import now share ordinary executor/resources. Logical failure propagates through
+parents; errors/cancellation/safety are not swallowed. Branch/attempt axes, strict
+preflight/dataflow/budgets, grouped quality/native save/fresh archive/CSV and
+re-execution verified. See [workflow-control.md](workflow-control.md) and the
+five-row `ppms-fallback-retry-import.json` example. Full exception recovery,
+script conditions, parallel/timeout/background/subtree/native UI/hardware remain
+incomplete. The full migration goal remains active.

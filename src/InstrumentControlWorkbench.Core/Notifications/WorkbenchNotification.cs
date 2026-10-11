@@ -36,7 +36,8 @@ public sealed record WorkbenchNotification(
     DateTimeOffset? Timestamp = null,
     DeviceStatus? Device = null,
     StepId? Step = null,
-    MeasurementDataRow? Row = null)
+    MeasurementDataRow? Row = null,
+    StepOutcome? Outcome = null)
 {
     public DateTimeOffset OccurredAt => Timestamp ?? DateTimeOffset.Now;
 }

@@ -11,7 +11,7 @@ namespace InstrumentControlWorkbench.Application.Measurements;
 
 public sealed partial class MeasurementRunService
 {
-    private async Task ExecuteStepAsync(ExperimentStep step, RunExecutionContext run, IReadOnlyList<IRunResultListener> started, bool ivPlot)
+    private async Task<StepOutcome> ExecuteStepAsync(ExperimentStep step, RunExecutionContext run, IReadOnlyList<IRunResultListener> started, bool ivPlot)
     {
         run.Token.ThrowIfCancellationRequested();
         if (++run.ExecutedSteps % 256 == 0)
@@ -23,18 +23,37 @@ public sealed partial class MeasurementRunService
         await PauseCheckpointAsync(run);
         await notifications.PublishAsync(new(WorkbenchNotificationKind.StepStarted, $"Executing {step.Id}.",
             RunId: run.Id.ToString(), Step: step.Id), run.Token);
+        var outcome = StepOutcome.Success;
         switch (step)
         {
+            case ConditionStep condition:
+                outcome = EvaluateCondition(condition.Condition, run) ? StepOutcome.Success : StepOutcome.Failure; break;
+            case FallbackStep fallback:
+                outcome = await ExecuteFallbackAsync(fallback, run, started, ivPlot); break;
+            case RetryStep retry:
+                outcome = await ExecuteRetryAsync(retry, run, started, ivPlot); break;
+            case ResultDecoratorStep decorator:
+                var childOutcome = await ExecuteStepAsync(decorator.Body, run, started, ivPlot);
+                outcome = decorator.Effect switch
+                {
+                    ResultEffect.ForceSuccess => StepOutcome.Success,
+                    ResultEffect.ForceFailure => StepOutcome.Failure,
+                    ResultEffect.Invert => childOutcome == StepOutcome.Success ? StepOutcome.Failure : StepOutcome.Success,
+                    _ => throw new NotSupportedException("Unknown result effect."),
+                };
+                break;
             case MeasurementGroupStep point:
                 await ExecuteMeasurementGroupAsync(point, run, started, ivPlot); break;
             case SampleAnalysisStep analysis:
                 await ExecuteSampleAnalysisAsync(analysis, run, started);
                 break;
             case SequenceStep sequence:
-                foreach (var child in sequence.Children) await ExecuteStepAsync(child, run, started, ivPlot);
+                foreach (var child in sequence.Children)
+                    if ((outcome = await ExecuteStepAsync(child, run, started, ivPlot)) == StepOutcome.Failure) break;
                 break;
             case RepeatStep repeat:
-                for (var i = 0; i < repeat.Cycles; i++) await ExecuteStepAsync(repeat.Body, run, started, ivPlot);
+                for (var i = 0; i < repeat.Cycles; i++)
+                    if ((outcome = await ExecuteStepAsync(repeat.Body, run, started, ivPlot)) == StepOutcome.Failure) break;
                 break;
             case ScanStep scan:
                 var previousAxes = new Dictionary<ParameterId, Quantity>(run.Axes);
@@ -47,7 +66,7 @@ public sealed partial class MeasurementRunService
                         await run.Resources!.WriteAsync(scan.Axis.Device, scan.Axis.Parameter, value, run.Token);
                         run.Variables[scan.Column] = value;
                         run.Axes[scan.Column] = value;
-                        await ExecuteStepAsync(scan.Body, run, started, ivPlot);
+                        if ((outcome = await ExecuteStepAsync(scan.Body, run, started, ivPlot)) == StepOutcome.Failure) break;
                         await DwellAsync(run, scan.Dwell);
                     }
                 }
@@ -70,7 +89,7 @@ public sealed partial class MeasurementRunService
                         run.Variables[loop.Variable] = run.Axes[loop.Variable] = loop.Values.Values[i];
                         run.Variables[index] = run.Axes[index] = new(i + 1, PhysicalUnit.Dimensionless);
                         run.Variables[total] = run.Axes[total] = new(loop.Values.Values.Count, PhysicalUnit.Dimensionless);
-                        await ExecuteStepAsync(loop.Body, run, started, ivPlot);
+                        if ((outcome = await ExecuteStepAsync(loop.Body, run, started, ivPlot)) == StepOutcome.Failure) break;
                     }
                 }
                 finally { RestoreAxes(run, beforeLoop); }
@@ -132,16 +151,23 @@ public sealed partial class MeasurementRunService
                 await WaitStableAsync(wait, run);
                 break;
             case IfElseStep conditional:
-                var left = run.Variables[conditional.Condition.Variable];
-                var right = Resolve(conditional.Condition.Value, run);
-                if (left.Unit != right.Unit) throw new InvalidOperationException("Comparison units changed during execution.");
-                var selected = Compare(left.Value, right.Value, conditional.Condition.Operator) ? conditional.Then : conditional.Else;
-                if (selected is not null) await ExecuteStepAsync(selected, run, started, ivPlot);
+                var selected = EvaluateCondition(conditional.Condition, run) ? conditional.Then : conditional.Else;
+                if (selected is not null) outcome = await ExecuteStepAsync(selected, run, started, ivPlot);
                 break;
             default: throw new NotSupportedException($"No executor exists for {step.GetType().Name}.");
         }
-        await notifications.PublishAsync(new(WorkbenchNotificationKind.StepCompleted, $"Completed {step.Id}.",
-            RunId: run.Id.ToString(), Step: step.Id), CancellationToken.None);
+        if (outcome == StepOutcome.Failure && step is ConditionStep or ResultDecoratorStep) run.LastWorkflowFailure = step.Id;
+        run.Token.ThrowIfCancellationRequested();
+        await notifications.PublishAsync(new(WorkbenchNotificationKind.StepCompleted, $"{step.Id}: {outcome}.",
+            RunId: run.Id.ToString(), Step: step.Id, Outcome: outcome), CancellationToken.None);
+        return outcome;
+    }
+
+    private static bool EvaluateCondition(ValueCondition condition, RunExecutionContext run)
+    {
+        var left = run.Variables[condition.Variable]; var right = Resolve(condition.Value, run);
+        if (left.Unit != right.Unit) throw new InvalidOperationException("Comparison units changed during execution.");
+        return Compare(left.Value, right.Value, condition.Operator);
     }
 
     private async Task AcquireRowAsync(ReadStep read, RunExecutionContext run, IReadOnlyList<IRunResultListener> started)

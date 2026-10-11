@@ -19,7 +19,8 @@ public sealed partial class MeasurementRunService
         var independent = new List<IndependentResistanceEvidence>();
         foreach (var reading in step.Readings)
         {
-            await ExecuteStepAsync(reading, run, listeners, ivPlot: false);
+            if (await ExecuteStepAsync(reading, run, listeners, ivPlot: false) != StepOutcome.Success)
+                throw new InvalidOperationException("A sample acquisition returned an unsupported workflow result.");
             firstRow ??= run.LastRow!;
             quality.AddRange(run.LastRow!.Quality); independent.AddRange(run.LastRow.IndependentResistance); failures.AddRange(run.LastRow.AcquisitionFailures);
             resistance.Add(run.LastRow.Values.TryGetValue(reading.Acquisition.ResistanceColumn, out var value) ? value : null);

@@ -36,6 +36,7 @@ offline model's stop state; disconnected Hardware descriptors cannot.
 | VerifyMatrixRouteStep | Confirm the exact accepted route without relay writes or output changes |
 | SoftwareTemperatureRampStep | Confirmed temperature control, live origin, optional integer-millikelvin ramp; separate stability wait ([contract](temperature-control.md)) |
 | SequenceStep | Run children in order; empty sequence is allowed |
+| ConditionStep / FallbackStep / RetryStep / ResultDecoratorStep | Typed workflow results, ordered alternatives and bounded retry; exceptions remain errors ([contract](workflow-control.md)) |
 | RepeatStep | Execute body for a positive bounded count |
 | ScanStep | Write each typed axis value, run body, then dwell; nesting creates outer/inner axes |
 | ForEachStep | Bind value plus `<variable>.index` (1-based) and `.total`, then run body; optional typed delay-before-point timing ([contract](iteration-scans.md)) |

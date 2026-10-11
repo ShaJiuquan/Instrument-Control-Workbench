@@ -142,7 +142,8 @@ public sealed partial class MeasurementRunService
                 startedListeners.Add(listener);
             }
             run.Phase = RunExecutionPhase.Running;
-            await ExecuteStepAsync(compiled.Plan.Root, run, startedListeners, ivPlot);
+            if (await ExecuteStepAsync(compiled.Plan.Root, run, startedListeners, ivPlot) == StepOutcome.Failure)
+                throw new PlanFailedException(run.LastWorkflowFailure ?? compiled.Plan.Root.Id);
         }
         catch (OperationCanceledException) when (run.Token.IsCancellationRequested) { result = MeasurementRunState.Aborted; }
         catch (Exception ex) { result = MeasurementRunState.Faulted; errors.Add(ex); }

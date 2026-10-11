@@ -195,6 +195,25 @@ internal static class ExperimentPlanCompiler
             columns.Add(id, new(descriptor, dependencies, optional: true, source: source));
             if (environment) environmentColumns.Add(id);
         }
+        bool CanReportWorkflowFailure(ExperimentStep step) => step switch
+        {
+            ConditionStep => true,
+            ResultDecoratorStep { Effect: ResultEffect.ForceSuccess } => false,
+            ResultDecoratorStep => true,
+            FallbackStep fallback => fallback.Children.All(CanReportWorkflowFailure),
+            RetryStep retry => CanReportWorkflowFailure(retry.Body),
+            SequenceStep sequence => sequence.Children.Any(CanReportWorkflowFailure),
+            RepeatStep repeat => CanReportWorkflowFailure(repeat.Body),
+            ScanStep scan => CanReportWorkflowFailure(scan.Body),
+            ForEachStep loop => CanReportWorkflowFailure(loop.Body),
+            IfElseStep conditional => CanReportWorkflowFailure(conditional.Then) || conditional.Else is { } other && CanReportWorkflowFailure(other),
+            _ => false, // Validated IO/acquisition leaves either succeed or throw; controls cannot swallow those errors.
+        };
+        void RetainCommonVariables(Dictionary<ParameterId, PhysicalUnit> known, IReadOnlyList<Dictionary<ParameterId, PhysicalUnit>> paths)
+        {
+            var common = paths[0].Where(item => paths.All(path => path.TryGetValue(item.Key, out var unit) && unit == item.Value)).ToArray();
+            known.Clear(); foreach (var item in common) BindVariable(item.Key, item.Value, known);
+        }
         void CheckCondition(ValueCondition condition, Dictionary<ParameterId, PhysicalUnit> known)
         {
             ArgumentNullException.ThrowIfNull(condition);
@@ -342,6 +361,32 @@ internal static class ExperimentPlanCompiler
                         }
                     }
                     return analysisCost;
+                case ConditionStep condition:
+                    CheckCondition(condition.Condition, known); return 1;
+                case FallbackStep fallback:
+                    AddColumn(fallback.BranchColumn, new(fallback.BranchColumn, "Fallback branch (1-based)", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
+                    AddColumn(fallback.TotalColumn, new(fallback.TotalColumn, "Fallback branch total", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
+                    BindVariable(fallback.BranchColumn, PhysicalUnit.Dimensionless, known); BindVariable(fallback.TotalColumn, PhysicalUnit.Dimensionless, known);
+                    var branches = new List<Dictionary<ParameterId, PhysicalUnit>>(); long fallbackCost = 1;
+                    foreach (var child in fallback.Children)
+                    {
+                        var branch = new Dictionary<ParameterId, PhysicalUnit>(known); branches.Add(branch);
+                        fallbackCost = checked(fallbackCost + Visit(child, branch, [.. axes, fallback.BranchColumn, fallback.TotalColumn], depth + 1));
+                    }
+                    RetainCommonVariables(known, branches); return fallbackCost;
+                case RetryStep retry:
+                    AddColumn(retry.AttemptColumn, new(retry.AttemptColumn, "Workflow attempt (1-based)", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
+                    AddColumn(retry.TotalColumn, new(retry.TotalColumn, "Maximum workflow attempts", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
+                    BindVariable(retry.AttemptColumn, PhysicalUnit.Dimensionless, known); BindVariable(retry.TotalColumn, PhysicalUnit.Dimensionless, known);
+                    return checked(1 + retry.MaxAttempts * Visit(retry.Body, known, [.. axes, retry.AttemptColumn, retry.TotalColumn], depth + 1));
+                case ResultDecoratorStep decorator:
+                    var beforeDecoration = new Dictionary<ParameterId, PhysicalUnit>(known);
+                    var decorated = new Dictionary<ParameterId, PhysicalUnit>(known);
+                    var decoratedCost = Visit(decorator.Body, decorated, axes, depth + 1);
+                    if (decorator.Effect == ResultEffect.ForceSuccess && !CanReportWorkflowFailure(decorator.Body))
+                    { known.Clear(); foreach (var item in decorated) BindVariable(item.Key, item.Value, known); }
+                    else RetainCommonVariables(known, [beforeDecoration, decorated]);
+                    return checked(1 + decoratedCost);
                 case SequenceStep sequence:
                     return checked(1 + sequence.Children.Sum(child => Visit(child, known, axes, depth + 1)));
                 case RepeatStep repeat:
@@ -448,8 +493,7 @@ internal static class ExperimentPlanCompiler
                     var elseKnown = new Dictionary<ParameterId, PhysicalUnit>(known);
                     var thenCost = Visit(conditional.Then, thenKnown, axes, depth + 1);
                     var elseCost = conditional.Else is { } otherwise ? Visit(otherwise, elseKnown, axes, depth + 1) : 0;
-                    foreach (var item in thenKnown)
-                        if (elseKnown.TryGetValue(item.Key, out var unit) && unit == item.Value) BindVariable(item.Key, unit, known);
+                    RetainCommonVariables(known, [thenKnown, elseKnown]);
                     return checked(1 + Math.Max(thenCost, elseCost));
                 default:
                     throw new NotSupportedException($"No executor exists for {step.GetType().Name}.");

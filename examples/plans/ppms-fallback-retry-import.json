@@ -1,0 +1,34 @@
+{
+  "experiment_id": "PPMS fallback and bounded logical retry",
+  "type": "sequence",
+  "children": [
+    {
+      "type": "fallback", "source_line": 1, "params": {},
+      "children": [
+        {
+          "type": "force_failure", "source_line": 2, "params": {},
+          "children": [ { "type": "measurement", "name": "measure_field", "params": {} } ]
+        },
+        {
+          "type": "retry", "source_line": 3, "params": { "max_attempts": 2, "delay_ms": 1 },
+          "children": [
+            {
+              "type": "force_failure", "params": {},
+              "children": [ { "type": "measurement", "name": "measure_field", "params": {} } ]
+            }
+          ]
+        },
+        {
+          "type": "force_success", "source_line": 4, "params": {},
+          "children": [
+            {
+              "type": "force_failure", "params": {},
+              "children": [ { "type": "measurement", "name": "measure_field", "params": {} } ]
+            }
+          ]
+        }
+      ]
+    },
+    { "type": "measurement", "name": "measure_field", "params": {} }
+  ]
+}

@@ -69,6 +69,21 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
             {
                 case "sequence":
                     Fields(p); return new SequenceStep(id, Children(node, path, c, depth));
+                case "fallback":
+                    Fields(p); return new FallbackStep(id, Children(node, path, c, depth));
+                case "retry":
+                    Fields(p, "max_attempts", "delay_ms");
+                    var delay = Number(p, "delay_ms", 0);
+                    if (delay < 0 || delay > uint.MaxValue - 1 || delay != Math.Truncate(delay)) throw new FormatException("delay_ms must be an integer within the supported timer range.");
+                    var retryChildren = Children(node, path, c, depth);
+                    if (retryChildren.Count != 1) throw new FormatException("retry requires exactly one child.");
+                    return new RetryStep(id, Integer(p, "max_attempts", 3), TimeSpan.FromMilliseconds(delay), retryChildren[0]);
+                case "force_success":
+                case "force_failure":
+                case "inverter":
+                    Fields(p); var decoratorChildren = Children(node, path, c, depth);
+                    if (decoratorChildren.Count != 1) throw new FormatException($"{type} requires exactly one child.");
+                    return new ResultDecoratorStep(id, type == "force_success" ? ResultEffect.ForceSuccess : type == "force_failure" ? ResultEffect.ForceFailure : ResultEffect.Invert, decoratorChildren[0]);
                 case "repeat":
                     Fields(p, "num_cycles"); var children = Children(node, path, c, depth);
                     if (children.Count != 1) throw new FormatException("repeat requires exactly one child.");
