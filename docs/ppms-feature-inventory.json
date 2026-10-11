@@ -1032,7 +1032,12 @@
       "aliases": [
         "with_timeout"
       ],
-      "status": "pending"
+      "status": "partial",
+      "implementation": {
+        "boundary": "Core TimeoutStep/PlanStepTimeoutException; Application scoped serial execution; Infrastructure codecs",
+        "tests": "ControlFlowTests.Timeout*.cs; ControlStepTests.cs; SampleResistanceExecutionTests.Analysis.cs",
+        "limits": "Wall-clock deadline includes pause. Child token propagation, nested expiry identity/root abort, real child drain before independent cleanup; live or failed stops retain ownership. Native/PPMS alias strict bounds/one child/default60s/zero immediate expiration; field fixture archive/CSV/fresh execution and vdP summary replay. No forceful noncooperative IO interrupt, generic timeout recovery, parallel/background/script/subtree/UI/physical acceptance. See workflow-control.md."
+      }
     },
     {
       "id": "parallel",
@@ -1254,7 +1259,12 @@
     },
     {
       "id": "timeout",
-      "status": "pending"
+      "status": "partial",
+      "implementation": {
+        "boundary": "Core TimeoutStep/PlanStepTimeoutException; Application scoped serial execution; Infrastructure codecs",
+        "tests": "ControlFlowTests.Timeout*.cs; ControlStepTests.cs; SampleResistanceExecutionTests.Analysis.cs",
+        "limits": "Wall-clock deadline includes pause. Child token propagation, nested expiry identity/root abort, real child drain before independent cleanup; live or failed stops retain ownership. Native/PPMS alias strict bounds/one child/default60s/zero immediate expiration; field fixture archive/CSV/fresh execution and vdP summary replay. No forceful noncooperative IO interrupt, generic timeout recovery, parallel/background/script/subtree/UI/physical acceptance. See workflow-control.md."
+      }
     },
     {
       "id": "delay",
@@ -1522,5 +1532,13 @@
     "implementation": "Session-owned shared Core observer; typed DeviceStatus and fresh observations/notifications; final software goal/requested rate separate from hardware values; shared stable time and explicit pause/stop/fault reset",
     "tests": "tests/InstrumentControlWorkbench.Core.Tests/TemperatureRuntimeTests.cs; tests/InstrumentControlWorkbench.Application.Tests/TemperatureControlExecutionTests.Runtime.cs",
     "limits": "Observation-driven, no independent polling or background ramp; no continuous-sampling guarantee, persistence, firmware status/physical or native UI parity."
+  },
+  "workflowTimeout": {
+    "status": "partial",
+    "reference": "nested_experiment_service/node_execution/handlers/timeout.rs at Rust35763295; schema timeout/with_timeout",
+    "semantics": "wall-clock child timeout including pause, scoped cancellation and typed fault; explicit abort remains abort",
+    "nativeKind": "timeout",
+    "fixture": "examples/plans/ppms-timeout-import.json",
+    "limits": "Wall-clock deadline includes pause. Child token propagation, nested expiry identity/root abort, real child drain before independent cleanup; live or failed stops retain ownership. Native/PPMS alias strict bounds/one child/default60s/zero immediate expiration; field fixture archive/CSV/fresh execution and vdP summary replay. No forceful noncooperative IO interrupt, generic timeout recovery, parallel/background/script/subtree/UI/physical acceptance. See workflow-control.md."
   }
 }

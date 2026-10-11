@@ -202,6 +202,7 @@ internal static class ExperimentPlanCompiler
             ResultDecoratorStep => true,
             FallbackStep fallback => fallback.Children.All(CanReportWorkflowFailure),
             RetryStep retry => CanReportWorkflowFailure(retry.Body),
+            TimeoutStep timeout => CanReportWorkflowFailure(timeout.Body),
             SequenceStep sequence => sequence.Children.Any(CanReportWorkflowFailure),
             RepeatStep repeat => CanReportWorkflowFailure(repeat.Body),
             ScanStep scan => CanReportWorkflowFailure(scan.Body),
@@ -415,6 +416,8 @@ internal static class ExperimentPlanCompiler
                     { known.Clear(); foreach (var item in decorated) BindVariable(item.Key, item.Value, known); }
                     else RetainCommonVariables(known, [beforeDecoration, decorated]);
                     return checked(1 + decoratedCost);
+                case TimeoutStep timeout:
+                    return checked(1 + Visit(timeout.Body, known, axes, depth + 1));
                 case SequenceStep sequence:
                     return checked(1 + sequence.Children.Sum(child => Visit(child, known, axes, depth + 1)));
                 case RepeatStep repeat:

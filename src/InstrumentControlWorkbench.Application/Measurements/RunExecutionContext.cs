@@ -33,7 +33,10 @@ internal sealed class RunExecutionContext : IDisposable
     public RunId Id { get; } = RunId.New();
     public DateTimeOffset StartedAt { get; } = DateTimeOffset.UtcNow;
     public Stopwatch Elapsed { get; } = Stopwatch.StartNew();
-    public CancellationToken Token => cancellation.Token;
+    // Sequential executor scopes cancellation without cancelling the run's
+    // root token: a node deadline is a fault, whereas operator abort is abort.
+    public CancellationToken? ScopedToken { get; set; }
+    public CancellationToken Token => ScopedToken ?? cancellation.Token;
     public volatile RunExecutionPhase Phase = RunExecutionPhase.Starting;
     public DeviceRunResources? Resources { get; set; }
     public InstrumentId? NotificationInstrument { get; init; }

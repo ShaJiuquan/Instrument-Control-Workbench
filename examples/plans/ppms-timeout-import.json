@@ -1,0 +1,21 @@
+{
+  "experiment_id": "PPMS wall-clock timeout and field observations",
+  "type": "sequence",
+  "children": [
+    {
+      "type": "timeout", "source_line": 1, "params": { "timeout_s": 5 },
+      "children": [
+        {
+          "type": "sequence", "children": [
+            { "type": "measurement", "name": "measure_field", "params": {} },
+            { "type": "delay", "params": { "delay_s": 0.001 }, "children": [] },
+            { "type": "with_timeout", "source_line": 4, "params": { "timeout_s": 2 }, "children": [
+              { "type": "measurement", "name": "measure_field", "params": {} }
+            ] }
+          ]
+        }
+      ]
+    },
+    { "type": "measurement", "name": "measure_field", "params": {} }
+  ]
+}

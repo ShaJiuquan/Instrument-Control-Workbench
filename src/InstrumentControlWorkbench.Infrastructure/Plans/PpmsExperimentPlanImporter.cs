@@ -78,6 +78,10 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
                     var retryChildren = Children(node, path, c, depth);
                     if (retryChildren.Count != 1) throw new FormatException("retry requires exactly one child.");
                     return new RetryStep(id, Integer(p, "max_attempts", 3), TimeSpan.FromMilliseconds(delay), retryChildren[0]);
+                case "timeout":
+                    Fields(p, "timeout_s"); var timeoutChildren = Children(node, path, c, depth);
+                    if (timeoutChildren.Count != 1) throw new FormatException("timeout requires exactly one child.");
+                    return new TimeoutStep(id, Duration(p, "timeout_s", 60), timeoutChildren[0]);
                 case "force_success":
                 case "force_failure":
                 case "inverter":
@@ -123,6 +127,7 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
         "sleep" => "wait",
         "wait_before" => "delay",
         "loop" or "repeat_n" => "repeat",
+        "with_timeout" => "timeout",
         "scan_temp" => "scan_temperature",
         "time_s" => "scan_time",
         "field" => "scan_field",

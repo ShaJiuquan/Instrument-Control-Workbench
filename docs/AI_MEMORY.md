@@ -931,3 +931,21 @@ evidence; no 0..100 percent assumption or simulated physical parity. No new
 packages, Rust edits or original29 UI edits. Mandatory hook plus exact committed
 source audit precede GitHub publication. Full goal active; independent C# engine,
 GitHub only.
+
+
+## Wall-clock workflow timeout (2026-10-11)
+
+Independent C# engine adds typed TimeoutStep with nested scoped cancellation,
+wall-clock expiry (including pause), typed fault identity and root abort distinction.
+Child is awaited to settlement before final cleanup: no detached live IO, overlapping
+stop or early release. Noncooperative ports keep the run/group until drain; expiry
+initiates cancellation and is not a forceful hardware interrupt. Failed final stop
+retains the group for explicit recovery. Existing logical controls cannot swallow
+errors, and all preflight/document/raw/derived-data visitors include timeout bodies.
+Native v1 timeoutSeconds/body and PPMS timeout/with_timeout timeout_s default60s
+require one child, strict finite bounded duration, zero immediate expiry. Native,
+import, fixture/archive/CSV/fresh execution and vdP evidence tests cover the slice.
+See workflow-control.md. No new packages, Rust or original29 UI edits. Mandatory
+hook and exact committed-source audit precede GitHub publication. Parallel/subtree/
+script/background/full UI and hardware remain pending. Full goal active; GitHub
+only, own engine inspired by OpenTAP.

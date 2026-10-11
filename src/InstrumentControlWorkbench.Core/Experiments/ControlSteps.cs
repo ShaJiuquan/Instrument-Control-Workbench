@@ -6,6 +6,29 @@ namespace InstrumentControlWorkbench.Core.Experiments;
 public enum StepOutcome { Success, Failure }
 public enum ResultEffect { ForceSuccess, ForceFailure, Invert }
 
+public sealed record TimeoutStep : ExperimentStep
+{
+    public TimeoutStep(StepId id, TimeSpan timeout, ExperimentStep body) : base(id)
+    {
+        ExperimentDurations.Validate(timeout); ArgumentNullException.ThrowIfNull(body);
+        Timeout = timeout; Body = body;
+    }
+    public TimeSpan Timeout { get; }
+    public ExperimentStep Body { get; }
+}
+
+public sealed class PlanStepTimeoutException : TimeoutException
+{
+    public PlanStepTimeoutException(StepId step, TimeSpan timeout, Exception? innerException = null)
+        : base($"Plan step {step} exceeded its {timeout.TotalSeconds} s wall-clock timeout.", innerException)
+    {
+        ArgumentNullException.ThrowIfNull(step); ExperimentDurations.Validate(timeout);
+        Step = step; Timeout = timeout;
+    }
+    public StepId Step { get; }
+    public TimeSpan Timeout { get; }
+}
+
 public sealed record ConditionStep : ExperimentStep
 {
     public ConditionStep(StepId id, ValueCondition condition) : base(id)

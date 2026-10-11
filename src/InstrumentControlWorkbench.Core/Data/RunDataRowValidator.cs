@@ -63,6 +63,7 @@ public sealed class RunDataRowValidator
                     foreach (var member in group.Members) pending.Push((member.Body, item.Depth + 1)); break;
                 case FallbackStep fallback: foreach (var child in fallback.Children) pending.Push((child, item.Depth + 1)); break;
                 case RetryStep retry: pending.Push((retry.Body, item.Depth + 1)); break;
+                case TimeoutStep timeout: pending.Push((timeout.Body, item.Depth + 1)); break;
                 case ResultDecoratorStep decorator: pending.Push((decorator.Body, item.Depth + 1)); break;
                 case SequenceStep sequence: foreach (var child in sequence.Children) pending.Push((child, item.Depth + 1)); break;
                 case ScanStep scan: pending.Push((scan.Body, item.Depth + 1)); break;

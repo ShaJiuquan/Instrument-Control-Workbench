@@ -115,6 +115,7 @@ public sealed partial class ControlFlowTests
     [InlineData("inverter")]
     [InlineData("fallback")]
     [InlineData("retry")]
+    [InlineData("timeout")]
     public async Task NativeTcpAcquisitionErrorIsNotSwallowedOrRetriedByWorkflowControl(string kind)
     {
         await using var peer = new Keithley2450ScpiPeer(); var measurements = 0;
@@ -136,6 +137,7 @@ public sealed partial class ControlFlowTests
     {
         "fallback" => new FallbackStep(new("wrapper"), [body, alternative]),
         "retry" => new RetryStep(new("wrapper"), 3, TimeSpan.Zero, body),
+        "timeout" => new TimeoutStep(new("wrapper"), TimeSpan.FromSeconds(20), body),
         _ => new ResultDecoratorStep(new("wrapper"), kind == "force_success" ? ResultEffect.ForceSuccess : kind == "force_failure" ? ResultEffect.ForceFailure : ResultEffect.Invert, body),
     };
     private static async Task Until(NotificationSubscription events, WorkbenchNotificationKind kind, StepId? step = null)

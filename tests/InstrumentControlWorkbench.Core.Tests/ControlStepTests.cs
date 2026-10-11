@@ -5,6 +5,27 @@ namespace InstrumentControlWorkbench.Core.Tests;
 
 public sealed class ControlStepTests
 {
+    [Theory]
+    [InlineData(-0.001)]
+    [InlineData(4294967.295)]
+    public void TimeoutRejectsUnsupportedTimerDuration(double seconds)
+        => Assert.Throws<ArgumentOutOfRangeException>(() => new TimeoutStep(new("timeout"), TimeSpan.FromSeconds(seconds), Body()));
+    [Theory]
+    [InlineData(0)]
+    [InlineData(4294967.294)]
+    public void TimeoutPreservesZeroAndMaximumSupportedDuration(double seconds)
+    {
+        var duration = TimeSpan.FromSeconds(seconds); var body = Body();
+        var step = new TimeoutStep(new("timeout"), duration, body);
+        Assert.Equal(duration, step.Timeout); Assert.Same(body, step.Body);
+    }
+    [Fact]
+    public void TimeoutRejectsNullBodyAndReportsTypedIdentityAndOriginalCancellation()
+    {
+        Assert.Throws<ArgumentNullException>(() => new TimeoutStep(new("timeout"), TimeSpan.Zero, null!));
+        var cause = new OperationCanceledException(); var error = new PlanStepTimeoutException(new("timeout"), TimeSpan.FromSeconds(1), cause);
+        Assert.Equal(new StepId("timeout"), error.Step); Assert.Equal(TimeSpan.FromSeconds(1), error.Timeout); Assert.Same(cause, error.InnerException);
+    }
     private static ExperimentStep Body() => new DelayStep(new("body"), TimeSpan.Zero);
     [Theory]
     [InlineData(0)]

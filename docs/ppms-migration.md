@@ -582,3 +582,15 @@ names were traced in the Rust sample namespace, but their units, bounds and
 control-mode/stop contract remain unverified. These writes remain pending;
 existing mock values do not prove physical behavior. Independent C# execution
 and GitHub stage publication remain the accepted decisions.
+
+### Wall-clock timeout workflow
+
+Native TimeoutStep and PPMS timeout/with_timeout wrap one validated child.
+Expiry propagates cancellation through the child and faults with typed step/deadline
+identity; operator abort stays Aborted. Pause counts toward the deadline. Live child
+calls are drained before cleanup/release, and failed cleanup retains the group.
+Strict native/import codecs, all resource/data/document visitors, executable nested
+field fixture, partial archives/CSV and vdP summary replay are covered. No hard
+real-time or noncooperative force-interrupt claim; adapters must honor cancellation
+for prompt stop. See workflow-control.md. Remaining parallel/subtree/script/
+background/editor/physical scope is unchanged. No new package or Rust/UI edits.

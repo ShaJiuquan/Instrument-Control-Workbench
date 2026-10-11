@@ -60,6 +60,8 @@ public sealed partial class JsonExperimentPlanDocument
                 o["children"] = branches; break;
             case RetryStep s:
                 o["kind"] = "retry"; o["maxAttempts"] = s.MaxAttempts; o["delaySeconds"] = s.Delay.TotalSeconds; o["body"] = EncodeStep(s.Body, depth + 1, ref count); break;
+            case TimeoutStep s:
+                o["kind"] = "timeout"; o["timeoutSeconds"] = s.Timeout.TotalSeconds; o["body"] = EncodeStep(s.Body, depth + 1, ref count); break;
             case ResultDecoratorStep s:
                 o["kind"] = "result_decorator"; o["effect"] = s.Effect.ToString(); o["body"] = EncodeStep(s.Body, depth + 1, ref count); break;
             case RepeatStep s:
@@ -199,6 +201,9 @@ public sealed partial class JsonExperimentPlanDocument
             case "retry":
                 Object(o, "id", "kind", "maxAttempts", "delaySeconds", "body");
                 return new RetryStep(id, Integer(o, "maxAttempts"), Duration(o, "delaySeconds"), DecodeStep(Required(o, "body"), depth + 1, ref count));
+            case "timeout":
+                Object(o, "id", "kind", "timeoutSeconds", "body");
+                return new TimeoutStep(id, Duration(o, "timeoutSeconds"), DecodeStep(Required(o, "body"), depth + 1, ref count));
             case "result_decorator":
                 Object(o, "id", "kind", "effect", "body");
                 return new ResultDecoratorStep(id, NamedEnum<ResultEffect>(o, "effect"), DecodeStep(Required(o, "body"), depth + 1, ref count));

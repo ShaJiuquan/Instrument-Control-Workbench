@@ -123,6 +123,7 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanDocument
                 case SampleAnalysisStep sample: foreach (var reading in sample.Readings) pending.Push((reading, entry.Depth + 1)); break;
                 case FallbackStep fallback: foreach (var child in fallback.Children) pending.Push((child, entry.Depth + 1)); break;
                 case RetryStep retry: pending.Push((retry.Body, entry.Depth + 1)); break;
+                case TimeoutStep timeout: pending.Push((timeout.Body, entry.Depth + 1)); break;
                 case ResultDecoratorStep decorator: pending.Push((decorator.Body, entry.Depth + 1)); break;
                 case SequenceStep sequence:
                     foreach (var child in sequence.Children) pending.Push((child, entry.Depth + 1)); break;

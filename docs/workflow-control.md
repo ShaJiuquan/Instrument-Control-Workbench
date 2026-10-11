@@ -43,7 +43,7 @@ fallback/retry/decorators (with different cancellation protections). C# delibera
 makes recoverability an explicit domain decision. This stage imports PPMS control
 shapes for logical results; it does not promise broad Rust exception-swallowing
 parity. Existing acquisition-specific retry/invalid-point policies keep their
-own fresh state/cleanup proof. Generic recovery of driver exceptions, timeouts,
+own fresh state/cleanup proof. Generic recovery of driver exceptions and timed-out operations,
 parallel cancellation and background/subtree/script-expression behavior remains
 separate unfinished work.
 
@@ -100,3 +100,50 @@ budgets, strict native/import codecs, actual PPMS fixture and native grouped
 quality save/reopen/archive/CSV/re-execution. No new dependency, Rust write,
 physical laboratory IO or App draft change. This is an active migration slice;
 full PPMS, native editor/operator acceptance and hardware remain incomplete.
+
+
+## Wall-clock timeout scopes
+
+`TimeoutStep` owns one executable child and a typed TimeSpan deadline. Native v1
+stores `kind: timeout`, `timeoutSeconds` and `body`. PPMS `timeout` and schema alias
+`with_timeout` import `timeout_s` (default 60 s) and require exactly one child.
+Nonfinite, negative, unknown, null and wrong-type fields reject before IO. Zero
+means immediate expiration before child execution, not an unlimited wait. The
+upper bound is the existing .NET timer range (4,294,967.294 seconds).
+
+The reference Rust handler uses `tokio::time::timeout`; its deadline includes
+operator pause. C# likewise counts wall-clock time, including child dwell and
+paused waits. Scope entry creates a deadline linked to the parent token, and all
+existing child locks, port calls, waits and ordinary listeners receive that token.
+Nested scopes preserve their parent cancellation. Completion restores the parent
+token and disposes the timer, so later steps cannot inherit an expired deadline.
+
+Expiry is `PlanStepTimeoutException` with the timeout step ID, deadline and original
+cancellation. It faults the run and prevents fallback/retry/forced-result controls
+from hiding it. Explicit operator abort remains Aborted; genuine driver/listener
+errors remain their original errors. A child's ordinary Failure still propagates
+with its original workflow step identity. Timed-out nodes do not publish a success
+completion notification. Acquisition rows already committed remain partial data.
+
+The engine awaits the actual child until it settles; it never abandons a task or
+releases claims while an instrument call remains live. Deadline expiry initiates
+cancellation; prompt stop therefore requires the adapter to honor cancellation.
+An adapter that ignores it retains the active run and its whole resource group
+until the call returns. This is not a hard real-time deadline or forceful hardware
+interrupt. After drain, the normal independent bounded stop runs; failed or live
+stops retain the group for explicit recovery. Pause expiry cannot restore output.
+
+Compilation and all data/document validators descend into timeout children. A
+short or zero deadline cannot hide unsupported devices, invalid variables, depth,
+node/value limits or the worst-case execution budget. Variables produced by a
+completed scope can flow downstream; a forced-success wrapper around an early
+logical failure cannot guarantee variables defined after that failure.
+
+The executable [PPMS timeout fixture](../examples/plans/ppms-timeout-import.json)
+collects three simulated field observations through nested deadlines. Acceptance
+covers native save/load, fresh archive/CSV/re-execution, partial faulted archives,
+vdP raw/derived sample evidence under a deadline, nested cancellation, pause,
+operator abort, refused cleanup and noncooperative live-call retention. No new
+package, physical IO, Rust edit or original UI draft change. Parallel/subtree/
+background/script-expression controls, native flow editor and hardware acceptance
+remain pending; full PPMS migration remains active.

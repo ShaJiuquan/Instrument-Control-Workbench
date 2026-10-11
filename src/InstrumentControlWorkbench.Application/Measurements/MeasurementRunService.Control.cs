@@ -6,6 +6,32 @@ namespace InstrumentControlWorkbench.Application.Measurements;
 
 public sealed partial class MeasurementRunService
 {
+    private async Task<StepOutcome> ExecuteTimeoutAsync(TimeoutStep step, RunExecutionContext run, IReadOnlyList<IRunResultListener> listeners, bool ivPlot)
+    {
+        var parentToken = run.Token;
+        var previousScope = run.ScopedToken;
+        using var deadline = new CancellationTokenSource();
+        using var scope = CancellationTokenSource.CreateLinkedTokenSource(parentToken, deadline.Token);
+        if (step.Timeout == TimeSpan.Zero) deadline.Cancel();
+        else deadline.CancelAfter(step.Timeout);
+        run.ScopedToken = scope.Token;
+        try
+        {
+            // Await the real child to completion. Dropping a timed-out task
+            // would let cleanup/release overlap live instrument IO.
+            var outcome = await ExecuteStepAsync(step.Body, run, listeners, ivPlot);
+            parentToken.ThrowIfCancellationRequested();
+            if (deadline.IsCancellationRequested) throw new PlanStepTimeoutException(step.Id, step.Timeout);
+            return outcome;
+        }
+        catch (OperationCanceledException error) when (deadline.IsCancellationRequested && !parentToken.IsCancellationRequested)
+        {
+            parentToken.ThrowIfCancellationRequested();
+            throw new PlanStepTimeoutException(step.Id, step.Timeout, error);
+        }
+        finally { run.ScopedToken = previousScope; }
+    }
+
     private async Task<StepOutcome> ExecuteFallbackAsync(FallbackStep step, RunExecutionContext run, IReadOnlyList<IRunResultListener> listeners, bool ivPlot)
     {
         var axes = new Dictionary<ParameterId, Quantity>(run.Axes);

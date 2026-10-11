@@ -18,6 +18,7 @@ public sealed partial class ControlFlowTests
     [InlineData("inverter")]
     [InlineData("fallback")]
     [InlineData("retry")]
+    [InlineData("timeout")]
     public async Task CancellationPropagatesThroughEveryControlNodeBeforeAnotherBranchOrAttempt(string kind)
     {
         var b = new Bench(); using var events = b.Hub.Subscribe(); using var cancellation = new CancellationTokenSource();
