@@ -1151,3 +1151,22 @@ no index/cache/full-run decimation or native chart integration claimed. Mac
 currently locked prevents native desktop inspection;29 original UI drafts
 untouched/excluded. No new dependencies, Rust changes or lab IO. Independent
 C# engine; GitHub only; full goal remains active.
+
+
+## Paged desktop history state (2026-10-11)
+
+New App PagedRunHistoryViewModel consumes real Application history browse/
+metadata/XY APIs, retaining one50-summary catalog and one500-record plot page.
+Schema-driven default/selected axes; original units/indices/gaps and whole-row
+quality exposed. Keyset replacement/filter reset, invariant1-based jump, pinned
+next/jump, explicit fresh reload; corruption retains trusted data and disables
+continuation. Single tracked cancellable read; selection/axes/search/jump
+changes supersede revision; late metadata/pages discarded and busy/drain kept
+through noncooperative IO. Concurrent disposals await same task and release
+pages without disposing shared history.21 new App cases use fresh real file
+archives,505/51-record boundaries, adverse controlled read handles, archive
+replacement/scientific corruption and unfinalized tails. Native wiring/chart
+rendering/series partitioning and visual acceptance remain pending because
+current CUA verified locked Mac; async unlock request pending. Existing29 UI
+drafts untouched/excluded. No dependency/Rust/lab changes; full goal active,
+independent C# engine, GitHub only. See history-desktop.md.

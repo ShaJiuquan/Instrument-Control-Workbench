@@ -728,3 +728,16 @@ Seven new cases plus two extended local TCP quality cases pass targeted checks.
 See history-plots.md. This is a backend use case: full-run decimation, index,
 cache, native history chart wiring and visual acceptance remain pending.
 Current desktop inspection is blocked by Mac lock; original29 UI drafts kept.
+
+
+### Desktop paged-history command/lifetime model
+
+App PagedRunHistoryViewModel now consumes the bounded archive/XY APIs: one
+keyset catalog page, selected schema axes, one plot page, source-row jump,
+pinned continuation and explicit reload. Command/cancellation/revision guards
+prevent overlapping reads and stale selection/input overwrite; disposing waits
+for noncooperative reads while leaving shared history alive.21 new real archive
+and controlled-lifetime App cases verify behavior. Desktop draft replacement,
+chart/series rendering and native minimum-window visual acceptance remain
+pending; current Mac lock is verified. Original29 drafts remain unchanged.
+See history-desktop.md; full PPMS migration remains active.

@@ -1635,5 +1635,12 @@
     ],
     "verifiedScope": "Typed bounded selected-axis page projection; original row order/index/time, nullable gaps, row kind and whole-row quality; archive integrity/version/byte budget inherited.",
     "remaining": "Full scans per page; no index/cache/full-run decimation/series partitioning/native history chart integration or visual acceptance."
+  },
+  "pagedDesktopHistory": {
+    "status": "partial",
+    "implementation": "src/InstrumentControlWorkbench.App/ViewModels/PagedRunHistoryViewModel.cs",
+    "tests": "tests/InstrumentControlWorkbench.App.Tests/PagedHistoryTests.cs",
+    "scope": "Bounded catalog/page state, schema axes, typed XY/gaps/quality, one-based jump and pinned continuation, explicit reload, single tracked read, stale result/cancel/disposal guard; shared service ownership preserved.",
+    "remaining": "Native history draft wiring, chart/series rendering and visual acceptance; full-scan index/cache/overview and other PPMS scope. Original29 drafts excluded."
   }
 }
