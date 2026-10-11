@@ -56,6 +56,8 @@ public sealed class SampleAnalysisRowValidator
                 case MeasurementGroupStep point: foreach (var member in point.Members) pending.Push((member.Body, item.Depth + 1)); break;
                 case FallbackStep fallback: foreach (var child in fallback.Children) pending.Push((child, item.Depth + 1)); break;
                 case RetryStep retry: pending.Push((retry.Body, item.Depth + 1)); break;
+                case WhileStep loop: pending.Push((loop.Body, item.Depth + 1)); break;
+                case OutcomeMutationStep hook: pending.Push((hook.Body, item.Depth + 1)); break;
                 case TimeoutStep timeout: pending.Push((timeout.Body, item.Depth + 1)); break;
                 case SubtreeStep subtree: foreach (var child in subtree.Children) pending.Push((child, item.Depth + 1)); break;
                 case BranchOnOutcomeStep branch:

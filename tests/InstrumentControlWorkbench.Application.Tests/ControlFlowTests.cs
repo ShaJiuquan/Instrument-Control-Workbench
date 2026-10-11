@@ -119,6 +119,8 @@ public sealed partial class ControlFlowTests
     [InlineData("subtree")]
     [InlineData("branch_outcome")]
     [InlineData("numeric_branch")]
+    [InlineData("while")]
+    [InlineData("outcome_mutation")]
     public async Task NativeTcpAcquisitionErrorIsNotSwallowedOrRetriedByWorkflowControl(string kind)
     {
         await using var peer = new Keithley2450ScpiPeer(); var measurements = 0;
@@ -127,12 +129,13 @@ public sealed partial class ControlFlowTests
             if (!command.StartsWith(":MEAS?", StringComparison.Ordinal)) return null;
             Interlocked.Increment(ref measurements); return Task.FromResult<byte[]?>(LoopbackScpiServer.Reply("NaN,0,0"));
         };
-        var source = new TcpKeithley2450SourceMeter(new("k2450"), "Local protocol source", peer.Server.Configuration()); var b = new Bench(source: source);
+        var source = new TcpKeithley2450SourceMeter(new("k2450"), "Local protocol source", peer.Server.Configuration()); var b = new Bench(source: source); using var events = b.Hub.Subscribe();
         var read = b.ReadSource("bad_read"); var controlled = Wrap(kind, read, b.ReadField("alternative"));
         var failure = await Record.ExceptionAsync(() => b.Runs.StartPlanAsync(b.Powered(controlled), Token));
         Assert.IsType<IOException>(failure);
         Assert.Equal(1, measurements); Assert.Empty(b.Runs.LatestDataSet!.Rows); Assert.Equal(MeasurementRunState.Faulted, b.Runs.LatestDataSet.State);
         Assert.False(peer.Output); Assert.False(b.Runs.HasActiveRun); Assert.False(b.Leases.IsLeased(source.Id, DateTimeOffset.UtcNow));
+        while (events.Reader.TryRead(out var fact)) Assert.False(fact.Kind == WorkbenchNotificationKind.StepStarted && fact.Step is { } step && (step.Value == "success_hook" || step.Value == "failure_hook"));
         await source.DisconnectAsync(Token);
     }
 
@@ -145,6 +148,8 @@ public sealed partial class ControlFlowTests
         "branch_outcome" => new BranchOnOutcomeStep(new("wrapper"), body, new DelayStep(new("then_unused"), TimeSpan.Zero), alternative),
         "numeric_branch" => new SequenceStep(new("wrapper"), [Local("predicate_seed", "wrapper.value", Number(0.5e-9)),
             new IfElseStep(new("numeric_branch"), new(new("wrapper.value"), ComparisonOperator.Equal, new ConstantValue(Number(0)), Number(1e-9)), body, alternative)]),
+        "while" => new SequenceStep(new("wrapper"), [Local("loop_seed", "wrapper.count", Number(0)), new WhileStep(new("loop"), Below("wrapper.count", 1), body)]),
+        "outcome_mutation" => new OutcomeMutationStep(new("wrapper"), body, Mutate("success_hook", "hook.value", VariableMutation.Set, 1), Mutate("failure_hook", "hook.value", VariableMutation.Set, 2)),
         _ => new ResultDecoratorStep(new("wrapper"), kind == "force_success" ? ResultEffect.ForceSuccess : kind == "force_failure" ? ResultEffect.ForceFailure : ResultEffect.Invert, body),
     };
     private static async Task Until(NotificationSubscription events, WorkbenchNotificationKind kind, StepId? step = null)

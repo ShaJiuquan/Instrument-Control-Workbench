@@ -49,6 +49,8 @@ public sealed partial class ControlFlowTests
     [InlineData("plain")]
     [InlineData("subtree")]
     [InlineData("branch_outcome")]
+    [InlineData("while")]
+    [InlineData("outcome_mutation")]
     public async Task NativeControlsSaveArchiveReopenAndReexecuteGroupedQualityWithNestedScopeColumns(string scope)
     {
         var folder = Path.Combine(Path.GetTempPath(), $"control-archive-{Guid.NewGuid():N}");
@@ -63,7 +65,13 @@ public sealed partial class ControlFlowTests
                     new ConditionStep(new("ready"), new(new("retry.attempt"), ComparisonOperator.Equal, new ConstantValue(new(2, PhysicalUnit.Dimensionless))))]));
                 var fallback = new FallbackStep(new("choose"), [new ResultDecoratorStep(new("first"), ResultEffect.ForceFailure, b.ReadSource("rejected")), retry]);
                 var plan = b.Powered(new SequenceStep(new("flow"), [fallback, b.ReadField("after")]));
-                if (scope != "plain") plan = new(plan.Name, scope == "subtree" ? new SubtreeStep(new("scoped.plan"), [plan.Root]) : new BranchOnOutcomeStep(new("conditional.plan"), new DelayStep(new("condition"), TimeSpan.Zero), plan.Root), plan.Preparations, plan.Metadata, plan.Routing);
+                if (scope != "plain") plan = new(plan.Name, scope switch
+                {
+                    "subtree" => new SubtreeStep(new("scoped.plan"), [plan.Root]),
+                    "outcome_mutation" => new OutcomeMutationStep(new("hooked.plan"), plan.Root, Mutate("done", "count", VariableMutation.Set, 1)),
+                    "while" => new SequenceStep(new("looped.plan"), [Local("count_seed", "count", Number(0)), new WhileStep(new("loop"), Below("count", 1), new SequenceStep(new("loop_body"), [plan.Root, Mutate("advance", "count", VariableMutation.Add, 1)]))]),
+                    _ => new BranchOnOutcomeStep(new("conditional.plan"), new DelayStep(new("condition"), TimeSpan.Zero), plan.Root),
+                }, plan.Preparations, plan.Metadata, plan.Routing);
                 var document = b.Workspace.Inspect(plan); var file = Path.Combine(folder, "saved.plan.json"); await b.Workspace.SaveAsync(file, document.Text, Token);
                 await b.Runs.StartPlanAsync((await b.Workspace.LoadAsync(file, Token)).Plan, Token);
                 var data = b.Runs.LatestDataSet!; id = data.Id; Assert.Equal(8, data.Rows.Count); Assert.All(data.Rows, data.Schema.ValidateRow);

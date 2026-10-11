@@ -14,6 +14,7 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
         ArgumentNullException.ThrowIfNull(text); ArgumentNullException.ThrowIfNull(bindings);
         if (Encoding.UTF8.GetByteCount(text) > JsonExperimentPlanDocument.MaximumBytes) throw new FormatException("PPMS document exceeds 4 MiB.");
         var root = JsonNode.Parse(text, documentOptions: new JsonDocumentOptions { MaxDepth = 512 }) as JsonObject ?? throw new FormatException("PPMS root must be an object.");
+        ValidateTree(root);
         var context = new ImportContext(bindings);
         var step = Decode(root, "ppms.root", context, 0);
         var plan = new ExperimentPlan(Text(root, "experiment_id", Text(root, "label", "Imported PPMS experiment")), step,
@@ -37,6 +38,29 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
         token.ThrowIfCancellationRequested(); var text = new UTF8Encoding(false, true).GetString(bytes.ToArray());
         return Parse(text.StartsWith('\uFEFF') ? text[1..] : text, bindings);
     }
+    private static void ValidateTree(JsonObject root)
+    {
+        var pending = new Stack<(JsonObject Node, string Path, int Depth, int GeneratedDepth)>();
+        pending.Push((root, "ppms.root", 0, 0));
+        var nodes = 0;
+        while (pending.TryPop(out var entry))
+        {
+            if (entry.Depth > 128 || ++nodes > 10_000)
+                throw new FormatException($"PPMS node {entry.Path}: tree exceeds depth/node limits.");
+            try
+            {
+                var wrappers = (entry.Node.ContainsKey("_onSuccess") || entry.Node.ContainsKey("_onFailure") ? 1 : 0)
+                    + (entry.Node.ContainsKey("_skipIf") ? 1 : 0) + (entry.Node.ContainsKey("_failureIf") ? 1 : 0);
+                if (entry.GeneratedDepth + wrappers > 128)
+                    throw new FormatException($"PPMS node {entry.Path}: generated tree exceeds depth limits.");
+                if (entry.Node["children"] is not JsonArray children) continue;
+                for (var index = children.Count - 1; index >= 0; index--)
+                    pending.Push((Object(children[index]), entry.Path + "." + index, entry.Depth + 1, entry.GeneratedDepth + wrappers + 1));
+            }
+            catch (ArgumentException error)
+            { throw new FormatException($"PPMS node {entry.Path}: {error.Message}", error); }
+        }
+    }
     private sealed class ImportContext(ExperimentImportBindings bindings)
     {
         public ExperimentImportBindings Bindings { get; } = bindings;
@@ -47,10 +71,38 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
         public bool UsesChannelProfiles { get; set; }
         public Stack<(InstrumentId Device, string Channel, Core.Parameters.ParameterId Axis)> SourceScans { get; } = new();
         public Dictionary<string, ParameterId> IteratorChildren { get; } = new();
+        public Dictionary<string, PhysicalUnit> NumericVariables { get; } = new();
         public int Nodes { get; set; }
         public int Values { get; set; }
     }
     private static ExperimentStep Decode(JsonObject node, string path, ImportContext c, int depth)
+    {
+        bool hasControls;
+        try { hasControls = node.Any(p => p.Key is "_onSuccess" or "_onFailure" or "_skipIf" or "_failureIf"); }
+        catch (ArgumentException error) { throw new FormatException($"PPMS node {path}: {error.Message}", error); }
+        return hasControls ? DecodeControls(node, path, c, depth) : DecodeCore(node, path, c, depth);
+    }
+    private static ExperimentStep DecodeControls(JsonObject node, string path, ImportContext c, int depth)
+    {
+        string? diagnosticLine = null;
+        try
+        {
+            diagnosticLine = node["source_line"]?.ToString();
+            var success = node.ContainsKey("_onSuccess") ? DecodeMutation(Object(node["_onSuccess"]), path + ".onSuccess", c) : null;
+            var failure = node.ContainsKey("_onFailure") ? DecodeMutation(Object(node["_onFailure"]), path + ".onFailure", c) : null;
+            var stripped = (JsonObject)node.DeepClone();
+            foreach (var key in new[] { "_onSuccess", "_onFailure", "_skipIf", "_failureIf" }) stripped.Remove(key);
+            ExperimentStep body = DecodeCore(stripped, path, c, depth);
+            if (success is not null || failure is not null) body = new OutcomeMutationStep(new(path + ".hooks"), body, success, failure);
+            if (node.ContainsKey("_skipIf")) body = new IfElseStep(new(path + ".skipIf"), BlackboardCondition(Object(node["_skipIf"]), c, "eq"), new DelayStep(new(path + ".skipped"), TimeSpan.Zero), body);
+            if (node.ContainsKey("_failureIf")) body = new IfElseStep(new(path + ".failureIf"), BlackboardCondition(Object(node["_failureIf"]), c, "eq"),
+                new ResultDecoratorStep(new(path + ".precondition_failure"), ResultEffect.ForceFailure, new DelayStep(new(path + ".rejected"), TimeSpan.Zero)), body);
+            return body;
+        }
+        catch (Exception error) when (error is ArgumentException or FormatException or NotSupportedException or InvalidOperationException)
+        { throw new FormatException($"PPMS node {path}" + (diagnosticLine is { } line ? $" (source line {line})" : "") + $": {error.Message}", error); }
+    }
+    private static ExperimentStep DecodeCore(JsonObject node, string path, ImportContext c, int depth)
     {
         try
         {
@@ -108,6 +160,8 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
                     Fields(p, "num_cycles"); var children = Children(node, path, c, depth);
                     if (children.Count != 1) throw new FormatException("repeat requires exactly one child.");
                     return new RepeatStep(id, Integer(p, "num_cycles", 3), children[0]);
+                case "while":
+                    return new WhileStep(id, BlackboardCondition(p, c, "lt"), new SequenceStep(new(path + ".body"), Children(node, path, c, depth)));
                 case "for_each":
                     return PureIterator(p, node, path, c, depth);
                 case "delay":

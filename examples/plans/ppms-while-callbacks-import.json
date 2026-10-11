@@ -1,0 +1,17 @@
+{
+  "experiment_id": "PPMS while and ordinary outcome callbacks",
+  "type": "sequence",
+  "children": [
+    { "type": "delay", "params": { "delay_s": 0 }, "_onSuccess": { "variable": "count", "value": 0 } },
+    {
+      "type": "while", "source_line": 9, "params": { "variable": "count", "value": 3 },
+      "children": [
+        { "type": "measurement", "name": "measure_field", "_onSuccess": { "variable": "count", "action": "add", "value": 1 } }
+      ]
+    },
+    {
+      "type": "if_then_else", "params": { "variable": "count", "op": "eq", "value": 3 },
+      "children": [ { "type": "then", "children": [ { "type": "measurement", "name": "measure_field" } ] } ]
+    }
+  ]
+}

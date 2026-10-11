@@ -22,6 +22,8 @@ public sealed partial class ControlFlowTests
     [InlineData("subtree")]
     [InlineData("branch_outcome")]
     [InlineData("numeric_branch")]
+    [InlineData("while")]
+    [InlineData("outcome_mutation")]
     public async Task CancellationPropagatesThroughEveryControlNodeBeforeAnotherBranchOrAttempt(string kind)
     {
         var b = new Bench(); using var events = b.Hub.Subscribe(); using var cancellation = new CancellationTokenSource();
@@ -35,6 +37,7 @@ public sealed partial class ControlFlowTests
             Assert.False(b.Leases.IsLeased(b.Source.Id, DateTimeOffset.UtcNow));
             var remaining = new List<WorkbenchNotification>(); while (events.Reader.TryRead(out var fact)) remaining.Add(fact);
             Assert.DoesNotContain(remaining, f => f.Kind == WorkbenchNotificationKind.StepCompleted && f.Step == new StepId("wrapper"));
+            Assert.DoesNotContain(remaining, f => f.Kind == WorkbenchNotificationKind.StepStarted && f.Step is { } step && (step.Value == "success_hook" || step.Value == "failure_hook"));
         }
         finally { if (!task.IsCompleted) { b.Runs.Abort(); await task.WaitAsync(TimeSpan.FromSeconds(5)); } }
     }

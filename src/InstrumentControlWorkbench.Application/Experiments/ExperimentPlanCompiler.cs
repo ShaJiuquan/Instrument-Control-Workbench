@@ -10,8 +10,8 @@ using InstrumentControlWorkbench.Core.Routing;
 
 namespace InstrumentControlWorkbench.Application.Experiments;
 
-public sealed record ExperimentPlanPreview(DataSetSchema Schema, IReadOnlyList<InstrumentId> Devices, long MaximumStepExecutions);
-internal sealed record CompiledExperiment(ExperimentPlan Plan, DataSetSchema Schema, IReadOnlyList<InstrumentId> Devices, long MaximumStepExecutions, IReadOnlyDictionary<StepId, ResolvedSampleRoute> SampleRoutes);
+public sealed record ExperimentPlanPreview(DataSetSchema Schema, IReadOnlyList<InstrumentId> Devices, long MaximumStepExecutions, bool HasDynamicLoops = false);
+internal sealed record CompiledExperiment(ExperimentPlan Plan, DataSetSchema Schema, IReadOnlyList<InstrumentId> Devices, long MaximumStepExecutions, IReadOnlyDictionary<StepId, ResolvedSampleRoute> SampleRoutes, bool HasDynamicLoops);
 
 // Compilation reads capability metadata only. No lease or driver operation occurs
 // until every branch, scan value, unit and result dependency has been checked.
@@ -34,6 +34,7 @@ internal static class ExperimentPlanCompiler
         var currentPreparations = plan.CurrentSourcePreparations.ToDictionary(p => p.Device);
         var sampleRoutes = new Dictionary<StepId, ResolvedSampleRoute>();
         var writes = new List<(ParameterAddress Address, IReadOnlyList<Quantity>? Values)>();
+        var hasDynamicLoops = false;
         foreach (var preparation in plan.Preparations)
         {
             var device = Source(preparation.Device);
@@ -57,7 +58,7 @@ internal static class ExperimentPlanCompiler
             if (preparation.Settings.SourceDelay is { } delay) device.GetParameter(Keithley6221Parameters.SourceDelay.Id).ValidateWrite(delay);
         }
         var cost = Visit(plan.Root, variables, [], 0);
-        if (cost > 10_000_000) throw new ArgumentOutOfRangeException(nameof(plan), "Plan exceeds the 10,000,000 step execution budget.");
+        if (cost > plan.MaximumStepExecutions) throw new ArgumentOutOfRangeException(nameof(plan), "Plan exceeds its step execution budget.");
         // Check coupled ranges statically only when the counterpart is fixed.
         // Plans that change both source fields are checked against actual device
         // configuration at each write, rather than rejected using stale preparation.
@@ -142,7 +143,7 @@ internal static class ExperimentPlanCompiler
                 Keithley2450Limits.Validate(levelWrite ? baseline with { Level = value.Value } : baseline with { Compliance = value.Value });
             }
         }
-        return new(plan, new(columns.Values), Array.AsReadOnly(needed.OrderBy(id => id.Value, StringComparer.Ordinal).ToArray()), cost, new ReadOnlyDictionary<StepId, ResolvedSampleRoute>(sampleRoutes));
+        return new(plan, new(columns.Values), Array.AsReadOnly(needed.OrderBy(id => id.Value, StringComparer.Ordinal).ToArray()), hasDynamicLoops ? plan.MaximumStepExecutions : cost, new ReadOnlyDictionary<StepId, ResolvedSampleRoute>(sampleRoutes), hasDynamicLoops);
 
         DeviceDescriptor Device(InstrumentId id)
         {
@@ -206,6 +207,8 @@ internal static class ExperimentPlanCompiler
             RetryStep retry => CanReportWorkflowFailure(retry.Body),
             TimeoutStep timeout => CanReportWorkflowFailure(timeout.Body),
             SubtreeStep subtree => subtree.Children.Any(CanReportWorkflowFailure),
+            WhileStep loop => CanReportWorkflowFailure(loop.Body),
+            OutcomeMutationStep hook => CanReportWorkflowFailure(hook.Body),
             BranchOnOutcomeStep branch => CanReportWorkflowFailure(branch.Then) || branch.Else is { } otherBranch && CanReportWorkflowFailure(otherBranch),
             SequenceStep sequence => sequence.Children.Any(CanReportWorkflowFailure),
             RepeatStep repeat => CanReportWorkflowFailure(repeat.Body),
@@ -398,6 +401,24 @@ internal static class ExperimentPlanCompiler
                     return analysisCost;
                 case ConditionStep condition:
                     CheckCondition(condition.Condition, known); return 1;
+                case MutateValueStep mutation:
+                    var mutationUnit = mutation.Action == VariableMutation.Multiply ? known.GetValueOrDefault(mutation.Variable, PhysicalUnit.Dimensionless) : mutation.Value.Unit;
+                    BindVariable(mutation.Variable, mutationUnit, known); return 1;
+                case OutcomeMutationStep hook:
+                    var beforeHook = new Dictionary<ParameterId, PhysicalUnit>(known);
+                    var hookCost = Visit(hook.Body, known, axes, depth + 1);
+                    if (hook.Failure is { Action: not VariableMutation.Multiply } possibleFailure && known.TryGetValue(possibleFailure.Variable, out var possibleUnit) && possibleUnit != possibleFailure.Value.Unit)
+                        throw new ArgumentException("Failure mutation cannot change a unit possibly established by the body.");
+                    var successHookCost = hook.Success is { } successHook ? Visit(successHook, known, axes, depth + 1) : 0;
+                    var failureHookCost = hook.Failure is { } failureHook ? Visit(failureHook, beforeHook, axes, depth + 1) : 0;
+                    return checked(1 + hookCost + Math.Max(successHookCost, failureHookCost));
+                case WhileStep loop:
+                    CheckCondition(loop.Condition, known); hasDynamicLoops = true;
+                    AddColumn(loop.IterationColumn, new(loop.IterationColumn, "While iteration (1-based)", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
+                    var bodyKnown = new Dictionary<ParameterId, PhysicalUnit>(known); BindVariable(loop.IterationColumn, PhysicalUnit.Dimensionless, bodyKnown);
+                    var loopBodyCost = Visit(loop.Body, bodyKnown, [.. axes, loop.IterationColumn], depth + 1);
+                    RetainCommonVariables(known, [new Dictionary<ParameterId, PhysicalUnit>(known), bodyKnown]);
+                    return checked(1 + loopBodyCost);
                 case FallbackStep fallback:
                     AddColumn(fallback.BranchColumn, new(fallback.BranchColumn, "Fallback branch (1-based)", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
                     AddColumn(fallback.TotalColumn, new(fallback.TotalColumn, "Fallback branch total", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);

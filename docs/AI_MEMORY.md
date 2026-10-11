@@ -1020,3 +1020,28 @@ This makes an injected point a correctly unit-tagged threshold for a physical
 axis without permitting arbitrary physical unit conversion. Numeric fixture
 archive/CSV/fresh replay includes this expression, plus a field/iterator test
 selects opposite branches for negative/positive dynamic Tesla thresholds.
+
+## While and node guard/callback execution (2026-10-11)
+
+WhileStep condition reevaluates after pause/abort checks; body Failure preserves
+origin, false succeeds, errors escape. Same context, one-based iteration row axis,
+outer axis restore and zero-iteration variable preflight. MutateValueStep Set/Add/
+Subtract preserve unit, scalar Multiply preserves input unit; absent variables
+start zero and nonfinite arithmetic faults. OutcomeMutationStep executes only the
+matching ordinary outcome hook and does not transform body result. No callbacks
+for IO/listener/deadline/budget/abort faults (intentional safety difference from
+Rust broad error post-callback). PPMS while defaultlt, strict equality/symbols;
+custom callback-declared dimensionless variables, fixed physical aliases; top
+_onSuccess/_onFailure defaultset, _failureIf precedes _skipIf and early guards
+bypass callbacks. Strict syntax/availability/units before resource admission.
+Native while/mutate_value/outcome_mutation codecs and all data/content/resource
+visitors updated. Existing10m plan execution budget now enforced at step start
+and software-temp target ticks; native optional lower maximumStepExecutions,
+typed PlanExecutionBudgetException, dynamic preview HasDynamicLoops plus actual
+cap. No forceful IO cancellation or silent loop truncation. Four-row fixture,
+archive/CSV/fresh replay, grouped/vdP, compatibility/malformed/units/overflow,
+logical failure, pause/abort, TCP/timeout/no-error-callback and retained-stop
+recovery tests. Bool/Text, custom physical metadata, expressions, generic
+parallel/background, native UI/lab and full migration remain pending. GitHub
+only; independent C# engine;29 UI drafts preserved/excluded;no new dependency or
+Rust edit.

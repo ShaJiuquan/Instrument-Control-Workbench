@@ -10,16 +10,7 @@ public sealed partial class PpmsExperimentPlanImporter
     {
         Fields(p, "variable", "op", "value", "iterator_value", "index", "total");
         var variable = Text(p, "variable");
-        var op = Text(p, "op", "gt") switch
-        {
-            "gt" or ">" => ComparisonOperator.Greater,
-            "lt" or "<" => ComparisonOperator.Less,
-            "gte" or ">=" => ComparisonOperator.GreaterOrEqual,
-            "lte" or "<=" => ComparisonOperator.LessOrEqual,
-            "eq" or "==" => ComparisonOperator.Equal,
-            "neq" or "!=" => ComparisonOperator.NotEqual,
-            _ => throw new FormatException("Unsupported numeric comparison operator."),
-        };
+        var op = NumericOperator(Text(p, "op", "gt"));
         // Explicit injection fields are validated even if this variable does
         // not consume them; silently dropping malformed context hides typos.
         foreach (var name in new[] { "iterator_value", "index", "total" })
@@ -32,21 +23,12 @@ public sealed partial class PpmsExperimentPlanImporter
         {
             if (p.ContainsKey(injectedName)) left = new ConstantValue(new(Number(p, injectedName), unit));
             else if (iterator is not null) left = new VariableValue(new(injectedName == "iterator_value" ? iterator.Value : iterator.Value + "." + injectedName));
+            else if (c.NumericVariables.ContainsKey(variable)) left = new VariableValue(new("ppms.axis." + variable));
             else throw new FormatException($"Variable '{variable}' has no injected iterator context.");
         }
         else
         {
-            unit = variable switch
-            {
-                "field" => PhysicalUnit.Tesla,
-                "temperature" => PhysicalUnit.Kelvin,
-                "angle" => PhysicalUnit.Degree,
-                "voltage" or "bias" => PhysicalUnit.Volt,
-                "current" => PhysicalUnit.Ampere,
-                "scan_time" => PhysicalUnit.Second,
-                "scan_number" => PhysicalUnit.Dimensionless,
-                _ => throw new NotSupportedException($"Numeric variable '{variable}' has no migrated unit/axis contract."),
-            };
+            unit = NumericUnit(variable, c);
             left = new VariableValue(new("ppms.axis." + variable));
         }
         PlanValue right = p.ContainsKey("value") ? new ConstantValue(new(Number(p, "value"), unit))
@@ -58,6 +40,51 @@ public sealed partial class PpmsExperimentPlanImporter
             op is ComparisonOperator.Equal or ComparisonOperator.NotEqual ? new Quantity(1e-9, unit) : null);
         return new SequenceStep(new(path), [new AssignValueStep(new(path + ".condition.input"), conditionVariable, left),
             new IfElseStep(new(path + ".branch"), condition, children[0], children.Count == 2 ? children[1] : null)]);
+    }
+
+    private static ComparisonOperator NumericOperator(string op) => op switch
+    {
+        "gt" or ">" => ComparisonOperator.Greater,
+        "lt" or "<" => ComparisonOperator.Less,
+        "gte" or ">=" => ComparisonOperator.GreaterOrEqual,
+        "lte" or "<=" => ComparisonOperator.LessOrEqual,
+        "eq" or "==" => ComparisonOperator.Equal,
+        "neq" or "!=" => ComparisonOperator.NotEqual,
+        _ => throw new FormatException("Unsupported numeric comparison operator."),
+    };
+    private static PhysicalUnit NumericUnit(string variable, ImportContext c) => variable switch
+    {
+        "field" => PhysicalUnit.Tesla,
+        "temperature" => PhysicalUnit.Kelvin,
+        "angle" => PhysicalUnit.Degree,
+        "voltage" or "bias" => PhysicalUnit.Volt,
+        "current" => PhysicalUnit.Ampere,
+        "scan_time" => PhysicalUnit.Second,
+        "scan_number" => PhysicalUnit.Dimensionless,
+        _ when c.NumericVariables.TryGetValue(variable, out var unit) => unit,
+        _ => throw new NotSupportedException($"Numeric variable '{variable}' has no migrated unit/axis contract."),
+    };
+    private static ValueCondition BlackboardCondition(JsonObject p, ImportContext c, string defaultOp)
+    {
+        Fields(p, "variable", "op", "value"); var variable = Text(p, "variable"); var unit = NumericUnit(variable, c);
+        var op = NumericOperator(Text(p, "op", defaultOp));
+        return new(new("ppms.axis." + variable), op, new ConstantValue(new(Number(p, "value"), unit)),
+            op is ComparisonOperator.Equal or ComparisonOperator.NotEqual ? new Quantity(1e-9, unit) : null);
+    }
+    private static MutateValueStep DecodeMutation(JsonObject p, string path, ImportContext c)
+    {
+        Fields(p, "variable", "action", "value"); var variable = Text(p, "variable"); _ = new ParameterId(variable);
+        var action = Text(p, "action", "set") switch
+        {
+            "set" => VariableMutation.Set,
+            "add" => VariableMutation.Add,
+            "sub" => VariableMutation.Subtract,
+            "mul" => VariableMutation.Multiply,
+            _ => throw new FormatException("Unsupported variable mutation action."),
+        };
+        c.NumericVariables.TryAdd(variable, PhysicalUnit.Dimensionless); var unit = NumericUnit(variable, c);
+        c.NumericVariables[variable] = unit;
+        return new(new(path), new("ppms.axis." + variable), action, new(Number(p, "value"), action == VariableMutation.Multiply ? PhysicalUnit.Dimensionless : unit));
     }
 
     private static ExperimentStep PureIterator(JsonObject p, JsonObject node, string path, ImportContext c, int depth)

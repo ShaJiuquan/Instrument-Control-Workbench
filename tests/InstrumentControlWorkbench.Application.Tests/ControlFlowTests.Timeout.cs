@@ -35,6 +35,8 @@ public sealed partial class ControlFlowTests
     [InlineData("retry")]
     [InlineData("branch_outcome")]
     [InlineData("numeric_branch")]
+    [InlineData("while")]
+    [InlineData("outcome_mutation")]
     public async Task ExpiredScopeIsFaultNotWorkflowFailureAndControlsCannotSwallowOrRetryIt(string kind)
     {
         var b = new Bench(); using var events = b.Hub.Subscribe();
@@ -48,6 +50,7 @@ public sealed partial class ControlFlowTests
         var facts = new List<WorkbenchNotification>(); while (events.Reader.TryRead(out var fact)) facts.Add(fact);
         Assert.Single(facts, f => f.Kind == WorkbenchNotificationKind.StepStarted && f.Step == new StepId("wait"));
         Assert.DoesNotContain(facts, f => f.Kind == WorkbenchNotificationKind.StepCompleted && f.Step == timeout.Id);
+        Assert.DoesNotContain(facts, f => f.Kind == WorkbenchNotificationKind.StepStarted && f.Step is { } step && (step.Value == "success_hook" || step.Value == "failure_hook"));
     }
 
     [Fact]

@@ -75,7 +75,7 @@ public sealed partial class MeasurementRunService
     public ExperimentPlanPreview PreviewPlan(ExperimentPlan plan)
     {
         var compiled = ExperimentPlanCompiler.Compile(plan, devices);
-        return new(compiled.Schema, compiled.Devices, compiled.MaximumStepExecutions);
+        return new(compiled.Schema, compiled.Devices, compiled.MaximumStepExecutions, compiled.HasDynamicLoops);
     }
 
     public Task StartPlanAsync(ExperimentPlan plan, CancellationToken cancellationToken, RunMetadata? metadata = null)

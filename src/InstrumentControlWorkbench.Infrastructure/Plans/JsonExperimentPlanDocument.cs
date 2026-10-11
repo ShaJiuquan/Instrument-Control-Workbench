@@ -29,6 +29,7 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanDocument
             ["root"] = EncodeStep(plan.Root, 0, ref count),
         };
         if (plan.Routing is { } routing) root["routing"] = EncodeRouting(routing);
+        if (plan.MaximumStepExecutions != ExperimentPlan.MaximumSupportedStepExecutions) root["maximumStepExecutions"] = plan.MaximumStepExecutions;
         if (plan.CurrentSourcePreparations.Count != 0) root["currentSourcePreparations"] = new JsonArray(plan.CurrentSourcePreparations.Select(p =>
         {
             var item = new JsonObject { ["device"] = p.Device.Value, ["current"] = EncodeQuantity(p.Settings.Current), ["compliance"] = EncodeQuantity(p.Settings.Compliance), ["manualRange"] = p.Settings.ManualRange is { } range ? EncodeQuantity(range) : null };
@@ -45,7 +46,7 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanDocument
         ArgumentNullException.ThrowIfNull(text);
         if (Encoding.UTF8.GetByteCount(text) > MaximumBytes) throw new ArgumentOutOfRangeException(nameof(text), "Plan document exceeds 4 MiB.");
         var root = Object(JsonNode.Parse(text, documentOptions: new JsonDocumentOptions { MaxDepth = 512 }),
-            "format", "version", "name", "root", "preparations", "metadata", "routing", "currentSourcePreparations");
+            "format", "version", "name", "root", "preparations", "metadata", "routing", "currentSourcePreparations", "maximumStepExecutions");
         if (Text(root, "format") != Format) throw new FormatException("This is not an Instrument Workbench plan document.");
         if (Integer(root, "version") != ExperimentPlan.FormatVersion) throw new NotSupportedException("Unsupported plan version; the file was not changed.");
         var count = 0;
@@ -58,7 +59,7 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanDocument
             {
                 var p = Object(n, "device", "current", "compliance", "manualRange", "sourceDelay");
                 return new CurrentSourcePreparation(new(Text(p, "device")), new(DecodeQuantity(Required(p, "current")), DecodeQuantity(Required(p, "compliance")), p["manualRange"] is null ? null : DecodeQuantity(p["manualRange"]), p["sourceDelay"] is null ? null : DecodeQuantity(p["sourceDelay"])));
-            }) : null);
+            }) : null, root.ContainsKey("maximumStepExecutions") ? Integer(root, "maximumStepExecutions") : ExperimentPlan.MaximumSupportedStepExecutions);
     }
 
     public async Task<ExperimentPlan> LoadAsync(string path, CancellationToken token)
@@ -123,6 +124,11 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanDocument
                 case SampleAnalysisStep sample: foreach (var reading in sample.Readings) pending.Push((reading, entry.Depth + 1)); break;
                 case FallbackStep fallback: foreach (var child in fallback.Children) pending.Push((child, entry.Depth + 1)); break;
                 case RetryStep retry: pending.Push((retry.Body, entry.Depth + 1)); break;
+                case WhileStep loop: pending.Push((loop.Body, entry.Depth + 1)); break;
+                case OutcomeMutationStep hook:
+                    pending.Push((hook.Body, entry.Depth + 1));
+                    if (hook.Success is { } successHook) pending.Push((successHook, entry.Depth + 1));
+                    if (hook.Failure is { } failureHook) pending.Push((failureHook, entry.Depth + 1)); break;
                 case TimeoutStep timeout: pending.Push((timeout.Body, entry.Depth + 1)); break;
                 case SubtreeStep subtree: values += subtree.Inputs.Count + subtree.Outputs.Count; foreach (var child in subtree.Children) pending.Push((child, entry.Depth + 1)); break;
                 case BranchOnOutcomeStep branch:

@@ -14,7 +14,8 @@ public sealed partial class MeasurementRunService
     private async Task<StepOutcome> ExecuteStepAsync(ExperimentStep step, RunExecutionContext run, IReadOnlyList<IRunResultListener> started, bool ivPlot)
     {
         run.Token.ThrowIfCancellationRequested();
-        if (++run.ExecutedSteps % 256 == 0)
+        AdvancePlanExecution(run, step.Id);
+        if (run.ExecutedSteps % 256 == 0)
         {
             // Command-only loops also yield so the desktop can request abort/pause.
             await Task.Yield();
@@ -28,6 +29,37 @@ public sealed partial class MeasurementRunService
         {
             case ConditionStep condition:
                 outcome = EvaluateCondition(condition.Condition, run) ? StepOutcome.Success : StepOutcome.Failure; break;
+            case MutateValueStep mutation:
+                var current = run.Variables.GetValueOrDefault(mutation.Variable, new(0, mutation.Action == VariableMutation.Multiply ? PhysicalUnit.Dimensionless : mutation.Value.Unit));
+                if (mutation.Action != VariableMutation.Multiply && current.Unit != mutation.Value.Unit) throw new InvalidOperationException("Mutation units changed during execution.");
+                var mutated = mutation.Action switch
+                {
+                    VariableMutation.Set => mutation.Value.Value,
+                    VariableMutation.Add => current.Value + mutation.Value.Value,
+                    VariableMutation.Subtract => current.Value - mutation.Value.Value,
+                    VariableMutation.Multiply => current.Value * mutation.Value.Value,
+                    _ => throw new NotSupportedException("Unknown variable mutation."),
+                };
+                run.Variables[mutation.Variable] = new(mutated, current.Unit); break;
+            case OutcomeMutationStep hook:
+                outcome = await ExecuteStepAsync(hook.Body, run, started, ivPlot);
+                var action = outcome == StepOutcome.Success ? hook.Success : hook.Failure;
+                if (action is not null) _ = await ExecuteStepAsync(action, run, started, ivPlot);
+                break;
+            case WhileStep loop:
+                var beforeWhile = new Dictionary<ParameterId, Quantity>(run.Axes); long iteration = 0;
+                try
+                {
+                    while (true)
+                    {
+                        run.Token.ThrowIfCancellationRequested(); await PauseCheckpointAsync(run);
+                        if (!EvaluateCondition(loop.Condition, run)) break;
+                        run.Variables[loop.IterationColumn] = run.Axes[loop.IterationColumn] = new(++iteration, PhysicalUnit.Dimensionless);
+                        if ((outcome = await ExecuteStepAsync(loop.Body, run, started, ivPlot)) == StepOutcome.Failure) break;
+                    }
+                }
+                finally { RestoreAxes(run, beforeWhile); }
+                break;
             case FallbackStep fallback:
                 outcome = await ExecuteFallbackAsync(fallback, run, started, ivPlot); break;
             case RetryStep retry:
@@ -195,6 +227,13 @@ public sealed partial class MeasurementRunService
             return condition.Operator == ComparisonOperator.Equal ? equal : !equal;
         }
         return Compare(left.Value, right.Value, condition.Operator);
+    }
+
+    private static void AdvancePlanExecution(RunExecutionContext run, StepId step)
+    {
+        var maximum = run.DataSet!.Plan!.MaximumStepExecutions;
+        if (run.ExecutedSteps >= maximum) throw new PlanExecutionBudgetException(step, maximum);
+        run.ExecutedSteps++;
     }
 
     private async Task AcquireRowAsync(ReadStep read, RunExecutionContext run, IReadOnlyList<IRunResultListener> started)

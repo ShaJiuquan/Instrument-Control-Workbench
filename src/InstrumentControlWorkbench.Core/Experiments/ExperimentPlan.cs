@@ -228,9 +228,11 @@ public sealed record SourcePreparation
 public sealed record ExperimentPlan
 {
     public ExperimentPlan(string name, ExperimentStep root, IEnumerable<SourcePreparation>? preparations = null,
-        IReadOnlyDictionary<string, Quantity>? metadata = null, RoutingConfiguration? routing = null, IEnumerable<CurrentSourcePreparation>? currentSourcePreparations = null)
+        IReadOnlyDictionary<string, Quantity>? metadata = null, RoutingConfiguration? routing = null, IEnumerable<CurrentSourcePreparation>? currentSourcePreparations = null, long maximumStepExecutions = MaximumSupportedStepExecutions)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name); ArgumentNullException.ThrowIfNull(root);
+        if (maximumStepExecutions < 1 || maximumStepExecutions > MaximumSupportedStepExecutions) throw new ArgumentOutOfRangeException(nameof(maximumStepExecutions));
+        MaximumStepExecutions = maximumStepExecutions;
         var items = preparations?.ToArray() ?? [];
         if (items.Any(p => p is null) || items.Select(p => p.Device).Distinct().Count() != items.Length)
             throw new ArgumentException("Source preparations must have unique device IDs.", nameof(preparations));
@@ -242,6 +244,8 @@ public sealed record ExperimentPlan
         Metadata = new ReadOnlyDictionary<string, Quantity>(new Dictionary<string, Quantity>(metadata ?? new Dictionary<string, Quantity>()));
     }
     public const int FormatVersion = 1;
+    public const long MaximumSupportedStepExecutions = 10_000_000;
+    public long MaximumStepExecutions { get; }
     public string Name { get; }
     public ExperimentStep Root { get; }
     public IReadOnlyList<SourcePreparation> Preparations { get; }

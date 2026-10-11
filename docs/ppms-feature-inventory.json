@@ -1207,7 +1207,12 @@
         "while_true",
         "loop_until"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "boundary": "Core WhileStep/MutateValueStep/OutcomeMutationStep and plan budget; Application owned serial execution/full preflight; Infrastructure native/PPMS lowering",
+        "tests": "VariableControlStepTests.cs; ControlFlowTests.While*.cs and owned TCP/cancellation/timeout/grouped archive tests; SampleResistanceExecutionTests.Analysis.cs",
+        "limits": "Reevaluated typed while/defaultlt/strict equality, zero-iteration variable availability, iteration row axes; unit-stable set/add/sub/scalar-mul, callback-declared custom counters and physical aliases; priority failure/skip guards and success/ordinary failure hooks, never faults/abort callbacks. Whole-plan10m/default or authored lower runtime budget, typed fault and truthful dynamic cap. Strict contracts, four-row fixture/native/archive/CSV/fresh replay/grouped/vdP and unhappy safety/recovery. Bool/Text/custom physical metadata, arbitrary expressions, generic parallel/background/native UI/lab remain pending. See workflow-control.md."
+      }
     },
     {
       "id": "scan_pol_voltage",
@@ -1318,7 +1323,12 @@
     },
     {
       "id": "while",
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "boundary": "Core WhileStep/MutateValueStep/OutcomeMutationStep and plan budget; Application owned serial execution/full preflight; Infrastructure native/PPMS lowering",
+        "tests": "VariableControlStepTests.cs; ControlFlowTests.While*.cs and owned TCP/cancellation/timeout/grouped archive tests; SampleResistanceExecutionTests.Analysis.cs",
+        "limits": "Reevaluated typed while/defaultlt/strict equality, zero-iteration variable availability, iteration row axes; unit-stable set/add/sub/scalar-mul, callback-declared custom counters and physical aliases; priority failure/skip guards and success/ordinary failure hooks, never faults/abort callbacks. Whole-plan10m/default or authored lower runtime budget, typed fault and truthful dynamic cap. Strict contracts, four-row fixture/native/archive/CSV/fresh replay/grouped/vdP and unhappy safety/recovery. Bool/Text/custom physical metadata, arbitrary expressions, generic parallel/background/native UI/lab remain pending. See workflow-control.md."
+      }
     },
     {
       "id": "scan",
@@ -1580,5 +1590,11 @@
     "boundary": "Core ValueCondition/ForEachStep; Application unit-aware preflight and owned serial execution; Infrastructure PPMS lowering/native codecs",
     "tests": "ControlFlowTests.Numeric*.cs, ControlFlowTests.cs/.Lifecycle/.Timeout, IterationIndexBaseTests.cs, IterationScanTests.Lifecycle.cs",
     "limits": "Node-result branch plus numeric axis/iterator comparison: typed operands, strict1e-9 equality/defaultgt, direct value/index/total injection with explicit overrides, explicit dimensionless-to-quantity threshold qualification with physical-input rejection, physical/number/time last-value aliases and voltage/bias. Pure for_each/iterate zero-based counts and bounded points; native API exact equality/one-based remain defaults. Strict fields/availability/units, five-row fixture/native/archive/CSV/fresh replay, pause/abort and owned TCP/timeout faults. Custom/nonnumeric/pol_voltage variables, dynamic command injection, advanced point modifiers, while/expressions/parallel/UI/lab remain pending. See workflow-control.md."
+  },
+  "whileMutationControls": {
+    "status": "partial",
+    "boundary": "Core WhileStep/MutateValueStep/OutcomeMutationStep and plan budget; Application owned serial execution/full preflight; Infrastructure native/PPMS lowering",
+    "tests": "VariableControlStepTests.cs; ControlFlowTests.While*.cs and owned TCP/cancellation/timeout/grouped archive tests; SampleResistanceExecutionTests.Analysis.cs",
+    "limits": "Reevaluated typed while/defaultlt/strict equality, zero-iteration variable availability, iteration row axes; unit-stable set/add/sub/scalar-mul, callback-declared custom counters and physical aliases; priority failure/skip guards and success/ordinary failure hooks, never faults/abort callbacks. Whole-plan10m/default or authored lower runtime budget, typed fault and truthful dynamic cap. Strict contracts, four-row fixture/native/archive/CSV/fresh replay/grouped/vdP and unhappy safety/recovery. Bool/Text/custom physical metadata, arbitrary expressions, generic parallel/background/native UI/lab remain pending. See workflow-control.md."
   }
 }

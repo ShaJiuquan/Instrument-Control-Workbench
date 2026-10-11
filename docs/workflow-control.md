@@ -282,3 +282,60 @@ exports CSV and reexecutes in a fresh service. Arbitrary/custom Bool/Text
 blackboard variables, pol_voltage/remaining unmigrated axes, dynamic command
 injection, advanced point modifiers, while, expressions/parallel, full UI and
 physical acceptance remain pending.
+
+
+## While, variable mutations and node guards
+
+WhileStep reevaluates its typed condition at each iteration after the pause/abort
+checkpoint. False finishes successfully, body Failure stops with its original
+failure step, and exceptions/cancellation propagate. Its body shares variables,
+resources and observations. Rows carry a one-based optional iteration column;
+outer axes are restored when it exits. Zero iterations cannot make body-only
+variables definite. Every body/condition/resource is preflighted, including
+unused paths and units.
+
+MutateValueStep supports Set/Add/Subtract in the variable's unit and Multiply by
+a dimensionless factor. A missing input starts at typed zero, matching numeric
+PPMS mutations; known units cannot change. Finite Quantity construction rejects
+arithmetic overflow. These are run-context values, not device writes or invented
+readbacks; data rows remain immutable observations.
+
+OutcomeMutationStep runs only the success or ordinary-failure callback after its
+body completes. It preserves that outcome and original logical failure identity.
+IO/listener/timeout/budget/abort faults do not run callbacks. This deliberately
+keeps the C# engine's fault/result distinction rather than applying Rust's broad
+post-error callback. Preflight validates both hooks and conservatively excludes
+new failure-path variables from success-only availability.
+
+PPMS while uses variable/op/value, lt default, the same strict 1e-9 equality and
+operator symbols as numeric branches. Custom dimensionless variables must be
+declared by _onSuccess/_onFailure mutations; physical aliases retain their units.
+Callbacks accept variable/action/value (default action set; set/add/sub/mul).
+_skipIf/_failureIf accept variable/op/value (eq default). Failure has priority;
+early skip/failure runs neither body nor post-callback. Strict malformed/missing
+variable/operator contracts fail before device admission, instead of Rust's
+silent no-op/false fallback. Parallel nodes requiring generic execution are still
+pending and do not gain inferred concurrency from these wrappers.
+
+The existing ten-million-step plan budget is now enforced during execution,
+including software-temperature target ticks. Native plans may author a lower
+maximumStepExecutions (1..10,000,000); older documents retain the same limit.
+Budget exhaustion throws PlanExecutionBudgetException before the next step/write,
+uses independent safety cleanup and cannot be decorated into Success. It is not
+normal while termination or a wall-clock/driver-transaction deadline. Started IO
+is still awaited before stop/release. Dynamic previews expose HasDynamicLoops and
+report the enforceable whole-plan cap, not a fabricated exact iteration count.
+Static plans retain their calculated upper bound and reject work exceeding the
+authored cap at preflight. Empty-body loops still execute/yield/count their body nodes.
+
+Native v1 while/mutate_value/outcome_mutation preserve conditions, units and hooks;
+null/wrong-kind hooks and malformed budgets reject. The four-row
+ppms-while-callbacks-import.json seeds a counter, acquires three iterations and
+checks its final value. Native save/load, archive/CSV/fresh execution, grouped
+quality and vdP raw/derived evidence are covered, alongside zero-body variables,
+arithmetic/unit guards, budget fault/overflow, logical failure, precondition
+priority, pause/abort, owned TCP/timeout faults, retained failed stops/recovery.
+Bool/Text/custom physical metadata, arbitrary expressions, parallel/background
+controls, physical devices and full graphical/native UI acceptance remain pending.
+
+The PPMS importer checks raw and known control-wrapper depth with an iterative traversal before recursive decoding. Duplicate JSON keys and excessive plain or guarded nesting produce format errors before device IO; the deepest supported plain tree remains importable.

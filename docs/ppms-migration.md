@@ -633,3 +633,19 @@ compatibility, operator/unit/availability cases and pause/abort/TCP/timeout faul
 are tested. Custom nonnumeric/other axes, dynamic commands, advanced point
 modifiers, while/expressions/parallel and UI/lab parity remain pending. See
 workflow-control.md. No new dependency or Rust/protected UI edit.
+
+### While, numeric mutation and node pre/post conditions
+
+Typed WhileStep now reevaluates variables on the same owned serial run, records
+iteration axes and keeps logical Failure distinct from exceptions/abort. Numeric
+Set/Add/Subtract and scalar Multiply, outcome-specific callbacks and priority
+failure/skip guards import PPMS custom counters and supported physical aliases.
+Both callback/guard/body paths preflight; callbacks never run for transport,
+timeout/budget/abort faults. Malformed/missing contracts reject rather than use
+Rust's silent fallback. Native plan budgets now enforce the existing10m limit
+at step/temperature-tick execution; lower authored limits persist. Dynamic
+previews expose a cap, not a guessed iteration count. Fixture/native/archive/CSV/
+fresh execution, grouped/vdP evidence and unhappy safety cases cover the slice.
+Nonnumeric/unknown physical metadata, generic parallel/background, expressions,
+remaining source/controller/UI/lab parity remain pending. See workflow-control.md.
+No new dependency, Rust or protected UI edit; full migration remains active.

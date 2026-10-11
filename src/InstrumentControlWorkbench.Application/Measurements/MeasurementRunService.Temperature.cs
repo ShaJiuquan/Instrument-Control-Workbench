@@ -18,7 +18,7 @@ public sealed partial class MeasurementRunService
         if (step.Rate is not { } rate)
         {
             await PauseCheckpointAsync(run);
-            run.ExecutedSteps++;
+            AdvancePlanExecution(run, step.Id);
             await run.Resources.WriteSoftwareTemperatureTargetAsync(step.Device, target, state, final: true, run.Token);
             return;
         }
@@ -29,7 +29,7 @@ public sealed partial class MeasurementRunService
         if (path.UpdateCount == 0)
         {
             await PauseCheckpointAsync(run);
-            run.ExecutedSteps++;
+            AdvancePlanExecution(run, step.Id);
             await run.Resources.WriteSoftwareTemperatureTargetAsync(step.Device, path.RoundedTarget, state, final: true, run.Token);
             return;
         }
@@ -37,7 +37,7 @@ public sealed partial class MeasurementRunService
         foreach (var next in path.Targets())
         {
             await PauseCheckpointAsync(run);
-            run.ExecutedSteps++;
+            AdvancePlanExecution(run, step.Id);
             var final = ++updated == path.UpdateCount;
             await run.Resources.WriteSoftwareTemperatureTargetAsync(step.Device, next, state, final, run.Token);
             // Preserve the remaining active tick across pause; no wall-clock

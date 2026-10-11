@@ -55,6 +55,16 @@ public sealed partial class JsonExperimentPlanDocument
             case ConditionStep s:
                 o["kind"] = "condition"; o["variable"] = s.Condition.Variable.Value; o["operator"] = s.Condition.Operator.ToString(); o["value"] = EncodeValue(s.Condition.Value);
                 if (s.Condition.EqualityTolerance is { } conditionTolerance) o["equalityTolerance"] = EncodeQuantity(conditionTolerance); break;
+            case MutateValueStep s:
+                o["kind"] = "mutate_value"; o["variable"] = s.Variable.Value; o["action"] = s.Action.ToString(); o["value"] = EncodeQuantity(s.Value); break;
+            case OutcomeMutationStep s:
+                o["kind"] = "outcome_mutation"; o["body"] = EncodeStep(s.Body, depth + 1, ref count);
+                if (s.Success is { } successHook) o["success"] = EncodeStep(successHook, depth + 1, ref count);
+                if (s.Failure is { } failureHook) o["failure"] = EncodeStep(failureHook, depth + 1, ref count); break;
+            case WhileStep s:
+                o["kind"] = "while"; o["condition"] = new JsonObject { ["variable"] = s.Condition.Variable.Value, ["operator"] = s.Condition.Operator.ToString(), ["value"] = EncodeValue(s.Condition.Value) };
+                if (s.Condition.EqualityTolerance is { } loopTolerance) o["condition"]!["equalityTolerance"] = EncodeQuantity(loopTolerance);
+                o["body"] = EncodeStep(s.Body, depth + 1, ref count); break;
             case FallbackStep s:
                 o["kind"] = "fallback"; var branches = new JsonArray();
                 foreach (var child in s.Children) branches.Add(EncodeStep(child, depth + 1, ref count));
@@ -208,6 +218,19 @@ public sealed partial class JsonExperimentPlanDocument
             case "condition":
                 Object(o, "id", "kind", "variable", "operator", "value", "equalityTolerance");
                 return new ConditionStep(id, new(new(Text(o, "variable")), NamedEnum<ComparisonOperator>(o, "operator"), DecodeValue(o["value"]), o.ContainsKey("equalityTolerance") ? DecodeQuantity(Required(o, "equalityTolerance")) : null));
+            case "mutate_value":
+                Object(o, "id", "kind", "variable", "action", "value");
+                return new MutateValueStep(id, new(Text(o, "variable")), NamedEnum<VariableMutation>(o, "action"), DecodeQuantity(Required(o, "value")));
+            case "outcome_mutation":
+                Object(o, "id", "kind", "body", "success", "failure");
+                var successHook = o.ContainsKey("success") ? DecodeStep(Required(o, "success"), depth + 1, ref count) as MutateValueStep ?? throw new FormatException("Success hook must be a mutation.") : null;
+                var failureHook = o.ContainsKey("failure") ? DecodeStep(Required(o, "failure"), depth + 1, ref count) as MutateValueStep ?? throw new FormatException("Failure hook must be a mutation.") : null;
+                return new OutcomeMutationStep(id, DecodeStep(Required(o, "body"), depth + 1, ref count), successHook, failureHook);
+            case "while":
+                Object(o, "id", "kind", "condition", "body");
+                var loopCondition = Object(Required(o, "condition"), "variable", "operator", "value", "equalityTolerance");
+                return new WhileStep(id, new(new(Text(loopCondition, "variable")), NamedEnum<ComparisonOperator>(loopCondition, "operator"), DecodeValue(Required(loopCondition, "value")),
+                    loopCondition.ContainsKey("equalityTolerance") ? DecodeQuantity(Required(loopCondition, "equalityTolerance")) : null), DecodeStep(Required(o, "body"), depth + 1, ref count));
             case "fallback":
                 Object(o, "id", "kind", "children"); var branches = new List<ExperimentStep>();
                 foreach (var child in Array(o["children"])) branches.Add(DecodeStep(child ?? throw new FormatException("Null fallback branch."), depth + 1, ref count));

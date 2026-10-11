@@ -80,6 +80,8 @@ public sealed partial class SampleResistanceExecutionTests
     [InlineData("timeout")]
     [InlineData("subtree")]
     [InlineData("branch_outcome")]
+    [InlineData("while")]
+    [InlineData("outcome_mutation")]
     public async Task GeometryAndGroupPlanArchiveRoundTripWithStreamingCsvEvidence(string scope)
     {
         using var folder = new TemporaryFolder(); RunId id;
@@ -89,11 +91,23 @@ public sealed partial class SampleResistanceExecutionTests
         {
             "timeout" => new TimeoutStep(new("bounded.analysis"), TimeSpan.FromSeconds(20), original.Root),
             "branch_outcome" => new BranchOnOutcomeStep(new("conditional.analysis"), new DelayStep(new("condition"), TimeSpan.Zero), original.Root),
+            "outcome_mutation" => new OutcomeMutationStep(new("hooked.analysis"), original.Root, new MutateValueStep(new("done"), new("count"), VariableMutation.Set, new(1, PhysicalUnit.Dimensionless))),
+            "while" => new SequenceStep(new("looped.analysis"), [new AssignValueStep(new("seed"), new("count"), new ConstantValue(new(0, PhysicalUnit.Dimensionless))),
+                new WhileStep(new("loop"), new(new("count"), ComparisonOperator.Less, new ConstantValue(new(1, PhysicalUnit.Dimensionless))), new SequenceStep(new("body"), [original.Root,
+                    new MutateValueStep(new("advance"), new("count"), VariableMutation.Add, new(1, PhysicalUnit.Dimensionless))]))]),
             _ => new SubtreeStep(new("scoped.analysis"), [original.Root]),
         }, original.Preparations, original.Metadata, original.Routing);
         await codec.SaveAsync(path, original, Token); var plan = await codec.LoadAsync(path, Token);
         Assert.Equal(Geometry, plan.Routing!.Samples[0].Geometry);
-        Assert.IsType<SampleAnalysisStep>(plan.Root switch { TimeoutStep bounded => bounded.Body, SubtreeStep local => local.Children.Single(), BranchOnOutcomeStep conditional => conditional.Then, _ => plan.Root });
+        Assert.IsType<SampleAnalysisStep>(plan.Root switch
+        {
+            TimeoutStep bounded => bounded.Body,
+            SubtreeStep local => local.Children.Single(),
+            BranchOnOutcomeStep conditional => conditional.Then,
+            OutcomeMutationStep hook => hook.Body,
+            SequenceStep sequence => Assert.IsType<SequenceStep>(sequence.Children.OfType<WhileStep>().Single().Body).Children[0],
+            _ => plan.Root,
+        });
         await using (var archive = new FileRunArchive(Path.Combine(folder.Path, "runs")))
         {
             var b = new Bench(archive); await b.Runs.StartPlanAsync(plan, Token); id = b.Runs.LatestDataSet!.Id;
