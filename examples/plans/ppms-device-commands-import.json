@@ -1,0 +1,60 @@
+{
+  "experiment_id": "Independent source and two-input meter configuration",
+  "type": "sequence",
+  "children": [
+    {
+      "type": "command",
+      "name": "k2182.set_nplc",
+      "params": {
+        "nplc": 2
+      }
+    },
+    {
+      "type": "command",
+      "name": "k2182.set_range",
+      "params": {
+        "channel": 1,
+        "range_v": 0.02
+      }
+    },
+    {
+      "type": "command",
+      "name": "k2182.set_filter",
+      "params": {
+        "channel": 1,
+        "config": {
+          "enabled": true,
+          "count": 4,
+          "filter_type": "MOV",
+          "window": 0.5
+        }
+      }
+    },
+    {
+      "type": "command",
+      "name": "k2182.set_range",
+      "params": {
+        "channel": 2,
+        "range": 0.2
+      }
+    },
+    {
+      "type": "command",
+      "name": "k2182.set_filter",
+      "params": {
+        "channel": 2,
+        "filter_enabled": true,
+        "filter_count": 3,
+        "type": "REP",
+        "filter_window": 0.7
+      }
+    },
+    {
+      "type": "command",
+      "name": "k6221.set_source_delay",
+      "params": {
+        "source_delay_s": 0.005
+      }
+    }
+  ]
+}

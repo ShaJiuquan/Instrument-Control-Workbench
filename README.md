@@ -169,3 +169,6 @@ PPMS curr_dc and explicit native continuation now preserve absent electrical
 values and validated failure proof through partial Hall/vdP, wide points and
 archive/CSV. See [invalid points and available-input analysis](docs/current-resistance-invalid-points.md).
 Physical drivers and full UI/PPMS parity remain pending.
+
+Independent K2182 configuration commands, per-input range/filter retention and
+K6221 source-delay register support: [implementation and examples](docs/independent-device-commands.md).

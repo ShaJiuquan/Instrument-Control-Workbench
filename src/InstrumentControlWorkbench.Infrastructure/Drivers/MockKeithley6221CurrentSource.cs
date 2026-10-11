@@ -24,7 +24,7 @@ public sealed class MockKeithley6221CurrentSource : IK6221CurrentSourcePort
     public async Task ConfigureAsync(Keithley6221Settings requested, CancellationToken token)
     {
         ArgumentNullException.ThrowIfNull(requested); await gate.WaitAsync(token);
-        try { if (!connected) throw new InvalidOperationException("K6221 simulator is disconnected."); settings = requested; } finally { gate.Release(); }
+        try { if (!connected) throw new InvalidOperationException("K6221 simulator is disconnected."); settings = new(requested.Current, requested.Compliance, requested.ManualRange, requested.SourceDelay ?? settings.SourceDelay); } finally { gate.Release(); }
     }
     public async Task SetOutputAsync(bool enabled, CancellationToken token)
     {

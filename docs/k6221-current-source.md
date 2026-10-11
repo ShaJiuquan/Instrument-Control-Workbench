@@ -38,7 +38,7 @@ represented by the DC simulator.
   `simulation`. A primary SMU is optional; pure sources are registry sessions,
   not entries in `ConfiguredDeviceRuntime.Sources` (the existing SMU map).
 - Native plans add optional `currentSourcePreparations`, each with a device,
-  typed current/compliance and nullable `manualRange`. Pure and SMU preparations
+  typed current/compliance, nullable `manualRange` and optional observed `sourceDelay`. Pure and SMU preparations
   must have distinct device IDs. Existing plans without the field remain valid.
 - `SourceOutputStep`, native current parameter scans, cancellation, cleanup,
   guarded matrix routes and run snapshots use the shared executor. Preflight
@@ -50,7 +50,8 @@ represented by the DC simulator.
   `.set_source_range`, and explicit enable of `.set_auto_range` /
   `.set_source_auto_range`. Disabling autorange requires an explicit manual span;
   no unobserved selected full-scale is guessed. Off-only commands do not apply an
-  otherwise unused preparation. Other K6221 commands reject instead of becoming
+  otherwise unused preparation. Register-only `.set_source_delay` also preserves
+  unused current/compliance settings; see [independent-device-commands.md](independent-device-commands.md). Other K6221 commands reject instead of becoming
   silent no-ops.
 
 The common current import binding chooses the actual prepared model. K2450

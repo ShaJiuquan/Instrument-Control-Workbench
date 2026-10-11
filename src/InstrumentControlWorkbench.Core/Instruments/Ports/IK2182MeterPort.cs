@@ -9,6 +9,9 @@ public interface IK2182MeterPort
     DeviceDescriptor Descriptor { get; }
     Task<K2182MeterSnapshot> ConnectAsync(CancellationToken token);
     Task<K2182MeterSnapshot> GetSnapshotAsync(CancellationToken token);
+    // Select only the input; the next snapshot observes that input's existing
+    // range/filter registers and the shared NPLC. Never copy the old input.
+    Task SelectChannelAsync(int channel, CancellationToken token);
     Task ConfigureAsync(Keithley2182Settings settings, CancellationToken token);
     Task<K2182VoltageReading> ReadAsync(CancellationToken token);
     Task AbortAcquisitionAsync(CancellationToken token);

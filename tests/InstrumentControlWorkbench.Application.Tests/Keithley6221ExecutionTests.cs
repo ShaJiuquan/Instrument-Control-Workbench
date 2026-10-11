@@ -225,6 +225,7 @@ public sealed partial class Keithley6221ExecutionTests
         public int AbortCalls { get; private set; }
         public Task<K2182MeterSnapshot> ConnectAsync(CancellationToken token) => inner.ConnectAsync(token);
         public async Task<K2182MeterSnapshot> GetSnapshotAsync(CancellationToken token) { if (OnSnapshot is { } action) await action(token); return await inner.GetSnapshotAsync(token); }
+        public Task SelectChannelAsync(int channel, CancellationToken token) => inner.SelectChannelAsync(channel, token);
         public Task ConfigureAsync(Keithley2182Settings settings, CancellationToken token) => inner.ConfigureAsync(settings, token);
         public async Task<K2182VoltageReading> ReadAsync(CancellationToken token) { ReadCalls++; if (OnRead is { } action) await action(token); return await inner.ReadAsync(token); }
         public async Task AbortAcquisitionAsync(CancellationToken token) { AbortCalls++; if (OnAbort is { } action) await action(token); await inner.AbortAcquisitionAsync(token); }

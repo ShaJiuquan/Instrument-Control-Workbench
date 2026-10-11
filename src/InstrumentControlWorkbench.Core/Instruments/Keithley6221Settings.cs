@@ -6,17 +6,21 @@ namespace InstrumentControlWorkbench.Core.Instruments;
 public sealed record Keithley6221Settings
 {
     public static IReadOnlyList<double> NominalRanges { get; } = Array.AsReadOnly(new[] { 2e-9, 20e-9, 200e-9, 2e-6, 20e-6, 200e-6, 2e-3, 20e-3, 0.1 });
-    public Keithley6221Settings(Quantity current, Quantity compliance, Quantity? manualRange = null)
+    public Keithley6221Settings(Quantity current, Quantity compliance, Quantity? manualRange = null, Quantity? sourceDelay = null)
     {
         if (current.Unit != PhysicalUnit.Ampere || Math.Abs(current.Value) > 0.105 || compliance.Unit != PhysicalUnit.Volt || compliance.Value is < 0.1 or > 105)
             throw new ArgumentException("K6221 DC current requires ±105 mA and 0.1..105 V compliance.");
         if (manualRange is { } span && (span.Unit != PhysicalUnit.Ampere || !NominalRanges.Contains(span.Value) || Math.Abs(current.Value) > span.Value * 1.05))
             throw new ArgumentException("K6221 fixed range must be nominal and contain the current within 5% overrange.");
-        Current = current; Compliance = compliance; ManualRange = manualRange;
+        if (sourceDelay is { } delay) Keithley6221Parameters.SourceDelay.ValidateWrite(delay);
+        Current = current; Compliance = compliance; ManualRange = manualRange; SourceDelay = sourceDelay;
     }
     public Quantity Current { get; }
     public Quantity Compliance { get; }
     public Quantity? ManualRange { get; }
+    // Null retains the actual register during preparation and means unobserved
+    // in old configuration evidence; it never means zero or a software wait.
+    public Quantity? SourceDelay { get; }
     public static Quantity ResolveRange(Quantity selector)
     {
         if (selector.Unit != PhysicalUnit.Ampere || selector.Value is <= 0 or > 0.105) throw new ArgumentException("K6221 range selector requires positive Ampere within 105 mA.");
@@ -25,10 +29,11 @@ public sealed record Keithley6221Settings
     public Keithley6221Settings WithParameter(ParameterId parameter, Quantity value)
     {
         Keithley6221Parameters.ValidateWrite(parameter, value);
-        return parameter == Keithley6221Parameters.Current.Id ? new(value, Compliance, ManualRange)
-            : parameter == Keithley6221Parameters.Compliance.Id ? new(Current, value, ManualRange)
-            : parameter == Keithley6221Parameters.ManualRange.Id ? new(Current, Compliance, value)
-            : parameter == Keithley6221Parameters.EnableAutoRange.Id ? new(Current, Compliance)
+        return parameter == Keithley6221Parameters.Current.Id ? new(value, Compliance, ManualRange, SourceDelay)
+            : parameter == Keithley6221Parameters.Compliance.Id ? new(Current, value, ManualRange, SourceDelay)
+            : parameter == Keithley6221Parameters.ManualRange.Id ? new(Current, Compliance, value, SourceDelay)
+            : parameter == Keithley6221Parameters.EnableAutoRange.Id ? new(Current, Compliance, sourceDelay: SourceDelay)
+            : parameter == Keithley6221Parameters.SourceDelay.Id ? new(Current, Compliance, ManualRange, value)
             : throw new ArgumentException("Parameter does not configure K6221 DC settings.");
     }
     public IReadOnlyDictionary<ParameterId, Quantity> CaptureParameters()
@@ -40,6 +45,7 @@ public sealed record Keithley6221Settings
             [Keithley6221Parameters.AutoRange.Id] = new(ManualRange is null ? 1 : 0, PhysicalUnit.Dimensionless)
         };
         if (ManualRange is { } span) values.Add(Keithley6221Parameters.ManualRange.Id, span);
+        if (SourceDelay is { } delay) values.Add(Keithley6221Parameters.SourceDelay.Id, delay);
         return values;
     }
 }
@@ -51,7 +57,8 @@ public static class Keithley6221Parameters
     public static readonly ParameterDescriptor AutoRange = new(new("k6221.source_autorange"), "Source autorange", PhysicalUnit.Dimensionless, ParameterAccess.Read);
     public static readonly ParameterDescriptor EnableAutoRange = new(new("k6221.enable_source_autorange"), "Enable source autorange", PhysicalUnit.Dimensionless, ParameterAccess.Write, new(1, PhysicalUnit.Dimensionless), new(1, PhysicalUnit.Dimensionless));
     public static readonly ParameterDescriptor ManualRange = new(new("k6221.source_range"), "Manual current range", PhysicalUnit.Ampere, ParameterAccess.ReadWrite, new(2e-9, PhysicalUnit.Ampere), new(0.1, PhysicalUnit.Ampere));
-    public static IReadOnlyList<ParameterDescriptor> All { get; } = Array.AsReadOnly(new[] { Current, Compliance, Output, AutoRange, EnableAutoRange, ManualRange });
+    public static readonly ParameterDescriptor SourceDelay = new(new("k6221.source_delay"), "Source delay register", PhysicalUnit.Second, ParameterAccess.ReadWrite, new(0.001, PhysicalUnit.Second), new(999999.999, PhysicalUnit.Second));
+    public static IReadOnlyList<ParameterDescriptor> All { get; } = Array.AsReadOnly(new[] { Current, Compliance, Output, AutoRange, EnableAutoRange, ManualRange, SourceDelay });
     public static void ValidateWrite(ParameterId parameter, Quantity value)
     {
         var descriptor = All.Single(p => p.Id == parameter); descriptor.ValidateWrite(value);

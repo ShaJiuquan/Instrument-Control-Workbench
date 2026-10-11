@@ -31,7 +31,7 @@ public sealed partial class CurrentResistanceExecutionTests
     public async Task PpmsOwnedCurrentResistanceUsesExplicitRolesRangesAndMeterInput(bool routed)
     {
         await using var b = new Bench();
-        await b.Meter.ConnectAsync(Token); await b.Meter.ConfigureAsync(new(1, null, 3, true, 17, AveragingMode.Moving, 2), Token);
+        await b.Meter.ConnectAsync(Token); await b.Meter.ConfigureAsync(new(2, null, 3, true, 17, AveragingMode.Moving, 2), Token); await b.Meter.SelectChannelAsync(1, Token);
         var p = new JsonObject
         {
             ["channel"] = routed ? "ch1" : "none",

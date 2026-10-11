@@ -179,8 +179,20 @@ public sealed partial class StandaloneMeterTests
         public DeviceDescriptor Descriptor { get; }
         public Quantity? ReadingOverride { get; set; }
         public DateTimeOffset? TimestampOverride { get; set; }
-        public Keithley2182Settings Settings { get; set; } = new(1, null, 1, false, 10, AveragingMode.Repeat, 0.1);
+        private readonly Dictionary<int, Keithley2182Settings> inputs = new()
+        { [1] = new(1, null, 1, false, 10, AveragingMode.Repeat, 0.1), [2] = new(2, null, 1, false, 10, AveragingMode.Repeat, 0.1) };
+        private int channel = 1;
+        public Keithley2182Settings Settings
+        {
+            get => inputs[channel];
+            set
+            {
+                foreach (var input in inputs.Keys.ToArray()) inputs[input] = inputs[input].WithParameter(Keithley2182Parameters.Nplc.Id, new(value.Nplc, PhysicalUnit.Dimensionless));
+                channel = value.Channel; inputs[channel] = value;
+            }
+        }
         public Func<CancellationToken, Task>? OnRead { get; set; }
+        public Func<int, CancellationToken, Task>? OnSelect { get; set; }
         public bool RefuseStop { get; set; }
         public bool IgnoreWrites { get; set; }
         public bool LastStopTokenWasLive { get; private set; }
@@ -190,6 +202,7 @@ public sealed partial class StandaloneMeterTests
         private bool connected; private bool acquiring;
         public Task<K2182MeterSnapshot> ConnectAsync(CancellationToken token) { token.ThrowIfCancellationRequested(); connected = true; Connections++; return GetSnapshotAsync(token); }
         public Task<K2182MeterSnapshot> GetSnapshotAsync(CancellationToken token) { token.ThrowIfCancellationRequested(); return Task.FromResult(new K2182MeterSnapshot(connected, acquiring, connected ? Settings : null, DateTimeOffset.UtcNow)); }
+        public async Task SelectChannelAsync(int channel, CancellationToken token) { token.ThrowIfCancellationRequested(); Writes++; if (OnSelect is { } select) await select(channel, token); token.ThrowIfCancellationRequested(); if (!IgnoreWrites) this.channel = channel; }
         public Task ConfigureAsync(Keithley2182Settings settings, CancellationToken token) { token.ThrowIfCancellationRequested(); Writes++; if (!IgnoreWrites) Settings = settings; return Task.CompletedTask; }
         public async Task<K2182VoltageReading> ReadAsync(CancellationToken token)
         {

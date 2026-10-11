@@ -50,7 +50,7 @@ public sealed partial class StandaloneMeterTests
     [InlineData(true)]
     public async Task PpmsVoltageUsesActualWindowAndRepeatOnlyWhenFilterIsEnabled(bool enabled)
     {
-        var b = new Bench(); b.Meter.Settings = new(2, new(1, PhysicalUnit.Volt), 3, true, 17, AveragingMode.Moving, 2);
+        var b = new Bench(); b.Meter.Settings = new(1, null, 3, true, 7, AveragingMode.Moving, 0.7); b.Meter.Settings = new(2, new(1, PhysicalUnit.Volt), 3, true, 17, AveragingMode.Moving, 2);
         var plan = new PpmsExperimentPlanImporter().Parse(MeterJson(new JsonObject
         {
             ["instrument"] = "meter",
@@ -65,7 +65,7 @@ public sealed partial class StandaloneMeterTests
         Assert.Empty(plan.Preparations); Assert.DoesNotContain(plan.Metadata.Keys, k => k.Contains("unused_filter", StringComparison.Ordinal));
         await b.Runs.StartPlanAsync(plan, Token); var settings = Assert.Single(Assert.Single(b.Runs.LatestDataSet!.Rows).Quality).MeterConfiguration!;
         Assert.Equal(1, settings.Channel); Assert.Equal(new(0.1, PhysicalUnit.Volt), settings.ManualRange); Assert.Equal(2, settings.Nplc); Assert.Equal(enabled, settings.FilterEnabled);
-        Assert.Equal(enabled ? 4 : 17, settings.FilterCount); Assert.Equal(enabled ? AveragingMode.Repeat : AveragingMode.Moving, settings.FilterMode); Assert.Equal(enabled ? 0.5 : 2, settings.FilterWindowPercent);
+        Assert.Equal(enabled ? 4 : 7, settings.FilterCount); Assert.Equal(enabled ? AveragingMode.Repeat : AveragingMode.Moving, settings.FilterMode); Assert.Equal(enabled ? 0.5 : 0.7, settings.FilterWindowPercent);
     }
     [Theory]
     [InlineData("filter_count", "1")]

@@ -149,6 +149,7 @@ public sealed partial class CurrentResistanceExecutionTests
         public int Reads { get; private set; }
         public Task<K2182MeterSnapshot> ConnectAsync(CancellationToken token) => inner.ConnectAsync(token);
         public Task<K2182MeterSnapshot> GetSnapshotAsync(CancellationToken token) => inner.GetSnapshotAsync(token);
+        public Task SelectChannelAsync(int channel, CancellationToken token) => inner.SelectChannelAsync(channel, token);
         public Task ConfigureAsync(Keithley2182Settings settings, CancellationToken token) => inner.ConfigureAsync(settings, token);
         public async Task<K2182VoltageReading> ReadAsync(CancellationToken token) { Reads++; if (OnRead is { } action) await action(token); return await inner.ReadAsync(token); }
         public Task DisconnectAsync(CancellationToken token) => inner.DisconnectAsync(token);

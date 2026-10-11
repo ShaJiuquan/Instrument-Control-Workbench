@@ -653,13 +653,23 @@
       "id": "k2182.set_nplc",
       "nodeType": "command",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "PpmsExperimentPlanImporter.MeterCommands.cs; Keithley2182MeterSession.cs; IK2182MeterPort.cs; MockKeithley2182Meter.cs",
+        "tests": "MeterCommandTests.cs; StandaloneMeterTests.Commands.cs; SourceDelayTests.cs",
+        "limits": "Explicit aliased standalone meter; NPLC, actual-input upward range selectors, flat/nested partial filter config and strict aliases. Both inputs retain their own range/filter, NPLC shared; cancellation/ownership/idle confirmation, native/fresh archive/replay/CSV verified in simulation. Physical adapters, sensor accuracy/quality and native settings UI remain pending. See independent-device-commands.md."
+      }
     },
     {
       "id": "k2182.set_range",
       "nodeType": "command",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "PpmsExperimentPlanImporter.MeterCommands.cs; Keithley2182MeterSession.cs; IK2182MeterPort.cs; MockKeithley2182Meter.cs",
+        "tests": "MeterCommandTests.cs; StandaloneMeterTests.Commands.cs; SourceDelayTests.cs",
+        "limits": "Explicit aliased standalone meter; NPLC, actual-input upward range selectors, flat/nested partial filter config and strict aliases. Both inputs retain their own range/filter, NPLC shared; cancellation/ownership/idle confirmation, native/fresh archive/replay/CSV verified in simulation. Physical adapters, sensor accuracy/quality and native settings UI remain pending. See independent-device-commands.md."
+      }
     },
     {
       "id": "k2182.set_filter",
@@ -667,7 +677,12 @@
       "aliases": [
         "k2182.set_fiter"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "PpmsExperimentPlanImporter.MeterCommands.cs; Keithley2182MeterSession.cs; IK2182MeterPort.cs; MockKeithley2182Meter.cs",
+        "tests": "MeterCommandTests.cs; StandaloneMeterTests.Commands.cs; SourceDelayTests.cs",
+        "limits": "Explicit aliased standalone meter; NPLC, actual-input upward range selectors, flat/nested partial filter config and strict aliases. Both inputs retain their own range/filter, NPLC shared; cancellation/ownership/idle confirmation, native/fresh archive/replay/CSV verified in simulation. Physical adapters, sensor accuracy/quality and native settings UI remain pending. See independent-device-commands.md."
+      }
     },
     {
       "id": "k6221.set_current",
@@ -1312,13 +1327,13 @@
     "status": "partial",
     "implementation": "src/InstrumentControlWorkbench.Core/Experiments/ReadCurrentResistanceStep.cs; src/InstrumentControlWorkbench.Application/Devices/DeviceRunResources.CurrentResistance.cs; src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.CurrentResistance.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.CurrentResistance.cs",
     "tests": "tests/InstrumentControlWorkbench.Core.Tests/CurrentResistanceModelTests.cs; tests/InstrumentControlWorkbench.Application.Tests/CurrentResistanceExecutionTests*.cs",
-    "limits": "Supported K2450 current excitation + explicitly simulated K2182; named programmed or measured current, separate times and quality, source/meter drift rejection, explicit guarded matrix routes, owned/scan-managed curr_dc import, signed persisted current axes, wide/archive/CSV provenance. K6221 pure DC simulator now supported; real K2182/K6221, independent automatic sample wiring/analysis, retry-to-invalid-point, delta/pulse/AC and UI/lab acceptance pending. See current-resistance.md."
+    "limits": "Supported K2450 current excitation + explicitly simulated K2182; named programmed or measured current, separate times and quality, source/meter drift rejection, explicit guarded matrix routes, owned/scan-managed curr_dc import, signed persisted current axes, wide/archive/CSV provenance. K6221 pure DC simulator now supported; real K2182/K6221, independent automatic sample wiring/analysis, retry-to-invalid-point, delta/pulse/AC and UI/lab acceptance pending. See current-resistance.md. Source-delay register and independent channel/sample/retry/invalid-point stages now implemented in simulation; previous remaining notes are historical. Physical transports and advanced modes remain incomplete. See independent-device-commands.md."
   },
   "k6221CurrentSource": {
     "status": "partial",
     "implementation": "src/InstrumentControlWorkbench.Core/Instruments/Keithley6221Settings.cs; src/InstrumentControlWorkbench.Core/Instruments/Ports/IK6221CurrentSourcePort.cs; src/InstrumentControlWorkbench.Application/Devices/Keithley6221CurrentSourceSession.cs; src/InstrumentControlWorkbench.Infrastructure/Drivers/MockKeithley6221CurrentSource.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.CurrentSources.cs",
     "tests": "tests/InstrumentControlWorkbench.Core.Tests/Keithley6221ModelTests.cs; tests/InstrumentControlWorkbench.Application.Tests/Keithley6221ExecutionTests*.cs",
-    "limits": "Pure DC simulator with separate settings/port/profile/constraints; no SMU sense/measurement. Native current-source preparations, explicit configured source, current command/scans/curr_dc and basic K6221 command aliases, source-setting evidence and archived model identity, shared atomic leases/pause/stop/fault recovery including live timeout retention. Real transport, actual full-scale/quality, source delay/response/filtering/advanced modes, automatic independent sample wiring/analysis, retry-to-invalid-point and UI/lab acceptance pending. See k6221-current-source.md."
+    "limits": "Pure DC simulator with separate settings/port/profile/constraints; no SMU sense/measurement. Native current-source preparations, explicit configured source, current command/scans/curr_dc and basic K6221 command aliases, source-setting evidence and archived model identity, shared atomic leases/pause/stop/fault recovery including live timeout retention. Real transport, actual full-scale/quality, source delay/response/filtering/advanced modes, automatic independent sample wiring/analysis, retry-to-invalid-point and UI/lab acceptance pending. See k6221-current-source.md. Source-delay register and independent channel/sample/retry/invalid-point stages now implemented in simulation; previous remaining notes are historical. Physical transports and advanced modes remain incomplete. See independent-device-commands.md."
   },
   "independentChannelRouting": {
     "status": "partial",
@@ -1382,5 +1397,20 @@
       "Advanced settings, delta/pulse/AC/corrected Hall, full BT/controller/config/UI/packaging scope"
     ],
     "reference": "current-resistance-invalid-points.md"
+  },
+  "independentDeviceCommands": {
+    "status": "partial",
+    "implemented": [
+      "K2182 set_nplc/set_range/set_filter; explicit aliases/nested partial controls; observed target input selection and shared NPLC",
+      "K6221 source delay register command/manual/native preparation; actual optional source evidence through success/failure/native/archive/CSV",
+      "Whole-group ownership, cancellation/paused drift/refusal and retained cleanup failures",
+      "Published PPMS command fixture and explicit per-input scan configuration"
+    ],
+    "remaining": [
+      "Physical K2182/K6221 transports and laboratory acceptance",
+      "Additional setting families, advanced modes, full PPMS/controllers/BT/native UI/packaging scope"
+    ],
+    "reference": "independent-device-commands.md",
+    "tests": "45 new cases (9 Core36 Application); working1377 before required commit/clean audit"
   }
 }

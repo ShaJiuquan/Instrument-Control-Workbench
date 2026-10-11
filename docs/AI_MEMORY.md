@@ -752,3 +752,25 @@ wide failure collections and kind-derived status round-trip native/fresh archive
 CSV; tamper rejection preserves previous exports.68 new cases (18 Core50 App).
 Physical ports, source-side/other modes and full UI/PPMS/packaging/lab remain
 unfinished;29 UI drafts excluded. See current-resistance-invalid-points.md.
+
+## Independent device commands and per-input settings (2026-10-11)
+
+PPMS K2182 NPLC/range/filter and K6221 source-delay commands now use existing
+native parameter execution. Input selection is an explicit Core port operation:
+observe target range/filter instead of copying/resetting prior input, shared
+NPLC retained; simulation keeps both input profiles. Optional filter controls and
+flat/nested aliases match Rust; unknown/ambiguous/fractional/overflow inputs reject.
+Actual-input expected-voltage selector is distinct from exact native manual span.
+Configuration-only runs emit no rows. Source delay is an optional second register
+with native/archive successful/failed current-excitation evidence, not software
+settling; missing preparation retains observed state and legacy unknown remains
+absent. Register-only import never applies unused current/compliance preparation.
+Read/pause drift rejects, manual selection/write is denied during run/pause, and
+cancel/refusal/failed cleanup preserves the existing whole-group safety lifecycle.
+Published command and corrected per-input scan examples verify later raw evidence.
+No dependencies, Rust edits, lab IO or App drafts changed. Physical transports,
+advanced modes, full controllers/BT/background/settings UI/plots/packaging remain;
+whole goal active. See independent-device-commands.md.
+
+This stage adds45 cases (9 Core36 Application); full working1377 passed.
+Mandatory commit and exact archive audits are required for every publication.

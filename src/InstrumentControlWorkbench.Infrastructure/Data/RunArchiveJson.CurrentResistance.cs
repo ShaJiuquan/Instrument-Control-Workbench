@@ -15,10 +15,11 @@ internal static partial class RunArchiveJson
         public static CurrentRouteDto From(MatrixRouteExpectation route) => new(route.Device.Value, route.Closed.Select(p => new MatrixPointDto(p.Slot, p.Row, p.Column)).ToArray());
     }
     internal sealed record CurrentSourceConfigurationDto(double Level, double Compliance, QuantityDto? ManualRange,
-        [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? Model = null)
+        [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? Model = null,
+        [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] QuantityDto? SourceDelay = null)
     {
-        public CurrentExcitationConfiguration ToDomain() => new(Model switch { null or "Keithley2450" => CurrentSourceModel.Keithley2450, "Keithley6221" => CurrentSourceModel.Keithley6221, _ => throw new FormatException("Unknown current excitation model.") }, new(Level, PhysicalUnit.Ampere), new(Compliance, PhysicalUnit.Volt), ManualRange?.ToDomain());
-        public static CurrentSourceConfigurationDto From(CurrentExcitationConfiguration source) => new(source.Level, source.Compliance, source.ManualRange is { } span ? QuantityDto.From(span) : null, source.Model.ToString());
+        public CurrentExcitationConfiguration ToDomain() => new(Model switch { null or "Keithley2450" => CurrentSourceModel.Keithley2450, "Keithley6221" => CurrentSourceModel.Keithley6221, _ => throw new FormatException("Unknown current excitation model.") }, new(Level, PhysicalUnit.Ampere), new(Compliance, PhysicalUnit.Volt), ManualRange?.ToDomain(), SourceDelay?.ToDomain());
+        public static CurrentSourceConfigurationDto From(CurrentExcitationConfiguration source) => new(source.Level, source.Compliance, source.ManualRange is { } span ? QuantityDto.From(span) : null, source.Model.ToString(), source.SourceDelay is { } delay ? QuantityDto.From(delay) : null);
     }
     internal sealed record CurrentRetryDto(string Kind, int? CommandCode, string Message, DateTimeOffset AttemptStartedAt, DateTimeOffset FailedAt, DateTimeOffset IdleConfirmedAt, DateTimeOffset? SourceOffConfirmedAt, MeterSettingsDto MeterSettings)
     {

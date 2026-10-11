@@ -29,8 +29,12 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanDocument
             ["root"] = EncodeStep(plan.Root, 0, ref count),
         };
         if (plan.Routing is { } routing) root["routing"] = EncodeRouting(routing);
-        if (plan.CurrentSourcePreparations.Count != 0) root["currentSourcePreparations"] = new JsonArray(plan.CurrentSourcePreparations.Select(p => (JsonNode)new JsonObject
-        { ["device"] = p.Device.Value, ["current"] = EncodeQuantity(p.Settings.Current), ["compliance"] = EncodeQuantity(p.Settings.Compliance), ["manualRange"] = p.Settings.ManualRange is { } range ? EncodeQuantity(range) : null }).ToArray());
+        if (plan.CurrentSourcePreparations.Count != 0) root["currentSourcePreparations"] = new JsonArray(plan.CurrentSourcePreparations.Select(p =>
+        {
+            var item = new JsonObject { ["device"] = p.Device.Value, ["current"] = EncodeQuantity(p.Settings.Current), ["compliance"] = EncodeQuantity(p.Settings.Compliance), ["manualRange"] = p.Settings.ManualRange is { } range ? EncodeQuantity(range) : null };
+            if (p.Settings.SourceDelay is { } delay) item["sourceDelay"] = EncodeQuantity(delay);
+            return (JsonNode)item;
+        }).ToArray());
         var text = root.ToJsonString(JsonOptions);
         if (Encoding.UTF8.GetByteCount(text) > MaximumBytes) throw new ArgumentOutOfRangeException(nameof(plan), "Plan document exceeds 4 MiB.");
         return text;
@@ -52,8 +56,8 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanDocument
             root.ContainsKey("routing") ? DecodeRouting(Required(root, "routing")) : null,
             root.ContainsKey("currentSourcePreparations") ? Array(Required(root, "currentSourcePreparations")).Select(n =>
             {
-                var p = Object(n, "device", "current", "compliance", "manualRange");
-                return new CurrentSourcePreparation(new(Text(p, "device")), new(DecodeQuantity(Required(p, "current")), DecodeQuantity(Required(p, "compliance")), p["manualRange"] is null ? null : DecodeQuantity(p["manualRange"])));
+                var p = Object(n, "device", "current", "compliance", "manualRange", "sourceDelay");
+                return new CurrentSourcePreparation(new(Text(p, "device")), new(DecodeQuantity(Required(p, "current")), DecodeQuantity(Required(p, "compliance")), p["manualRange"] is null ? null : DecodeQuantity(p["manualRange"]), p["sourceDelay"] is null ? null : DecodeQuantity(p["sourceDelay"])));
             }) : null);
     }
 

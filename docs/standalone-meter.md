@@ -33,9 +33,11 @@ means autorange. Integration accepts 0.01..50 PLC (the common 50/60 Hz bound),
 native filter count 1..100, window 0..10 percent. The named parameter catalog
 shares these limits with preflight/session validation. Discrete values must be
 integral. Dynamic values receive the same validation before adapter mutation.
-Changing inputs explicitly enables autorange while keeping the other requested
-settings; it does not reuse an incompatible old manual span or claim to retain
-the new input's hardware registers. Writing the same input preserves its span.
+Input selection now observes the target input's own range/filter profile through
+`SelectChannelAsync`; it preserves shared NPLC and does not copy or reset the
+other input. The simulator retains both input profiles. PPMS direct NPLC/range/
+filter commands and partial controls are supported; see
+[independent-device-commands.md](independent-device-commands.md).
 
 Disconnected status has no settings placeholders. Reads bracket acquisition with
 fresh configuration snapshots and reject drift, stale/future frame timestamps,

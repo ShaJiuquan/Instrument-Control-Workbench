@@ -107,6 +107,14 @@ public sealed class Keithley2182MeterSession : IDeviceSession
         {
             var before = await port.GetSnapshotAsync(token);
             if (!before.Connected || before.Acquiring) throw new InvalidOperationException("Voltage meter must be connected and idle before configuration.");
+            if (parameter == Keithley2182Parameters.Channel.Id)
+            {
+                if (before.Settings!.Channel != (int)value.Value) await port.SelectChannelAsync((int)value.Value, token);
+                var selected = await port.GetSnapshotAsync(token);
+                if (!selected.Connected || selected.Acquiring || selected.Settings!.Channel != (int)value.Value || selected.Settings.Nplc != before.Settings!.Nplc)
+                    throw new InvalidOperationException("Voltage meter input selection/shared NPLC did not confirm.");
+                await PublishAsync(selected, token); return;
+            }
             var requested = before.Settings!.WithParameter(parameter, value);
             if (requested != before.Settings) await port.ConfigureAsync(requested, token);
             var after = await port.GetSnapshotAsync(token);

@@ -13,6 +13,11 @@ public sealed partial class PpmsExperimentPlanImporter
     {
         switch (name)
         {
+            case "k2182.set_nplc":
+            case "k2182.set_range":
+            case "k2182.set_filter":
+                return MeterCommand(name, p, path, c);
+            case "k6221.set_source_delay":
             case "k6221.set_current":
             case "k6221.set_compliance":
             case "k6221.set_output":

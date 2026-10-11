@@ -46,12 +46,10 @@ public sealed class Keithley2182SettingsTests
     public void PpmsExpectedReadingSelectorsResolveUpwardWithDocumentedHeadroom(int channel, double selector, double expected)
         => Assert.Equal(new(expected, PhysicalUnit.Volt), Keithley2182Settings.ResolveRange(channel, new(selector, PhysicalUnit.Volt)));
     [Fact]
-    public void ChannelSwitchExplicitlyClearsOldFixedRangeAndKeepsOtherRequestedSettings()
+    public void ChannelSwitchCannotInventAnUnobservedTargetInputConfiguration()
     {
         var initial = new Keithley2182Settings(1, new(100, PhysicalUnit.Volt), 2, true, 1, AveragingMode.Moving, 0.5);
-        var changed = initial.WithParameter(Keithley2182Parameters.Channel.Id, new(2, PhysicalUnit.Dimensionless));
-        Assert.True(changed.AutoRange); Assert.Equal(2, changed.Channel); Assert.Equal(initial.Nplc, changed.Nplc); Assert.Equal(initial.FilterCount, changed.FilterCount);
-        Assert.ThrowsAny<ArgumentException>(() => changed.WithParameter(Keithley2182Parameters.ManualRange.Id, new(0.01, PhysicalUnit.Volt)));
+        Assert.Throws<InvalidOperationException>(() => initial.WithParameter(Keithley2182Parameters.Channel.Id, new(2, PhysicalUnit.Dimensionless)));
         Assert.Equal(initial, initial.WithParameter(Keithley2182Parameters.Channel.Id, new(1, PhysicalUnit.Dimensionless)));
     }
     [Fact]

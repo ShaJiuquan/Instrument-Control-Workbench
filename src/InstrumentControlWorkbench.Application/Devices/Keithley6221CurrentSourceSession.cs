@@ -68,7 +68,7 @@ public sealed class Keithley6221CurrentSourceSession : IDeviceSession
             var state = await port.GetSnapshotAsync(token); if (!state.Connected) throw new InvalidOperationException("K6221 is disconnected.");
             var values = state.Settings!.CaptureParameters();
             var value = parameter == Keithley6221Parameters.Output.Id ? new Quantity(state.OutputEnabled ? 1 : 0, PhysicalUnit.Dimensionless)
-                : values.TryGetValue(parameter, out var found) ? found : throw new InvalidOperationException("Manual span is absent while autorange is enabled.");
+                : values.TryGetValue(parameter, out var found) ? found : throw new InvalidOperationException("The requested register is unobserved; manual span is absent in autorange and old source delay may be unknown.");
             descriptor.Validate(value); await PublishAsync(state, token); return new(value, state.Timestamp);
         }
         catch { faulted = true; throw; }
@@ -105,6 +105,7 @@ public sealed class Keithley6221CurrentSourceSession : IDeviceSession
         try
         {
             var before = await port.GetSnapshotAsync(token); if (!before.Connected || before.OutputEnabled) throw new InvalidOperationException("K6221 preparation requires connected output-off.");
+            settings = new(settings.Current, settings.Compliance, settings.ManualRange, settings.SourceDelay ?? before.Settings!.SourceDelay);
             await port.ConfigureAsync(settings, token); var after = await port.GetSnapshotAsync(token);
             if (!after.Connected || after.OutputEnabled || after.Settings != settings) throw new InvalidOperationException("K6221 prepared settings/output-off did not confirm.");
             await PublishAsync(after, token);

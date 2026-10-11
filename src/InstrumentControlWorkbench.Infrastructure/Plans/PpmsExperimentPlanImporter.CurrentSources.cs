@@ -23,7 +23,7 @@ public sealed partial class PpmsExperimentPlanImporter
         if (pure is not null)
         {
             c.CurrentSources.Add(device); var s = pure.Settings;
-            return new(device, new(CurrentSourceModel.Keithley6221, s.Current, s.Compliance, s.ManualRange), null);
+            return new(device, new(CurrentSourceModel.Keithley6221, s.Current, s.Compliance, s.ManualRange, s.SourceDelay), null);
         }
         var smu = Source(p, c, SourceFunction.Current, defaultName); return new(device, new(smu.ToSetpoint()), smu);
     }
@@ -46,6 +46,14 @@ public sealed partial class PpmsExperimentPlanImporter
             if (!c.Bindings.Instruments.TryGetValue("k6221", out var id) || !c.Bindings.CurrentSourcePreparations.Any(s => s.Device == id)) throw new NotSupportedException("K6221 commands require the explicit pure current-source binding.");
             var on = Boolean(p, "enabled", false); if (on) c.CurrentSources.Add(id);
             return new SourceOutputStep(new(path), id, on);
+        }
+        if (name == "k6221.set_source_delay")
+        {
+            Alias(p, "delay_s", "source_delay_s", "delay"); Fields(p, "delay_s");
+            if (!c.Bindings.Instruments.TryGetValue("k6221", out var id) || !c.Bindings.CurrentSourcePreparations.Any(s => s.Device == id))
+                throw new NotSupportedException("K6221 commands require the explicit pure current-source binding.");
+            // A register-only command must not prepare unused current/compliance.
+            return Write(path, id, Keithley6221Parameters.SourceDelay, Number(p, "delay_s"));
         }
         var source = CurrentSource(new(), c); if (!source.Pure) throw new NotSupportedException("K6221 commands cannot impersonate a K2450.");
         switch (name)

@@ -54,6 +54,7 @@ internal static class ExperimentPlanCompiler
             if (device.Model != "K6221" || device.StopPolicy != DeviceStopPolicy.OutputOff) throw new ArgumentException("Pure current-source preparation requires its K6221 DC profile.");
             device.GetParameter(Keithley6221Parameters.Current.Id).ValidateWrite(preparation.Settings.Current);
             device.GetParameter(Keithley6221Parameters.Compliance.Id).ValidateWrite(preparation.Settings.Compliance);
+            if (preparation.Settings.SourceDelay is { } delay) device.GetParameter(Keithley6221Parameters.SourceDelay.Id).ValidateWrite(delay);
         }
         var cost = Visit(plan.Root, variables, [], 0);
         if (cost > 10_000_000) throw new ArgumentOutOfRangeException(nameof(plan), "Plan exceeds the 10,000,000 step execution budget.");

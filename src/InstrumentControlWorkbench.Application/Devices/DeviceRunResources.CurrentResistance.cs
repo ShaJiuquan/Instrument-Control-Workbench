@@ -51,7 +51,7 @@ public sealed partial class DeviceRunResources
             if (before is not null && (!before.Connected || !before.OutputEnabled || before.Source.Function != SourceFunction.Current) || pureBefore is not null && !pureBefore.OutputEnabled)
                 throw new InvalidOperationException("Current excitation is disconnected, off or wrong function.");
             if (before is not null) Keithley2450Limits.ValidateConfiguration(before.Source, before.Sense);
-            var configuration = before is not null ? new CurrentExcitationConfiguration(before.Source) : new CurrentExcitationConfiguration(CurrentSourceModel.Keithley6221, pureBefore!.Settings!.Current, pureBefore.Settings.Compliance, pureBefore.Settings.ManualRange);
+            var configuration = before is not null ? new CurrentExcitationConfiguration(before.Source) : new CurrentExcitationConfiguration(CurrentSourceModel.Keithley6221, pureBefore!.Settings!.Current, pureBefore.Settings.Compliance, pureBefore.Settings.ManualRange, pureBefore.Settings.SourceDelay);
             if (expectedProgrammedCurrent is { } requested && configuration.Level != requested.Value) throw new InvalidOperationException("Current excitation differs from the expected programmed current.");
             SourceSenseReading? sourceFrame = null;
             if (step.CurrentReference == CurrentReference.MeasuredSourceReadback)
@@ -113,7 +113,7 @@ public sealed partial class DeviceRunResources
                     before = manager is null ? null : await manager.CaptureRunSourceStateAsync(Owner, token);
                     pureBefore = pure is null ? null : await pure.CaptureSourceStateAsync(Owner, token);
                     if (before is not null && (!before.Connected || !before.OutputEnabled || new CurrentExcitationConfiguration(before.Source) != configuration || before.Sense != originalSource!.Sense || before.Terminals != originalSource.Terminals) ||
-                        pureBefore is not null && (!pureBefore.OutputEnabled || new CurrentExcitationConfiguration(CurrentSourceModel.Keithley6221, pureBefore.Settings!.Current, pureBefore.Settings.Compliance, pureBefore.Settings.ManualRange) != configuration))
+                        pureBefore is not null && (!pureBefore.OutputEnabled || new CurrentExcitationConfiguration(CurrentSourceModel.Keithley6221, pureBefore.Settings!.Current, pureBefore.Settings.Compliance, pureBefore.Settings.ManualRange, pureBefore.Settings.SourceDelay) != configuration))
                         throw new InvalidOperationException("Excitation did not remain confirmed for the second acquisition.", failure);
                     if (step.RequiredRoute is { } secondRoute) await ((MatrixSwitchSession)Get(secondRoute.Device)).ConfirmHeldRouteAsync(Owner, token, secondRoute.Closed);
                     beforeAt = DateTimeOffset.UtcNow;

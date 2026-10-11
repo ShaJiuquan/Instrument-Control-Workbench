@@ -64,12 +64,13 @@ public sealed record Keithley2182Settings
     public Keithley2182Settings WithParameter(ParameterId parameter, Quantity value)
     {
         Keithley2182Parameters.ValidateWrite(parameter, value);
-        // A channel switch explicitly starts in autorange. It must not reuse an
-        // unrelated input's manual range or pretend to retain its registers.
-        var channel = parameter == Keithley2182Parameters.Channel.Id ? (int)value.Value : Channel;
+        if (parameter == Keithley2182Parameters.Channel.Id && value.Value != Channel)
+            throw new InvalidOperationException("Observe the target input through the port before changing its settings.");
+        var channel = Channel;
         var range = ManualRange;
-        if (parameter == Keithley2182Parameters.ManualRange.Id) range = value;
-        else if (parameter == Keithley2182Parameters.EnableAutoRange.Id || channel != Channel) range = null;
+        if (parameter == Keithley2182Parameters.RangeSelector.Id) range = ResolveRange(Channel, value);
+        else if (parameter == Keithley2182Parameters.ManualRange.Id) range = value;
+        else if (parameter == Keithley2182Parameters.EnableAutoRange.Id) range = null;
         return new(channel, range,
             parameter == Keithley2182Parameters.Nplc.Id ? value.Value : Nplc,
             parameter == Keithley2182Parameters.FilterEnabled.Id ? value.Value == 1 : FilterEnabled,

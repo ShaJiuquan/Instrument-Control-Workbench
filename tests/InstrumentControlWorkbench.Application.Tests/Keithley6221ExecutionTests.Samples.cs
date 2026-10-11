@@ -66,7 +66,7 @@ public sealed partial class Keithley6221ExecutionTests
     {
         await using var b = new Bench(columns: 6); await b.Registry.ConnectAsync(b.Meter.Descriptor.Id, Token);
         var settings = (await b.Meter.GetSnapshotAsync(Token)).Settings!;
-        await b.Meter.ConfigureAsync(settings.WithParameter(Keithley2182Parameters.Channel.Id, new(2, PhysicalUnit.Dimensionless)), Token);
+        await b.Meter.SelectChannelAsync(2, Token);
         var triggered = false; b.Meter.OnRead = _ => { triggered = true; return Task.CompletedTask; };
         await Assert.ThrowsAsync<InvalidOperationException>(() => b.Runs.StartPlanAsync(IndependentSamplePlan(b, SampleTopology.FourWire), Token));
         Assert.False(triggered); Assert.Empty(b.Runs.LatestDataSet!.Rows); Assert.False((await b.Source.GetSnapshotAsync(Token)).OutputEnabled);
