@@ -125,6 +125,9 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanDocument
                 case RetryStep retry: pending.Push((retry.Body, entry.Depth + 1)); break;
                 case TimeoutStep timeout: pending.Push((timeout.Body, entry.Depth + 1)); break;
                 case SubtreeStep subtree: values += subtree.Inputs.Count + subtree.Outputs.Count; foreach (var child in subtree.Children) pending.Push((child, entry.Depth + 1)); break;
+                case BranchOnOutcomeStep branch:
+                    pending.Push((branch.Condition, entry.Depth + 1)); pending.Push((branch.Then, entry.Depth + 1));
+                    if (branch.Else is { } otherBranch) pending.Push((otherBranch, entry.Depth + 1)); break;
                 case ResultDecoratorStep decorator: pending.Push((decorator.Body, entry.Depth + 1)); break;
                 case SequenceStep sequence:
                     foreach (var child in sequence.Children) pending.Push((child, entry.Depth + 1)); break;

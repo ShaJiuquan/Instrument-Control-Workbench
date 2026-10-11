@@ -75,6 +75,8 @@ internal sealed class LoopbackScpiServer : IAsyncDisposable
     }
     public async ValueTask DisposeAsync()
     {
-        lifetime.Cancel(); listener.Stop(); await accepting; await Task.WhenAll(clients); lifetime.Dispose(); received.Writer.TryComplete();
+        // Drain token-cancelled accept before Stop: an accepted client can
+        // otherwise re-enter AcceptTcpClientAsync on a stopped listener.
+        lifetime.Cancel(); await accepting; listener.Stop(); await Task.WhenAll(clients); lifetime.Dispose(); received.Writer.TryComplete();
     }
 }

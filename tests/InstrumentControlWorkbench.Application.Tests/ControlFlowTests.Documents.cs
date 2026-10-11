@@ -46,9 +46,10 @@ public sealed partial class ControlFlowTests
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task NativeControlsSaveArchiveReopenAndReexecuteGroupedQualityWithNestedScopeColumns(bool scope)
+    [InlineData("plain")]
+    [InlineData("subtree")]
+    [InlineData("branch_outcome")]
+    public async Task NativeControlsSaveArchiveReopenAndReexecuteGroupedQualityWithNestedScopeColumns(string scope)
     {
         var folder = Path.Combine(Path.GetTempPath(), $"control-archive-{Guid.NewGuid():N}");
         try
@@ -62,7 +63,7 @@ public sealed partial class ControlFlowTests
                     new ConditionStep(new("ready"), new(new("retry.attempt"), ComparisonOperator.Equal, new ConstantValue(new(2, PhysicalUnit.Dimensionless))))]));
                 var fallback = new FallbackStep(new("choose"), [new ResultDecoratorStep(new("first"), ResultEffect.ForceFailure, b.ReadSource("rejected")), retry]);
                 var plan = b.Powered(new SequenceStep(new("flow"), [fallback, b.ReadField("after")]));
-                if (scope) plan = new(plan.Name, new SubtreeStep(new("scoped.plan"), [plan.Root]), plan.Preparations, plan.Metadata, plan.Routing);
+                if (scope != "plain") plan = new(plan.Name, scope == "subtree" ? new SubtreeStep(new("scoped.plan"), [plan.Root]) : new BranchOnOutcomeStep(new("conditional.plan"), new DelayStep(new("condition"), TimeSpan.Zero), plan.Root), plan.Preparations, plan.Metadata, plan.Routing);
                 var document = b.Workspace.Inspect(plan); var file = Path.Combine(folder, "saved.plan.json"); await b.Workspace.SaveAsync(file, document.Text, Token);
                 await b.Runs.StartPlanAsync((await b.Workspace.LoadAsync(file, Token)).Plan, Token);
                 var data = b.Runs.LatestDataSet!; id = data.Id; Assert.Equal(8, data.Rows.Count); Assert.All(data.Rows, data.Schema.ValidateRow);

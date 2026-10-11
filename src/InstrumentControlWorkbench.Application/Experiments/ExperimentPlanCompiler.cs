@@ -204,6 +204,7 @@ internal static class ExperimentPlanCompiler
             RetryStep retry => CanReportWorkflowFailure(retry.Body),
             TimeoutStep timeout => CanReportWorkflowFailure(timeout.Body),
             SubtreeStep subtree => subtree.Children.Any(CanReportWorkflowFailure),
+            BranchOnOutcomeStep branch => CanReportWorkflowFailure(branch.Then) || branch.Else is { } otherBranch && CanReportWorkflowFailure(otherBranch),
             SequenceStep sequence => sequence.Children.Any(CanReportWorkflowFailure),
             RepeatStep repeat => CanReportWorkflowFailure(repeat.Body),
             ScanStep scan => CanReportWorkflowFailure(scan.Body),
@@ -413,7 +414,9 @@ internal static class ExperimentPlanCompiler
                     var beforeDecoration = new Dictionary<ParameterId, PhysicalUnit>(known);
                     var decorated = new Dictionary<ParameterId, PhysicalUnit>(known);
                     var decoratedCost = Visit(decorator.Body, decorated, axes, depth + 1);
-                    if (decorator.Effect == ResultEffect.ForceSuccess && !CanReportWorkflowFailure(decorator.Body))
+                    // An IO-only child either completes its assignments or
+                    // throws, even when the decorator changes its outcome.
+                    if (!CanReportWorkflowFailure(decorator.Body))
                     { known.Clear(); foreach (var item in decorated) BindVariable(item.Key, item.Value, known); }
                     else RetainCommonVariables(known, [beforeDecoration, decorated]);
                     return checked(1 + decoratedCost);
@@ -534,6 +537,20 @@ internal static class ExperimentPlanCompiler
                     var elseCost = conditional.Else is { } otherwise ? Visit(otherwise, elseKnown, axes, depth + 1) : 0;
                     RetainCommonVariables(known, [thenKnown, elseKnown]);
                     return checked(1 + Math.Max(thenCost, elseCost));
+                case BranchOnOutcomeStep branch:
+                    var beforeCondition = new Dictionary<ParameterId, PhysicalUnit>(known);
+                    var afterCondition = new Dictionary<ParameterId, PhysicalUnit>(known);
+                    var conditionCost = Visit(branch.Condition, afterCondition, axes, depth + 1);
+                    var failureKnown = new Dictionary<ParameterId, PhysicalUnit>(afterCondition);
+                    if (CanReportWorkflowFailure(branch.Condition)) RetainCommonVariables(failureKnown, [beforeCondition, afterCondition]);
+                    // A forced result of an otherwise non-failing child has
+                    // completed the same observations on its failure path.
+                    if (branch.Condition is ResultDecoratorStep { Effect: ResultEffect.ForceFailure or ResultEffect.Invert } forced && !CanReportWorkflowFailure(forced.Body))
+                        failureKnown = new(afterCondition);
+                    var successCost = Visit(branch.Then, afterCondition, axes, depth + 1);
+                    var failureCost = branch.Else is { } alternative ? Visit(alternative, failureKnown, axes, depth + 1) : 0;
+                    RetainCommonVariables(known, [afterCondition, failureKnown]);
+                    return checked(1 + conditionCost + Math.Max(successCost, failureCost));
                 default:
                     throw new NotSupportedException($"No executor exists for {step.GetType().Name}.");
             }

@@ -142,6 +142,10 @@ public sealed partial class JsonExperimentPlanDocument
                 };
                 o["then"] = EncodeStep(s.Then, depth + 1, ref count);
                 if (s.Else is { } otherwise) o["else"] = EncodeStep(otherwise, depth + 1, ref count); break;
+            case BranchOnOutcomeStep s:
+                o["kind"] = "branch_outcome"; o["condition"] = EncodeStep(s.Condition, depth + 1, ref count);
+                o["then"] = EncodeStep(s.Then, depth + 1, ref count);
+                if (s.Else is { } alternative) o["else"] = EncodeStep(alternative, depth + 1, ref count); break;
             default: throw new NotSupportedException($"No document codec exists for {step.GetType().Name}.");
         }
         return o;
@@ -308,6 +312,10 @@ public sealed partial class JsonExperimentPlanDocument
                 var otherwise = o.ContainsKey("else") ? DecodeStep(Required(o, "else"), depth + 1, ref count) : null;
                 return new IfElseStep(id, new(new(Text(condition, "variable")), NamedEnum<ComparisonOperator>(condition, "operator"),
                     DecodeValue(condition["value"])), then, otherwise);
+            case "branch_outcome":
+                Object(o, "id", "kind", "condition", "then", "else");
+                return new BranchOnOutcomeStep(id, DecodeStep(Required(o, "condition"), depth + 1, ref count),
+                    DecodeStep(Required(o, "then"), depth + 1, ref count), o.ContainsKey("else") ? DecodeStep(Required(o, "else"), depth + 1, ref count) : null);
             default: throw new NotSupportedException($"Unsupported plan step '{kind}'.");
         }
     }

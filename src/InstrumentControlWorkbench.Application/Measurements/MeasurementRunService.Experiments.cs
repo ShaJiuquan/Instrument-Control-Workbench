@@ -36,6 +36,10 @@ public sealed partial class MeasurementRunService
                 outcome = await ExecuteTimeoutAsync(timeout, run, started, ivPlot); break;
             case SubtreeStep subtree:
                 outcome = await ExecuteSubtreeAsync(subtree, run, started, ivPlot); break;
+            case BranchOnOutcomeStep branch:
+                var selectedBranch = await ExecuteStepAsync(branch.Condition, run, started, ivPlot) == StepOutcome.Success ? branch.Then : branch.Else;
+                if (selectedBranch is not null) outcome = await ExecuteStepAsync(selectedBranch, run, started, ivPlot);
+                break;
             case ResultDecoratorStep decorator:
                 var childOutcome = await ExecuteStepAsync(decorator.Body, run, started, ivPlot);
                 outcome = decorator.Effect switch

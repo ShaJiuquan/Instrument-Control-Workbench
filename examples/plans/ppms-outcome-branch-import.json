@@ -1,0 +1,23 @@
+{
+  "experiment_id": "PPMS node conditions with Then and Else",
+  "type": "sequence",
+  "children": [
+    {
+      "type": "if_then_else", "source_line": 1,
+      "children": [
+        { "type": "measurement", "name": "measure_field" },
+        { "type": "then", "children": [ { "type": "measurement", "name": "measure_field" } ] },
+        { "type": "else", "children": [ { "type": "measurement", "name": "measure_field" } ] }
+      ]
+    },
+    {
+      "type": "if_then_else", "source_line": 8,
+      "children": [
+        { "type": "force_failure", "children": [ { "type": "measurement", "name": "measure_field" } ] },
+        { "type": "then", "children": [ { "type": "measurement", "name": "measure_field" } ] },
+        { "type": "else", "children": [ { "type": "measurement", "name": "measure_field" } ] }
+      ]
+    },
+    { "type": "measurement", "name": "measure_field" }
+  ]
+}

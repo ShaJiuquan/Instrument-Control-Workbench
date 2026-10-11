@@ -79,15 +79,21 @@ public sealed partial class SampleResistanceExecutionTests
     [InlineData("plain")]
     [InlineData("timeout")]
     [InlineData("subtree")]
+    [InlineData("branch_outcome")]
     public async Task GeometryAndGroupPlanArchiveRoundTripWithStreamingCsvEvidence(string scope)
     {
         using var folder = new TemporaryFolder(); RunId id;
         var codec = new JsonExperimentPlanDocument(); var path = Path.Combine(folder.Path, "analysis.plan.json");
         var original = SampleResistanceAnalysisPlan.Create(Recipe(Configuration(SampleTopology.VanDerPauw, Geometry)));
-        if (scope != "plain") original = new(original.Name, scope == "timeout" ? new TimeoutStep(new("bounded.analysis"), TimeSpan.FromSeconds(20), original.Root) : new SubtreeStep(new("scoped.analysis"), [original.Root]), original.Preparations, original.Metadata, original.Routing);
+        if (scope != "plain") original = new(original.Name, scope switch
+        {
+            "timeout" => new TimeoutStep(new("bounded.analysis"), TimeSpan.FromSeconds(20), original.Root),
+            "branch_outcome" => new BranchOnOutcomeStep(new("conditional.analysis"), new DelayStep(new("condition"), TimeSpan.Zero), original.Root),
+            _ => new SubtreeStep(new("scoped.analysis"), [original.Root]),
+        }, original.Preparations, original.Metadata, original.Routing);
         await codec.SaveAsync(path, original, Token); var plan = await codec.LoadAsync(path, Token);
         Assert.Equal(Geometry, plan.Routing!.Samples[0].Geometry);
-        Assert.IsType<SampleAnalysisStep>(plan.Root switch { TimeoutStep bounded => bounded.Body, SubtreeStep local => local.Children.Single(), _ => plan.Root });
+        Assert.IsType<SampleAnalysisStep>(plan.Root switch { TimeoutStep bounded => bounded.Body, SubtreeStep local => local.Children.Single(), BranchOnOutcomeStep conditional => conditional.Then, _ => plan.Root });
         await using (var archive = new FileRunArchive(Path.Combine(folder.Path, "runs")))
         {
             var b = new Bench(archive); await b.Runs.StartPlanAsync(plan, Token); id = b.Runs.LatestDataSet!.Id;

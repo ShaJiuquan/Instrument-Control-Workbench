@@ -968,3 +968,25 @@ quantity-only C# scope. Full non-numeric/expression/parallel/UI/hardware and oth
 PPMS work remains active. See workflow-control.md. No new dependencies, Rust or
 original29 UI edits. Mandatory hook and exact committed-source audit precede
 GitHub publication; independent C# engine and GitHub-only decision unchanged.
+
+## Node outcome branching (2026-10-11)
+
+BranchOnOutcomeStep executes condition once on the existing owned serial run,
+then selected Then/optional Else. Missing Else succeeds; selected Failure keeps
+origin. Condition rows and mutations remain. IO/listener/deadline/abort propagate
+as errors, never logical False. Compiler validates all children, condition+max
+branch cost, and same-unit variables across paths. IO-only decorators retain
+completed observations on forced failure/inversion, while early-failing controls
+cannot guarantee new variables on Else. All resource/data/document visitors,
+native branch_outcome codec, PPMS if_then_else/conditional/branch node mode and
+then/else wrappers are integrated. Strict malformed/numeric-mode rejection,
+fixture/native save/archive/CSV/fresh replay, grouped quality/vdP, pause/abort,
+failed-stop claims/recovery and owned TCP fault tests cover the change. PPMS
+numeric mode/while, Bool/Text/expressions, parallel, native UI and lab parity
+remain pending. Independent C# engine, GitHub only; no new dependency, Rust edit
+or protected UI-draft inclusion.
+
+Full audit also exposed an owned LoopbackScpiServer teardown race: Stop could
+precede the accept loop's next iteration. Token-cancelled accept now drains
+before listener Stop; a 32-session regression checks handler/socket-read drain.
+This changes only the local test peer, not physical transport behavior.

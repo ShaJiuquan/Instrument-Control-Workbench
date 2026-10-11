@@ -65,6 +65,9 @@ public sealed class RunDataRowValidator
                 case RetryStep retry: pending.Push((retry.Body, item.Depth + 1)); break;
                 case TimeoutStep timeout: pending.Push((timeout.Body, item.Depth + 1)); break;
                 case SubtreeStep subtree: foreach (var child in subtree.Children) pending.Push((child, item.Depth + 1)); break;
+                case BranchOnOutcomeStep branch:
+                    pending.Push((branch.Condition, item.Depth + 1)); pending.Push((branch.Then, item.Depth + 1));
+                    if (branch.Else is { } otherwise) pending.Push((otherwise, item.Depth + 1)); break;
                 case ResultDecoratorStep decorator: pending.Push((decorator.Body, item.Depth + 1)); break;
                 case SequenceStep sequence: foreach (var child in sequence.Children) pending.Push((child, item.Depth + 1)); break;
                 case ScanStep scan: pending.Push((scan.Body, item.Depth + 1)); break;

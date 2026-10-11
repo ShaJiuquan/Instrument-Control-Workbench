@@ -6,6 +6,18 @@ namespace InstrumentControlWorkbench.Core.Experiments;
 public enum StepOutcome { Success, Failure }
 public enum ResultEffect { ForceSuccess, ForceFailure, Invert }
 
+public sealed record BranchOnOutcomeStep : ExperimentStep
+{
+    public BranchOnOutcomeStep(StepId id, ExperimentStep condition, ExperimentStep then, ExperimentStep? otherwise = null) : base(id)
+    {
+        ArgumentNullException.ThrowIfNull(condition); ArgumentNullException.ThrowIfNull(then);
+        Condition = condition; Then = then; Else = otherwise;
+    }
+    public ExperimentStep Condition { get; }
+    public ExperimentStep Then { get; }
+    public ExperimentStep? Else { get; }
+}
+
 public sealed record VariableBinding
 {
     public VariableBinding(ParameterId source, ParameterId destination)

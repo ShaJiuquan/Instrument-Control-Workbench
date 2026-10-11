@@ -69,6 +69,11 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
             {
                 case "sequence":
                     Fields(p); return new SequenceStep(id, Children(node, path, c, depth));
+                case "if_then_else":
+                    if (p.ContainsKey("variable")) throw new NotSupportedException("Numeric/script conditions require a separately migrated comparison contract.");
+                    Fields(p); var branchChildren = Children(node, path, c, depth);
+                    if (branchChildren.Count is not (2 or 3)) throw new FormatException("if_then_else node mode requires a condition, Then and optional Else.");
+                    return new BranchOnOutcomeStep(id, branchChildren[0], branchChildren[1], branchChildren.Count == 3 ? branchChildren[2] : null);
                 case "fallback":
                     Fields(p); return new FallbackStep(id, Children(node, path, c, depth));
                 case "retry":
@@ -139,6 +144,8 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
         "loop" or "repeat_n" => "repeat",
         "with_timeout" => "timeout",
         "scope" or "isolated" => "subtree",
+        "conditional" or "branch" => "if_then_else",
+        "then" or "else" => "sequence",
         "scan_temp" => "scan_temperature",
         "time_s" => "scan_time",
         "field" => "scan_field",

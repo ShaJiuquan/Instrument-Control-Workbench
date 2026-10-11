@@ -1091,22 +1091,32 @@
       ],
       "status": "partial",
       "evidence": {
-        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs",
-        "tests": "tests/InstrumentControlWorkbench.Application.Tests/ExperimentExecutionTests.cs",
-        "limits": "Typed plan API supports relevant scan/control/numeric wait subset; PPMS decoder and controller-specific semantics still pending"
+        "boundary": "Core BranchOnOutcomeStep; Application unit-aware full-tree preflight and serial execution; Infrastructure codecs",
+        "tests": "BranchOnOutcomeStepTests.cs; ControlFlowTests.OutcomeBranch*.cs and lifecycle/driver/timeout/archives; SampleResistanceExecutionTests.Analysis.cs",
+        "limits": "PPMS node mode only: condition once, selected Then/optional Else, missing Else Success; rows and state retained, errors/abort never become False. Strict native/PPMS aliases and Then/Else wrappers, source locations, all resource/data/document visitors, variable availability and budget, fixture/archive/CSV/fresh execution, grouped quality/vdP, failed stop/recovery. Numeric PPMS variable/op/value mode, while, expressions/parallel/UI/lab remain pending. See workflow-control.md."
       }
     },
     {
       "id": "then",
       "nodeType": "sequence",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "boundary": "Core BranchOnOutcomeStep; Application unit-aware full-tree preflight and serial execution; Infrastructure codecs",
+        "tests": "BranchOnOutcomeStepTests.cs; ControlFlowTests.OutcomeBranch*.cs and lifecycle/driver/timeout/archives; SampleResistanceExecutionTests.Analysis.cs",
+        "limits": "PPMS node mode only: condition once, selected Then/optional Else, missing Else Success; rows and state retained, errors/abort never become False. Strict native/PPMS aliases and Then/Else wrappers, source locations, all resource/data/document visitors, variable availability and budget, fixture/archive/CSV/fresh execution, grouped quality/vdP, failed stop/recovery. Numeric PPMS variable/op/value mode, while, expressions/parallel/UI/lab remain pending. See workflow-control.md."
+      }
     },
     {
       "id": "else",
       "nodeType": "sequence",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "boundary": "Core BranchOnOutcomeStep; Application unit-aware full-tree preflight and serial execution; Infrastructure codecs",
+        "tests": "BranchOnOutcomeStepTests.cs; ControlFlowTests.OutcomeBranch*.cs and lifecycle/driver/timeout/archives; SampleResistanceExecutionTests.Analysis.cs",
+        "limits": "PPMS node mode only: condition once, selected Then/optional Else, missing Else Success; rows and state retained, errors/abort never become False. Strict native/PPMS aliases and Then/Else wrappers, source locations, all resource/data/document visitors, variable availability and budget, fixture/archive/CSV/fresh execution, grouped quality/vdP, failed stop/recovery. Numeric PPMS variable/op/value mode, while, expressions/parallel/UI/lab remain pending. See workflow-control.md."
+      }
     },
     {
       "id": "switch",
@@ -1236,9 +1246,9 @@
       "id": "if_then_else",
       "status": "partial",
       "evidence": {
-        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs",
-        "tests": "tests/InstrumentControlWorkbench.Application.Tests/ExperimentExecutionTests.cs",
-        "limits": "Typed generic subset tested on simulation profiles; PPMS JSON/alias decoding, BT success/failure semantics and remaining device/measurement families pending"
+        "boundary": "Core BranchOnOutcomeStep; Application unit-aware full-tree preflight and serial execution; Infrastructure codecs",
+        "tests": "BranchOnOutcomeStepTests.cs; ControlFlowTests.OutcomeBranch*.cs and lifecycle/driver/timeout/archives; SampleResistanceExecutionTests.Analysis.cs",
+        "limits": "PPMS node mode only: condition once, selected Then/optional Else, missing Else Success; rows and state retained, errors/abort never become False. Strict native/PPMS aliases and Then/Else wrappers, source locations, all resource/data/document visitors, variable availability and budget, fixture/archive/CSV/fresh execution, grouped quality/vdP, failed stop/recovery. Numeric PPMS variable/op/value mode, while, expressions/parallel/UI/lab remain pending. See workflow-control.md."
       }
     },
     {
@@ -1557,5 +1567,12 @@
     "nativeKind": "subtree",
     "fixture": "examples/plans/ppms-subtree-import.json",
     "limits": "Inherited quantity variables; simultaneous input/output maps; local shadow, parent restore on failure/error/cancel and selected success exports with stable parent units. Native/PPMS subtree/scope/isolated; bounded strict maps, all resource/data/document visitors; scan fixture/archive/CSV/fresh replay plus vdP/wide-group evidence. Rust Bool/Text blackboard, expressions/parallel/native UI/physical remain pending. See workflow-control.md."
+  },
+  "outcomeBranches": {
+    "status": "partial",
+    "semantics": "PPMS node-result branching, not numeric/script-mode parity",
+    "boundary": "Core BranchOnOutcomeStep; Application unit-aware full-tree preflight and serial execution; Infrastructure codecs",
+    "tests": "BranchOnOutcomeStepTests.cs; ControlFlowTests.OutcomeBranch*.cs and lifecycle/driver/timeout/archives; SampleResistanceExecutionTests.Analysis.cs",
+    "limits": "PPMS node mode only: condition once, selected Then/optional Else, missing Else Success; rows and state retained, errors/abort never become False. Strict native/PPMS aliases and Then/Else wrappers, source locations, all resource/data/document visitors, variable availability and budget, fixture/archive/CSV/fresh execution, grouped quality/vdP, failed stop/recovery. Numeric PPMS variable/op/value mode, while, expressions/parallel/UI/lab remain pending. See workflow-control.md."
   }
 }

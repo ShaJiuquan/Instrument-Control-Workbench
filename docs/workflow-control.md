@@ -196,3 +196,37 @@ actual device state and retained failed hold are exercised. No new package,
 physical IO, Rust edits or original29 UI draft changes. Full PPMS migration,
 non-numeric blackboard/expressions, parallel execution and native editor/hardware
 acceptance remain incomplete.
+
+## Branching on a child outcome
+
+`BranchOnOutcomeStep` executes Condition once on the same run context, then
+executes Then for Success or optional Else for ordinary Failure. Missing Else
+returns Success after a false condition. The selected child's outcome becomes the
+branch outcome; a selected Failure keeps its original step identity. Condition
+observations and variable/device mutations remain; there is no entry snapshot or
+physical rollback. Instrument IO, listener faults, timeout and cancellation
+propagate through the branch without choosing Else.
+
+Preflight visits all children before device admission and budgets the condition
+plus the largest branch. Then can use values guaranteed after condition success.
+Else conservatively retains entry variables for a condition which can fail early;
+a completed IO-only child wrapped in ForceFailure/Invert retains its observed
+values on the failure path. Values after the branch must have the same unit on
+both paths. No speculative failed-path variable is treated as an observation.
+
+Native v1 uses `branch_outcome` with required `condition`/`then` and optional
+`else`; explicit null children and extra fields reject. PPMS `if_then_else`,
+`conditional`, `branch` node mode takes exactly two or three children; `then` and
+`else` are sequence wrappers. Source locations survive conversion. PPMS numeric
+mode (`variable`, `op`, `value`) rejects explicitly pending its iterator/axis
+comparison migration. Existing typed `IfElseStep` is a separate numeric API;
+this slice does not claim PPMS numeric/while or expression parity.
+
+Tests cover exact branch selection/outcomes, condition state, guaranteed-variable
+preflight, hidden invalid branches and costs, IO/timeout/listener error
+propagation, abort in condition and selected branches, pause, retained ownership
+on failed stop and recovery. `ppms-outcome-branch-import.json` runs five rows,
+saves/reloads native plans and archives, exports CSV and executes in a fresh
+service; grouped quality and vdP raw/derived evidence also round-trip under the
+branch. These are simulation and owned loopback protocol tests, not lab or UI
+acceptance.

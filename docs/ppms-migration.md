@@ -605,3 +605,16 @@ Native and PPMS subtree/scope/isolated formats, executable scan/field fixture,
 vdP/grouped archives and CSV/fresh replay cover the slice. Rust Bool/Text
 blackboard and expression controls remain pending alongside parallel/editor/
 physical scope. See workflow-control.md. No new package, Rust or UI-draft edits.
+
+### If/Then/Else node outcomes
+
+Independent C# BranchOnOutcomeStep now executes a condition child once, selects
+Then/optional Else from its explicit workflow result and preserves observations
+and state. Selected failure propagates its origin; IO/listener/deadline/abort
+errors never select another branch. All preflight/data/document visitors include
+every child, with conservative variable availability and unit validation before
+admission. Native v1 and PPMS node aliases/Then/Else wrappers, source locations,
+five-row fixture/archive/CSV/fresh replay, grouped quality and vdP evidence are
+covered. Numeric PPMS mode, while, expressions, parallel controls and full UI/lab
+acceptance remain pending. See workflow-control.md. No new package or Rust/UI
+changes are part of this slice.
