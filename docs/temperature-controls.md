@@ -52,7 +52,9 @@ cancellation, pause/resume/abort, retained failed hold, strict native/PPMS impor
 published fixture, fresh archive/CSV/replay. Existing software-ramp tests remain
 applicable. No dependency or laboratory IO is introduced. Temperature hardware
 adapters, continuous background stability state, PID/heater/cool-down,
-disabled-control set_temperature/scans, background runs and native operator UI
+caller-managed scan control, background runs and native operator UI
 acceptance remain unfinished. The full PPMS migration remains active.
 
 Runtime stability configuration is now covered separately in [temperature-stability.md](temperature-stability.md).
+
+Caller-managed setpoints are covered in [temperature-setpoints.md](temperature-setpoints.md).

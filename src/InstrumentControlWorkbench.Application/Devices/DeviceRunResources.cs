@@ -122,7 +122,7 @@ public sealed partial class DeviceRunResources
         finally { gate.Release(); }
     }
 
-    internal async Task<Quantity> BeginSoftwareTemperatureRampAsync(InstrumentId id, Quantity target, CancellationToken token)
+    internal async Task<SoftwareTemperatureRampState> BeginSoftwareTemperatureRampAsync(InstrumentId id, Quantity target, bool enableControl, CancellationToken token)
     {
         await gate.WaitAsync(token);
         try
@@ -130,7 +130,18 @@ public sealed partial class DeviceRunResources
             RequireActive();
             var axis = Get(id) as AxisControllerSession ?? throw new NotSupportedException($"{id} is not an axis controller.");
             await PrepareMutationAsync(id); touched.Add(id);
-            return await axis.BeginSoftwareTemperatureRampAsync(target, Owner, token);
+            return await axis.BeginSoftwareTemperatureRampAsync(target, enableControl, Owner, token);
+        }
+        finally { gate.Release(); }
+    }
+    internal async Task SetHardwareTemperatureTargetAsync(InstrumentId id, Quantity target, Quantity rate, bool enableControl, CancellationToken token)
+    {
+        await gate.WaitAsync(token);
+        try
+        {
+            RequireActive(); var axis = Get(id) as AxisControllerSession ?? throw new NotSupportedException($"{id} is not an axis controller.");
+            await PrepareMutationAsync(id); token.ThrowIfCancellationRequested(); touched.Add(id);
+            await axis.SetHardwareTemperatureTargetAsync(target, rate, enableControl, Owner, token);
         }
         finally { gate.Release(); }
     }
@@ -168,7 +179,7 @@ public sealed partial class DeviceRunResources
         }
         finally { gate.Release(); }
     }
-    internal async Task WriteSoftwareTemperatureTargetAsync(InstrumentId id, Quantity target, CancellationToken token)
+    internal async Task WriteSoftwareTemperatureTargetAsync(InstrumentId id, Quantity target, SoftwareTemperatureRampState state, CancellationToken token)
     {
         await gate.WaitAsync(token);
         try
@@ -176,7 +187,7 @@ public sealed partial class DeviceRunResources
             RequireActive();
             var axis = Get(id) as AxisControllerSession ?? throw new NotSupportedException($"{id} is not an axis controller.");
             await PrepareMutationAsync(id); touched.Add(id);
-            await axis.WriteSoftwareTemperatureTargetAsync(target, Owner, token);
+            await axis.WriteSoftwareTemperatureTargetAsync(target, state, Owner, token);
         }
         finally { gate.Release(); }
     }

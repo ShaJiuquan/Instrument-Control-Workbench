@@ -532,3 +532,25 @@ PID/heater/cooling, disabled-control sets/scans, persistence, UI and physical
 acceptance remain pending. No Rust edits, new packages or original29 UI edits.
 Targeted tests, mandatory precommit and exact clean committed-source audit precede
 GitHub publication. Full migration remains active; GitHub only, independent engine.
+
+
+## Caller-managed temperature setpoints and wait ordering (2026-10-11)
+
+PPMS set_temperature enable_control=false now preserves the actual enabled or
+disabled control flag through software/direct/hardware target changes. It does
+not mean control-off. Default enabled software paths keep the original port;
+preserved paths preflight the actual optional configuration port. Hardware sets
+use a typed atomic parked preparation instead of rate-enable at a stale target.
+Software ticks carry captured control/rate evidence, with drift/refusal/fault/cancel
+and pause guards through existing owned resources. Native optional enableControl
+is backward compatible; new hardware_temperature_setpoint saves/archives/replays.
+Further reference tracing corrects the prior stability-stage statement: no-wait
+set skips threshold configuration and settle, waited set and step scans update
+thresholds after ramp and settle before waiting. Prior before-ramp/no-wait override
+behavior was a migration mismatch, not reference semantics. Scan false-control
+option remains explicitly unsupported because the Rust factory does not carry it.
+See [temperature-setpoints.md](temperature-setpoints.md). No new packages, physical
+IO, Rust edits or original29 UI edits. Mandatory hook and exact committed-source
+audit precede GitHub stage publication. Full migration remains active; continuous
+runtime/persistence, PID/heater/cooling/background, advanced instruments/BT/data/
+graphical flow/native UI and hardware acceptance remain pending. GitHub only.

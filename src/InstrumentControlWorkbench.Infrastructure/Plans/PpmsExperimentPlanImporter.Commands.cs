@@ -153,10 +153,10 @@ public sealed partial class PpmsExperimentPlanImporter
         if (role == "field") Choice(p, "mode", "driven", "driven");
         if (role == "temperature") Choice(p, "ramp_strategy", "software", "software", "hardware", "auto");
         var target = Number(p, targetKey); var steps = new List<ExperimentStep>();
+        var temperatureOverrides = role == "temperature" ? TemperatureOverrides(path, axis, p) : null;
         if (role == "temperature")
         {
-            if (!Boolean(p, "enable_control", true)) throw new NotSupportedException("Temperature sets with disabled control are not migrated.");
-            if (TemperatureOverrides(path, axis, p) is { } settings) steps.Add(settings);
+            var enableControl = Boolean(p, "enable_control", true);
             TemperatureRampPath.ValidateTemperature(new(target, PhysicalUnit.Kelvin));
             var requestedRate = Number(p, rateKey, 0);
             Quantity? rate = requestedRate > 0 ? new(requestedRate, PhysicalUnit.KelvinPerMinute) : null;
@@ -164,10 +164,9 @@ public sealed partial class PpmsExperimentPlanImporter
             var strategy = Text(p, "ramp_strategy", "software").Trim().ToLowerInvariant();
             if (strategy == "hardware" && rate is { } hardwareRate)
             {
-                steps.Add(Write(path + ".rate", axis.Device.Id, axis.Rate, hardwareRate.Value));
-                steps.Add(Write(path + ".target", axis.Device.Id, axis.Target, target));
+                steps.Add(new HardwareTemperatureSetpointStep(new(path + ".target"), axis.Device.Id, new ConstantValue(new(target, PhysicalUnit.Kelvin)), hardwareRate, enableControl));
             }
-            else steps.Add(new SoftwareTemperatureRampStep(new(path + ".target"), axis.Device.Id, new ConstantValue(new(target, PhysicalUnit.Kelvin)), rate));
+            else steps.Add(new SoftwareTemperatureRampStep(new(path + ".target"), axis.Device.Id, new ConstantValue(new(target, PhysicalUnit.Kelvin)), rate, enableControl));
         }
         else
         {
@@ -176,9 +175,16 @@ public sealed partial class PpmsExperimentPlanImporter
         }
         Choice(p, "wait_mode", "stable", "stable", "reached", "none");
         if (Text(p, "wait_mode", "stable").Trim().ToLowerInvariant() != "none")
+        {
+            if (role == "temperature")
+            {
+                if (temperatureOverrides is { } settings) steps.Add(settings);
+                steps.Add(new DelayStep(new(path + ".settle"), Duration(p, "settle_s", 0)));
+            }
             steps.Add(Stability(path + ".stable", axis, new ConstantValue(new(target, axis.Target.Unit)), p, toleranceKey, tolerance,
                 Text(p, "wait_mode", "stable").Trim().Equals("reached", StringComparison.OrdinalIgnoreCase) ? 0 : stable, timeout));
-        steps.Add(new DelayStep(new(path + ".settle"), Duration(p, "settle_s", 0)));
+        }
+        if (role != "temperature") steps.Add(new DelayStep(new(path + ".settle"), Duration(p, "settle_s", 0)));
         return new SequenceStep(new(path), steps);
     }
     private static (string Target, string Rate, string Tolerance, double ToleranceValue, double Stable, double Timeout) AxisDefaults(string role) => role switch

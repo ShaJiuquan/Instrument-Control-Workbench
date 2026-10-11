@@ -94,6 +94,9 @@ public sealed partial class MeasurementRunService
                 }
                 finally { RestoreAxes(run, beforeLoop); }
                 break;
+            case HardwareTemperatureSetpointStep hardwareTemperature:
+                await run.Resources!.SetHardwareTemperatureTargetAsync(hardwareTemperature.Device, Resolve(hardwareTemperature.Target, run), hardwareTemperature.Rate, hardwareTemperature.EnableControl, run.Token);
+                break;
             case SoftwareTemperatureRampStep temperature:
                 await ExecuteTemperatureRampAsync(temperature, run);
                 break;

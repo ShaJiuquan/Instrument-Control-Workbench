@@ -50,17 +50,17 @@ public sealed partial class PpmsExperimentPlanImporter
         var values = Points(p["points"] is JsonObject or JsonArray ? p["points"]! : p, axis.Target.Unit, c, 0, p["points"] is not (JsonObject or JsonArray));
         var column = new ParameterId(path + ".axis");
         var wait = Stability(path + ".stable", axis, new VariableValue(column), p, toleranceKey, role == "field" ? 0.0005 : tolerance, stable, timeout);
-        var children = new SequenceStep(new(path + ".body"), [wait, new DelayStep(new(path + ".settle"), Duration(p, "settle_s", 0)), .. ScanChildren(node, path, c, depth)]);
+        var settle = new DelayStep(new(path + ".settle"), Duration(p, "settle_s", 0));
+        var scanChildren = ScanChildren(node, path, c, depth);
+        var children = new SequenceStep(new(path + ".body"), role == "temperature" ? [settle, wait, .. scanChildren] : [wait, settle, .. scanChildren]);
         if (role == "temperature")
         {
             if (!Boolean(p, "enable_control", true)) throw new NotSupportedException("Temperature scans with disabled control are not migrated.");
             foreach (var value in values.Values) { TemperatureRampPath.ValidateTemperature(value); axis.Target.ValidateWrite(value); }
             var rate = new Quantity(Number(p, rateKey, 5), PhysicalUnit.KelvinPerMinute);
             var ramp = new SoftwareTemperatureRampStep(new(path + ".ramp"), axis.Device.Id, new VariableValue(column), rate);
-            ExperimentStep temperatureScan = new ForEachStep(new(path + ".scan"), column, values,
-                new SequenceStep(new(path + ".point"), [ramp, children]));
-            return TemperatureOverrides(path, axis, p) is { } settings
-                ? new SequenceStep(new(path), [settings, temperatureScan]) : temperatureScan;
+            return new ForEachStep(new(path + ".scan"), column, values,
+                new SequenceStep(new(path + ".point"), TemperatureOverrides(path, axis, p) is { } settings ? [ramp, settings, children] : [ramp, children]));
         }
         var scan = new ScanStep(new(path + ".scan"), new(axis.Device.Id, axis.Target.Id), column, values, TimeSpan.Zero, children);
         if (role == "field") return scan;

@@ -96,7 +96,6 @@ public sealed class PpmsPlanImportTests
         Assert.Equal(!software, (await b.Temperature.ReadControlConfigurationAsync(Token)).HardwareRampEnabled);
     }
     [Theory]
-    [InlineData("disabled")]
     [InlineData("small_rate")]
     [InlineData("large_rate")]
     [InlineData("target")]
@@ -108,7 +107,6 @@ public sealed class PpmsPlanImportTests
         var b = new Bench(); var p = new JsonObject { ["target_k"] = 300, ["wait_mode"] = "none" }; var node = Node("command", "set_temp", p);
         switch (fault)
         {
-            case "disabled": Object(node)["enable_control"] = false; break;
             case "small_rate": Object(node)["rate_k_per_min"] = 0.001; break;
             case "large_rate": Object(node)["rate_k_per_min"] = 21; break;
             case "target": Object(node)["target_k"] = 311; break;

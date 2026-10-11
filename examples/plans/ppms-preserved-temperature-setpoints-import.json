@@ -1,0 +1,11 @@
+{
+  "experiment_id": "PPMS caller-managed temperature control",
+  "type": "sequence",
+  "children": [
+    { "type": "command", "name": "temp_control_off", "source_line": 1, "params": {} },
+    { "type": "command", "name": "set_temp", "source_line": 2, "params": { "target_k": 300.05, "enable_control": false, "wait_mode": "none", "ramp_strategy": "software" } },
+    { "type": "measurement", "name": "measure_temp", "source_line": 3, "params": {} },
+    { "type": "command", "name": "set_temp", "source_line": 4, "params": { "target_k": 301, "rate_k_per_min": 7, "enable_control": false, "wait_mode": "none", "ramp_strategy": "hardware" } },
+    { "type": "measurement", "name": "measure_temp", "source_line": 5, "params": {} }
+  ]
+}

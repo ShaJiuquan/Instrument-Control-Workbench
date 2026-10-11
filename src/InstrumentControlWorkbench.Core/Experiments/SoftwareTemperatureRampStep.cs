@@ -5,17 +5,19 @@ namespace InstrumentControlWorkbench.Core.Experiments;
 
 public sealed record SoftwareTemperatureRampStep : ExperimentStep
 {
-    public SoftwareTemperatureRampStep(StepId id, InstrumentId device, PlanValue target, Quantity? rate = null) : base(id)
+    public SoftwareTemperatureRampStep(StepId id, InstrumentId device, PlanValue target, Quantity? rate = null, bool enableControl = true) : base(id)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(device.Value); ArgumentNullException.ThrowIfNull(target);
         if (rate is { } r) TemperatureRampPath.ValidateRate(r);
         if (target is ConstantValue literal) TemperatureRampPath.ValidateTemperature(literal.Value);
-        Device = device; Target = target; Rate = rate;
+        Device = device; Target = target; Rate = rate; EnableControl = enableControl;
     }
     public InstrumentId Device { get; }
     public PlanValue Target { get; }
     // Null means an explicitly direct, unrounded set with hardware ramp off.
     public Quantity? Rate { get; }
+    // False preserves the observed control flag; it does not turn control off.
+    public bool EnableControl { get; }
 }
 
 public sealed record TemperatureRampPath

@@ -234,13 +234,14 @@ public sealed partial class TemperatureControlExecutionTests
     [Theory]
     [InlineData("set")]
     [InlineData("scan")]
-    public async Task ExplicitTemperatureOverridesPersistForSubsequentSteps(string kind)
+    public async Task ScanOverridesPersistButWaitNoneSetSkipsStabilityChanges(string kind)
     {
         var b = new Bench(); var node = kind == "set" ? new JsonObject { ["type"] = "command", ["name"] = "set_temp", ["params"] = new JsonObject { ["target_k"] = 300, ["wait_mode"] = "none", ["tolerance_k"] = 0.4, ["stable_duration_s"] = 0 } }
             : new JsonObject { ["type"] = "scan", ["name"] = "scan_temp", ["params"] = new JsonObject { ["points"] = new JsonArray(300), ["tolerance_k"] = 0.4, ["stable_duration_s"] = 0 }, ["children"] = new JsonArray(new JsonObject { ["type"] = "measurement", ["name"] = "measure_temp" }) };
         var plan = new PpmsExperimentPlanImporter().Parse(node.ToJsonString(), b.Bindings); await b.Runs.StartPlanAsync(plan, Token);
         var actual = await b.Devices.ConfigureTemperatureStabilityAsync(b.Id, new(), Token);
-        Assert.Equal(K(0.4), actual.Tolerance); Assert.Equal(TimeSpan.Zero, actual.StableFor); Assert.Equal(K(2), actual.SettlingThreshold);
+        Assert.Equal(kind == "set" ? TemperatureStabilitySettings.Default.Tolerance : K(0.4), actual.Tolerance);
+        Assert.Equal(kind == "set" ? TemperatureStabilitySettings.Default.StableFor : TimeSpan.Zero, actual.StableFor); Assert.Equal(K(2), actual.SettlingThreshold);
     }
 
     private static async Task UntilTemperatureState(NotificationSubscription events, string state)

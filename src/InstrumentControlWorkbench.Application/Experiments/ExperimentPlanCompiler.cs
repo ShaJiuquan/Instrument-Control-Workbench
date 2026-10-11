@@ -324,10 +324,20 @@ internal static class ExperimentPlanCompiler
                         throw new NotSupportedException("Controller does not implement independent temperature configuration.");
                     if (command.Rate is { } commandRate) registry.GetAxisDefinition(command.Device).Rate.ValidateWrite(commandRate);
                     return 1;
+                case HardwareTemperatureSetpointStep hardwareTemperature:
+                    Device(hardwareTemperature.Device);
+                    var hardwareController = registry.GetAxisDefinition(hardwareTemperature.Device);
+                    if (!hardwareController.SupportsSoftwareTemperatureRamp || !hardwareTemperature.EnableControl && !registry.SupportsTemperatureConfiguration(hardwareTemperature.Device))
+                        throw new NotSupportedException("Controller does not implement requested hardware temperature setpoint capability.");
+                    if (ValueUnit(hardwareTemperature.Target, known) != PhysicalUnit.Kelvin) throw new ArgumentException("Temperature targets require Kelvin.");
+                    if (hardwareTemperature.Target is ConstantValue hardwareTarget) hardwareController.Target.ValidateWrite(hardwareTarget.Value);
+                    hardwareController.Rate.ValidateWrite(hardwareTemperature.Rate);
+                    return 1;
                 case SoftwareTemperatureRampStep temperature:
                     Device(temperature.Device);
                     var controller = registry.GetAxisDefinition(temperature.Device);
-                    if (!controller.SupportsSoftwareTemperatureRamp) throw new NotSupportedException("Controller does not implement software temperature ramps.");
+                    if (!controller.SupportsSoftwareTemperatureRamp || !temperature.EnableControl && !registry.SupportsTemperatureConfiguration(temperature.Device))
+                        throw new NotSupportedException("Controller does not implement requested software temperature ramp capability.");
                     if (ValueUnit(temperature.Target, known) != PhysicalUnit.Kelvin) throw new ArgumentException("Temperature targets require Kelvin.");
                     if (temperature.Target is ConstantValue temperatureTarget)
                     {

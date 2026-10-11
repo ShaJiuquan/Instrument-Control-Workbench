@@ -237,7 +237,12 @@ public sealed partial class TemperatureControlExecutionTests
         public Task SetTargetAsync(Quantity target, CancellationToken token) => Mock.SetTargetAsync(target, token);
         public Task SetRateAsync(Quantity rate, CancellationToken token) => Mock.SetRateAsync(rate, token);
         public Task PrepareSoftwareRampAsync(Quantity target, CancellationToken token) => Mock.PrepareSoftwareRampAsync(target, token);
-        public Task SetHardwareRampAsync(Quantity rate, CancellationToken token) => Mock.SetHardwareRampAsync(rate, token);
+        public List<Quantity> HardwareRampTargets { get; } = [];
+        public async Task SetHardwareRampAsync(Quantity rate, CancellationToken token)
+        {
+            HardwareRampTargets.Add((await Mock.GetSnapshotAsync(token)).Target);
+            await Mock.SetHardwareRampAsync(rate, token);
+        }
         public async Task<TemperatureControlConfiguration> ReadControlConfigurationAsync(CancellationToken token)
         {
             if (BlockNextConfigurationRead) { BlockNextConfigurationRead = false; ConfigurationBlocked.TrySetResult(); await Task.Delay(Timeout.Infinite, token); }

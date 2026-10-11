@@ -13,8 +13,9 @@ public interface ITemperatureConfigurationPort : ITemperatureControlPort
     Task ConfigureControlAsync(TemperatureControlConfiguration configuration, Parameters.Quantity? rate, CancellationToken token);
 }
 
-// Real temperature-control boundary: software setpoints require confirmed
-// hardware-ramp-off and control-on; protocol details stay in adapters.
+// Default preparation confirms hardware-ramp-off and control-on. Optional
+// independent configuration permits preserving the observed control flag;
+// application orchestration owns that path, protocol details stay in adapters.
 public interface ITemperatureControlPort : IAxisControllerPort
 {
     // Park at the supplied live origin with hardware ramp disabled before

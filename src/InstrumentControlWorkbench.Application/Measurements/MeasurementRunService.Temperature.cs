@@ -14,15 +14,15 @@ public sealed partial class MeasurementRunService
         var definition = devices.GetAxisDefinition(step.Device);
         definition.Target.ValidateWrite(target);
         if (step.Rate is not null) definition.Target.ValidateWrite(new(TemperatureRampPath.MilliKelvin(target) / 1000.0, PhysicalUnit.Kelvin));
-        var start = await run.Resources!.BeginSoftwareTemperatureRampAsync(step.Device, target, run.Token);
+        var state = await run.Resources!.BeginSoftwareTemperatureRampAsync(step.Device, target, step.EnableControl, run.Token);
         if (step.Rate is not { } rate)
         {
             await PauseCheckpointAsync(run);
             run.ExecutedSteps++;
-            await run.Resources.WriteSoftwareTemperatureTargetAsync(step.Device, target, run.Token);
+            await run.Resources.WriteSoftwareTemperatureTargetAsync(step.Device, target, state, run.Token);
             return;
         }
-        var path = new TemperatureRampPath(start, target, rate);
+        var path = new TemperatureRampPath(state.Start, target, rate);
         // Endpoint rounding can fall outside a narrower adapter's target range.
         definition.Target.ValidateWrite(path.Targets().FirstOrDefault(path.RoundedTarget));
         definition.Target.ValidateWrite(path.RoundedTarget);
@@ -30,7 +30,7 @@ public sealed partial class MeasurementRunService
         {
             await PauseCheckpointAsync(run);
             run.ExecutedSteps++;
-            await run.Resources.WriteSoftwareTemperatureTargetAsync(step.Device, path.RoundedTarget, run.Token);
+            await run.Resources.WriteSoftwareTemperatureTargetAsync(step.Device, path.RoundedTarget, state, run.Token);
             return;
         }
         long updated = 0;
@@ -38,7 +38,7 @@ public sealed partial class MeasurementRunService
         {
             await PauseCheckpointAsync(run);
             run.ExecutedSteps++;
-            await run.Resources.WriteSoftwareTemperatureTargetAsync(step.Device, next, run.Token);
+            await run.Resources.WriteSoftwareTemperatureTargetAsync(step.Device, next, state, run.Token);
             // Preserve the remaining active tick across pause; no wall-clock
             // catch-up and no delay after programming the final setpoint.
             if (++updated < path.UpdateCount) await DwellAsync(run, TimeSpan.FromSeconds(TemperatureRampPath.TickSeconds));

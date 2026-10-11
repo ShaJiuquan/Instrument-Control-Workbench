@@ -26,9 +26,13 @@ public sealed partial class JsonExperimentPlanDocument
             case TemperatureControlStep command:
                 o["kind"] = "temperature_control"; o["device"] = command.Device.Value; o["action"] = command.Action.ToString();
                 if (command.Rate is { } commandRate) o["rate"] = EncodeQuantity(commandRate); break;
+            case HardwareTemperatureSetpointStep hardwareTemperature:
+                o["kind"] = "hardware_temperature_setpoint"; o["device"] = hardwareTemperature.Device.Value; o["target"] = EncodeValue(hardwareTemperature.Target); o["rate"] = EncodeQuantity(hardwareTemperature.Rate);
+                if (!hardwareTemperature.EnableControl) o["enableControl"] = false; break;
             case SoftwareTemperatureRampStep temperature:
                 o["kind"] = "software_temperature_ramp"; o["device"] = temperature.Device.Value; o["target"] = EncodeValue(temperature.Target);
-                if (temperature.Rate is { } rate) o["rate"] = EncodeQuantity(rate); break;
+                if (temperature.Rate is { } rate) o["rate"] = EncodeQuantity(rate);
+                if (!temperature.EnableControl) o["enableControl"] = false; break;
             case ReadSourceSenseStep pair:
                 o["kind"] = "read_source_sense"; o["device"] = pair.Device.Value; o["function"] = pair.Function.ToString();
                 o["voltageColumn"] = pair.VoltageColumn.Value; o["currentColumn"] = pair.CurrentColumn.Value; EncodeEnvironment(o, pair.EnvironmentReads); break;
@@ -154,9 +158,12 @@ public sealed partial class JsonExperimentPlanDocument
             case "temperature_control":
                 Object(o, "id", "kind", "device", "action", "rate");
                 return new TemperatureControlStep(id, new(Text(o, "device")), NamedEnum<TemperatureControlAction>(o, "action"), o.ContainsKey("rate") ? DecodeQuantity(o["rate"]) : null);
+            case "hardware_temperature_setpoint":
+                Object(o, "id", "kind", "device", "target", "rate", "enableControl");
+                return new HardwareTemperatureSetpointStep(id, new(Text(o, "device")), DecodeValue(o["target"]), DecodeQuantity(o["rate"]), !o.ContainsKey("enableControl") || Boolean(o, "enableControl"));
             case "software_temperature_ramp":
-                Object(o, "id", "kind", "device", "target", "rate");
-                return new SoftwareTemperatureRampStep(id, new(Text(o, "device")), DecodeValue(o["target"]), o.ContainsKey("rate") ? DecodeQuantity(o["rate"]) : null);
+                Object(o, "id", "kind", "device", "target", "rate", "enableControl");
+                return new SoftwareTemperatureRampStep(id, new(Text(o, "device")), DecodeValue(o["target"]), o.ContainsKey("rate") ? DecodeQuantity(o["rate"]) : null, !o.ContainsKey("enableControl") || Boolean(o, "enableControl"));
             case "read_source_sense":
                 Object(o, "id", "kind", "device", "function", "voltageColumn", "currentColumn", "environmentReads");
                 return new ReadSourceSenseStep(id, new(Text(o, "device")), NamedEnum<SourceFunction>(o, "function"), new(Text(o, "voltageColumn")), new(Text(o, "currentColumn")), DecodeEnvironment(o));

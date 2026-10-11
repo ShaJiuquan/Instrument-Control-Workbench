@@ -19,8 +19,11 @@ checks settling threshold before tolerance, even if a caller sets threshold
 below tolerance. Invalid values fail explicitly rather than being silently ignored.
 
 `set_temperature` and step `scan_temperature` inherit the current session settings.
-Explicit tolerance/duration overrides update the session before programming the
-ramp, including a set with `wait_mode=none`; later steps inherit those updates.
+Explicit tolerance/duration overrides update the session after programming the
+ramp when waiting for stable/reached; later steps inherit those updates. A set
+with `wait_mode=none` skips threshold updates and settle. Temperature step scans
+apply overrides after each ramp and settle before their wait. This corrects the
+initial migration's treatment of the no-wait branch.
 Fields unrelated to stability retain their previous behavior. Field/angle waits
 and existing native `wait_stable` steps retain their explicitly declared numeric
 settings. No changes to ramp enable, control enable, target or rate result from a
@@ -50,8 +53,9 @@ uses a wait-local observer: it does not implement the Rust controller's continuo
 background state cache or reuse previously accumulated stable time across waits.
 Session settings survive successive runs but are not persisted across app restart.
 Continuous/background temperature operations, PID/heater/cooling commands,
-disabled-control set/scan behavior, full native UI and physical acceptance remain
-pending. This is a tested simulation/API migration slice, not full PPMS parity.
+caller-managed scan control, full native UI and physical acceptance remain
+pending. Caller-managed direct/software/hardware sets are covered in
+[temperature-setpoints.md](temperature-setpoints.md). This is a tested simulation/API migration slice, not full PPMS parity.
 
 Version-1 native plans add `temperature_stability` (device and optional typed
 thresholds/duration) and `wait_temperature` (device, target, named mode, polling

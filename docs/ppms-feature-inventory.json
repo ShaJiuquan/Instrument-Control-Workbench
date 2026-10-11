@@ -23,9 +23,9 @@
       ],
       "status": "partial",
       "evidence": {
-        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Temperature.cs; src/InstrumentControlWorkbench.Application/Devices/AxisControllerSession.Temperature.cs",
-        "tests": "tests/InstrumentControlWorkbench.Application.Tests/SoftwareTemperatureExecutionTests.cs; tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs",
-        "limits": "Temperature sets support confirmed software/hardware/auto and direct-no-rate semantics; step temperature scans use native iterator/software ramp/numeric stability/children. Continuous/cooling/background modes, disabled temperature control, persistent/controller status semantics, full BT nodes, remaining resistance modes, manual ranges, filtering, separate meters and hardware acceptance remain pending. See temperature-control.md.",
+        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Temperature.cs; src/InstrumentControlWorkbench.Application/Devices/AxisControllerSession.Temperature.cs; src/InstrumentControlWorkbench.Core/Experiments/HardwareTemperatureSetpointStep.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/SoftwareTemperatureExecutionTests.cs; tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs; tests/InstrumentControlWorkbench.Application.Tests/TemperatureControlExecutionTests.Setpoints.cs",
+        "limits": "Software/direct/hardware typed targets and enable_control=false preserve fresh actual control flags. Parked hardware enable, per-tick software flag/rate proof, optional capability preflight, strict native/PPMS parsing, pause/cancel/fault/retained group cleanup, fresh archive replay and CSV simulation. Wait-none skips threshold/settle; waited temperature updates and settle follow ramp before wait. Continuous/cache/cooling/PID/heater/UI/physical remain pending. See temperature-setpoints.md.",
         "importImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.cs; src/InstrumentControlWorkbench.Application/Experiments/ExperimentPlanWorkspace.cs",
         "importTests": "tests/InstrumentControlWorkbench.Application.Tests/PpmsPlanImportTests.cs",
         "importLimits": "Bounded PPMS runtime-tree subset with command aliases, source-line metadata, explicit source/controller/channel bindings, native preflight/execution and save/archive/CSV. Temperature sets support confirmed software/hardware/auto and direct-no-rate semantics; step temperature scans use native iterator/software ramp/numeric stability/children. Continuous/cooling/background modes, disabled temperature control, persistent/controller status semantics, full BT nodes, remaining resistance modes/profile/device settings UI and PPMS write-back, manual ranges, filtering, separate meters and hardware acceptance remain pending. See ppms-plan-import.md.",
@@ -1509,5 +1509,11 @@
     "documentation": "docs/temperature-stability.md",
     "fixture": "examples/plans/ppms-temperature-stability-import.json",
     "scope": "Independent session configuration and wait-local state observer; no hardware mutation for config; explicit initial plan settings required for reproducible fresh-session replay."
+  },
+  "temperatureSetpoints": {
+    "status": "partial",
+    "documentation": "docs/temperature-setpoints.md",
+    "fixture": "examples/plans/ppms-preserved-temperature-setpoints-import.json",
+    "scope": "enable_control=false preserves actual flag for set_temperature; parked preparation, current rate/control confirmation, hardware/native/PPMS/archive simulation. Scan flag propagation, background and physical/UI parity pending."
   }
 }
