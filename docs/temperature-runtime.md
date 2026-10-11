@@ -56,3 +56,11 @@ and intent clearance. Existing native plan/archive/CSV fixtures execute against
 this shared state. Settings/runtime persistence, firmware status mapping,
 background/PID/heater/cooling, physical adapters, visual flow and native UI
 acceptance remain pending. Full PPMS migration remains active.
+
+Disconnect completion is a fresh observed fact: after the adapter returns, the
+session reads its connection state and rejects a still-connected result. Driver
+failure, cancellation or refused disconnection invalidates shared stability and
+software intent and marks the session faulted. No success notification is emitted.
+A subsequent connected status reports Fault until explicit recovery. A moving-axis
+precondition rejection occurs before disconnect IO and preserves known state.
+Five regression cases cover these boundaries and successful reconnect evidence.

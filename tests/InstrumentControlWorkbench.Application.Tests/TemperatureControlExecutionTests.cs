@@ -224,6 +224,7 @@ public sealed partial class TemperatureControlExecutionTests
         public bool Block { get; set; }
         public bool FailHold { get; set; }
         public bool EnableOnHold { get; set; }
+        public string? DisconnectFault { get; set; }
         public int Applies { get; private set; }
         public int Holds { get; private set; }
         private bool configured;
@@ -269,6 +270,12 @@ public sealed partial class TemperatureControlExecutionTests
             await Mock.HoldAsync(token);
             if (EnableOnHold) await Mock.ConfigureControlAsync(new(true, true), null, token);
         }
-        public Task DisconnectAsync(CancellationToken token) => Mock.DisconnectAsync(token);
+        public async Task DisconnectAsync(CancellationToken token)
+        {
+            if (DisconnectFault == "throw") throw Failure;
+            if (DisconnectFault == "cancel") throw new OperationCanceledException(token);
+            if (DisconnectFault == "ignored") return;
+            await Mock.DisconnectAsync(token);
+        }
     }
 }

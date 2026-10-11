@@ -61,8 +61,15 @@ public sealed partial class AxisControllerSession : IDeviceSession
         {
             var snapshot = await port.GetSnapshotAsync(token);
             if (snapshot.Moving) throw new InvalidOperationException("Confirm hold before disconnecting a moving controller.");
-            await port.DisconnectAsync(token); ResetTemperatureRuntime();
-            await PublishAsync(await port.GetSnapshotAsync(token), token);
+            try
+            {
+                await port.DisconnectAsync(token);
+                var disconnected = await port.GetSnapshotAsync(token);
+                if (disconnected.Connected) throw new InvalidOperationException($"{Descriptor.Id} did not confirm disconnection.");
+                ResetTemperatureRuntime();
+                await PublishAsync(disconnected, token);
+            }
+            catch { faulted = true; ResetTemperatureRuntime(); throw; }
         }
         finally { operations.Exit(); }
     }

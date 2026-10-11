@@ -572,3 +572,13 @@ physical IO, new dependencies, Rust or original29 UI edits. Persistence, firmwar
 states, background/PID/heater/cooling, caller-managed scans, full native/graphical
 UI and other PPMS/hardware scope remain pending. Mandatory hook and exact committed
 source audit precede GitHub publication. Full goal active; GitHub only.
+
+### Confirmed disconnect and temperature evidence
+
+Disconnect success requires fresh connection readback. Adapter exceptions,
+cancellation and ignored writes fault the axis session and reset temperature
+evidence; a moving precondition rejection preserves state. PID/heater method
+names were traced in the Rust sample namespace, but their units, bounds and
+control-mode/stop contract remain unverified. These writes remain pending;
+existing mock values do not prove physical behavior. Independent C# execution
+and GitHub stage publication remain the accepted decisions.

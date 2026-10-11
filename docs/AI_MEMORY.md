@@ -914,3 +914,20 @@ physical IO, new dependencies, Rust or original29 UI edits. Persistence, firmwar
 states, background/PID/heater/cooling, caller-managed scans, full native/graphical
 UI and other PPMS/hardware scope remain pending. Mandatory hook and exact committed
 source audit precede GitHub publication. Full goal active; GitHub only.
+
+
+## Confirmed axis disconnect and temperature evidence (2026-10-11)
+
+Axis disconnect now requires a fresh disconnected snapshot. An adapter error,
+cancellation or ignored disconnect cannot preserve old Stable evidence or emit
+a success status. Moving-axis rejection remains before mutation and does not
+mark the existing known state faulty. Five focused cases cover failures, fresh
+confirmation, notifications, recovery and reconnect evidence.
+Read-only PPMS tracing found sample getPID/setPID and getHeaterPower/setHeaterPower
+RPC calls in device_sample.rs, but no vendor units, bounds or manual/automatic
+mode side-effect contract. sanitize_f64 maps nonfinite values to zero; this is
+not a valid C# safety contract. PID/heater writes remain pending model/firmware
+evidence; no 0..100 percent assumption or simulated physical parity. No new
+packages, Rust edits or original29 UI edits. Mandatory hook plus exact committed
+source audit precede GitHub publication. Full goal active; independent C# engine,
+GitHub only.

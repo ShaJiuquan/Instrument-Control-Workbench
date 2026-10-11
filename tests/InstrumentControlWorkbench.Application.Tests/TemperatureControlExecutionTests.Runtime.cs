@@ -10,6 +10,66 @@ namespace InstrumentControlWorkbench.Application.Tests;
 
 public sealed partial class TemperatureControlExecutionTests
 {
+    [Theory]
+    [InlineData("throw")]
+    [InlineData("cancel")]
+    [InlineData("ignored")]
+    public async Task FailedDisconnectCannotKeepPriorStableEvidence(string failure)
+    {
+        var b = new Bench(useStateClock: true);
+        await b.Devices.ConnectAsync(b.Id, Token);
+        b.Clock.Advance(TimeSpan.FromSeconds(5));
+        Assert.Equal(TemperatureStabilityState.Stable, (await b.Devices.GetStatusAsync(b.Id, Token)).Temperature!.State);
+        b.Port.DisconnectFault = failure;
+        using var events = b.Hub.Subscribe();
+        var error = await Assert.ThrowsAnyAsync<Exception>(() => b.Devices.DisconnectAsync(b.Id, Token));
+        if (failure == "throw") Assert.Same(b.Port.Failure, error);
+        if (failure == "cancel") Assert.IsAssignableFrom<OperationCanceledException>(error);
+        if (failure == "ignored") Assert.Contains("did not confirm disconnection", error.Message);
+        Assert.False(events.Reader.TryRead(out _));
+        var status = await b.Devices.GetStatusAsync(b.Id, Token);
+        Assert.True(status.Connected);
+        Assert.Equal(InstrumentLifecycleState.Faulted, status.Lifecycle);
+        Assert.Equal(TemperatureStabilityState.Fault, status.Temperature!.State);
+        Assert.Null(status.Temperature.Error);
+        Assert.Null(status.Temperature.InToleranceFor);
+        await b.TemperatureSession.StopDeviceAsync(Token);
+        Assert.Equal(TemperatureStabilityState.Reached, (await b.Devices.GetStatusAsync(b.Id, Token)).Temperature!.State);
+    }
+
+    [Fact]
+    public async Task ConfirmedDisconnectPublishesUnknownFlagsAndReconnectStartsNewEvidence()
+    {
+        var b = new Bench(useStateClock: true);
+        await b.Devices.ConnectAsync(b.Id, Token);
+        b.Clock.Advance(TimeSpan.FromSeconds(5));
+        Assert.Equal(TemperatureStabilityState.Stable, (await b.Devices.GetStatusAsync(b.Id, Token)).Temperature!.State);
+        using var events = b.Hub.Subscribe();
+        await b.Devices.DisconnectAsync(b.Id, Token);
+        Assert.True(events.Reader.TryRead(out var item));
+        Assert.False(item.Device!.Connected);
+        Assert.Equal(InstrumentLifecycleState.Disconnected, item.Device.Lifecycle);
+        Assert.Equal(TemperatureStabilityState.Fault, item.Device.Temperature!.State);
+        Assert.Null(item.Device.Temperature.Control);
+        var reconnected = await b.Devices.ConnectAsync(b.Id, Token);
+        Assert.Equal(TemperatureStabilityState.Reached, reconnected.Temperature!.State);
+        Assert.Equal(TimeSpan.Zero, reconnected.Temperature.InToleranceFor);
+    }
+
+    [Fact]
+    public async Task MovingDisconnectPreconditionCannotInvokeDriverOrFaultKnownRuntime()
+    {
+        var b = new Bench(useStateClock: true);
+        await b.Devices.ConnectAsync(b.Id, Token);
+        await b.Devices.WriteAsync(b.Id, b.Port.Definition.Target.Id, K(305), Token);
+        b.Port.DisconnectFault = "throw";
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => b.Devices.DisconnectAsync(b.Id, Token));
+        Assert.Contains("Confirm hold", error.Message);
+        var status = await b.Devices.GetStatusAsync(b.Id, Token);
+        Assert.Equal(InstrumentLifecycleState.Running, status.Lifecycle);
+        Assert.Equal(TemperatureStabilityState.Ramping, status.Temperature!.State);
+    }
+
     [Fact]
     public async Task ManualStatusAndRunWaitReadShareSessionEvidenceAndTypedNotifications()
     {
