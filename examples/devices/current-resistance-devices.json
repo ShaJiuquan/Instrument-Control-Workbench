@@ -1,0 +1,31 @@
+{
+  "format": "instrument-workbench-devices",
+  "version": 1,
+  "primarySource": "current-source",
+  "devices": [
+    {
+      "id": "current-source",
+      "model": "K2450",
+      "displayName": "Current excitation simulator",
+      "category": "SourceMeter",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      }
+    },
+    {
+      "id": "nanovoltmeter",
+      "model": "K2182",
+      "displayName": "Independent voltage simulator",
+      "category": "Meter",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      }
+    }
+  ],
+  "aliases": {
+    "k6221": "current-source",
+    "k2182": "nanovoltmeter"
+  }
+}

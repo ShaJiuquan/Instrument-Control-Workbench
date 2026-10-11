@@ -12,7 +12,7 @@ public sealed record DeviceCleanupFailure(InstrumentId InstrumentId, Exception E
 
 // Explicit release requires successful stop confirmation for every touched resource.
 // No automatic disposal can turn unknown hardware state into a released lease.
-public sealed class DeviceRunResources
+public sealed partial class DeviceRunResources
 {
     private readonly IReadOnlyDictionary<InstrumentId, IDeviceSession> sessions;
     private readonly InstrumentLeaseService leases;

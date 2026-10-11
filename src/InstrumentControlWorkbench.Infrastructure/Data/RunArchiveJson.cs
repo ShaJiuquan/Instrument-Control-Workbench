@@ -90,11 +90,12 @@ internal static partial class RunArchiveJson
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] SampleAnalysisDto? Analysis = null,
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] MeasurementGroupDto? MeasurementGroup = null,
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] EnvironmentObservationDto[]? Environment = null,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] AcquisitionQualityDto[]? Quality = null)
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] AcquisitionQualityDto[]? Quality = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IndependentResistanceDto[]? IndependentResistance = null)
     {
-        public MeasurementDataRow ToDomain() => new(Timestamp, Required(Values).ToDictionary(p => new ParameterId(p.Key), p => Required(p.Value).ToDomain()), Routing?.ToDomain(), Analysis?.ToDomain(), MeasurementGroup?.ToDomain(), Environment?.Select(o => Required(o).ToDomain()), Quality?.Select(q => Required(q).ToDomain()));
+        public MeasurementDataRow ToDomain() => new(Timestamp, Required(Values).ToDictionary(p => new ParameterId(p.Key), p => Required(p.Value).ToDomain()), Routing?.ToDomain(), Analysis?.ToDomain(), MeasurementGroup?.ToDomain(), Environment?.Select(o => Required(o).ToDomain()), Quality?.Select(q => Required(q).ToDomain()), IndependentResistance?.Select(r => Required(r).ToDomain()));
         public static RowDto From(int index, MeasurementDataRow row) => new(index, row.Timestamp,
-            row.Values.OrderBy(p => p.Key.Value, StringComparer.Ordinal).ToDictionary(p => p.Key.Value, p => QuantityDto.From(p.Value)), row.Routing is null ? null : SampleRouteDto.From(row.Routing), row.Analysis is null ? null : SampleAnalysisDto.From(row.Analysis), row.MeasurementGroup is null ? null : MeasurementGroupDto.From(row.MeasurementGroup), row.Environment.Count == 0 ? null : row.Environment.Select(EnvironmentObservationDto.From).ToArray(), row.Quality.Count == 0 ? null : row.Quality.Select(AcquisitionQualityDto.From).ToArray());
+            row.Values.OrderBy(p => p.Key.Value, StringComparer.Ordinal).ToDictionary(p => p.Key.Value, p => QuantityDto.From(p.Value)), row.Routing is null ? null : SampleRouteDto.From(row.Routing), row.Analysis is null ? null : SampleAnalysisDto.From(row.Analysis), row.MeasurementGroup is null ? null : MeasurementGroupDto.From(row.MeasurementGroup), row.Environment.Count == 0 ? null : row.Environment.Select(EnvironmentObservationDto.From).ToArray(), row.Quality.Count == 0 ? null : row.Quality.Select(AcquisitionQualityDto.From).ToArray(), row.IndependentResistance.Count == 0 ? null : row.IndependentResistance.Select(IndependentResistanceDto.From).ToArray());
     }
     internal sealed record AcquisitionQualityDto(string Step, string Device, string Column, DateTimeOffset CapturedAt, ushort? SourceStatus, ushort? MeasurementStatus,
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] AcquisitionSettingsDto? AcquisitionConfiguration = null,

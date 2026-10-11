@@ -22,7 +22,7 @@ public sealed partial class PpmsExperimentPlanImporter
             if (voltage && points.Values.Any(q => Math.Abs(q.Value) > 200)) throw new FormatException("PPMS voltage scan points must lie in -200..200 V.");
             if (range is { } fixedRange) foreach (var point in points.Values) Keithley2450Limits.Validate(new SourceSetpoint(function, point.Value, Number(p, voltage ? "compliance_a" : "compliance_v", voltage ? 1e-4 : 10), fixedRange));
             List<ExperimentStep> sourceChildren;
-            c.SourceScans.Push((source.Device, Text(p, "channel", voltage ? "" : "ch1").Trim()));
+            c.SourceScans.Push((source.Device, Text(p, "channel", voltage ? "" : "ch1").Trim(), new ParameterId(path + ".axis")));
             try { sourceChildren = ScanChildren(node, path, c, depth); }
             finally { c.SourceScans.Pop(); }
             var body = new SequenceStep(new(path + ".body"), [new DelayStep(new(path + ".settle"), Duration(p, "settle_s", 0.1)), .. sourceChildren]);

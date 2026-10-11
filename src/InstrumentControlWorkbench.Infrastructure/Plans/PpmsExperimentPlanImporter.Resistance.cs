@@ -13,6 +13,8 @@ public sealed partial class PpmsExperimentPlanImporter
     private static ExperimentStep Resistance(string name, JsonObject original, string path, ImportContext c)
     {
         var p = (JsonObject)original.DeepClone();
+        var mode = Text(p, "mode", Text(p, "meas_mode", "curr_dc")).Trim().ToLowerInvariant();
+        if (mode == "curr_dc") return CurrentResistance(name, p, path, c);
         Alias(p, "sample_id", "sample"); Alias(p, "mode", "meas_mode");
         Alias(p, "voltage_v", "target_v", "bias_v", "voltage"); Alias(p, "compliance_a", "current_limit_a", "compliance");
         Alias(p, "source_range_v", "range_v", "voltage_range_v"); Alias(p, "meter_range_a", "sense_range_a", "current_range_a");

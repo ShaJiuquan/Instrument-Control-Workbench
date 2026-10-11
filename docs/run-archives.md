@@ -132,3 +132,13 @@ boundaries with the source executor. Optional per-row meter settings never
 claim SMU buffer quality. Native two-input plans and direct PPMS input-1 voltage
 filtering are supported; physical transports, curr_dc resistance, routed meter
 reads and native UI acceptance remain pending. See [standalone-meter.md](standalone-meter.md).
+
+## Independent current resistance stage (2026-10-11)
+
+The independent C# executor now supports source-plus-K2182 `curr_dc` resistance,
+with explicit programmed-current versus measured-source-readback references,
+separate acquisition evidence, guarded matrix verification, managed scan-current
+binding, wide-point aggregation and validated archive/CSV. Real K2182 and K6221
+drivers, automatic independent sample wiring/analysis, retry-to-invalid-point
+semantics, native UI and lab acceptance remain pending. See
+[current-resistance.md](current-resistance.md); full goal remains active.

@@ -140,6 +140,11 @@ roles. The planned feature set focuses on:
 - Persistent run history (current file archive adapter; database choice remains open).
 - Interactive plotting for live measurement feedback.
 
+Independent current-source plus external-meter resistance, owned and scan-managed
+PPMS `curr_dc` import, and explicit guarded matrix routes now have a tested backend
+subset. See [current-resistance.md](docs/current-resistance.md) and the native/PPMS
+simulation fixtures linked there. Physical K2182/K6221 support remains pending.
+
 ## License
 
 MIT.

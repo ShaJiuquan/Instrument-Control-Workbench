@@ -43,7 +43,7 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
         public Dictionary<string, Quantity> Metadata { get; } = [];
         public bool UsesSamples { get; set; }
         public bool UsesChannelProfiles { get; set; }
-        public Stack<(InstrumentId Device, string Channel)> SourceScans { get; } = new();
+        public Stack<(InstrumentId Device, string Channel, Core.Parameters.ParameterId Axis)> SourceScans { get; } = new();
         public int Nodes { get; set; }
         public int Values { get; set; }
     }

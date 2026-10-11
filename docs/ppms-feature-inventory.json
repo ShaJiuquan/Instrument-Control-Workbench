@@ -259,7 +259,13 @@
         "environmentImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.Environment.cs; src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Environment.cs; src/InstrumentControlWorkbench.Core/Data/RunDataRowValidator.cs",
         "environmentTests": "tests/InstrumentControlWorkbench.Application.Tests/EnvironmentAcquisitionTests.cs; tests/InstrumentControlWorkbench.Application.Tests/PpmsResistanceImportTests.cs",
         "environmentLimits": "All supported imported measurements automatically retain temperature/field/angle, source, actual value or unavailable error and UTC read completion time. Atomic admission includes bound controller readbacks; unbound roles record errors without guessing devices. Serialized C# capture follows electrical acquisition, unlike concurrent Rust futures. Raw sample observations, first-input analysis context and per-member wide-point evidence persist and validate through native/archive/CSV. Physical timing, sensor quality, remaining acquisition families/settings/UI and hardware remain pending. See environment-acquisition.md.",
-        "senseRangeEvidence": "K2450 integrated volt_dc owned/managed/sample manual sense selectors and aliases are now supported; see k2450SenseRanges and sense-ranges.md. Remaining ohmmeter/other-family ranges, per-row quality and real hardware are pending."
+        "senseRangeEvidence": "K2450 integrated volt_dc owned/managed/sample manual sense selectors and aliases are now supported; see k2450SenseRanges and sense-ranges.md. Remaining ohmmeter/other-family ranges, per-row quality and real hardware are pending.",
+        "independentCurrentResistance": {
+          "status": "partial",
+          "implementation": "src/InstrumentControlWorkbench.Core/Experiments/ReadCurrentResistanceStep.cs; src/InstrumentControlWorkbench.Application/Devices/DeviceRunResources.CurrentResistance.cs; src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.CurrentResistance.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.CurrentResistance.cs",
+          "tests": "tests/InstrumentControlWorkbench.Core.Tests/CurrentResistanceModelTests.cs; tests/InstrumentControlWorkbench.Application.Tests/CurrentResistanceExecutionTests*.cs",
+          "limits": "Supported K2450 current excitation + explicitly simulated K2182; named programmed or measured current, separate times and quality, source/meter drift rejection, explicit guarded matrix routes, owned/scan-managed curr_dc import, signed persisted current axes, wide/archive/CSV provenance. Real K2182/K6221, independent automatic sample wiring/analysis, retry-to-invalid-point, delta/pulse/AC and UI/lab acceptance pending. See current-resistance.md."
+        }
       }
     },
     {
@@ -545,7 +551,13 @@
         "environmentImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.Environment.cs; src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Environment.cs; src/InstrumentControlWorkbench.Core/Data/RunDataRowValidator.cs",
         "environmentTests": "tests/InstrumentControlWorkbench.Application.Tests/EnvironmentAcquisitionTests.cs; tests/InstrumentControlWorkbench.Application.Tests/PpmsResistanceImportTests.cs",
         "environmentLimits": "All supported imported measurements automatically retain temperature/field/angle, source, actual value or unavailable error and UTC read completion time. Atomic admission includes bound controller readbacks; unbound roles record errors without guessing devices. Serialized C# capture follows electrical acquisition, unlike concurrent Rust futures. Raw sample observations, first-input analysis context and per-member wide-point evidence persist and validate through native/archive/CSV. Physical timing, sensor quality, remaining acquisition families/settings/UI and hardware remain pending. See environment-acquisition.md.",
-        "sourceRangeEvidence": "K2450 source-range subset implemented and protocol-tested through native/imported plans; 45 source-range cases. Actual physical families, sense range/quality and remaining per-feature semantics stay pending. See k2450SourceRanges and source-ranges.md."
+        "sourceRangeEvidence": "K2450 source-range subset implemented and protocol-tested through native/imported plans; 45 source-range cases. Actual physical families, sense range/quality and remaining per-feature semantics stay pending. See k2450SourceRanges and source-ranges.md.",
+        "independentCurrentResistance": {
+          "status": "partial",
+          "implementation": "src/InstrumentControlWorkbench.Core/Experiments/ReadCurrentResistanceStep.cs; src/InstrumentControlWorkbench.Application/Devices/DeviceRunResources.CurrentResistance.cs; src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.CurrentResistance.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.CurrentResistance.cs",
+          "tests": "tests/InstrumentControlWorkbench.Core.Tests/CurrentResistanceModelTests.cs; tests/InstrumentControlWorkbench.Application.Tests/CurrentResistanceExecutionTests*.cs",
+          "limits": "Supported K2450 current excitation + explicitly simulated K2182; named programmed or measured current, separate times and quality, source/meter drift rejection, explicit guarded matrix routes, owned/scan-managed curr_dc import, signed persisted current axes, wide/archive/CSV provenance. Real K2182/K6221, independent automatic sample wiring/analysis, retry-to-invalid-point, delta/pulse/AC and UI/lab acceptance pending. See current-resistance.md."
+        }
       }
     },
     {
@@ -1245,5 +1257,11 @@
     "stage": "typed K2450 acquisition profiles and per-row confirmation",
     "tests": "AcquisitionSettingsModelTests; AcquisitionSettingsExecutionTests (+ Import); existing sense-range pause and consecutive reprepare tests",
     "limits": "Native SDK TCP and simulation only; optional retain-actual per-function profiles, integer controls, active-function selection, fresh config confirmation, zero/reference completion action, PPMS Repeat import with unused window metadata, profile snapshots and per-row archive/CSV propagation. No lab accuracy, firmware Moving history, used autorange span or native UI acceptance; other families and full PPMS migration remain pending. See acquisition-settings.md."
+  },
+  "independentCurrentResistance": {
+    "status": "partial",
+    "implementation": "src/InstrumentControlWorkbench.Core/Experiments/ReadCurrentResistanceStep.cs; src/InstrumentControlWorkbench.Application/Devices/DeviceRunResources.CurrentResistance.cs; src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.CurrentResistance.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.CurrentResistance.cs",
+    "tests": "tests/InstrumentControlWorkbench.Core.Tests/CurrentResistanceModelTests.cs; tests/InstrumentControlWorkbench.Application.Tests/CurrentResistanceExecutionTests*.cs",
+    "limits": "Supported K2450 current excitation + explicitly simulated K2182; named programmed or measured current, separate times and quality, source/meter drift rejection, explicit guarded matrix routes, owned/scan-managed curr_dc import, signed persisted current axes, wide/archive/CSV provenance. Real K2182/K6221, independent automatic sample wiring/analysis, retry-to-invalid-point, delta/pulse/AC and UI/lab acceptance pending. See current-resistance.md."
   }
 }

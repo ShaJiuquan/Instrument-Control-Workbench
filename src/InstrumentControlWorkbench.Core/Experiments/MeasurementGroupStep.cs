@@ -17,7 +17,7 @@ public sealed record MeasurementGroupMember
             switch (item.Step)
             {
                 case SequenceStep sequence: foreach (var child in sequence.Children) pending.Push((child, item.Depth + 1)); break;
-                case ReadStep or ReadSourceSenseStep or ReadResistanceStep or ReadSampleResistanceStep or SampleAnalysisStep:
+                case ReadStep or ReadSourceSenseStep or ReadCurrentResistanceStep or ReadResistanceStep or ReadSampleResistanceStep or SampleAnalysisStep:
                     if (acquisition is not null) throw new ArgumentException("Each member must contain exactly one logical acquisition.");
                     acquisition = item.Step; break;
                 case SetParameterStep or AssignValueStep or RouteMatrixStep or VerifyMatrixRouteStep or SourceOutputStep or DelayStep or WaitStableStep: break;
@@ -30,6 +30,7 @@ public sealed record MeasurementGroupMember
         {
             ReadStep read => read.Channels.Select(c => c.Column),
             ReadSourceSenseStep pair => new[] { pair.VoltageColumn, pair.CurrentColumn },
+            ReadCurrentResistanceStep independent => new[] { independent.VoltageColumn, independent.CurrentColumn, independent.ResistanceColumn },
             ReadResistanceStep resistance => new[] { resistance.VoltageColumn, resistance.CurrentColumn, resistance.ResistanceColumn },
             ReadSampleResistanceStep sample => new[] { sample.Acquisition.VoltageColumn, sample.Acquisition.CurrentColumn, sample.Acquisition.ResistanceColumn },
             SampleAnalysisStep sample => sample.Columns.Select(c => c.Column),
@@ -40,6 +41,7 @@ public sealed record MeasurementGroupMember
             ReadStep read => read.EnvironmentReads,
             ReadSourceSenseStep read => read.EnvironmentReads,
             ReadResistanceStep read => read.EnvironmentReads,
+            ReadCurrentResistanceStep read => read.EnvironmentReads,
             ReadSampleResistanceStep read => read.Acquisition.EnvironmentReads,
             SampleAnalysisStep read => read.Readings[0].Acquisition.EnvironmentReads,
             _ => throw new NotSupportedException(),

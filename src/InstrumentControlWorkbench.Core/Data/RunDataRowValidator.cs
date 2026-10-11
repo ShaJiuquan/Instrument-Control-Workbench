@@ -16,6 +16,8 @@ public sealed class RunDataRowValidator
     private readonly Dictionary<StepId, IReadOnlyDictionary<ParameterId, InstrumentId>> acquisitions = [];
     private readonly HashSet<(StepId Step, ParameterId Column)> nativeResistanceColumns = [];
     private readonly HashSet<(StepId Step, ParameterId Column)> standaloneVoltageColumns = [];
+    private readonly Dictionary<StepId, ReadCurrentResistanceStep> independentResistance = [];
+    public bool HasIndependentResistance => independentResistance.Count != 0;
     private readonly Queue<MeasurementDataRow> recent = new();
     private int count;
     public bool HasMeasurementGroups => groups.Count != 0;
@@ -35,6 +37,11 @@ public sealed class RunDataRowValidator
                     foreach (var channel in read.Channels) if (channel.Address.Parameter == Keithley2450Parameters.MeasuredResistance.Id) nativeResistanceColumns.Add((read.Id, channel.Column));
                     RegisterQuality(read.Id, read.Channels.Select(c => (c.Column, c.Address.Device))); RegisterEnvironment(read.Channels.Select(c => c.Column), read.EnvironmentReads); break;
                 case ReadSourceSenseStep read: RegisterQuality(read.Id, new[] { read.VoltageColumn, read.CurrentColumn }.Select(c => (c, read.Device))); RegisterEnvironment([read.VoltageColumn, read.CurrentColumn], read.EnvironmentReads); break;
+                case ReadCurrentResistanceStep read:
+                    independentResistance.Add(read.Id, read);
+                    standaloneVoltageColumns.Add((read.Id, read.VoltageColumn));
+                    RegisterQuality(read.Id, [(read.CurrentColumn, read.Source), (read.VoltageColumn, read.Meter)]);
+                    RegisterEnvironment([read.CurrentColumn, read.VoltageColumn, read.ResistanceColumn], read.EnvironmentReads); break;
                 case ReadResistanceStep read: RegisterQuality(read.Id, new[] { read.VoltageColumn, read.CurrentColumn, read.ResistanceColumn }.Select(c => (c, read.Device))); RegisterEnvironment([read.VoltageColumn, read.CurrentColumn, read.ResistanceColumn], read.EnvironmentReads); break;
                 case ReadSampleResistanceStep read: RegisterQuality(read.Acquisition.Id, new[] { read.Acquisition.VoltageColumn, read.Acquisition.CurrentColumn, read.Acquisition.ResistanceColumn }.Select(c => (c, read.Acquisition.Device))); RegisterEnvironment([read.Acquisition.VoltageColumn, read.Acquisition.CurrentColumn, read.Acquisition.ResistanceColumn], read.Acquisition.EnvironmentReads); break;
                 case SampleAnalysisStep sample: foreach (var read in sample.Readings) pending.Push((read, item.Depth + 1)); break;
@@ -75,6 +82,35 @@ public sealed class RunDataRowValidator
     {
         schema.ValidateRow(row);
         ValidateEnvironment(row);
+        if (row.MeasurementGroup is null)
+        {
+            var hasIndependentColumns = independentResistance.Values.Any(s => row.Values.ContainsKey(s.CurrentColumn) || row.Values.ContainsKey(s.VoltageColumn) || row.Values.ContainsKey(s.ResistanceColumn));
+            if (hasIndependentColumns != (row.IndependentResistance.Count == 1) || row.IndependentResistance.Count > 1 || row.Analysis is not null && row.IndependentResistance.Count != 0)
+                throw new ArgumentException("Independent resistance rows require exactly their declared acquisition evidence.");
+            foreach (var evidence in row.IndependentResistance)
+            {
+                if (!independentResistance.TryGetValue(evidence.Step, out var step) || evidence.Source != step.Source || evidence.Meter != step.Meter || evidence.CurrentReference != step.CurrentReference ||
+                    evidence.MinimumCurrent != step.MinimumCurrent || evidence.VoltageColumn != step.VoltageColumn || evidence.CurrentColumn != step.CurrentColumn || evidence.ResistanceColumn != step.ResistanceColumn ||
+                    !Equals(evidence.Route, step.RequiredRoute) || evidence.SourceConfirmedAfter > row.Timestamp ||
+                    !row.Values.TryGetValue(step.CurrentColumn, out var current) || current != evidence.Current || !row.Values.TryGetValue(step.VoltageColumn, out var voltage) || voltage != evidence.Voltage ||
+                    !row.Values.TryGetValue(step.ResistanceColumn, out var resistance) || resistance != evidence.Resistance)
+                    throw new ArgumentException("Independent resistance identity, configuration, times or V/I differs from its plan and values.");
+                var expectedExcitation = step.ExpectedProgrammedCurrent switch
+                {
+                    null => (Quantity?)null,
+                    ConstantValue constant => constant.Value,
+                    VariableValue variable when row.Values.TryGetValue(variable.Variable, out var axisValue) => axisValue,
+                    _ => throw new ArgumentException("Expected programmed current requires its persisted axis value."),
+                };
+                if (expectedExcitation is { } requested && (requested.Unit != PhysicalUnit.Ampere || requested.Value != evidence.SourceConfiguration.Level)) throw new ArgumentException("Programmed current differs from its declared constant/axis.");
+                var currentQuality = row.Quality.SingleOrDefault(q => q.Column == step.CurrentColumn);
+                var voltageQuality = row.Quality.SingleOrDefault(q => q.Column == step.VoltageColumn);
+                if (currentQuality is null || voltageQuality is null || currentQuality.CapturedAt != evidence.SourceCapturedAt || voltageQuality.CapturedAt != evidence.VoltageCapturedAt || voltageQuality.MeterConfiguration is null ||
+                    step.CurrentReference == CurrentReference.ProgrammedSetpoint && (currentQuality.Status is not null || currentQuality.AcquisitionConfiguration is not null) ||
+                    currentQuality.Status is { } status && (!status.SourceReadback || !status.OutputEnabled))
+                    throw new ArgumentException("Independent resistance quality must preserve the actual source/meter observation kind and capture times.");
+            }
+        }
         if (row.Analysis is null && row.MeasurementGroup is null && row.Quality.Count != 0)
         {
             var step = row.Quality[0].Step;
@@ -119,7 +155,7 @@ public sealed class RunDataRowValidator
             offset += member.InputCount;
         }
         var expected = MeasurementGroupSummary.BuildRow(group, summary.Inputs[0].FirstInputRow, inputs);
-        if (expected.Timestamp != row.Timestamp || !expected.Environment.SequenceEqual(row.Environment) || !expected.Quality.SequenceEqual(row.Quality) || !expected.Values.Keys.ToHashSet().SetEquals(row.Values.Keys) || expected.Values.Any(p => row.Values[p.Key] != p.Value))
+        if (expected.Timestamp != row.Timestamp || !expected.Environment.SequenceEqual(row.Environment) || !expected.Quality.SequenceEqual(row.Quality) || !expected.IndependentResistance.SequenceEqual(row.IndependentResistance) || !expected.Values.Keys.ToHashSet().SetEquals(row.Values.Keys) || expected.Values.Any(p => row.Values[p.Key] != p.Value))
             throw new ArgumentException("Measurement summary values/time differ from the preserved acquisitions.");
     }
     private void ValidateEnvironment(MeasurementDataRow row)

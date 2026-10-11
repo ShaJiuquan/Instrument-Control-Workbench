@@ -22,7 +22,7 @@ public sealed record RunId
 
 public sealed record MeasurementDataRow
 {
-    public MeasurementDataRow(DateTimeOffset timestamp, IReadOnlyDictionary<ParameterId, Quantity> values, ResolvedSampleRoute? routing = null, SampleAnalysisSummary? analysis = null, MeasurementGroupSummary? measurementGroup = null, IEnumerable<EnvironmentObservation>? environment = null, IEnumerable<AcquisitionQuality>? quality = null)
+    public MeasurementDataRow(DateTimeOffset timestamp, IReadOnlyDictionary<ParameterId, Quantity> values, ResolvedSampleRoute? routing = null, SampleAnalysisSummary? analysis = null, MeasurementGroupSummary? measurementGroup = null, IEnumerable<EnvironmentObservation>? environment = null, IEnumerable<AcquisitionQuality>? quality = null, IEnumerable<IndependentResistanceEvidence>? independentResistance = null)
     {
         ArgumentNullException.ThrowIfNull(values);
         if (new[] { routing is not null, analysis is not null, measurementGroup is not null }.Count(v => v) > 1) throw new ArgumentException("A row has one provenance kind: electrode reading, sample analysis or measurement point.");
@@ -34,9 +34,14 @@ public sealed record MeasurementDataRow
         var evidence = quality?.ToArray() ?? [];
         if (evidence.Length > 4096 || evidence.Any(q => q is null)) throw new ArgumentException("Acquisition quality evidence exceeds its bound or contains null entries.", nameof(quality));
         Quality = Array.AsReadOnly(evidence);
+        var resistance = independentResistance?.ToArray() ?? [];
+        if (resistance.Length > 4096 || resistance.Any(r => r is null) || resistance.Select(r => r.Step).Distinct().Count() != resistance.Length)
+            throw new ArgumentException("Independent resistance evidence requires bounded, distinct acquisition identities.");
+        IndependentResistance = Array.AsReadOnly(resistance);
         Values = new ReadOnlyDictionary<ParameterId, Quantity>(new Dictionary<ParameterId, Quantity>(values));
     }
 
+    public IReadOnlyList<IndependentResistanceEvidence> IndependentResistance { get; }
     public DateTimeOffset Timestamp { get; }
     public IReadOnlyDictionary<ParameterId, Quantity> Values { get; }
     public ResolvedSampleRoute? Routing { get; }

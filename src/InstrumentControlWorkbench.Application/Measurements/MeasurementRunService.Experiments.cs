@@ -116,6 +116,9 @@ public sealed partial class MeasurementRunService
                 await AcquireResistanceRowAsync(sampleRead.Acquisition, run, started, context);
                 if (!sampleRead.RoutingManagedExternally) await run.Resources!.DisableSourceOutputAsync(context.SourceMeter, run.Token);
                 break;
+            case ReadCurrentResistanceStep currentResistance:
+                await AcquireCurrentResistanceRowAsync(currentResistance, run, started);
+                break;
             case ReadResistanceStep resistance:
                 await AcquireResistanceRowAsync(resistance, run, started);
                 break;

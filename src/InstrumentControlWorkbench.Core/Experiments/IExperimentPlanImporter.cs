@@ -14,12 +14,14 @@ public interface IExperimentPlanImporter
 
 public sealed record ImportChannelRoute
 {
-    public ImportChannelRoute(InstrumentId source, RouteMatrixStep route)
+    public ImportChannelRoute(InstrumentId source, RouteMatrixStep route, InstrumentId? voltageMeter = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(source.Value);
         ArgumentNullException.ThrowIfNull(route);
-        Source = source; Route = route;
+        if (voltageMeter is { } meter && (string.IsNullOrWhiteSpace(meter.Value) || meter == source || meter == route.Device)) throw new ArgumentException("Independent route meter must be a distinct instrument.");
+        Source = source; Route = route; VoltageMeter = voltageMeter;
     }
+    public InstrumentId? VoltageMeter { get; }
     public InstrumentId Source { get; }
     public RouteMatrixStep Route { get; }
 }

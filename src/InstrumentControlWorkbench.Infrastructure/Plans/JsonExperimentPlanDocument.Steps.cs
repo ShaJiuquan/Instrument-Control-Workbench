@@ -64,6 +64,13 @@ public sealed partial class JsonExperimentPlanDocument
             case ReadStep s:
                 o["kind"] = "read"; o["channels"] = new JsonArray(s.Channels.Select(c => (JsonNode)new JsonObject
                 { ["column"] = c.Column.Value, ["address"] = EncodeAddress(c.Address) }).ToArray()); EncodeEnvironment(o, s.EnvironmentReads); break;
+            case ReadCurrentResistanceStep independent:
+                o["kind"] = "read_current_resistance"; o["source"] = independent.Source.Value; o["meter"] = independent.Meter.Value; o["currentReference"] = independent.CurrentReference.ToString();
+                o["voltageColumn"] = independent.VoltageColumn.Value; o["currentColumn"] = independent.CurrentColumn.Value; o["resistanceColumn"] = independent.ResistanceColumn.Value;
+                o["minimumCurrent"] = EncodeQuantity(independent.MinimumCurrent); EncodeEnvironment(o, independent.EnvironmentReads);
+                if (independent.ExpectedProgrammedCurrent is { } expected) o["expectedProgrammedCurrent"] = EncodeValue(expected);
+                if (independent.RequiredRoute is { } required) o["requiredRoute"] = new JsonObject { ["device"] = required.Device.Value, ["closed"] = new JsonArray(required.Closed.Select(p => (JsonNode)new JsonObject { ["slot"] = p.Slot, ["row"] = p.Row, ["column"] = p.Column }).ToArray()) };
+                break;
             case ReadSampleResistanceStep sample:
                 var acquisition = sample.Acquisition;
                 o["kind"] = "read_sample_resistance"; o["device"] = acquisition.Device.Value; o["function"] = acquisition.Function.ToString();
@@ -174,6 +181,17 @@ public sealed partial class JsonExperimentPlanDocument
                     var channel = Object(c, "column", "address");
                     return new ReadChannel(new(Text(channel, "column")), DecodeAddress(channel["address"]));
                 }), DecodeEnvironment(o));
+            case "read_current_resistance":
+                Object(o, "id", "kind", "source", "meter", "currentReference", "voltageColumn", "currentColumn", "resistanceColumn", "minimumCurrent", "expectedProgrammedCurrent", "requiredRoute", "environmentReads");
+                MatrixRouteExpectation? expectation = null;
+                if (o.ContainsKey("requiredRoute"))
+                {
+                    var route = Object(o["requiredRoute"], "device", "closed");
+                    expectation = new(new(Text(route, "device")), Array(Required(route, "closed")).Select(p => { var point = Object(p, "slot", "row", "column"); return new MatrixCrossPoint(Integer(point, "slot"), Integer(point, "row"), Integer(point, "column")); }));
+                }
+                return new ReadCurrentResistanceStep(id, new(Text(o, "source")), new(Text(o, "meter")), NamedEnum<CurrentReference>(o, "currentReference"),
+                    new(Text(o, "voltageColumn")), new(Text(o, "currentColumn")), new(Text(o, "resistanceColumn")), DecodeQuantity(o["minimumCurrent"]),
+                    o.ContainsKey("expectedProgrammedCurrent") ? DecodeValue(o["expectedProgrammedCurrent"]) : null, expectation, DecodeEnvironment(o));
             case "read_sample_resistance":
                 Object(o, "id", "kind", "device", "function", "voltageColumn", "currentColumn", "resistanceColumn", "minimumCurrent", "binding", "settleSeconds", "routingManagedExternally", "acquisitionSettleSeconds", "environmentReads");
                 return new ReadSampleResistanceStep(new(id, new(Text(o, "device")), NamedEnum<SourceFunction>(o, "function"),

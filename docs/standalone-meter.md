@@ -2,9 +2,9 @@
 
 The backend now runs an explicitly simulated K2182 independently, or reserves it
 atomically alongside a K2450 excitation source. The meter has no source setpoint,
-output-enable operation, or source-meter snapshot. This stage does not yet
-implement PPMS `curr_dc` resistance or claim synchronized source/current/voltage
-frames. Primitive native steps can enable a source, wait, and acquire voltage;
+output-enable operation, or source-meter snapshot. Independent `curr_dc`
+resistance now uses this session in the separate [current-resistance.md](current-resistance.md)
+slice. Neither acquisition claims synchronized source/current/voltage frames. Primitive native steps can enable a source, wait, and acquire voltage;
 the caller authors that order and settling duration.
 
 ## Boundaries and stop policy
@@ -95,6 +95,7 @@ failed/disconnected stop and explicit group recovery. Protocol and laboratory
 acceptance are absent: enabled VISA, serial or TCP K2182 configurations reject
 the complete catalog before constructing any port. GPIB/RS-232 and K6221
 passthrough need a separate transport/dependency decision and driver acceptance.
-Current/DC resistance, matrix/sample routing, delta/pulse/AC and K6221 execution
+Independent current/DC resistance and explicitly bound matrix routes now have
+a tested subset; automatic sample routing, delta/pulse/AC and K6221 execution
 remain pending, as do native settings/editor/history/plot acceptance and packaging.
 All pending App/App.Tests changes remain outside this backend stage.

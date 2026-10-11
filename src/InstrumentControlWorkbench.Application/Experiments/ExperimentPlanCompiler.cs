@@ -348,6 +348,32 @@ internal static class ExperimentPlanCompiler
                     }
                     ValidateEnvironment(read.EnvironmentReads, axes);
                     return 1;
+                case ReadCurrentResistanceStep independent:
+                    var excitation = Source(independent.Source);
+                    if (!preparations.TryGetValue(independent.Source, out var currentPreparation) || currentPreparation.Function != SourceFunction.Current ||
+                        independent.CurrentReference == CurrentReference.MeasuredSourceReadback && currentPreparation.Sense.Function != SenseFunction.Voltage)
+                        throw new ArgumentException("Independent resistance requires current-source preparation and complementary sensing for measured source readback.");
+                    var independentMeter = Device(independent.Meter);
+                    if (independentMeter.Model != "K2182" || independentMeter.StopPolicy != DeviceStopPolicy.AbortAcquisition)
+                        throw new NotSupportedException("Independent resistance requires the supported passive K2182 profile.");
+                    var voltageInput = Parameter(new(independent.Meter, Keithley2182Parameters.Voltage.Id), ParameterAccess.Read);
+                    var currentParameter = independent.CurrentReference == CurrentReference.ProgrammedSetpoint ? Keithley2450Parameters.SourceCurrent : Keithley2450Parameters.MeasuredCurrent;
+                    excitation.GetParameter(currentParameter.Id);
+                    if (independent.ExpectedProgrammedCurrent is { } expectedCurrent &&
+                        (ValueUnit(expectedCurrent, known) != PhysicalUnit.Ampere || expectedCurrent is VariableValue expectedVariable && !axes.Contains(expectedVariable.Variable)))
+                        throw new ArgumentException("Expected excitation must be Ampere and variables must be persisted active axes.");
+                    if (independent.RequiredRoute is { } requiredRoute)
+                    {
+                        Device(requiredRoute.Device); var requiredMatrix = registry.GetMatrixDefinition(requiredRoute.Device); requiredMatrix.Validate(requiredRoute.Closed);
+                        if (!requiredMatrix.GuardedSources.Contains(independent.Source)) throw new ArgumentException("Independent route must guard its excitation source.");
+                        foreach (var guard in requiredMatrix.GuardedSources) if (Device(guard).StopPolicy != DeviceStopPolicy.OutputOff) throw new ArgumentException("Independent route guards require output-off policies.");
+                    }
+                    AddColumn(independent.VoltageColumn, voltageInput, new(independent.Meter, voltageInput.Id), [.. axes, Elapsed.Id]);
+                    AddColumn(independent.CurrentColumn, new(independent.CurrentColumn, independent.CurrentReference == CurrentReference.ProgrammedSetpoint ? "Confirmed programmed current" : "Measured source current", PhysicalUnit.Ampere, ParameterAccess.Read), new(independent.Source, currentParameter.Id), [.. axes, Elapsed.Id]);
+                    AddColumn(independent.ResistanceColumn, new(independent.ResistanceColumn, "Independent resistance (V/I)", PhysicalUnit.Ohm, ParameterAccess.Read), null, [.. axes, Elapsed.Id, independent.VoltageColumn, independent.CurrentColumn]);
+                    BindVariable(independent.VoltageColumn, PhysicalUnit.Volt, known); BindVariable(independent.CurrentColumn, PhysicalUnit.Ampere, known); BindVariable(independent.ResistanceColumn, PhysicalUnit.Ohm, known);
+                    ValidateEnvironmentPolicy([independent.VoltageColumn, independent.CurrentColumn, independent.ResistanceColumn], independent.EnvironmentReads); ValidateEnvironment(independent.EnvironmentReads, axes);
+                    return 1;
                 case ReadResistanceStep resistance:
                     ValidateResistance(resistance, known, axes);
                     return 1;

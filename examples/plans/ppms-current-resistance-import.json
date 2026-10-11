@@ -1,0 +1,27 @@
+{
+  "type": "scan",
+  "name": "scan_current",
+  "params": {
+    "points": [
+      -1e-05,
+      2e-05
+    ],
+    "channel": "none",
+    "settle_s": 0,
+    "compliance_v": 10
+  },
+  "children": [
+    {
+      "type": "measurement",
+      "name": "meas_r",
+      "params": {
+        "mode": "curr_dc",
+        "channel": "none",
+        "current_a": 1e-05,
+        "sense_channel": 1,
+        "meter_range_v": 0.01,
+        "nplc": 1
+      }
+    }
+  ]
+}

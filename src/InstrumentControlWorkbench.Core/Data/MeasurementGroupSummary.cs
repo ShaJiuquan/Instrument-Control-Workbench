@@ -37,11 +37,12 @@ public sealed record MeasurementGroupSummary
         ArgumentNullException.ThrowIfNull(step); ArgumentNullException.ThrowIfNull(rows);
         if (rows.Count != step.InputCount) throw new ArgumentException("Measurement group input is incomplete.");
         var elapsed = new ParameterId("elapsed"); var values = new Dictionary<ParameterId, Quantity>(); var inputs = new List<MeasurementGroupInput>();
-        var offset = 0; var environment = new List<EnvironmentObservation>(); var quality = new List<AcquisitionQuality>();
+        var offset = 0; var environment = new List<EnvironmentObservation>(); var quality = new List<AcquisitionQuality>(); var resistance = new List<IndependentResistanceEvidence>();
         for (var i = 0; i < step.Members.Count; i++)
         {
             var member = step.Members[i]; inputs.Add(new(step.Labels[i], checked(firstInputRow + offset), member.InputCount));
             quality.AddRange(rows[offset + member.InputCount - 1].Quality);
+            resistance.AddRange(rows[offset + member.InputCount - 1].IndependentResistance);
             environment.AddRange(rows[offset + member.InputCount - 1].Environment);
             foreach (var pair in rows[offset + member.InputCount - 1].Values)
                 if (pair.Key != elapsed && !values.TryAdd(pair.Key, pair.Value) && values[pair.Key] != pair.Value)
@@ -58,6 +59,6 @@ public sealed record MeasurementGroupSummary
             }
         }
         values[elapsed] = rows[0].Values[elapsed];
-        return new(rows[0].Timestamp, values, measurementGroup: new(step.Id, inputs), environment: environment, quality: quality);
+        return new(rows[0].Timestamp, values, measurementGroup: new(step.Id, inputs), environment: environment, quality: quality, independentResistance: resistance);
     }
 }

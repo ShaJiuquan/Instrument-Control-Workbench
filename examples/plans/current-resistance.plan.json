@@ -1,0 +1,69 @@
+{
+  "format": "instrument-workbench-plan",
+  "version": 1,
+  "name": "Independent current DC resistance simulation",
+  "preparations": [
+    {
+      "device": "current-source",
+      "function": "Current",
+      "level": {
+        "value": 1e-05,
+        "unit": "Ampere"
+      },
+      "compliance": {
+        "value": 10,
+        "unit": "Volt"
+      },
+      "sense": {
+        "function": "Voltage",
+        "mode": "TwoWire",
+        "nplc": 1,
+        "autoRange": true
+      }
+    }
+  ],
+  "metadata": {},
+  "root": {
+    "id": "root",
+    "kind": "sequence",
+    "children": [
+      {
+        "id": "on",
+        "kind": "output",
+        "device": "current-source",
+        "enabled": true
+      },
+      {
+        "id": "settle",
+        "kind": "delay",
+        "seconds": 0.1
+      },
+      {
+        "id": "resistance",
+        "kind": "read_current_resistance",
+        "source": "current-source",
+        "meter": "nanovoltmeter",
+        "currentReference": "ProgrammedSetpoint",
+        "voltageColumn": "V",
+        "currentColumn": "I",
+        "resistanceColumn": "R",
+        "minimumCurrent": {
+          "value": 2.220446049250313e-16,
+          "unit": "Ampere"
+        },
+        "expectedProgrammedCurrent": {
+          "constant": {
+            "value": 1e-05,
+            "unit": "Ampere"
+          }
+        }
+      },
+      {
+        "id": "off",
+        "kind": "output",
+        "device": "current-source",
+        "enabled": false
+      }
+    ]
+  }
+}
