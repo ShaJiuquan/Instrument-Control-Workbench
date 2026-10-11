@@ -1112,3 +1112,23 @@ stale removal. Original29 UI drafts preserved/excluded, Rust read-only, no new
 dependencies. Paged/lazy history and diagnostics, per-write journal, native UI
 integration, expressions/parallel/background and full PPMS/lab remain pending.
 Independent C# engine; GitHub only; full goal active.
+
+
+## Bounded paged archive history (2026-10-11)
+
+Core query/cursor/version/summary/page boundaries, Application RunHistoryService
+browse/metadata/row APIs, SDK FileRunArchive implementation. Lightweight catalog
+projection discards full schema/plan/notes/attributes/variables; timestamp+Guid
+keyset with filters, bounded selected prefix/text and issue details plus total
+omission counts. Text-budget cutoff preserves contiguous sort prefix across
+arbitrary directory order. Row pages retain only selected records and raw
+UTF8 byte budget, but stream/validate the entire captured file with existing
+scientific evidence/terminal integrity. Cross-page run/header/data/final hash
+stamp rejects equal-size rewrites, appends and terminal promotion; header
+rechecked during reads. Unknown vs observed-empty variable history maintained
+in legacy/v2/selected metadata. Real100005-row restarted synthetic storage
+passes paging beyond default full-load limit; wide UTF8 and rehashed cross-page
+group mismatches verified. Full scans required per query/page; no index/seek
+latency claim, live dataset memory unchanged, native history/plot integration
+and visual acceptance remain pending. Original29 UI drafts preserved/excluded,
+Rust read-only, no new dependencies; GitHub only; full goal active.

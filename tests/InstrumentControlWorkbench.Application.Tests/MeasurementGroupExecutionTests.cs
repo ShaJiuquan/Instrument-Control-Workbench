@@ -18,7 +18,7 @@ using InstrumentControlWorkbench.Infrastructure.Plans;
 
 namespace InstrumentControlWorkbench.Application.Tests;
 
-public sealed class MeasurementGroupExecutionTests
+public sealed partial class MeasurementGroupExecutionTests
 {
     private static readonly CancellationToken Token = CancellationToken.None;
     private static ExperimentPlan NativePlan(Bench b, TimeSpan delay = default)

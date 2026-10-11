@@ -27,11 +27,13 @@ public sealed partial class FileRunArchive
     public async Task<RunArchiveMetadata> ReadMetadataAsync(RunId id, CancellationToken token)
     {
         var folder = Folder(id);
-        var headerDto = RunArchiveJson.Decode<RunArchiveJson.HeaderDto>(await ReadBoundedAsync(Path.Combine(folder, "metadata.json"), token));
+        var headerBytes = await ReadBoundedAsync(Path.Combine(folder, "metadata.json"), token);
+        var headerHash = Convert.ToHexString(SHA256.HashData(headerBytes));
+        var headerDto = RunArchiveJson.Decode<RunArchiveJson.HeaderDto>(headerBytes);
         var header = headerDto.ToDomain();
         if (header.Id != id) throw new FormatException("Archive folder and header run IDs differ.");
         var finalPath = Path.Combine(folder, "final.json");
-        if (!File.Exists(finalPath)) return new(header, null, null);
+        if (!File.Exists(finalPath)) return new(header, null, null, HeaderRecordSha256: headerHash);
         var finalBytes = await ReadBoundedAsync(finalPath, token);
         var final = RunArchiveJson.Decode<RunArchiveJson.FinalDto>(finalBytes);
         if (final.Format != RunArchiveJson.Format || final.Version != headerDto.Version || final.Id != id.Value ||
@@ -56,7 +58,7 @@ public sealed partial class FileRunArchive
             catch (Exception error) when (error is ArgumentException or InvalidOperationException)
             { throw new FormatException("Blackboard snapshot provenance is invalid.", error); }
         }
-        return new(header with { State = final.State, FinishedAt = final.FinishedAt, Blackboard = blackboard }, final.RowCount, final.DataBytes, Convert.ToHexString(SHA256.HashData(finalBytes)));
+        return new(header with { State = final.State, FinishedAt = final.FinishedAt, Blackboard = blackboard }, final.RowCount, final.DataBytes, Convert.ToHexString(SHA256.HashData(finalBytes)), headerHash);
     }
 
     public async Task<ArchivedRun> LoadAsync(RunId id, CancellationToken token, int maximumRows = 100_000)
@@ -81,6 +83,7 @@ public sealed partial class FileRunArchive
         await using var stream = new FileStream(Path.Combine(folder, "rows.ndjson"), FileMode.Open, FileAccess.Read,
             FileShare.ReadWrite, 8192, FileOptions.Asynchronous);
         var boundary = stream.Length;
+        cursor.DataBytes = boundary;
         if (metadata.DataBytes is { } expectedBytes && boundary != expectedBytes) throw new FormatException("Finalized archive data length differs from its terminal record.");
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         using var frame = new MemoryStream();
@@ -106,6 +109,7 @@ public sealed partial class FileRunArchive
                 if (row.Routing is { } context)
                     (metadata.Header.Plan?.Routing ?? throw new FormatException("Routed archive row has no plan routing configuration.")).ValidateContext(context);
                 analysis.Append(row);
+                cursor.RowBytes = checked((int)frame.Length + 1);
                 frame.SetLength(0); frame.Position = 0; start = i + 1;
                 yield return row;
             }
@@ -113,6 +117,9 @@ public sealed partial class FileRunArchive
             if (frame.Length > RunArchiveJson.MaximumFrameBytes) throw new FormatException("Archive row exceeds 8 MiB.");
         }
         cursor.HasIncompleteTail = frame.Length > 0;
+        cursor.RowCount = count; cursor.DataSha256 = Convert.ToHexString(hash.GetCurrentHash());
+        if (metadata.HeaderRecordSha256 is { } expectedHeader && Convert.ToHexString(SHA256.HashData(await ReadBoundedAsync(Path.Combine(folder, "metadata.json"), token))) != expectedHeader)
+            throw new FormatException("Archive header changed while reading rows.");
         if (metadata.IsFinalized)
         {
             var finalBytes = await ReadBoundedAsync(Path.Combine(folder, "final.json"), token);
@@ -139,5 +146,12 @@ public sealed partial class FileRunArchive
         }
         return bytes.ToArray();
     }
-    private sealed class ReadCursor { public bool HasIncompleteTail { get; set; } }
+    private sealed class ReadCursor
+    {
+        public bool HasIncompleteTail { get; set; }
+        public long DataBytes { get; set; }
+        public int RowBytes { get; set; }
+        public int RowCount { get; set; }
+        public string DataSha256 { get; set; } = "";
+    }
 }

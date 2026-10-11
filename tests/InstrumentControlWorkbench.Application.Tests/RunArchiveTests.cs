@@ -16,7 +16,7 @@ using InstrumentControlWorkbench.Infrastructure.Mock;
 
 namespace InstrumentControlWorkbench.Application.Tests;
 
-public sealed class RunArchiveTests
+public sealed partial class RunArchiveTests
 {
     [Fact]
     public async Task FreshArchiveInstanceRestoresTypedPlanMetadataSnapshotsAndRows()

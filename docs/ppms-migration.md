@@ -699,3 +699,20 @@ per-write journaling and full parallel/background execution remain unfinished.
 See workflow-control.md and ControlFlowTests.BlackboardLive/BlackboardAdmission
 and Keithley6221ExecutionTests.BlackboardLive. No UI/Rust/dependency changes;
 full migration remains active, GitHub only.
+
+
+### Bounded archive catalog and row pages
+
+Core typed filter/keyset/row-byte/cross-page version contracts and Application
+RunHistoryService use cases now support paged persistent history. Directory
+results are lightweight summaries with bounded prefix/text/issue retention;
+selecting a run restores full metadata/variables. Data pages retain requested
+rows but validate all source/evidence/terminal bytes, so summary-only pages
+cannot discard raw provenance or overlook later corruption. Version stamps
+reject changed header/final/data, even equal-size edits or unfinalized growth.
+Real restarted100005-row synthetic storage, wide UTF8 byte limits, filters,
+legacy/v2 variables and cross-page group checks are covered. Full integrity/
+metadata scans remain; indexing, live dataset memory bounds, lazy plot/native
+history UI and physical acceptance remain unfinished. See history-pages.md.
+Original29 UI drafts/Rust/dependencies untouched; full migration active;
+GitHub only.
