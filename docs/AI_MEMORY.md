@@ -632,3 +632,13 @@ implementation.
   No lab IO. Full per-frame ranges/status/quality and automatic selected full
   scale, ohmmeter selection, other families/UI/hardware remain required.
   All App/App.Tests stay excluded; whole goal remains active. See sense-ranges.md.
+
+## Acquisition quality stage (2026-10-11)
+
+Native K2450 single and paired reads now preserve same-buffer source/measurement
+status. Capture mismatch, protection and overtemperature fault before row commit;
+finite limit/questionable/unknown-bit warnings persist through resistance, sample
+analysis, wide points, archive and CSV. Missing status is explicitly unobserved;
+legacy rows remain readable. Initial settings and later queried autorange spans
+are not per-reading range evidence. See [reading-quality.md](reading-quality.md)
+for policy, compatibility and remaining hardware/UI limitations.

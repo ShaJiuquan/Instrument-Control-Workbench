@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using InstrumentControlWorkbench.Core.Experiments;
+using InstrumentControlWorkbench.Core.Instruments;
 using InstrumentControlWorkbench.Core.Measurements;
 using InstrumentControlWorkbench.Core.Parameters;
 using InstrumentControlWorkbench.Core.Routing;
@@ -21,7 +22,7 @@ public sealed record RunId
 
 public sealed record MeasurementDataRow
 {
-    public MeasurementDataRow(DateTimeOffset timestamp, IReadOnlyDictionary<ParameterId, Quantity> values, ResolvedSampleRoute? routing = null, SampleAnalysisSummary? analysis = null, MeasurementGroupSummary? measurementGroup = null, IEnumerable<EnvironmentObservation>? environment = null)
+    public MeasurementDataRow(DateTimeOffset timestamp, IReadOnlyDictionary<ParameterId, Quantity> values, ResolvedSampleRoute? routing = null, SampleAnalysisSummary? analysis = null, MeasurementGroupSummary? measurementGroup = null, IEnumerable<EnvironmentObservation>? environment = null, IEnumerable<AcquisitionQuality>? quality = null)
     {
         ArgumentNullException.ThrowIfNull(values);
         if (new[] { routing is not null, analysis is not null, measurementGroup is not null }.Count(v => v) > 1) throw new ArgumentException("A row has one provenance kind: electrode reading, sample analysis or measurement point.");
@@ -30,6 +31,9 @@ public sealed record MeasurementDataRow
         if (observations.Length > 192 || observations.Any(o => o is null) || observations.Select(o => o.Column).Distinct().Count() != observations.Length)
             throw new ArgumentException("Environment evidence requires bounded distinct column observations.");
         Environment = Array.AsReadOnly(observations);
+        var evidence = quality?.ToArray() ?? [];
+        if (evidence.Length > 4096 || evidence.Any(q => q is null)) throw new ArgumentException("Acquisition quality evidence exceeds its bound or contains null entries.", nameof(quality));
+        Quality = Array.AsReadOnly(evidence);
         Values = new ReadOnlyDictionary<ParameterId, Quantity>(new Dictionary<ParameterId, Quantity>(values));
     }
 
@@ -39,6 +43,12 @@ public sealed record MeasurementDataRow
     public SampleAnalysisSummary? Analysis { get; }
     public MeasurementGroupSummary? MeasurementGroup { get; }
     public IReadOnlyList<EnvironmentObservation> Environment { get; }
+    public IReadOnlyList<AcquisitionQuality> Quality { get; }
+    public ReadingQualityIssues QualityIssues => Quality.Aggregate(ReadingQualityIssues.None, (issues, item) => issues | (item.Status?.Issues ?? ReadingQualityIssues.None));
+    public int ObservedQualityColumns => Quality.Count(q => q.Status is not null);
+    public ReadingQualityState QualityState => ObservedQualityColumns == 0 ? ReadingQualityState.Unobserved :
+        ObservedQualityColumns < Quality.Count ? ReadingQualityState.PartiallyObserved :
+        QualityIssues == ReadingQualityIssues.None ? ReadingQualityState.ObservedNormal : ReadingQualityState.ObservedWithIssues;
 }
 
 public sealed class RunDataSet

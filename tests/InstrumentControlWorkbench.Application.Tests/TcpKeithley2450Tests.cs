@@ -16,10 +16,10 @@ using InstrumentControlWorkbench.Infrastructure.Plans;
 
 namespace InstrumentControlWorkbench.Application.Tests;
 
-public sealed class TcpKeithley2450Tests
+public sealed partial class TcpKeithley2450Tests
 {
     private static readonly CancellationToken Token = CancellationToken.None;
-    private static readonly string Pair = ":MEAS? \"defbuffer1\", SOUR, READ";
+    private static readonly string Pair = ":MEAS? \"defbuffer1\", SOUR, READ, SOURSTAT, STAT";
     [Fact]
     public async Task PublishedTcpTemplateIsExplicitlyDisabledAndCreatesNoLiveSource()
     {
@@ -155,7 +155,7 @@ public sealed class TcpKeithley2450Tests
     [InlineData("malformed")]
     public async Task InvalidAcquisitionValueNeverBecomesADataRowAndStillStopsOverSynchronizedWire(string invalid)
     {
-        await using var peer = new Keithley2450ScpiPeer(); peer.Override = (command, _) => command == Pair ? Task.FromResult<byte[]?>(LoopbackScpiServer.Reply("0.0197," + invalid)) : null;
+        await using var peer = new Keithley2450ScpiPeer(); peer.Override = (command, _) => command == Pair ? Task.FromResult<byte[]?>(LoopbackScpiServer.Reply("0.0197," + invalid + ",200,0")) : null;
         var b = new Bench(peer); var error = await Assert.ThrowsAsync<IOException>(() => b.Runs.StartPlanAsync(b.Plan(), Token)); Assert.Contains("numeric", error.Message);
         Assert.Empty(b.Runs.LatestDataSet!.Rows); Assert.Equal(MeasurementRunState.Faulted, b.Runs.LatestDataSet.State); Assert.False(peer.Output); Assert.False(b.Runs.HasActiveRun);
         Assert.False(b.Leases.IsLeased(b.Source.Id, DateTimeOffset.UtcNow)); await b.Source.DisconnectAsync(Token);
@@ -163,7 +163,7 @@ public sealed class TcpKeithley2450Tests
     [Fact]
     public async Task ReadErrorAndRefusedOutputOffRetainAllResourcesUntilFreshRecovery()
     {
-        await using var peer = new Keithley2450ScpiPeer { RefuseOff = true }; peer.Override = (command, _) => command == Pair ? Task.FromResult<byte[]?>(LoopbackScpiServer.Reply("1,NaN")) : null;
+        await using var peer = new Keithley2450ScpiPeer { RefuseOff = true }; peer.Override = (command, _) => command == Pair ? Task.FromResult<byte[]?>(LoopbackScpiServer.Reply("1,NaN,200,0")) : null;
         var b = new Bench(peer, withField: true); var error = await Assert.ThrowsAsync<AggregateException>(() => b.Runs.StartPlanAsync(b.Plan(), Token));
         Assert.Contains(error.Flatten().InnerExceptions, e => e.Message.Contains("numeric", StringComparison.Ordinal)); Assert.Contains(error.Flatten().InnerExceptions, e => e.Message.Contains("output-off", StringComparison.Ordinal));
         Assert.True(peer.Output); Assert.True(b.Runs.HasActiveRun); Assert.Equal(RunExecutionPhase.SafetyRecoveryRequired, b.Runs.Phase);

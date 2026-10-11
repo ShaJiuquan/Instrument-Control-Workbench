@@ -136,6 +136,32 @@ public sealed class MeasurementGroupExecutionTests
         }
         finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
     }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LegacyWideRowsStayUnobservedAndMixedMissingMemberEvidenceIsRejected(bool mixed)
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "group-quality-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var b = new Bench(); await b.Runs.StartPlanAsync(NativePlan(b), Token); var snapshot = b.Runs.LatestDataSet!.Capture();
+            await using var archive = new FileRunArchive(folder);
+            await archive.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = [] }, Token);
+            for (var i = 0; i < snapshot.Rows.Count; i++)
+            {
+                var row = snapshot.Rows[i];
+                var replacement = !mixed || i == 0 ? new MeasurementDataRow(row.Timestamp, row.Values, row.Routing, row.Analysis, row.MeasurementGroup, row.Environment) : row;
+                if (mixed && row.MeasurementGroup is not null) await Assert.ThrowsAsync<ArgumentException>(() => archive.OnRowAsync(snapshot.Id, replacement, Token));
+                else await archive.OnRowAsync(snapshot.Id, replacement, Token);
+            }
+            if (!mixed)
+            {
+                await using var fresh = new FileRunArchive(folder); var saved = await fresh.LoadAsync(snapshot.Id, Token);
+                Assert.All(saved.DataSet.Rows, row => Assert.Equal(ReadingQualityState.Unobserved, row.QualityState));
+            }
+        }
+        finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
+    }
     [Fact]
     public async Task ArchiveWriterRejectsPointValueTamperingBeforeWritingAFrame()
     {

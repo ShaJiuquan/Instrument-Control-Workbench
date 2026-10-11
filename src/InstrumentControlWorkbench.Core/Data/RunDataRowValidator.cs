@@ -1,4 +1,5 @@
 using InstrumentControlWorkbench.Core.Experiments;
+using InstrumentControlWorkbench.Core.Instruments;
 using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Core.Data;
@@ -12,6 +13,7 @@ public sealed class RunDataRowValidator
     private readonly Dictionary<StepId, MeasurementGroupStep> groups = [];
     private readonly Dictionary<ParameterId, EnvironmentRead> environment = [];
     private readonly Dictionary<ParameterId, IReadOnlyList<EnvironmentRead>> environmentPolicies = [];
+    private readonly Dictionary<StepId, IReadOnlyDictionary<ParameterId, InstrumentId>> acquisitions = [];
     private readonly Queue<MeasurementDataRow> recent = new();
     private int count;
     public bool HasMeasurementGroups => groups.Count != 0;
@@ -26,10 +28,10 @@ public sealed class RunDataRowValidator
             if (++visited > 10_000 || item.Depth > 128) throw new ArgumentException("Measurement provenance plan exceeds bounds.");
             switch (item.Step)
             {
-                case ReadStep read: RegisterEnvironment(read.Channels.Select(c => c.Column), read.EnvironmentReads); break;
-                case ReadSourceSenseStep read: RegisterEnvironment([read.VoltageColumn, read.CurrentColumn], read.EnvironmentReads); break;
-                case ReadResistanceStep read: RegisterEnvironment([read.VoltageColumn, read.CurrentColumn, read.ResistanceColumn], read.EnvironmentReads); break;
-                case ReadSampleResistanceStep read: RegisterEnvironment([read.Acquisition.VoltageColumn, read.Acquisition.CurrentColumn, read.Acquisition.ResistanceColumn], read.Acquisition.EnvironmentReads); break;
+                case ReadStep read: RegisterQuality(read.Id, read.Channels.Select(c => (c.Column, c.Address.Device))); RegisterEnvironment(read.Channels.Select(c => c.Column), read.EnvironmentReads); break;
+                case ReadSourceSenseStep read: RegisterQuality(read.Id, new[] { read.VoltageColumn, read.CurrentColumn }.Select(c => (c, read.Device))); RegisterEnvironment([read.VoltageColumn, read.CurrentColumn], read.EnvironmentReads); break;
+                case ReadResistanceStep read: RegisterQuality(read.Id, new[] { read.VoltageColumn, read.CurrentColumn, read.ResistanceColumn }.Select(c => (c, read.Device))); RegisterEnvironment([read.VoltageColumn, read.CurrentColumn, read.ResistanceColumn], read.EnvironmentReads); break;
+                case ReadSampleResistanceStep read: RegisterQuality(read.Acquisition.Id, new[] { read.Acquisition.VoltageColumn, read.Acquisition.CurrentColumn, read.Acquisition.ResistanceColumn }.Select(c => (c, read.Acquisition.Device))); RegisterEnvironment([read.Acquisition.VoltageColumn, read.Acquisition.CurrentColumn, read.Acquisition.ResistanceColumn], read.Acquisition.EnvironmentReads); break;
                 case SampleAnalysisStep sample: foreach (var read in sample.Readings) pending.Push((read, item.Depth + 1)); break;
                 case MeasurementGroupStep group:
                     if (!groups.TryAdd(group.Id, group)) throw new ArgumentException("Duplicate measurement group ID.");
@@ -49,6 +51,10 @@ public sealed class RunDataRowValidator
             if (column is null || !column.Optional || column.Source != read.Address || column.Parameter.Unit != EnvironmentRead.Unit(read.Role))
                 throw new ArgumentException("Environment columns require their optional matching units and frozen source address.");
         }
+        void RegisterQuality(StepId step, IEnumerable<(ParameterId Column, InstrumentId Device)> columns)
+        {
+            if (!acquisitions.TryAdd(step, columns.ToDictionary(c => c.Column, c => c.Device))) throw new ArgumentException("Duplicate acquisition quality step ID.");
+        }
         void RegisterEnvironment(IEnumerable<ParameterId> columns, IReadOnlyList<EnvironmentRead> reads)
         {
             foreach (var column in columns)
@@ -64,6 +70,14 @@ public sealed class RunDataRowValidator
     {
         schema.ValidateRow(row);
         ValidateEnvironment(row);
+        if (row.Analysis is null && row.MeasurementGroup is null && row.Quality.Count != 0)
+        {
+            var step = row.Quality[0].Step;
+            if (!acquisitions.TryGetValue(step, out var columns) || row.Quality.Count != columns.Count ||
+                row.Quality.Select(q => q.Column).Distinct().Count() != columns.Count ||
+                row.Quality.Any(q => q.Step != step || !columns.TryGetValue(q.Column, out var device) || device != q.Device || !row.Values.ContainsKey(q.Column) || q.CapturedAt > row.Timestamp))
+                throw new ArgumentException("Acquisition quality must match the declared complete step, devices, columns and capture times.");
+        }
         if (row.Routing is { } context)
             (plan?.Routing ?? throw new ArgumentException("Routed rows require the frozen plan catalog.")).ValidateContext(context);
         if (row.MeasurementGroup is not { } summary) { analysis.Validate(row); return; }
@@ -91,7 +105,7 @@ public sealed class RunDataRowValidator
             offset += member.InputCount;
         }
         var expected = MeasurementGroupSummary.BuildRow(group, summary.Inputs[0].FirstInputRow, inputs);
-        if (expected.Timestamp != row.Timestamp || !expected.Environment.SequenceEqual(row.Environment) || !expected.Values.Keys.ToHashSet().SetEquals(row.Values.Keys) || expected.Values.Any(p => row.Values[p.Key] != p.Value))
+        if (expected.Timestamp != row.Timestamp || !expected.Environment.SequenceEqual(row.Environment) || !expected.Quality.SequenceEqual(row.Quality) || !expected.Values.Keys.ToHashSet().SetEquals(row.Values.Keys) || expected.Values.Any(p => row.Values[p.Key] != p.Value))
             throw new ArgumentException("Measurement summary values/time differ from the preserved acquisitions.");
     }
     private void ValidateEnvironment(MeasurementDataRow row)

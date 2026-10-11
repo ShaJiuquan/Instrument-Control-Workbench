@@ -40,7 +40,7 @@ public sealed record SenseConfiguration(
     bool AutoRange,
     Quantity? ManualRange = null);
 
-public sealed record MeasurementValue(double Value, string Unit, DateTimeOffset Timestamp);
+public sealed record MeasurementValue(double Value, string Unit, DateTimeOffset Timestamp, Keithley2450ReadingStatus? Status = null);
 
 public sealed record SourceMeterSnapshot(
     InstrumentId InstrumentId,

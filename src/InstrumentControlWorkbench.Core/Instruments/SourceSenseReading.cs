@@ -6,7 +6,7 @@ namespace InstrumentControlWorkbench.Core.Instruments;
 // snapshot combined with an independently triggered measurement.
 public sealed record SourceSenseReading
 {
-    public SourceSenseReading(SourceFunction function, SenseFunction senseFunction, Quantity source, Quantity sense, DateTimeOffset timestamp)
+    public SourceSenseReading(SourceFunction function, SenseFunction senseFunction, Quantity source, Quantity sense, DateTimeOffset timestamp, Keithley2450ReadingStatus? status = null)
     {
         if (!Enum.IsDefined(function) || !Enum.IsDefined(senseFunction)) throw new ArgumentOutOfRangeException(nameof(function));
         var sourceUnit = function == SourceFunction.Voltage ? PhysicalUnit.Volt : PhysicalUnit.Ampere;
@@ -17,11 +17,12 @@ public sealed record SourceSenseReading
             _ => PhysicalUnit.Ohm,
         };
         if (source.Unit != sourceUnit || sense.Unit != senseUnit) throw new ArgumentException("Source/sense reading units must match their functions.");
-        Function = function; SenseFunction = senseFunction; Source = source; Sense = sense; Timestamp = timestamp;
+        Function = function; SenseFunction = senseFunction; Source = source; Sense = sense; Timestamp = timestamp; Status = status;
     }
     public SourceFunction Function { get; }
     public SenseFunction SenseFunction { get; }
     public Quantity Source { get; }
     public Quantity Sense { get; }
     public DateTimeOffset Timestamp { get; }
+    public Keithley2450ReadingStatus? Status { get; }
 }

@@ -17,6 +17,9 @@ hardware, credentials, or proprietary experiment definitions.
 - Grow toward real serial/VISA/WebSocket instrument backends behind testable
   interfaces.
 
+Per-reading K2450 buffer quality, safe capture checks and analysis/archive
+propagation are documented in [reading-quality.md](docs/reading-quality.md).
+
 ## Current Status
 
 The desktop prototype and execution foundation currently provide:

@@ -1229,5 +1229,10 @@
     "tests": "SenseRangeModelTests.cs (27 cases); SenseRangeExecutionTests.cs (35 cases); existing routed sample source/sense range alias acceptance",
     "fixtures": "examples/plans/source-sense-range-scan.plan.json; examples/devices/workbench-devices.json",
     "limits": "Typed exact complementary fixed voltage/current spans or explicit auto; observed resistance span is read-only, no ohmmeter manual selection. Legacy false/null queries/retains actual matching range; source-limit bounds >0.1%..105% and source/sense range power guard avoid implicit adjustment; native optional v1 field, literal preflight and actual dynamic checks. Existing resources/ports/lifecycle; live owned sense changes confirm unchanged actual source/output/terminals; standalone and paired drift discard rows, pause drift denies output restoration; failed live setting plus failed stop retains claims/leases until explicit recovery. PPMS matching meter ranges and resistance/sample aliases accept finite numbers/strings, approximate selectors resolve upward; owned excitation releases old sense range while off, scan-managed excitation preserved. Source/sense initial parameter and full plan/archive/CSV roundtrip; later planned changes are not actual per-row evidence. Owned loopback peers only; automatic selected full scale, complete reading status/quality/rebound/autozero/filter, ohmmeter/other families, UI/editor and real hardware remain required. See sense-ranges.md."
+  },
+  "readingQualityImplementation": {
+    "stage": "same-buffer K2450 acquisition quality",
+    "tests": "ReadingQualityModelTests; TcpKeithley2450Tests.Quality; SampleResistanceExecutionTests.Quality; analysis and wide-point legacy/tamper tests",
+    "limits": "Native SCPI TCP loopback only. Raw source/sense statuses, numeric single and paired reads, measured-source verification, capture/safety guards, finite warnings, analysis/wide propagation, strict live/archive provenance and CSV. Simulation and old rows unobserved. Actual autorange full scale, rebound/autozero/filter, other hardware families and native UI acceptance remain pending. See reading-quality.md."
   }
 }

@@ -75,6 +75,8 @@ public sealed class SampleAnalysisRowValidator
             summary.InputCount != group.Readings.Count || summary.FirstInputRow != count + 1 - summary.InputCount || recent.Count < summary.InputCount)
             throw new ArgumentException("Summary must reference its declared group's complete immediately preceding raw rows.", nameof(row));
         var input = recent.TakeLast(summary.InputCount).ToArray();
+        if (row.Quality.Count != 0 && input.Any(r => r.Quality.Count == 0)) throw new ArgumentException("Analysis cannot claim complete quality while an input has no evidence.");
+        if (!row.Quality.SequenceEqual(input.SelectMany(r => r.Quality))) throw new ArgumentException("Sample analysis must preserve acquisition quality evidence.");
         var derived = group.Columns.Select(c => schema.Columns.Single(s => s.Parameter.Id == c.Column)).ToArray();
         var elapsed = new ParameterId("elapsed");
         var axes = derived[0].DependsOn.Where(id => id != elapsed).ToArray();

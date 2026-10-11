@@ -28,7 +28,7 @@ public sealed partial class SampleResistanceExecutionTests
         var rows = b.Runs.LatestDataSet!.Rows; Assert.Equal(rawCount + 1, rows.Count); Assert.Equal(rawCount + 1, b.Listener.Rows);
         Assert.All(rows.Take(rawCount), r => { Assert.NotNull(r.Routing); Assert.Null(r.Analysis); });
         var summary = rows[^1]; Assert.Null(summary.Routing);
-        Assert.Equal(1, summary.Analysis!.FirstInputRow); Assert.Equal(rawCount, summary.Analysis.InputCount); Assert.Equal(SampleAnalysisIssues.None, summary.Analysis.Issues);
+        Assert.Equal(1, summary.Analysis!.FirstInputRow); Assert.Equal(rawCount, summary.Analysis.InputCount); Assert.Equal(rawCount * 3, summary.Quality.Count); Assert.Equal(0, summary.ObservedQualityColumns); Assert.Equal(SampleAnalysisIssues.None, summary.Analysis.Issues);
         var expected = topology == SampleTopology.HallBar ? rows[0].Values[new("resistance")].Value * 0.5 : Math.PI * rows[0].Values[new("resistance")].Value / Math.Log(2);
         Assert.True(Math.Abs(summary.Values[new("r_sheet")].Value / expected - 1) < 1e-12);
         Assert.Equal(PhysicalUnit.OhmPerSquare, summary.Values[new("r_sheet")].Unit); Assert.Equal(PhysicalUnit.OhmMeter, summary.Values[new("rho_xx")].Unit);
@@ -113,6 +113,8 @@ public sealed partial class SampleResistanceExecutionTests
     [InlineData("missing_context")]
     [InlineData("raw_pair")]
     [InlineData("algorithm")]
+    [InlineData("quality_drop")]
+    [InlineData("quality_word")]
     public async Task UnfinishedArchiveRejectsAlteredSummaryEvidenceAndPreservesExportDestination(string damage)
     {
         using var folder = new TemporaryFolder(); var b = new Bench(); await b.Runs.StartAnalyzedSampleResistanceAsync(Recipe(Configuration(SampleTopology.HallBar, Geometry)), Token);
@@ -133,6 +135,8 @@ public sealed partial class SampleResistanceExecutionTests
             case "missing_context": node.Remove("analysis"); break;
             case "raw_pair": node["values"]!["voltage"]!["value"] = 0.123; break;
             case "algorithm": node["analysis"]!["algorithmVersion"] = 2; break;
+            case "quality_drop": node.Remove("quality"); break;
+            case "quality_word": node["quality"]![0]!["sourceStatus"] = 232; node["quality"]![0]!["measurementStatus"] = 1; break;
         }
         lines[index] = node.ToJsonString(); await File.WriteAllTextAsync(rowPath, string.Join('\n', lines) + "\n");
         await using var reopened = new FileRunArchive(folder.Path);

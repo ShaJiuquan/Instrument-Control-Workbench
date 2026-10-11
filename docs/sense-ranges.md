@@ -127,3 +127,13 @@ source limits / measurement ranges and SCPI sense range sections. No vendor
 manual is redistributed. `hardwareVerified` remains false. Ohmmeter range
 selection, other instrument families, quality/status, native editors and real
 hardware acceptance remain required; the full PPMS migration remains active.
+
+## Acquisition quality stage (2026-10-11)
+
+Native K2450 single and paired reads now preserve same-buffer source/measurement
+status. Capture mismatch, protection and overtemperature fault before row commit;
+finite limit/questionable/unknown-bit warnings persist through resistance, sample
+analysis, wide points, archive and CSV. Missing status is explicitly unobserved;
+legacy rows remain readable. Initial settings and later queried autorange spans
+are not per-reading range evidence. See [reading-quality.md](reading-quality.md)
+for policy, compatibility and remaining hardware/UI limitations.

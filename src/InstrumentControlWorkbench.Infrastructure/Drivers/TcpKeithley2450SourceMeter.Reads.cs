@@ -37,8 +37,10 @@ public sealed partial class TcpKeithley2450SourceMeter
         {
             var state = await ReconcileAsync(token); RequireOutputForAcquisition(state);
             await PrepareAcquisitionAsync(token);
-            var raw = await transport.QueryAsync(Measure, token); var value = Number(raw); await CheckErrorsAsync(token);
-            return new(value, state.Sense.Function switch { SenseFunction.Voltage => "V", SenseFunction.Current => "A", _ => "ohm" }, DateTimeOffset.UtcNow);
+            var raw = (await transport.QueryAsync(Measure, token)).Split(',');
+            if (raw.Length != 3) throw new IOException("2450 acquisition requires a value and both buffer status words.");
+            var value = Number(raw[0]); var status = new Keithley2450ReadingStatus(StatusWord(raw[1]), StatusWord(raw[2])); await CheckErrorsAsync(token);
+            return new(value, state.Sense.Function switch { SenseFunction.Voltage => "V", SenseFunction.Current => "A", _ => "ohm" }, DateTimeOffset.UtcNow, status);
         }
         finally { operations.Release(); }
     }
@@ -53,11 +55,11 @@ public sealed partial class TcpKeithley2450SourceMeter
             if (!Boolean(await transport.QueryAsync(prefix + "?", token))) throw new IOException("2450 actual source readback could not be enabled.");
             await PrepareAcquisitionAsync(token);
             var raw = (await transport.QueryAsync(MeasureSourceSense, token)).Split(',');
-            if (raw.Length != 2) throw new IOException("2450 acquisition requires exactly one source/sense pair.");
-            var source = Number(raw[0]); var sense = Number(raw[1]); await CheckErrorsAsync(token);
+            if (raw.Length != 4) throw new IOException("2450 acquisition requires one source/sense pair and both buffer status words.");
+            var source = Number(raw[0]); var sense = Number(raw[1]); var status = new Keithley2450ReadingStatus(StatusWord(raw[2]), StatusWord(raw[3])); await CheckErrorsAsync(token);
             return new(state.Source.Function, state.Sense.Function,
                 new(source, state.Source.Function == SourceFunction.Voltage ? PhysicalUnit.Volt : PhysicalUnit.Ampere),
-                new(sense, state.Sense.Function switch { SenseFunction.Voltage => PhysicalUnit.Volt, SenseFunction.Current => PhysicalUnit.Ampere, _ => PhysicalUnit.Ohm }), DateTimeOffset.UtcNow);
+                new(sense, state.Sense.Function switch { SenseFunction.Voltage => PhysicalUnit.Volt, SenseFunction.Current => PhysicalUnit.Ampere, _ => PhysicalUnit.Ohm }), DateTimeOffset.UtcNow, status);
         }
         finally { operations.Release(); }
     }
@@ -85,10 +87,16 @@ public sealed partial class TcpKeithley2450SourceMeter
             throw new IOException("SCPI numeric reply is malformed, nonfinite or overrange.");
         return value;
     }
+    private static ushort StatusWord(string text)
+    {
+        var value = Number(text);
+        if (value < 0 || value > ushort.MaxValue || value != Math.Truncate(value)) throw new IOException("2450 buffer status must be an unsigned 16-bit integer.");
+        return (ushort)value;
+    }
     private static string SourceToken(SourceFunction function) => function == SourceFunction.Voltage ? "VOLT" : "CURR";
     private static string SenseToken(SenseFunction function) => function switch { SenseFunction.Voltage => "VOLT", SenseFunction.Current => "CURR", _ => "RES" };
-    private const string Measure = ":MEAS? \"defbuffer1\", READ";
-    private const string MeasureSourceSense = ":MEAS? \"defbuffer1\", SOUR, READ";
+    private const string Measure = ":MEAS? \"defbuffer1\", READ, SOURSTAT, STAT";
+    private const string MeasureSourceSense = ":MEAS? \"defbuffer1\", SOUR, READ, SOURSTAT, STAT";
     private const string AsciiFormat = ":FORM:DATA ASC";
     private const string SingleCount = ":SENS:COUN 1";
 }

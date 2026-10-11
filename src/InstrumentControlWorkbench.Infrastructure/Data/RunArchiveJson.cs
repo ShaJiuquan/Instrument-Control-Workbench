@@ -89,11 +89,21 @@ internal static partial class RunArchiveJson
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] SampleRouteDto? Routing = null,
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] SampleAnalysisDto? Analysis = null,
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] MeasurementGroupDto? MeasurementGroup = null,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] EnvironmentObservationDto[]? Environment = null)
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] EnvironmentObservationDto[]? Environment = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] AcquisitionQualityDto[]? Quality = null)
     {
-        public MeasurementDataRow ToDomain() => new(Timestamp, Required(Values).ToDictionary(p => new ParameterId(p.Key), p => Required(p.Value).ToDomain()), Routing?.ToDomain(), Analysis?.ToDomain(), MeasurementGroup?.ToDomain(), Environment?.Select(o => Required(o).ToDomain()));
+        public MeasurementDataRow ToDomain() => new(Timestamp, Required(Values).ToDictionary(p => new ParameterId(p.Key), p => Required(p.Value).ToDomain()), Routing?.ToDomain(), Analysis?.ToDomain(), MeasurementGroup?.ToDomain(), Environment?.Select(o => Required(o).ToDomain()), Quality?.Select(q => Required(q).ToDomain()));
         public static RowDto From(int index, MeasurementDataRow row) => new(index, row.Timestamp,
-            row.Values.OrderBy(p => p.Key.Value, StringComparer.Ordinal).ToDictionary(p => p.Key.Value, p => QuantityDto.From(p.Value)), row.Routing is null ? null : SampleRouteDto.From(row.Routing), row.Analysis is null ? null : SampleAnalysisDto.From(row.Analysis), row.MeasurementGroup is null ? null : MeasurementGroupDto.From(row.MeasurementGroup), row.Environment.Count == 0 ? null : row.Environment.Select(EnvironmentObservationDto.From).ToArray());
+            row.Values.OrderBy(p => p.Key.Value, StringComparer.Ordinal).ToDictionary(p => p.Key.Value, p => QuantityDto.From(p.Value)), row.Routing is null ? null : SampleRouteDto.From(row.Routing), row.Analysis is null ? null : SampleAnalysisDto.From(row.Analysis), row.MeasurementGroup is null ? null : MeasurementGroupDto.From(row.MeasurementGroup), row.Environment.Count == 0 ? null : row.Environment.Select(EnvironmentObservationDto.From).ToArray(), row.Quality.Count == 0 ? null : row.Quality.Select(AcquisitionQualityDto.From).ToArray());
+    }
+    internal sealed record AcquisitionQualityDto(string Step, string Device, string Column, DateTimeOffset CapturedAt, ushort? SourceStatus, ushort? MeasurementStatus)
+    {
+        public AcquisitionQuality ToDomain()
+        {
+            if ((SourceStatus is null) != (MeasurementStatus is null)) throw new FormatException("Both buffer quality words must be present or absent.");
+            return new(new(Step), new(Device), new(Column), CapturedAt, SourceStatus is { } source ? new(source, MeasurementStatus!.Value) : null);
+        }
+        public static AcquisitionQualityDto From(AcquisitionQuality quality) => new(quality.Step.Value, quality.Device.Value, quality.Column.Value, quality.CapturedAt, quality.Status?.Source, quality.Status?.Measurement);
     }
     internal sealed record EnvironmentObservationDto(EnvironmentRole Role, string Column, string? Device, string? Parameter,
         DateTimeOffset CapturedAt, QuantityDto? Value, string? Error)

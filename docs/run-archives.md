@@ -102,3 +102,13 @@ unfinished tail handling, corrupt records/versions, CSV metadata/units and
 optional columns, unchanged exports after failure, row limits, wide buffered rows
 and damaged-directory catalog isolation. `RunMetadataTests` check immutable
 copies and field limits. Hardware and desktop visual acceptance are separate.
+
+## Acquisition quality stage (2026-10-11)
+
+Native K2450 single and paired reads now preserve same-buffer source/measurement
+status. Capture mismatch, protection and overtemperature fault before row commit;
+finite limit/questionable/unknown-bit warnings persist through resistance, sample
+analysis, wide points, archive and CSV. Missing status is explicitly unobserved;
+legacy rows remain readable. Initial settings and later queried autorange spans
+are not per-reading range evidence. See [reading-quality.md](reading-quality.md)
+for policy, compatibility and remaining hardware/UI limitations.

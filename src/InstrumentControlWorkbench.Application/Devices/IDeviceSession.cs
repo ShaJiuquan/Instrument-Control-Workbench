@@ -13,6 +13,8 @@ public interface IDeviceSession
     Task<DeviceStatus> GetDeviceStatusAsync(CancellationToken token, RunId? owner = null);
     Task DisconnectDeviceAsync(CancellationToken token, RunId? owner = null);
     Task<Quantity> ReadParameterAsync(ParameterId parameter, CancellationToken token, RunId? owner = null);
+    async Task<ParameterObservation> ReadObservationAsync(ParameterId parameter, CancellationToken token, RunId? owner = null)
+        => new(await ReadParameterAsync(parameter, token, owner), DateTimeOffset.UtcNow);
     Task WriteParameterAsync(ParameterId parameter, Quantity value, CancellationToken token, RunId? owner = null);
     Task<DeviceStatus> StopDeviceAsync(CancellationToken token, RunId? owner = null);
     Task ClaimRunAsync(RunId owner, CancellationToken token);

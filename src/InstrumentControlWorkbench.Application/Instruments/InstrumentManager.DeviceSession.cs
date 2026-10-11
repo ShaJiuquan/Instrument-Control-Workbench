@@ -40,6 +40,9 @@ public sealed partial class InstrumentManager
     }
 
     public async Task<Quantity> ReadParameterAsync(ParameterId parameter, CancellationToken token, RunId? owner = null)
+        => (await ReadObservationAsync(parameter, token, owner)).Value;
+
+    public async Task<ParameterObservation> ReadObservationAsync(ParameterId parameter, CancellationToken token, RunId? owner = null)
     {
         var descriptor = Descriptor.GetParameter(parameter);
         if (!descriptor.Access.HasFlag(ParameterAccess.Read)) throw new InvalidOperationException($"{parameter} is write-only.");
@@ -49,7 +52,7 @@ public sealed partial class InstrumentManager
             var snapshot = await ReadSourceSnapshotAsync(token);
             if (!snapshot.Connected) throw new InvalidOperationException($"{InstrumentId} is disconnected.");
             var configuration = ToDeviceStatus(snapshot);
-            if (configuration.Values.TryGetValue(parameter, out var configured)) return configured;
+            if (configuration.Values.TryGetValue(parameter, out var configured)) return new(configured, snapshot.LastHeartbeat);
             if (parameter == Keithley2450Parameters.ManualVoltageRange.Id || parameter == Keithley2450Parameters.ManualCurrentRange.Id || parameter == Keithley2450Parameters.ManualSenseVoltageRange.Id || parameter == Keithley2450Parameters.ManualSenseCurrentRange.Id || parameter == Keithley2450Parameters.ManualSenseResistanceRange.Id)
                 throw new InvalidOperationException("Manual source/sense range is unavailable in the current function or automatic range mode.");
             var sense = parameter == Keithley2450Parameters.MeasuredCurrent.Id ? SenseFunction.Current :
@@ -70,8 +73,9 @@ public sealed partial class InstrumentManager
                 var after = await ReadSourceSnapshotAsync(token);
                 if (!after.Connected || after.Source != snapshot.Source || after.Sense != requestedSense || after.OutputEnabled != snapshot.OutputEnabled || after.Terminals != snapshot.Terminals)
                     throw new InvalidOperationException("Source state or sensing configuration changed during acquisition.");
+                measured.Status?.ValidateAcquisition(requestedSense.Mode, snapshot.Terminals, requireSourceReadback: false);
                 await PublishSnapshotAsync(after with { Lifecycle = lifecycle }, token);
-                return value;
+                return new(value, measured.Timestamp, measured.Status);
             }
             catch { Transition(InstrumentLifecycleEvent.FaultDetected); throw; }
         }
@@ -102,6 +106,7 @@ public sealed partial class InstrumentManager
                 if (!after.Connected || !after.OutputEnabled || after.Source != snapshot.Source || after.Sense != (snapshot.Sense with { Function = senseFunction }) || after.Terminals != snapshot.Terminals ||
                     requiredSensingMode is { } expectedMode && after.Sense.Mode != expectedMode)
                     throw new InvalidOperationException("Source state or sensing configuration changed during acquisition.");
+                reading.Status?.ValidateAcquisition(snapshot.Sense.Mode, snapshot.Terminals, requireSourceReadback: true);
                 await PublishSnapshotAsync(after with { Lifecycle = lifecycle }, token);
                 return reading;
             }

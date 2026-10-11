@@ -146,7 +146,7 @@ public sealed class SourceRangeExecutionTests
         await using var peer = new Keithley2450ScpiPeer(); var measured = false;
         peer.Override = (command, _) =>
         {
-            if (command == ":MEAS? \"defbuffer1\", SOUR, READ") measured = true;
+            if (command == ":MEAS? \"defbuffer1\", SOUR, READ, SOURSTAT, STAT") measured = true;
             return measured && command == ":SOUR:VOLT:RANG?" ? Task.FromResult<byte[]?>(LoopbackScpiServer.Reply("20")) : null;
         };
         var b = new Bench(peer); var error = await Assert.ThrowsAsync<InvalidOperationException>(() => b.Runs.StartPlanAsync(b.Scan(SourceFunction.Voltage, 0.2), Token));

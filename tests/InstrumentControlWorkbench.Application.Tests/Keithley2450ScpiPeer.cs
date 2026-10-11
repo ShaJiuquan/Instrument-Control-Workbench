@@ -27,6 +27,8 @@ internal sealed class Keithley2450ScpiPeer : IAsyncDisposable
     public int Aborts { get; private set; }
     public double ActualSource { get; set; } = 0.0197;
     public double ActualSense { get; set; } = 0.000021;
+    public ushort ExtraSourceStatus { get; set; }
+    public ushort MeasurementStatus { get; set; }
     public Queue<string> Errors { get; } = new();
     public Func<string, CancellationToken, Task<byte[]?>?>? Override { get; set; }
     private Task<byte[]?> RespondAsync(string command, CancellationToken token)
@@ -34,6 +36,7 @@ internal sealed class Keithley2450ScpiPeer : IAsyncDisposable
         var replacement = Override?.Invoke(command, token); if (replacement is not null) return replacement;
         var source = sources[function]; var sourcePrefix = function == SourceFunction.Voltage ? "VOLT" : "CURR";
         var sensePrefix = sense.Function switch { SenseFunction.Current => "CURR", SenseFunction.Voltage => "VOLT", _ => "RES" };
+        var status = ExtraSourceStatus | (Output ? 128 : 0) | (readback[sourcePrefix] ? 8 : 0) | (sense.Mode == SensingMode.FourWire ? 64 : 0);
         string? reply = command switch
         {
             "*IDN?" => Identifier,
@@ -45,8 +48,8 @@ internal sealed class Keithley2450ScpiPeer : IAsyncDisposable
             ":FORM:DATA?" => "ASC",
             ":SENS:COUN?" => "1",
             ":SYST:ERR?" => Errors.Count == 0 ? "0,\"No error\"" : Errors.Dequeue(),
-            ":MEAS? \"defbuffer1\", READ" => ActualSense.ToString("G17", CultureInfo.InvariantCulture),
-            ":MEAS? \"defbuffer1\", SOUR, READ" => ActualSource.ToString("G17", CultureInfo.InvariantCulture) + "," + ActualSense.ToString("G17", CultureInfo.InvariantCulture),
+            ":MEAS? \"defbuffer1\", READ, SOURSTAT, STAT" => ActualSense.ToString("G17", CultureInfo.InvariantCulture) + $",{status},{MeasurementStatus}",
+            ":MEAS? \"defbuffer1\", SOUR, READ, SOURSTAT, STAT" => ActualSource.ToString("G17", CultureInfo.InvariantCulture) + "," + ActualSense.ToString("G17", CultureInfo.InvariantCulture) + $",{status},{MeasurementStatus}",
             _ => null,
         };
         if (reply is not null) return Task.FromResult<byte[]?>(LoopbackScpiServer.Reply(reply));

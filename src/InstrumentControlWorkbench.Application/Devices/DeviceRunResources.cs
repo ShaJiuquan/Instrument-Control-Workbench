@@ -54,6 +54,9 @@ public sealed class DeviceRunResources
     }
 
     public async Task<Quantity> ReadAsync(InstrumentId id, ParameterId parameter, CancellationToken token)
+        => (await ReadObservationAsync(id, parameter, token)).Value;
+
+    public async Task<ParameterObservation> ReadObservationAsync(InstrumentId id, ParameterId parameter, CancellationToken token)
     {
         await gate.WaitAsync(token);
         try
@@ -62,7 +65,7 @@ public sealed class DeviceRunResources
             await RequireStoppedTaskFinishedAsync(id);
             token.ThrowIfCancellationRequested();
             touched.Add(id);
-            return await Get(id).ReadParameterAsync(parameter, token, Owner);
+            return await Get(id).ReadObservationAsync(parameter, token, Owner);
         }
         finally { gate.Release(); }
     }

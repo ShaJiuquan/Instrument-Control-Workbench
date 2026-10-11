@@ -138,16 +138,19 @@ public sealed partial class MeasurementRunService
     private async Task AcquireRowAsync(ReadStep read, RunExecutionContext run, IReadOnlyList<IRunResultListener> started)
     {
         var values = new Dictionary<ParameterId, Quantity>(run.Axes);
+        var quality = new List<AcquisitionQuality>();
         foreach (var channel in read.Channels)
         {
-            var value = await run.Resources!.ReadAsync(channel.Address.Device, channel.Address.Parameter, run.Token);
+            var observation = await run.Resources!.ReadObservationAsync(channel.Address.Device, channel.Address.Parameter, run.Token);
+            var value = observation.Value;
+            quality.Add(new(read.Id, channel.Address.Device, channel.Column, observation.CapturedAt, observation.Status));
             values[channel.Column] = value;
             run.Variables[channel.Column] = value;
         }
         var environment = await ReadEnvironmentAsync(read.EnvironmentReads, values, run);
         var now = DateTimeOffset.UtcNow;
         values[ExperimentPlanCompiler.Elapsed.Id] = new(run.Elapsed.Elapsed.TotalSeconds, PhysicalUnit.Second);
-        var row = new MeasurementDataRow(now, values, environment: environment);
+        var row = new MeasurementDataRow(now, values, environment: environment, quality: quality);
         await CommitRowAsync(row, read.Id, run, started);
     }
 
@@ -160,7 +163,7 @@ public sealed partial class MeasurementRunService
         foreach (var listener in started)
             await listener.OnRowAsync(run.Id, row, listener == History ? CancellationToken.None : run.Token);
         await notifications.PublishAsync(new(WorkbenchNotificationKind.DataRowReceived,
-            $"Acquired row {run.RowsAcquired}.", RunId: run.Id.ToString(), Step: step, Row: row), CancellationToken.None);
+            $"Acquired row {run.RowsAcquired}; quality {row.QualityState} ({row.QualityIssues}); observed column evidence {row.ObservedQualityColumns}/{row.Quality.Count}.", RunId: run.Id.ToString(), Step: step, Row: row), CancellationToken.None);
     }
 
     private async Task AcquireSourceSenseRowAsync(ReadSourceSenseStep step, RunExecutionContext run, IReadOnlyList<IRunResultListener> started, bool ivPlot)
@@ -177,7 +180,7 @@ public sealed partial class MeasurementRunService
         };
         run.Variables[step.VoltageColumn] = voltage; run.Variables[step.CurrentColumn] = current;
         var environment = await ReadEnvironmentAsync(step.EnvironmentReads, values, run);
-        await CommitRowAsync(new(frame.Timestamp, values, environment: environment), step.Id, run, started);
+        await CommitRowAsync(new(frame.Timestamp, values, environment: environment, quality: new[] { step.VoltageColumn, step.CurrentColumn }.Select(c => new AcquisitionQuality(step.Id, step.Device, c, frame.Timestamp, frame.Status))), step.Id, run, started);
         if (ivPlot)
         {
             var point = new MeasurementPoint(frame.Timestamp, run.Elapsed.Elapsed, voltage.Value, current.Value, "V", "A");
@@ -201,7 +204,7 @@ public sealed partial class MeasurementRunService
             [ExperimentPlanCompiler.Elapsed.Id] = new(run.Elapsed.Elapsed.TotalSeconds, PhysicalUnit.Second),
         };
         var environment = await ReadEnvironmentAsync(step.EnvironmentReads, values, run);
-        var row = new MeasurementDataRow(reading.Timestamp, values, context, environment: environment);
+        var row = new MeasurementDataRow(reading.Timestamp, values, context, environment: environment, quality: new[] { step.VoltageColumn, step.CurrentColumn, step.ResistanceColumn }.Select(c => new AcquisitionQuality(step.Id, step.Device, c, reading.Timestamp, reading.Status)));
         run.Variables[step.VoltageColumn] = voltage; run.Variables[step.CurrentColumn] = current;
         run.Variables[step.ResistanceColumn] = values[step.ResistanceColumn];
         await CommitRowAsync(row, step.Id, run, started);
