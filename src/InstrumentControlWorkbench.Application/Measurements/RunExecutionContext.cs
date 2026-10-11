@@ -40,7 +40,7 @@ internal sealed class RunExecutionContext : IDisposable
     public volatile RunExecutionPhase Phase = RunExecutionPhase.Starting;
     public DeviceRunResources? Resources { get; set; }
     public InstrumentId? NotificationInstrument { get; init; }
-    public Dictionary<ParameterId, Quantity> Variables { get; } = [];
+    public Dictionary<ParameterId, BlackboardEntry> Variables { get; } = [];
     public Dictionary<ParameterId, Quantity> Axes { get; } = [];
     public TimeSpan PausedDuration { get; set; }
     public TimeSpan ActiveElapsed => Elapsed.Elapsed - PausedDuration;
@@ -53,6 +53,11 @@ internal sealed class RunExecutionContext : IDisposable
     public RunDataSet? DataSet { get; set; }
     public IReadOnlyDictionary<StepId, ResolvedSampleRoute> SampleRoutes { get; set; } = new Dictionary<StepId, ResolvedSampleRoute>();
     public TaskCompletionSource Finalized { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public void SetVariable(ParameterId id, Quantity value, StepId source)
+        => SetVariable(id, new BlackboardQuantity(value), source);
+    public void SetVariable(ParameterId id, BlackboardValue value, StepId source, BlackboardWriteKind kind = BlackboardWriteKind.Step)
+        => Variables[id] = new(value, source, DateTimeOffset.UtcNow, Elapsed.Elapsed, kind);
 
     public void Pause()
     {

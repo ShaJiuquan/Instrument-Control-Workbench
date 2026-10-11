@@ -339,3 +339,52 @@ Bool/Text/custom physical metadata, arbitrary expressions, parallel/background
 controls, physical devices and full graphical/native UI acceptance remain pending.
 
 The PPMS importer checks raw and known control-wrapper depth with an iterative traversal before recursive decoding. Duplicate JSON keys and excessive plain or guarded nesting produce format errors before device IO; the deepest supported plain tree remains importable.
+
+
+## Typed blackboard and provenance
+
+Plan literals now include `BooleanValue` and `TextValue`; native version 1 value
+objects use exactly one of `boolean`, `text`, `constant`, `variable`, or
+`quantityFromNumber`. Empty text, Unicode and whitespace are preserved. Text
+is bounded to 65,536 UTF-16 characters per literal; aggregate literal costs
+participate in the existing native allocation guard before DOM construction,
+then the exact 4 MiB UTF-8 document check still applies.
+
+Assignments, conditions, while and if/else accept these types. Boolean/text
+comparisons support Equal/NotEqual only; text equality is ordinal and case
+sensitive. Neither type implicitly becomes a number, a physical parameter,
+or a dimensionless unit-qualified input. Numeric comparisons retain their
+existing units and optional strict equality tolerance. Variable types/units
+must remain stable, and availability is proved across all branch paths before
+resource admission. Subtree inputs may deliberately shadow an inherited type
+locally; outputs must match any existing parent destination type. Successful
+exports are simultaneous, while failure/error/abort restores the parent.
+
+All runtime writes, including numeric acquisitions, scans, iterators, arithmetic
+and derived values, now store an immutable BlackboardEntry containing typed
+value, originating StepId, UTC write time and monotonic elapsed run time.
+Subtree transfers identify input/output mapping writes separately; restoring
+fallback/retry/subtree snapshots preserves the prior entries and their stamps.
+Write time records the workflow update, not the hardware acquisition timestamp;
+raw observation quality remains the acquisition evidence. UTC clocks may jump,
+so elapsed time is recorded separately rather than inferred from wall time.
+
+`MeasurementRunService.LatestBlackboard` exposes a defensive, read-only completed
+run snapshot, including fault/abort results. Admission resets it for the next
+run; older snapshots remain unchanged. This stage does not publish a live
+blackboard feed or persist these runtime entries in archive terminal records.
+Native plan files, archived plans and CSV plan metadata preserve typed literals
+and scoped mappings; fresh replay creates new provenance stamps. Historical
+blackboard persistence/live diagnostics remain pending.
+
+The portable `typed-blackboard-native.json` example exercises Boolean while,
+text verification and selected scoped export without device IO. Tests also
+cover real simulated acquisition rows, archive/CSV/fresh replay, strict malformed
+literal errors, aggregate text bounds, branch joins, physical operand rejection,
+listener faults and scoped cancellation/deadlines. Rust's blackboard supports
+Bool/Text internally, but its current axis writes and node callbacks are numeric;
+no unsupported Bool/Text PPMS import dialect or implicit Bool-to-f64 coercion is
+introduced. Generic expressions, parallel/background, native editor integration
+and real-device acceptance remain separate unfinished parts of the full goal.
+
+Outcome mutations also inspect possible writes in body branches, including variables omitted by definite-availability joins. Incompatible numeric hook targets are rejected before IO. Private subtree shadows are excluded; only selected exports contribute to the enclosing scope. The inspection is conservative over body prefix writes, including retry/fallback attempts, rather than a complete symbolic proof of each outcome path.

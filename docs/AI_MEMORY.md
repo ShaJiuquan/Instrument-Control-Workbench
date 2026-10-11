@@ -1045,3 +1045,27 @@ recovery tests. Bool/Text, custom physical metadata, expressions, generic
 parallel/background, native UI/lab and full migration remain pending. GitHub
 only; independent C# engine;29 UI drafts preserved/excluded;no new dependency or
 Rust edit.
+
+
+## Typed blackboard values and completed provenance (2026-10-11)
+
+Core immutable quantity/Boolean/Text values and bounded text literals; Application
+preflight tracks type+unit across definite paths, typed equality/inequality,
+assignment/while/if/subtree and no numeric coercion. Existing numeric IO resolves
+only quantities. Local input mapping may shadow type; selected outputs cannot
+change an existing parent type. Immutable entries stamp source StepId/UTC write
+and monotonic elapsed, with input/output transfer kind. All existing numeric
+writes migrated; snapshot restore retains stamps. LatestBlackboard defensive
+completed-run snapshot includes faults/abort; previous snapshots remain frozen.
+Native version1 additive boolean/text literals are strict and bounded; text
+allocation preflight and final byte limits; archive/CSV preserve plan and fresh
+replay. Portable no-IO fixture, ordinal Unicode/empty labels, typed branch joins,
+physical write/multiply/qualification/tolerance rejection, retry/fallback,
+subtree fault/timeout/abort restore, acquisition/listener provenance covered.
+Rust read-only: blackboard.rs Bool/Text APIs exist, actual axis/callback writes
+remain numeric. No invented imported Bool/Text dialect. Runtime entry archive
+persistence/live feed, expressions/parallel/background and native UI/lab/full
+migration remain pending. Independent engine;GitHub only;29 UI drafts untouched;
+no dependencies or Rust writes.
+
+Numeric outcome-hook admission now checks possible body bindings, not just definitely available variables after branch joins. Scoped private shadows are excluded; exported mappings count. Prefix checks are conservative across retry/fallback attempts; exact symbolic outcome-path analysis remains pending.

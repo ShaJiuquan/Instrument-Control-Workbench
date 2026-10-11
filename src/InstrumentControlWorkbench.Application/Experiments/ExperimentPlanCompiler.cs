@@ -29,12 +29,14 @@ internal static class ExperimentPlanCompiler
         var environmentColumns = new HashSet<ParameterId>();
         var environmentPolicies = new Dictionary<ParameterId, IReadOnlyList<EnvironmentRead>>();
         var steps = new HashSet<StepId>();
-        var variables = new Dictionary<ParameterId, PhysicalUnit>();
+        var variables = new Dictionary<ParameterId, BlackboardValueType>();
         var preparations = plan.Preparations.ToDictionary(p => p.Device);
         var currentPreparations = plan.CurrentSourcePreparations.ToDictionary(p => p.Device);
         var sampleRoutes = new Dictionary<StepId, ResolvedSampleRoute>();
         var writes = new List<(ParameterAddress Address, IReadOnlyList<Quantity>? Values)>();
         var hasDynamicLoops = false;
+        var variableScope = 0;
+        var bindings = new List<(ParameterId Variable, BlackboardValueType Type, int Scope)>();
         foreach (var preparation in plan.Preparations)
         {
             var device = Source(preparation.Device);
@@ -165,25 +167,31 @@ internal static class ExperimentPlanCompiler
             if (!parameter.Access.HasFlag(access)) throw new InvalidOperationException($"{address.Parameter} does not allow {access}.");
             return parameter;
         }
-        PhysicalUnit ValueUnit(PlanValue value, Dictionary<ParameterId, PhysicalUnit> known)
+        BlackboardValueType ValueType(PlanValue value, Dictionary<ParameterId, BlackboardValueType> known)
         {
             ArgumentNullException.ThrowIfNull(value);
             return value switch
             {
-                ConstantValue constant => constant.Value.Unit,
-                VariableValue variable when variable.Variable is not null && known.TryGetValue(variable.Variable, out var unit) => unit,
+                ConstantValue constant => BlackboardValueType.Quantity(constant.Value.Unit),
+                BooleanValue => BlackboardValueType.Boolean,
+                TextValue => BlackboardValueType.Text,
+                VariableValue variable when variable.Variable is not null && known.TryGetValue(variable.Variable, out var type) => type,
                 VariableValue variable => throw new ArgumentException($"Variable {variable.Variable} is not defined on every path before use."),
-                QuantityFromNumberValue qualified when known.TryGetValue(qualified.Variable, out var inputUnit) && inputUnit == PhysicalUnit.Dimensionless => qualified.Unit,
+                QuantityFromNumberValue qualified when known.TryGetValue(qualified.Variable, out var inputType) && inputType == BlackboardValueType.Quantity(PhysicalUnit.Dimensionless) => BlackboardValueType.Quantity(qualified.Unit),
                 QuantityFromNumberValue qualified => throw new ArgumentException($"Numeric input {qualified.Variable} must be defined and dimensionless before unit qualification."),
                 _ => throw new NotSupportedException($"Unsupported value expression {value.GetType().Name}."),
             };
         }
-        void BindVariable(ParameterId id, PhysicalUnit unit, Dictionary<ParameterId, PhysicalUnit> known)
+        PhysicalUnit ValueUnit(PlanValue value, Dictionary<ParameterId, BlackboardValueType> known)
+            => ValueType(value, known).Unit ?? throw new ArgumentException("A physical operand must be a quantity; booleans and text cannot be coerced to numbers.");
+        void BindVariable(ParameterId id, BlackboardValueType type, Dictionary<ParameterId, BlackboardValueType> known)
         {
             ArgumentNullException.ThrowIfNull(id);
-            if (known.TryGetValue(id, out var existing) && existing != unit) throw new ArgumentException($"Variable {id} cannot change units.");
-            known[id] = unit;
+            if (known.TryGetValue(id, out var existing) && existing != type) throw new ArgumentException($"Variable {id} cannot change type or units.");
+            known[id] = type; bindings.Add((id, type, variableScope));
         }
+        void BindQuantity(ParameterId id, PhysicalUnit unit, Dictionary<ParameterId, BlackboardValueType> known)
+            => BindVariable(id, BlackboardValueType.Quantity(unit), known);
         void AddColumn(ParameterId id, ParameterDescriptor parameter, ParameterAddress? source, IReadOnlyList<ParameterId> dependencies, bool environment = false)
         {
             if (id == Elapsed.Id) throw new ArgumentException("The elapsed column is reserved.");
@@ -217,22 +225,24 @@ internal static class ExperimentPlanCompiler
             IfElseStep conditional => CanReportWorkflowFailure(conditional.Then) || conditional.Else is { } other && CanReportWorkflowFailure(other),
             _ => false, // Validated IO/acquisition leaves either succeed or throw; controls cannot swallow those errors.
         };
-        void RetainCommonVariables(Dictionary<ParameterId, PhysicalUnit> known, IReadOnlyList<Dictionary<ParameterId, PhysicalUnit>> paths)
+        void RetainCommonVariables(Dictionary<ParameterId, BlackboardValueType> known, IReadOnlyList<Dictionary<ParameterId, BlackboardValueType>> paths)
         {
             var common = paths[0].Where(item => paths.All(path => path.TryGetValue(item.Key, out var unit) && unit == item.Value)).ToArray();
             known.Clear(); foreach (var item in common) BindVariable(item.Key, item.Value, known);
         }
-        void CheckCondition(ValueCondition condition, Dictionary<ParameterId, PhysicalUnit> known)
+        void CheckCondition(ValueCondition condition, Dictionary<ParameterId, BlackboardValueType> known)
         {
             ArgumentNullException.ThrowIfNull(condition);
             if (!Enum.IsDefined(condition.Operator)) throw new ArgumentOutOfRangeException(nameof(condition.Operator));
-            var left = ValueUnit(new VariableValue(condition.Variable), known);
-            if (left != ValueUnit(condition.Value, known)) throw new ArgumentException("Comparison operands must have matching units.");
-            if (condition.EqualityTolerance is { } equalityTolerance && (equalityTolerance.Value <= 0 || equalityTolerance.Unit != left || condition.Operator is not (ComparisonOperator.Equal or ComparisonOperator.NotEqual)))
-                throw new ArgumentException("Equality tolerance requires positive matching units and an equality operator.");
+            var left = ValueType(new VariableValue(condition.Variable), known);
+            if (left != ValueType(condition.Value, known)) throw new ArgumentException("Comparison operands must have matching types and units.");
+            if (left.Kind != BlackboardValueKind.Quantity && condition.Operator is not (ComparisonOperator.Equal or ComparisonOperator.NotEqual))
+                throw new ArgumentException("Boolean and text conditions support equality and inequality only.");
+            if (condition.EqualityTolerance is { } equalityTolerance && (equalityTolerance.Value <= 0 || equalityTolerance.Unit != left.Unit || condition.Operator is not (ComparisonOperator.Equal or ComparisonOperator.NotEqual)))
+                throw new ArgumentException("Equality tolerance requires positive matching quantity units and an equality operator.");
         }
         void ValidateSourceSense(InstrumentId device, SourceFunction function, ParameterId voltageColumn, ParameterId currentColumn,
-            Dictionary<ParameterId, PhysicalUnit> known, IReadOnlyList<ParameterId> axes)
+            Dictionary<ParameterId, BlackboardValueType> known, IReadOnlyList<ParameterId> axes)
         {
             var sourceDevice = Source(device);
             if (!preparations.TryGetValue(device, out var preparation) || preparation.Function != function ||
@@ -244,10 +254,10 @@ internal static class ExperimentPlanCompiler
             AddColumn(currentColumn, new(currentColumn,
                 function == SourceFunction.Current ? "Actual source current" : "Measured current", PhysicalUnit.Ampere, ParameterAccess.Read),
                 new(device, sourceDevice.GetParameter(Keithley2450Parameters.MeasuredCurrent.Id).Id), [.. axes, Elapsed.Id]);
-            BindVariable(voltageColumn, PhysicalUnit.Volt, known); BindVariable(currentColumn, PhysicalUnit.Ampere, known);
+            BindQuantity(voltageColumn, PhysicalUnit.Volt, known); BindQuantity(currentColumn, PhysicalUnit.Ampere, known);
         }
         // Shared compiler boundary for direct and sample-independent acquisition.
-        void ValidateIndependentResistance(ReadCurrentResistanceStep independent, Dictionary<ParameterId, PhysicalUnit> known, IReadOnlyList<ParameterId> axes)
+        void ValidateIndependentResistance(ReadCurrentResistanceStep independent, Dictionary<ParameterId, BlackboardValueType> known, IReadOnlyList<ParameterId> axes)
         {
             var excitation = Device(independent.Source); var pureCurrent = excitation.Model == "K6221";
             if (excitation.StopPolicy != DeviceStopPolicy.OutputOff || pureCurrent && (!currentPreparations.ContainsKey(independent.Source) || independent.CurrentReference != CurrentReference.ProgrammedSetpoint) ||
@@ -274,17 +284,17 @@ internal static class ExperimentPlanCompiler
             AddColumn(independent.ResistanceColumn, new(independent.ResistanceColumn, "Independent resistance (V/I)", PhysicalUnit.Ohm, ParameterAccess.Read), null, [.. axes, Elapsed.Id, independent.VoltageColumn, independent.CurrentColumn]);
             if (independent.Retry is { ContinueOnAcquisitionFailure: true })
                 foreach (var column in new[] { independent.VoltageColumn, independent.CurrentColumn, independent.ResistanceColumn }) known.Remove(column);
-            else { BindVariable(independent.VoltageColumn, PhysicalUnit.Volt, known); BindVariable(independent.CurrentColumn, PhysicalUnit.Ampere, known); BindVariable(independent.ResistanceColumn, PhysicalUnit.Ohm, known); }
+            else { BindQuantity(independent.VoltageColumn, PhysicalUnit.Volt, known); BindQuantity(independent.CurrentColumn, PhysicalUnit.Ampere, known); BindQuantity(independent.ResistanceColumn, PhysicalUnit.Ohm, known); }
             ValidateEnvironmentPolicy([independent.VoltageColumn, independent.CurrentColumn, independent.ResistanceColumn], independent.EnvironmentReads); ValidateEnvironment(independent.EnvironmentReads, axes);
         }
-        void ValidateResistance(ReadResistanceStep resistance, Dictionary<ParameterId, PhysicalUnit> known, IReadOnlyList<ParameterId> axes)
+        void ValidateResistance(ReadResistanceStep resistance, Dictionary<ParameterId, BlackboardValueType> known, IReadOnlyList<ParameterId> axes)
         {
             ValidateSourceSense(resistance.Device, resistance.Function, resistance.VoltageColumn, resistance.CurrentColumn, known, axes);
             ValidateEnvironmentPolicy([resistance.VoltageColumn, resistance.CurrentColumn, resistance.ResistanceColumn], resistance.EnvironmentReads);
             ValidateEnvironment(resistance.EnvironmentReads, axes);
             AddColumn(resistance.ResistanceColumn, new(resistance.ResistanceColumn, "Resistance (V/I)", PhysicalUnit.Ohm, ParameterAccess.Read),
                 null, [.. axes, Elapsed.Id, resistance.VoltageColumn, resistance.CurrentColumn]);
-            BindVariable(resistance.ResistanceColumn, PhysicalUnit.Ohm, known);
+            BindQuantity(resistance.ResistanceColumn, PhysicalUnit.Ohm, known);
         }
         void ValidateEnvironment(IReadOnlyList<EnvironmentRead> reads, IReadOnlyList<ParameterId> axes)
         {
@@ -309,7 +319,7 @@ internal static class ExperimentPlanCompiler
                     throw new ArgumentException("Shared acquisition columns require one consistent environment policy; use distinct IDs.");
                 else environmentPolicies[column] = reads;
         }
-        long Visit(ExperimentStep step, Dictionary<ParameterId, PhysicalUnit> known, IReadOnlyList<ParameterId> axes, int depth)
+        long Visit(ExperimentStep step, Dictionary<ParameterId, BlackboardValueType> known, IReadOnlyList<ParameterId> axes, int depth)
         {
             ArgumentNullException.ThrowIfNull(step);
             if (depth > 128 || steps.Count >= 10_000) throw new ArgumentOutOfRangeException(nameof(plan), "Plan exceeds its depth or node limit.");
@@ -391,10 +401,10 @@ internal static class ExperimentPlanCompiler
                             SampleDerivedQuantity.VerticalMeanResistance => analysis.Readings.Skip(4).Any(r => r.Acquisition is ReadCurrentResistanceStep { Retry.ContinueOnAcquisitionFailure: true }),
                             _ => true,
                         };
-                        if (!canBeUnavailable) BindVariable(result.Column, unit, known);
+                        if (!canBeUnavailable) BindQuantity(result.Column, unit, known);
                         else
                         {
-                            if (known.TryGetValue(result.Column, out var previousUnit) && previousUnit != unit) throw new ArgumentException($"Variable {result.Column} cannot change units.");
+                            if (known.TryGetValue(result.Column, out var previousUnit) && previousUnit != BlackboardValueType.Quantity(unit)) throw new ArgumentException($"Variable {result.Column} cannot change units.");
                             known.Remove(result.Column);
                         }
                     }
@@ -402,42 +412,52 @@ internal static class ExperimentPlanCompiler
                 case ConditionStep condition:
                     CheckCondition(condition.Condition, known); return 1;
                 case MutateValueStep mutation:
-                    var mutationUnit = mutation.Action == VariableMutation.Multiply ? known.GetValueOrDefault(mutation.Variable, PhysicalUnit.Dimensionless) : mutation.Value.Unit;
-                    BindVariable(mutation.Variable, mutationUnit, known); return 1;
+                    var mutationUnit = mutation.Action == VariableMutation.Multiply && known.ContainsKey(mutation.Variable) ? ValueUnit(new VariableValue(mutation.Variable), known) : mutation.Action == VariableMutation.Multiply ? PhysicalUnit.Dimensionless : mutation.Value.Unit;
+                    BindQuantity(mutation.Variable, mutationUnit, known); return 1;
                 case OutcomeMutationStep hook:
-                    var beforeHook = new Dictionary<ParameterId, PhysicalUnit>(known);
+                    var beforeHook = new Dictionary<ParameterId, BlackboardValueType>(known);
+                    var firstBinding = bindings.Count;
                     var hookCost = Visit(hook.Body, known, axes, depth + 1);
-                    if (hook.Failure is { Action: not VariableMutation.Multiply } possibleFailure && known.TryGetValue(possibleFailure.Variable, out var possibleUnit) && possibleUnit != possibleFailure.Value.Unit)
-                        throw new ArgumentException("Failure mutation cannot change a unit possibly established by the body.");
+                    // Definite-availability joins omit optional branch variables.
+                    // A hook can still encounter their values on the chosen path.
+                    foreach (var action in new[] { hook.Success, hook.Failure }.OfType<MutateValueStep>())
+                    {
+                        var expectedType = action.Action == VariableMutation.Multiply
+                            ? known.GetValueOrDefault(action.Variable, beforeHook.GetValueOrDefault(action.Variable, BlackboardValueType.Quantity(PhysicalUnit.Dimensionless)))
+                            : BlackboardValueType.Quantity(action.Value.Unit);
+                        if (bindings.Skip(firstBinding).Any(binding => binding.Scope == variableScope && binding.Variable == action.Variable &&
+                            (binding.Type.Kind != BlackboardValueKind.Quantity || binding.Type != expectedType)))
+                            throw new ArgumentException("Outcome mutation cannot change a type or unit possibly established by the body.");
+                    }
                     var successHookCost = hook.Success is { } successHook ? Visit(successHook, known, axes, depth + 1) : 0;
                     var failureHookCost = hook.Failure is { } failureHook ? Visit(failureHook, beforeHook, axes, depth + 1) : 0;
                     return checked(1 + hookCost + Math.Max(successHookCost, failureHookCost));
                 case WhileStep loop:
                     CheckCondition(loop.Condition, known); hasDynamicLoops = true;
                     AddColumn(loop.IterationColumn, new(loop.IterationColumn, "While iteration (1-based)", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
-                    var bodyKnown = new Dictionary<ParameterId, PhysicalUnit>(known); BindVariable(loop.IterationColumn, PhysicalUnit.Dimensionless, bodyKnown);
+                    var bodyKnown = new Dictionary<ParameterId, BlackboardValueType>(known); BindQuantity(loop.IterationColumn, PhysicalUnit.Dimensionless, bodyKnown);
                     var loopBodyCost = Visit(loop.Body, bodyKnown, [.. axes, loop.IterationColumn], depth + 1);
-                    RetainCommonVariables(known, [new Dictionary<ParameterId, PhysicalUnit>(known), bodyKnown]);
+                    RetainCommonVariables(known, [new Dictionary<ParameterId, BlackboardValueType>(known), bodyKnown]);
                     return checked(1 + loopBodyCost);
                 case FallbackStep fallback:
                     AddColumn(fallback.BranchColumn, new(fallback.BranchColumn, "Fallback branch (1-based)", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
                     AddColumn(fallback.TotalColumn, new(fallback.TotalColumn, "Fallback branch total", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
-                    BindVariable(fallback.BranchColumn, PhysicalUnit.Dimensionless, known); BindVariable(fallback.TotalColumn, PhysicalUnit.Dimensionless, known);
-                    var branches = new List<Dictionary<ParameterId, PhysicalUnit>>(); long fallbackCost = 1;
+                    BindQuantity(fallback.BranchColumn, PhysicalUnit.Dimensionless, known); BindQuantity(fallback.TotalColumn, PhysicalUnit.Dimensionless, known);
+                    var branches = new List<Dictionary<ParameterId, BlackboardValueType>>(); long fallbackCost = 1;
                     foreach (var child in fallback.Children)
                     {
-                        var branch = new Dictionary<ParameterId, PhysicalUnit>(known); branches.Add(branch);
+                        var branch = new Dictionary<ParameterId, BlackboardValueType>(known); branches.Add(branch);
                         fallbackCost = checked(fallbackCost + Visit(child, branch, [.. axes, fallback.BranchColumn, fallback.TotalColumn], depth + 1));
                     }
                     RetainCommonVariables(known, branches); return fallbackCost;
                 case RetryStep retry:
                     AddColumn(retry.AttemptColumn, new(retry.AttemptColumn, "Workflow attempt (1-based)", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
                     AddColumn(retry.TotalColumn, new(retry.TotalColumn, "Maximum workflow attempts", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
-                    BindVariable(retry.AttemptColumn, PhysicalUnit.Dimensionless, known); BindVariable(retry.TotalColumn, PhysicalUnit.Dimensionless, known);
+                    BindQuantity(retry.AttemptColumn, PhysicalUnit.Dimensionless, known); BindQuantity(retry.TotalColumn, PhysicalUnit.Dimensionless, known);
                     return checked(1 + retry.MaxAttempts * Visit(retry.Body, known, [.. axes, retry.AttemptColumn, retry.TotalColumn], depth + 1));
                 case ResultDecoratorStep decorator:
-                    var beforeDecoration = new Dictionary<ParameterId, PhysicalUnit>(known);
-                    var decorated = new Dictionary<ParameterId, PhysicalUnit>(known);
+                    var beforeDecoration = new Dictionary<ParameterId, BlackboardValueType>(known);
+                    var decorated = new Dictionary<ParameterId, BlackboardValueType>(known);
                     var decoratedCost = Visit(decorator.Body, decorated, axes, depth + 1);
                     // An IO-only child either completes its assignments or
                     // throws, even when the decorator changes its outcome.
@@ -448,11 +468,13 @@ internal static class ExperimentPlanCompiler
                 case TimeoutStep timeout:
                     return checked(1 + Visit(timeout.Body, known, axes, depth + 1));
                 case SubtreeStep subtree:
-                    var local = new Dictionary<ParameterId, PhysicalUnit>(known);
-                    foreach (var input in subtree.Inputs) local[input.Destination] = ValueUnit(new VariableValue(input.Source), known);
+                    var local = new Dictionary<ParameterId, BlackboardValueType>(known);
+                    foreach (var input in subtree.Inputs) local[input.Destination] = ValueType(new VariableValue(input.Source), known);
                     long subtreeCost = 1;
-                    foreach (var child in subtree.Children) subtreeCost = checked(subtreeCost + Visit(child, local, axes, depth + 1));
-                    foreach (var output in subtree.Outputs) BindVariable(output.Destination, ValueUnit(new VariableValue(output.Source), local), known);
+                    variableScope++;
+                    try { foreach (var child in subtree.Children) subtreeCost = checked(subtreeCost + Visit(child, local, axes, depth + 1)); }
+                    finally { variableScope--; }
+                    foreach (var output in subtree.Outputs) BindVariable(output.Destination, ValueType(new VariableValue(output.Source), local), known);
                     return subtreeCost;
                 case SequenceStep sequence:
                     return checked(1 + sequence.Children.Sum(child => Visit(child, known, axes, depth + 1)));
@@ -464,7 +486,7 @@ internal static class ExperimentPlanCompiler
                     writes.Add((scan.Axis, scan.Values.Values));
                     if (axes.Contains(scan.Column)) throw new ArgumentException($"Scan variable {scan.Column} is already active.");
                     AddColumn(scan.Column, axis, scan.Axis, []);
-                    BindVariable(scan.Column, axis.Unit, known);
+                    BindQuantity(scan.Column, axis.Unit, known);
                     return checked(1 + scan.Values.Values.Count * Visit(scan.Body, known, [.. axes, scan.Column], depth + 1));
                 case ForEachStep loop:
                     var index = new ParameterId($"{loop.Variable}.index");
@@ -473,8 +495,8 @@ internal static class ExperimentPlanCompiler
                     AddColumn(loop.Variable, new(loop.Variable, loop.Timing == IterationTiming.DelayBeforePoint ? "Delay before point" : "Iterator value", loop.Values.Unit, ParameterAccess.Read), null, []);
                     AddColumn(index, new(index, loop.IndexBase == IterationIndexBase.OneBased ? "Iterator index (1-based)" : "Iterator index (0-based)", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
                     AddColumn(total, new(total, "Iterator total", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
-                    BindVariable(loop.Variable, loop.Values.Unit, known);
-                    BindVariable(index, PhysicalUnit.Dimensionless, known); BindVariable(total, PhysicalUnit.Dimensionless, known);
+                    BindQuantity(loop.Variable, loop.Values.Unit, known);
+                    BindQuantity(index, PhysicalUnit.Dimensionless, known); BindQuantity(total, PhysicalUnit.Dimensionless, known);
                     return checked(1 + loop.Values.Values.Count * Visit(loop.Body, known, [.. axes, loop.Variable, index, total], depth + 1));
                 case SetParameterStep set:
                     var parameter = Parameter(set.Address, ParameterAccess.Write);
@@ -484,7 +506,7 @@ internal static class ExperimentPlanCompiler
                     else writes.Add((set.Address, null));
                     return 1;
                 case AssignValueStep assign:
-                    BindVariable(assign.Variable, ValueUnit(assign.Value, known), known);
+                    BindVariable(assign.Variable, ValueType(assign.Value, known), known);
                     return 1;
                 case VerifyMatrixRouteStep verification:
                     Device(verification.Device);
@@ -512,7 +534,7 @@ internal static class ExperimentPlanCompiler
                         ArgumentNullException.ThrowIfNull(channel.Column);
                         var measurement = Parameter(channel.Address, ParameterAccess.Read);
                         AddColumn(channel.Column, measurement, channel.Address, [.. axes, Elapsed.Id]);
-                        BindVariable(channel.Column, measurement.Unit, known);
+                        BindQuantity(channel.Column, measurement.Unit, known);
                     }
                     ValidateEnvironment(read.EnvironmentReads, axes);
                     return 1;
@@ -556,17 +578,17 @@ internal static class ExperimentPlanCompiler
                     return 1;
                 case IfElseStep conditional:
                     CheckCondition(conditional.Condition, known);
-                    var thenKnown = new Dictionary<ParameterId, PhysicalUnit>(known);
-                    var elseKnown = new Dictionary<ParameterId, PhysicalUnit>(known);
+                    var thenKnown = new Dictionary<ParameterId, BlackboardValueType>(known);
+                    var elseKnown = new Dictionary<ParameterId, BlackboardValueType>(known);
                     var thenCost = Visit(conditional.Then, thenKnown, axes, depth + 1);
                     var elseCost = conditional.Else is { } otherwise ? Visit(otherwise, elseKnown, axes, depth + 1) : 0;
                     RetainCommonVariables(known, [thenKnown, elseKnown]);
                     return checked(1 + Math.Max(thenCost, elseCost));
                 case BranchOnOutcomeStep branch:
-                    var beforeCondition = new Dictionary<ParameterId, PhysicalUnit>(known);
-                    var afterCondition = new Dictionary<ParameterId, PhysicalUnit>(known);
+                    var beforeCondition = new Dictionary<ParameterId, BlackboardValueType>(known);
+                    var afterCondition = new Dictionary<ParameterId, BlackboardValueType>(known);
                     var conditionCost = Visit(branch.Condition, afterCondition, axes, depth + 1);
-                    var failureKnown = new Dictionary<ParameterId, PhysicalUnit>(afterCondition);
+                    var failureKnown = new Dictionary<ParameterId, BlackboardValueType>(afterCondition);
                     if (CanReportWorkflowFailure(branch.Condition)) RetainCommonVariables(failureKnown, [beforeCondition, afterCondition]);
                     // A forced result of an otherwise non-failing child has
                     // completed the same observations on its failure path.

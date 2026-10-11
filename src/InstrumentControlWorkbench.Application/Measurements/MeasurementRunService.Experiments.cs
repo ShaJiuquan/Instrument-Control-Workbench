@@ -30,7 +30,7 @@ public sealed partial class MeasurementRunService
             case ConditionStep condition:
                 outcome = EvaluateCondition(condition.Condition, run) ? StepOutcome.Success : StepOutcome.Failure; break;
             case MutateValueStep mutation:
-                var current = run.Variables.GetValueOrDefault(mutation.Variable, new(0, mutation.Action == VariableMutation.Multiply ? PhysicalUnit.Dimensionless : mutation.Value.Unit));
+                var current = run.Variables.ContainsKey(mutation.Variable) ? Resolve(new VariableValue(mutation.Variable), run) : new Quantity(0, mutation.Action == VariableMutation.Multiply ? PhysicalUnit.Dimensionless : mutation.Value.Unit);
                 if (mutation.Action != VariableMutation.Multiply && current.Unit != mutation.Value.Unit) throw new InvalidOperationException("Mutation units changed during execution.");
                 var mutated = mutation.Action switch
                 {
@@ -40,7 +40,7 @@ public sealed partial class MeasurementRunService
                     VariableMutation.Multiply => current.Value * mutation.Value.Value,
                     _ => throw new NotSupportedException("Unknown variable mutation."),
                 };
-                run.Variables[mutation.Variable] = new(mutated, current.Unit); break;
+                run.SetVariable(mutation.Variable, new Quantity(mutated, current.Unit), mutation.Id); break;
             case OutcomeMutationStep hook:
                 outcome = await ExecuteStepAsync(hook.Body, run, started, ivPlot);
                 var action = outcome == StepOutcome.Success ? hook.Success : hook.Failure;
@@ -54,7 +54,7 @@ public sealed partial class MeasurementRunService
                     {
                         run.Token.ThrowIfCancellationRequested(); await PauseCheckpointAsync(run);
                         if (!EvaluateCondition(loop.Condition, run)) break;
-                        run.Variables[loop.IterationColumn] = run.Axes[loop.IterationColumn] = new(++iteration, PhysicalUnit.Dimensionless);
+                        run.Axes[loop.IterationColumn] = new(++iteration, PhysicalUnit.Dimensionless); run.SetVariable(loop.IterationColumn, run.Axes[loop.IterationColumn], loop.Id);
                         if ((outcome = await ExecuteStepAsync(loop.Body, run, started, ivPlot)) == StepOutcome.Failure) break;
                     }
                 }
@@ -104,7 +104,7 @@ public sealed partial class MeasurementRunService
                         run.Token.ThrowIfCancellationRequested();
                         await PauseCheckpointAsync(run);
                         await run.Resources!.WriteAsync(scan.Axis.Device, scan.Axis.Parameter, value, run.Token);
-                        run.Variables[scan.Column] = value;
+                        run.SetVariable(scan.Column, value, scan.Id);
                         run.Axes[scan.Column] = value;
                         if ((outcome = await ExecuteStepAsync(scan.Body, run, started, ivPlot)) == StepOutcome.Failure) break;
                         await DwellAsync(run, scan.Dwell);
@@ -126,9 +126,9 @@ public sealed partial class MeasurementRunService
                             await DwellAsync(run, TimeSpan.FromSeconds(loop.Values.Values[i].Value));
                         run.Token.ThrowIfCancellationRequested();
                         await PauseCheckpointAsync(run);
-                        run.Variables[loop.Variable] = run.Axes[loop.Variable] = loop.Values.Values[i];
-                        run.Variables[index] = run.Axes[index] = new(i + (int)loop.IndexBase, PhysicalUnit.Dimensionless);
-                        run.Variables[total] = run.Axes[total] = new(loop.Values.Values.Count, PhysicalUnit.Dimensionless);
+                        run.Axes[loop.Variable] = loop.Values.Values[i]; run.SetVariable(loop.Variable, run.Axes[loop.Variable], loop.Id);
+                        run.Axes[index] = new(i + (int)loop.IndexBase, PhysicalUnit.Dimensionless); run.SetVariable(index, run.Axes[index], loop.Id);
+                        run.Axes[total] = new(loop.Values.Values.Count, PhysicalUnit.Dimensionless); run.SetVariable(total, run.Axes[total], loop.Id);
                         if ((outcome = await ExecuteStepAsync(loop.Body, run, started, ivPlot)) == StepOutcome.Failure) break;
                     }
                 }
@@ -153,7 +153,7 @@ public sealed partial class MeasurementRunService
                 await run.Resources!.WriteAsync(set.Address.Device, set.Address.Parameter, Resolve(set.Value, run), run.Token);
                 break;
             case AssignValueStep assign:
-                run.Variables[assign.Variable] = Resolve(assign.Value, run);
+                run.SetVariable(assign.Variable, ResolveValue(assign.Value, run), assign.Id);
                 break;
             case VerifyMatrixRouteStep verification:
                 await run.Resources!.VerifyMatrixRouteAsync(verification.Device, verification.Closed, run.Token);
@@ -217,16 +217,24 @@ public sealed partial class MeasurementRunService
 
     private static bool EvaluateCondition(ValueCondition condition, RunExecutionContext run)
     {
-        var left = run.Variables[condition.Variable]; var right = Resolve(condition.Value, run);
-        if (left.Unit != right.Unit) throw new InvalidOperationException("Comparison units changed during execution.");
-        if (condition.EqualityTolerance is { } tolerance)
+        var left = ResolveValue(new VariableValue(condition.Variable), run); var right = ResolveValue(condition.Value, run);
+        if (left.Type != right.Type) throw new InvalidOperationException("Comparison types or units changed during execution.");
+        if (left is not BlackboardQuantity numeric)
         {
-            if (tolerance.Value <= 0 || tolerance.Unit != left.Unit || condition.Operator is not (ComparisonOperator.Equal or ComparisonOperator.NotEqual))
-                throw new InvalidOperationException("Equality tolerance changed during execution.");
-            var equal = Math.Abs(left.Value - right.Value) < tolerance.Value;
+            if (condition.EqualityTolerance is not null || condition.Operator is not (ComparisonOperator.Equal or ComparisonOperator.NotEqual))
+                throw new InvalidOperationException("Boolean and text conditions require equality without a tolerance.");
+            var equal = left == right; // Record equality: strings use ordinal, case-sensitive comparison.
             return condition.Operator == ComparisonOperator.Equal ? equal : !equal;
         }
-        return Compare(left.Value, right.Value, condition.Operator);
+        var other = ((BlackboardQuantity)right).Value;
+        if (condition.EqualityTolerance is { } tolerance)
+        {
+            if (tolerance.Value <= 0 || tolerance.Unit != numeric.Value.Unit || condition.Operator is not (ComparisonOperator.Equal or ComparisonOperator.NotEqual))
+                throw new InvalidOperationException("Equality tolerance changed during execution.");
+            var equal = Math.Abs(numeric.Value.Value - other.Value) < tolerance.Value;
+            return condition.Operator == ComparisonOperator.Equal ? equal : !equal;
+        }
+        return Compare(numeric.Value.Value, other.Value, condition.Operator);
     }
 
     private static void AdvancePlanExecution(RunExecutionContext run, StepId step)
@@ -246,7 +254,7 @@ public sealed partial class MeasurementRunService
             var value = observation.Value;
             quality.Add(new(read.Id, channel.Address.Device, channel.Column, observation.CapturedAt, observation.Status, observation.AcquisitionConfiguration, observation.MeterConfiguration));
             values[channel.Column] = value;
-            run.Variables[channel.Column] = value;
+            run.SetVariable(channel.Column, value, read.Id);
         }
         var environment = await ReadEnvironmentAsync(read.EnvironmentReads, values, run);
         var now = DateTimeOffset.UtcNow;
@@ -279,7 +287,7 @@ public sealed partial class MeasurementRunService
             [step.CurrentColumn] = current,
             [ExperimentPlanCompiler.Elapsed.Id] = new(run.Elapsed.Elapsed.TotalSeconds, PhysicalUnit.Second),
         };
-        run.Variables[step.VoltageColumn] = voltage; run.Variables[step.CurrentColumn] = current;
+        run.SetVariable(step.VoltageColumn, voltage, step.Id); run.SetVariable(step.CurrentColumn, current, step.Id);
         var environment = await ReadEnvironmentAsync(step.EnvironmentReads, values, run);
         await CommitRowAsync(new(frame.Timestamp, values, environment: environment, quality: new[] { step.VoltageColumn, step.CurrentColumn }.Select(c => new AcquisitionQuality(step.Id, step.Device, c, frame.Timestamp, frame.Status, frame.AcquisitionConfiguration))), step.Id, run, started);
         if (ivPlot)
@@ -306,8 +314,8 @@ public sealed partial class MeasurementRunService
         };
         var environment = await ReadEnvironmentAsync(step.EnvironmentReads, values, run);
         var row = new MeasurementDataRow(reading.Timestamp, values, context, environment: environment, quality: new[] { step.VoltageColumn, step.CurrentColumn, step.ResistanceColumn }.Select(c => new AcquisitionQuality(step.Id, step.Device, c, reading.Timestamp, reading.Status, reading.AcquisitionConfiguration)));
-        run.Variables[step.VoltageColumn] = voltage; run.Variables[step.CurrentColumn] = current;
-        run.Variables[step.ResistanceColumn] = values[step.ResistanceColumn];
+        run.SetVariable(step.VoltageColumn, voltage, step.Id); run.SetVariable(step.CurrentColumn, current, step.Id);
+        run.SetVariable(step.ResistanceColumn, values[step.ResistanceColumn], step.Id);
         await CommitRowAsync(row, step.Id, run, started);
     }
 
@@ -339,13 +347,17 @@ public sealed partial class MeasurementRunService
         }
     }
 
-    private static Quantity Resolve(PlanValue value, RunExecutionContext run) => value switch
+    private static BlackboardValue ResolveValue(PlanValue value, RunExecutionContext run) => value switch
     {
-        ConstantValue constant => constant.Value,
-        VariableValue variable when run.Variables.TryGetValue(variable.Variable, out var resolved) => resolved,
-        QuantityFromNumberValue qualified when run.Variables.TryGetValue(qualified.Variable, out var input) && input.Unit == PhysicalUnit.Dimensionless => new(input.Value, qualified.Unit),
-        _ => throw new InvalidOperationException("A plan variable has no value on this execution path."),
+        ConstantValue constant => new BlackboardQuantity(constant.Value),
+        BooleanValue boolean => new BlackboardBoolean(boolean.Value),
+        TextValue text => new BlackboardText(text.Value),
+        VariableValue variable when run.Variables.TryGetValue(variable.Variable, out var entry) => entry.Value,
+        QuantityFromNumberValue qualified when run.Variables.TryGetValue(qualified.Variable, out var entry) && entry.Value is BlackboardQuantity { Value.Unit: PhysicalUnit.Dimensionless } number => new BlackboardQuantity(new(number.Value.Value, qualified.Unit)),
+        _ => throw new InvalidOperationException("A plan variable has no valid value on this execution path."),
     };
+    private static Quantity Resolve(PlanValue value, RunExecutionContext run)
+        => ResolveValue(value, run) is BlackboardQuantity number ? number.Value : throw new InvalidOperationException("A physical operand must be a quantity.");
 
     private static bool Compare(double left, double right, ComparisonOperator op) => op switch
     {

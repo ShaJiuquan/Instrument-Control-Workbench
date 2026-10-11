@@ -1,0 +1,100 @@
+{
+  "format": "instrument-workbench-plan",
+  "version": 1,
+  "name": "Typed sample and scoped completion",
+  "maximumStepExecutions": 25,
+  "preparations": [],
+  "metadata": {},
+  "root": {
+    "id": "root",
+    "kind": "sequence",
+    "children": [
+      {
+        "id": "sample_seed",
+        "kind": "assign",
+        "variable": "sample",
+        "value": {
+          "text": "硅片A / Si"
+        }
+      },
+      {
+        "id": "ready_seed",
+        "kind": "assign",
+        "variable": "ready",
+        "value": {
+          "boolean": true
+        }
+      },
+      {
+        "id": "scope",
+        "kind": "subtree",
+        "inputs": {
+          "sample": "local.sample",
+          "ready": "local.ready"
+        },
+        "outputs": {
+          "local.ready": "completed"
+        },
+        "children": [
+          {
+            "id": "sample_check",
+            "kind": "condition",
+            "variable": "local.sample",
+            "operator": "Equal",
+            "value": {
+              "text": "硅片A / Si"
+            }
+          },
+          {
+            "id": "wait_loop",
+            "kind": "while",
+            "condition": {
+              "variable": "local.ready",
+              "operator": "Equal",
+              "value": {
+                "boolean": true
+              }
+            },
+            "body": {
+              "id": "loop_body",
+              "kind": "sequence",
+              "children": [
+                {
+                  "id": "delay",
+                  "kind": "delay",
+                  "seconds": 0
+                },
+                {
+                  "id": "complete",
+                  "kind": "assign",
+                  "variable": "local.ready",
+                  "value": {
+                    "boolean": false
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "parent_check",
+        "kind": "condition",
+        "variable": "ready",
+        "operator": "Equal",
+        "value": {
+          "boolean": true
+        }
+      },
+      {
+        "id": "completion_check",
+        "kind": "condition",
+        "variable": "completed",
+        "operator": "Equal",
+        "value": {
+          "boolean": false
+        }
+      }
+    ]
+  }
+}

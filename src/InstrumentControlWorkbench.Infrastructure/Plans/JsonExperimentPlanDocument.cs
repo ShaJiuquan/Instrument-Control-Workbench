@@ -118,6 +118,20 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanDocument
         while (pending.TryPop(out var entry))
         {
             CheckSize(entry.Depth, ref nodes);
+            values += entry.Step switch
+            {
+                AssignValueStep assignment => ValueCost(assignment.Value),
+                SetParameterStep set => ValueCost(set.Value),
+                ConditionStep condition => ValueCost(condition.Condition.Value),
+                IfElseStep choice => ValueCost(choice.Condition.Value),
+                WhileStep loop => ValueCost(loop.Condition.Value),
+                SoftwareTemperatureRampStep ramp => ValueCost(ramp.Target),
+                HardwareTemperatureSetpointStep ramp => ValueCost(ramp.Target),
+                WaitTemperatureStep wait => ValueCost(wait.Target),
+                WaitStableStep wait => ValueCost(wait.Target),
+                ReadCurrentResistanceStep { ExpectedProgrammedCurrent: { } expected } => ValueCost(expected),
+                _ => 0,
+            };
             switch (entry.Step)
             {
                 case MeasurementGroupStep point: foreach (var member in point.Members) pending.Push((member.Body, entry.Depth + 1)); break;
@@ -149,11 +163,13 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanDocument
                     pending.Push((conditional.Then, entry.Depth + 1));
                     if (conditional.Else is { } otherwise) pending.Push((otherwise, entry.Depth + 1)); break;
             }
-            // Every serialized value consumes at least two bytes. Bound object
-            // allocation before building a DOM, including shared scan arrays.
+            // Bound DOM allocation before encoding, including shared scan arrays
+            // and repeated text literals. The final UTF-8 byte check remains exact.
             if (values > MaximumBytes / 2) throw new FormatException("Plan values exceed the document size limit.");
         }
     }
+
+    private static long ValueCost(PlanValue value) => value is TextValue text ? Math.Max(1, (text.Value.Length + 1L) / 2) : 1;
 
     private static JsonObject EncodeQuantity(Quantity q) => new() { ["value"] = q.Value, ["unit"] = q.Unit.ToString() };
     private static Quantity DecodeQuantity(JsonNode? node)
@@ -170,14 +186,24 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanDocument
     private static JsonObject EncodeValue(PlanValue v) => v switch
     {
         ConstantValue c => new() { ["constant"] = EncodeQuantity(c.Value) },
+        BooleanValue b => new() { ["boolean"] = b.Value },
+        TextValue t => new() { ["text"] = t.Value },
         VariableValue variable => new() { ["variable"] = variable.Variable.Value },
         QuantityFromNumberValue qualified => new() { ["quantityFromNumber"] = new JsonObject { ["variable"] = qualified.Variable.Value, ["unit"] = qualified.Unit.ToString() } },
         _ => throw new NotSupportedException($"No document codec exists for {v.GetType().Name}."),
     };
     private static PlanValue DecodeValue(JsonNode? node)
     {
-        var o = Object(node, "constant", "variable", "quantityFromNumber");
+        JsonObject o;
+        try { o = Object(node, "constant", "variable", "quantityFromNumber", "boolean", "text"); }
+        catch (ArgumentException error) { throw new FormatException("Invalid value expression fields.", error); }
         if (o.Count != 1) throw new FormatException("A value must contain exactly one value expression.");
+        if (o.ContainsKey("boolean") || o.ContainsKey("text"))
+        {
+            try { return o.ContainsKey("boolean") ? new BooleanValue(Boolean(o, "boolean")) : new TextValue(Text(o, "text")); }
+            catch (Exception error) when (error is ArgumentException or InvalidOperationException)
+            { throw new FormatException("Invalid boolean or text literal.", error); }
+        }
         if (o.ContainsKey("quantityFromNumber"))
         {
             var qualified = Object(Required(o, "quantityFromNumber"), "variable", "unit");

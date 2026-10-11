@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Runtime.ExceptionServices;
 using InstrumentControlWorkbench.Application.Devices;
 using InstrumentControlWorkbench.Application.Experiments;
@@ -52,6 +53,7 @@ public sealed partial class MeasurementRunService
     public RunExecutionPhase Phase { get { lock (admissionGate) return active?.Phase ?? RunExecutionPhase.Idle; } }
     public RunDataSet? LatestDataSet { get; private set; }
     public RunOutcome? LatestOutcome { get; private set; }
+    public IReadOnlyDictionary<ParameterId, BlackboardEntry>? LatestBlackboard { get; private set; }
     public InMemoryRunHistory History { get; }
 
     public Task StartIvSweepAsync(IvSweepRecipe recipe, CancellationToken cancellationToken, RunMetadata? metadata = null)
@@ -109,6 +111,7 @@ public sealed partial class MeasurementRunService
         }
         LatestDataSet = null;
         LatestOutcome = null;
+        LatestBlackboard = null;
         var errors = new List<Exception>();
         var startedListeners = new List<IRunResultListener>();
         var result = MeasurementRunState.Completed;
@@ -166,6 +169,7 @@ public sealed partial class MeasurementRunService
                 catch (Exception ex) { errors.Add(ex); result = MeasurementRunState.Faulted; }
             }
         }
+        LatestBlackboard = new ReadOnlyDictionary<ParameterId, BlackboardEntry>(new Dictionary<ParameterId, BlackboardEntry>(run.Variables));
         LatestOutcome = new(run.Id, result, Array.AsReadOnly(errors.ToArray()));
         await PublishAsync(run, result switch
         {

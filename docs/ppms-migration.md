@@ -649,3 +649,20 @@ fresh execution, grouped/vdP evidence and unhappy safety cases cover the slice.
 Nonnumeric/unknown physical metadata, generic parallel/background, expressions,
 remaining source/controller/UI/lab parity remain pending. See workflow-control.md.
 No new dependency, Rust or protected UI edit; full migration remains active.
+
+
+### Typed blackboard workflow stage
+
+C# workflow state now holds immutable quantities, booleans and text with explicit
+types and per-write step/time provenance. Native assignments, conditions,
+Boolean/text while, branch joins and subtree mappings are integrated with the
+existing run resource and safety lifecycle. Numeric instrument parameters never
+coerce nonnumeric values. Text is ordinal and bounded; malformed typed JSON is
+reported at the format boundary. Native typed plans archive/export/replay with
+actual numeric observations. A portable no-device fixture is included.
+
+Rust Bool/Text storage APIs are present but current axis and callback producers
+remain numeric. Their undocumented import syntax is not guessed. The completed
+run API exposes immutable blackboard snapshots; runtime entry historical archive
+and live diagnostics still need integration, alongside expressions, concurrent
+execution, remaining instruments/controllers, editor/device UI and lab acceptance.

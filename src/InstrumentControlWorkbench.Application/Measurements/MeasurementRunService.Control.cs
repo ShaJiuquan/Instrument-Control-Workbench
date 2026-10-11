@@ -8,13 +8,13 @@ public sealed partial class MeasurementRunService
 {
     private async Task<StepOutcome> ExecuteSubtreeAsync(SubtreeStep step, RunExecutionContext run, IReadOnlyList<IRunResultListener> listeners, bool ivPlot)
     {
-        var parent = new Dictionary<ParameterId, Quantity>(run.Variables);
-        Dictionary<ParameterId, Quantity> exported;
+        var parent = new Dictionary<ParameterId, BlackboardEntry>(run.Variables);
+        Dictionary<ParameterId, BlackboardEntry> exported;
         try
         {
             // Simultaneous input mapping reads the parent snapshot, so swaps
             // cannot depend on mapping order. The child inherits other values.
-            foreach (var input in step.Inputs) run.Variables[input.Destination] = parent[input.Source];
+            foreach (var input in step.Inputs) run.SetVariable(input.Destination, parent[input.Source].Value, step.Id, BlackboardWriteKind.SubtreeInput);
             foreach (var child in step.Children)
                 if (await ExecuteStepAsync(child, run, listeners, ivPlot) == StepOutcome.Failure) return StepOutcome.Failure;
             run.Token.ThrowIfCancellationRequested();
@@ -27,7 +27,7 @@ public sealed partial class MeasurementRunService
         // Publish all selected outputs only after successful child completion
         // and full resolution. Failures/cancellation never leak local writes.
         run.Token.ThrowIfCancellationRequested();
-        foreach (var item in exported) run.Variables[item.Key] = item.Value;
+        foreach (var item in exported) run.SetVariable(item.Key, item.Value.Value, step.Id, BlackboardWriteKind.SubtreeOutput);
         return StepOutcome.Success;
     }
 
@@ -60,15 +60,15 @@ public sealed partial class MeasurementRunService
     private async Task<StepOutcome> ExecuteFallbackAsync(FallbackStep step, RunExecutionContext run, IReadOnlyList<IRunResultListener> listeners, bool ivPlot)
     {
         var axes = new Dictionary<ParameterId, Quantity>(run.Axes);
-        var variables = new Dictionary<ParameterId, Quantity>(run.Variables);
+        var variables = new Dictionary<ParameterId, BlackboardEntry>(run.Variables);
         try
         {
             for (var i = 0; i < step.Children.Count; i++)
             {
                 run.Token.ThrowIfCancellationRequested(); await PauseCheckpointAsync(run);
                 run.Variables.Clear(); foreach (var item in variables) run.Variables.Add(item.Key, item.Value);
-                run.Variables[step.BranchColumn] = run.Axes[step.BranchColumn] = new(i + 1, PhysicalUnit.Dimensionless);
-                run.Variables[step.TotalColumn] = run.Axes[step.TotalColumn] = new(step.Children.Count, PhysicalUnit.Dimensionless);
+                run.Axes[step.BranchColumn] = new(i + 1, PhysicalUnit.Dimensionless); run.SetVariable(step.BranchColumn, run.Axes[step.BranchColumn], step.Id);
+                run.Axes[step.TotalColumn] = new(step.Children.Count, PhysicalUnit.Dimensionless); run.SetVariable(step.TotalColumn, run.Axes[step.TotalColumn], step.Id);
                 if (await ExecuteStepAsync(step.Children[i], run, listeners, ivPlot) == StepOutcome.Success) return StepOutcome.Success;
             }
             return StepOutcome.Failure;
@@ -79,15 +79,15 @@ public sealed partial class MeasurementRunService
     private async Task<StepOutcome> ExecuteRetryAsync(RetryStep step, RunExecutionContext run, IReadOnlyList<IRunResultListener> listeners, bool ivPlot)
     {
         var axes = new Dictionary<ParameterId, Quantity>(run.Axes);
-        var variables = new Dictionary<ParameterId, Quantity>(run.Variables);
+        var variables = new Dictionary<ParameterId, BlackboardEntry>(run.Variables);
         try
         {
             for (var i = 0; i < step.MaxAttempts; i++)
             {
                 run.Token.ThrowIfCancellationRequested(); await PauseCheckpointAsync(run);
                 run.Variables.Clear(); foreach (var item in variables) run.Variables.Add(item.Key, item.Value);
-                run.Variables[step.AttemptColumn] = run.Axes[step.AttemptColumn] = new(i + 1, PhysicalUnit.Dimensionless);
-                run.Variables[step.TotalColumn] = run.Axes[step.TotalColumn] = new(step.MaxAttempts, PhysicalUnit.Dimensionless);
+                run.Axes[step.AttemptColumn] = new(i + 1, PhysicalUnit.Dimensionless); run.SetVariable(step.AttemptColumn, run.Axes[step.AttemptColumn], step.Id);
+                run.Axes[step.TotalColumn] = new(step.MaxAttempts, PhysicalUnit.Dimensionless); run.SetVariable(step.TotalColumn, run.Axes[step.TotalColumn], step.Id);
                 if (await ExecuteStepAsync(step.Body, run, listeners, ivPlot) == StepOutcome.Success) return StepOutcome.Success;
                 if (i + 1 < step.MaxAttempts) await DwellAsync(run, step.Delay);
             }

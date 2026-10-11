@@ -40,7 +40,7 @@ public sealed partial class MeasurementRunService
         run.LastRow = row;
         run.MeasurementInputs?.Add(row);
         foreach (var column in step.Columns)
-            if (result.Values.TryGetValue(column.Kind, out var value)) run.Variables[column.Column] = value;
+            if (result.Values.TryGetValue(column.Kind, out var value)) run.SetVariable(column.Column, value, step.Id);
             else run.Variables.Remove(column.Column);
         foreach (var listener in listeners)
             await listener.OnRowAsync(run.Id, row, listener == History ? CancellationToken.None : run.Token);
