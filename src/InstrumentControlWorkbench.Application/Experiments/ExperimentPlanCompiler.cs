@@ -306,6 +306,18 @@ internal static class ExperimentPlanCompiler
             if (!steps.Add(step.Id)) throw new ArgumentException($"Duplicate step ID {step.Id}.");
             switch (step)
             {
+                case TemperatureStabilityStep settings:
+                    Device(settings.Device);
+                    if (!registry.GetAxisDefinition(settings.Device).SupportsSoftwareTemperatureRamp)
+                        throw new NotSupportedException("Controller has no temperature-stability profile.");
+                    return 1;
+                case WaitTemperatureStep temperatureWait:
+                    Device(temperatureWait.Device);
+                    var temperatureDefinition = registry.GetAxisDefinition(temperatureWait.Device);
+                    if (!temperatureDefinition.SupportsSoftwareTemperatureRamp || ValueUnit(temperatureWait.Target, known) != PhysicalUnit.Kelvin)
+                        throw new ArgumentException("Temperature waits require a temperature-control profile and Kelvin target.");
+                    if (temperatureWait.Target is ConstantValue waitTarget) temperatureDefinition.Target.Validate(waitTarget.Value);
+                    return 1;
                 case TemperatureControlStep command:
                     Device(command.Device);
                     if (!registry.SupportsTemperatureConfiguration(command.Device))

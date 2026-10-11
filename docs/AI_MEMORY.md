@@ -854,3 +854,23 @@ Script guards, mandatory hook, exact clean audit/package and GitHub publication
 are required. See [macos-packaging.md](macos-packaging.md). Full goal active;
 remaining controller/stability/BT/advanced measurement/DB/flow/UI/packaging/hardware
 work is not complete. GitHub only; independent C# executor inspired by OpenTAP.
+
+
+## Temperature stability settings and inherited waits (2026-10-11)
+
+Independent C# session configuration now accepts PPMS temp_set_config strict
+optional threshold/duration aliases; empty patches preserve fields, invalid input
+fails with source lines. Native temperature_stability/wait_temperature steps are
+compiled through full resource/preflight/lifecycle, serialized and archived.
+Temperature set/step scans inherit current settings; explicit overrides persist
+before ramp including wait_mode=none. Initial instrument metadata includes the
+session settings. Fresh flag/snapshot/flag observation and wait-local Core states
+prevent disabled control from satisfying waits. Pause resets active-time evidence;
+cancellation/IO/flag mismatch/target drift stay errors, failed hold retains owner
+until recovery. Quantized endpoints allow only half-millikelvin target rounding.
+See [temperature-stability.md](temperature-stability.md) for the explicit difference
+from Rust's continuous observer/cache and cross-wait timer reuse. Background,
+PID/heater/cooling, disabled-control sets/scans, persistence, UI and physical
+acceptance remain pending. No Rust edits, new packages or original29 UI edits.
+Targeted tests, mandatory precommit and exact clean committed-source audit precede
+GitHub publication. Full migration remains active; GitHub only, independent engine.

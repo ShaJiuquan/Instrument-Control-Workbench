@@ -57,8 +57,10 @@ public sealed partial class PpmsExperimentPlanImporter
             foreach (var value in values.Values) { TemperatureRampPath.ValidateTemperature(value); axis.Target.ValidateWrite(value); }
             var rate = new Quantity(Number(p, rateKey, 5), PhysicalUnit.KelvinPerMinute);
             var ramp = new SoftwareTemperatureRampStep(new(path + ".ramp"), axis.Device.Id, new VariableValue(column), rate);
-            return new ForEachStep(new(path + ".scan"), column, values,
+            ExperimentStep temperatureScan = new ForEachStep(new(path + ".scan"), column, values,
                 new SequenceStep(new(path + ".point"), [ramp, children]));
+            return TemperatureOverrides(path, axis, p) is { } settings
+                ? new SequenceStep(new(path), [settings, temperatureScan]) : temperatureScan;
         }
         var scan = new ScanStep(new(path + ".scan"), new(axis.Device.Id, axis.Target.Id), column, values, TimeSpan.Zero, children);
         if (role == "field") return scan;

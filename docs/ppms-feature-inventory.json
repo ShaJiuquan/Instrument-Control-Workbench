@@ -164,7 +164,7 @@
       "evidence": {
         "implementation": "src/InstrumentControlWorkbench.Core/Experiments/TemperatureControlStep.cs; src/InstrumentControlWorkbench.Application/Devices/AxisControllerSession.Temperature.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.Commands.cs",
         "tests": "tests/InstrumentControlWorkbench.Core.Tests/TemperatureControlStepTests.cs; tests/InstrumentControlWorkbench.Application.Tests/TemperatureControlExecutionTests.cs; tests/InstrumentControlWorkbench.Application.Tests/TemperatureControlExecutionTests.Documents.cs",
-        "limits": "Independent flags with fresh target/rate/configuration confirmation; native and strict PPMS aliases/source lines; simulation, pause/rate drift/abort/retained failed hold and fresh archive/CSV replay. Actual optional port capability preflight. Physical adapter, temp_config/temp_set_config, PID/heater/cooling/background and native UI remain pending. See temperature-controls.md."
+        "limits": "Independent flags with fresh target/rate/configuration confirmation; native and strict PPMS aliases/source lines; simulation, pause/rate drift/abort/retained failed hold and fresh archive/CSV replay. Actual optional port capability preflight. Physical adapter, PID/heater/cooling/background and native UI remain pending. See temperature-controls.md."
       }
     },
     {
@@ -175,7 +175,7 @@
       "evidence": {
         "implementation": "src/InstrumentControlWorkbench.Core/Experiments/TemperatureControlStep.cs; src/InstrumentControlWorkbench.Application/Devices/AxisControllerSession.Temperature.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.Commands.cs",
         "tests": "tests/InstrumentControlWorkbench.Core.Tests/TemperatureControlStepTests.cs; tests/InstrumentControlWorkbench.Application.Tests/TemperatureControlExecutionTests.cs; tests/InstrumentControlWorkbench.Application.Tests/TemperatureControlExecutionTests.Documents.cs",
-        "limits": "Independent flags with fresh target/rate/configuration confirmation; native and strict PPMS aliases/source lines; simulation, pause/rate drift/abort/retained failed hold and fresh archive/CSV replay. Actual optional port capability preflight. Physical adapter, temp_config/temp_set_config, PID/heater/cooling/background and native UI remain pending. See temperature-controls.md."
+        "limits": "Independent flags with fresh target/rate/configuration confirmation; native and strict PPMS aliases/source lines; simulation, pause/rate drift/abort/retained failed hold and fresh archive/CSV replay. Actual optional port capability preflight. Physical adapter, PID/heater/cooling/background and native UI remain pending. See temperature-controls.md."
       }
     },
     {
@@ -186,7 +186,7 @@
       "evidence": {
         "implementation": "src/InstrumentControlWorkbench.Core/Experiments/TemperatureControlStep.cs; src/InstrumentControlWorkbench.Application/Devices/AxisControllerSession.Temperature.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.Commands.cs",
         "tests": "tests/InstrumentControlWorkbench.Core.Tests/TemperatureControlStepTests.cs; tests/InstrumentControlWorkbench.Application.Tests/TemperatureControlExecutionTests.cs; tests/InstrumentControlWorkbench.Application.Tests/TemperatureControlExecutionTests.Documents.cs",
-        "limits": "Independent flags with fresh target/rate/configuration confirmation; native and strict PPMS aliases/source lines; simulation, pause/rate drift/abort/retained failed hold and fresh archive/CSV replay. Actual optional port capability preflight. Physical adapter, temp_config/temp_set_config, PID/heater/cooling/background and native UI remain pending. See temperature-controls.md."
+        "limits": "Independent flags with fresh target/rate/configuration confirmation; native and strict PPMS aliases/source lines; simulation, pause/rate drift/abort/retained failed hold and fresh archive/CSV replay. Actual optional port capability preflight. Physical adapter, PID/heater/cooling/background and native UI remain pending. See temperature-controls.md."
       }
     },
     {
@@ -197,14 +197,19 @@
       "evidence": {
         "implementation": "src/InstrumentControlWorkbench.Core/Experiments/TemperatureControlStep.cs; src/InstrumentControlWorkbench.Application/Devices/AxisControllerSession.Temperature.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.Commands.cs",
         "tests": "tests/InstrumentControlWorkbench.Core.Tests/TemperatureControlStepTests.cs; tests/InstrumentControlWorkbench.Application.Tests/TemperatureControlExecutionTests.cs; tests/InstrumentControlWorkbench.Application.Tests/TemperatureControlExecutionTests.Documents.cs",
-        "limits": "Independent flags with fresh target/rate/configuration confirmation; native and strict PPMS aliases/source lines; simulation, pause/rate drift/abort/retained failed hold and fresh archive/CSV replay. Actual optional port capability preflight. Physical adapter, temp_config/temp_set_config, PID/heater/cooling/background and native UI remain pending. See temperature-controls.md."
+        "limits": "Independent flags with fresh target/rate/configuration confirmation; native and strict PPMS aliases/source lines; simulation, pause/rate drift/abort/retained failed hold and fresh archive/CSV replay. Actual optional port capability preflight. Physical adapter, PID/heater/cooling/background and native UI remain pending. See temperature-controls.md."
       }
     },
     {
       "id": "temp_set_config",
       "nodeType": "command",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Core/Devices/TemperatureStability.cs; src/InstrumentControlWorkbench.Core/Experiments/TemperatureStabilityStep.cs; src/InstrumentControlWorkbench.Application/Devices/AxisControllerSession.Temperature.cs; src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Temperature.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.Commands.cs",
+        "tests": "tests/InstrumentControlWorkbench.Core.Tests/TemperatureStabilityTests.cs; tests/InstrumentControlWorkbench.Application.Tests/TemperatureControlExecutionTests.Stability.cs",
+        "limits": "Session-owned patches; inherited set/step scan configuration; fresh flags/snapshot, typed wait-local states, pause/reset, cancellation and retained failed hold; native plans, archive and CSV simulation. Rust continuous cache, cross-wait timer reuse, persistence, hardware and native UI pending. See temperature-stability.md."
+      }
     },
     {
       "id": "measure_temp",
@@ -1498,5 +1503,11 @@
       "Native flow/operator/history/plots and remaining hardware/PPMS/DB/packaging acceptance"
     ],
     "reference": "workflow-control.md"
+  },
+  "temperatureStability": {
+    "status": "partial",
+    "documentation": "docs/temperature-stability.md",
+    "fixture": "examples/plans/ppms-temperature-stability-import.json",
+    "scope": "Independent session configuration and wait-local state observer; no hardware mutation for config; explicit initial plan settings required for reproducible fresh-session replay."
   }
 }

@@ -216,6 +216,9 @@ public sealed partial class TemperatureControlExecutionTests
         public IOException Failure { get; } = new("temperature configuration failed");
         public IOException HoldReadFailure { get; } = new("control flags unreadable");
         public bool FailNextConfigurationRead { get; set; }
+        public bool InconsistentNextConfigurationRead { get; set; }
+        public bool BlockNextConfigurationRead { get; set; }
+        public TaskCompletionSource ConfigurationBlocked { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public bool Block { get; set; }
         public bool FailHold { get; set; }
         public bool EnableOnHold { get; set; }
@@ -237,8 +240,10 @@ public sealed partial class TemperatureControlExecutionTests
         public Task SetHardwareRampAsync(Quantity rate, CancellationToken token) => Mock.SetHardwareRampAsync(rate, token);
         public async Task<TemperatureControlConfiguration> ReadControlConfigurationAsync(CancellationToken token)
         {
+            if (BlockNextConfigurationRead) { BlockNextConfigurationRead = false; ConfigurationBlocked.TrySetResult(); await Task.Delay(Timeout.Infinite, token); }
             if (FailNextConfigurationRead) { FailNextConfigurationRead = false; throw HoldReadFailure; }
             var result = await Mock.ReadControlConfigurationAsync(token);
+            if (InconsistentNextConfigurationRead) { InconsistentNextConfigurationRead = false; return result with { ControlEnabled = !result.ControlEnabled }; }
             if (configured && !readFaulted && (Fault == "readback" || Fault == "readback-late" && ++configurationReads == 2))
             { readFaulted = true; return result with { ControlEnabled = !result.ControlEnabled }; }
             return result;

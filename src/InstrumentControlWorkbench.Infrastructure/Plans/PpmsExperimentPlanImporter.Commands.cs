@@ -13,6 +13,12 @@ public sealed partial class PpmsExperimentPlanImporter
     {
         switch (name)
         {
+            case "temp_set_config":
+                Fields(p, "tolerance_k", "tolerance", "settling_threshold_k", "settling_threshold", "stable_duration_s", "stable_duration");
+                var stabilityAxis = Axis("temperature", c);
+                return new TemperatureStabilityStep(new(path), stabilityAxis.Device.Id, new(
+                    TemperatureThreshold(p, "tolerance_k", "tolerance"), TemperatureThreshold(p, "settling_threshold_k", "settling_threshold"),
+                    TemperatureDuration(p, "stable_duration_s", "stable_duration")));
             case "temp_ramp_on":
             case "temp_ramp_off":
             case "temp_control_on":
@@ -150,6 +156,7 @@ public sealed partial class PpmsExperimentPlanImporter
         if (role == "temperature")
         {
             if (!Boolean(p, "enable_control", true)) throw new NotSupportedException("Temperature sets with disabled control are not migrated.");
+            if (TemperatureOverrides(path, axis, p) is { } settings) steps.Add(settings);
             TemperatureRampPath.ValidateTemperature(new(target, PhysicalUnit.Kelvin));
             var requestedRate = Number(p, rateKey, 0);
             Quantity? rate = requestedRate > 0 ? new(requestedRate, PhysicalUnit.KelvinPerMinute) : null;
@@ -181,9 +188,28 @@ public sealed partial class PpmsExperimentPlanImporter
         "angle" => ("target_deg", "speed_deg_per_s", "tolerance_deg", 0.1, 0, 30),
         _ => throw new NotSupportedException($"Unknown axis {role}."),
     };
-    private static WaitStableStep Stability(string path, AxisControllerDefinition axis, PlanValue target, JsonObject p, string toleranceKey, double tolerance, double stable, double timeout)
-        => new(new(path), new(axis.Device.Id, axis.Readback.Id), target, new(Number(p, toleranceKey, tolerance), axis.Target.Unit),
-            Text(p, "wait_mode", "stable").Trim().Equals("reached", StringComparison.OrdinalIgnoreCase) ? TimeSpan.Zero : Duration(p, "stable_duration_s", stable), TimeSpan.FromMilliseconds(50), Duration(p, "timeout_s", timeout));
+    private static ExperimentStep Stability(string path, AxisControllerDefinition axis, PlanValue target, JsonObject p, string toleranceKey, double tolerance, double stable, double timeout)
+    {
+        var reached = Text(p, "wait_mode", "stable").Trim().Equals("reached", StringComparison.OrdinalIgnoreCase);
+        if (axis.SupportsSoftwareTemperatureRamp)
+            return new WaitTemperatureStep(new(path), axis.Device.Id, target, reached ? TemperatureWaitMode.Reached : TemperatureWaitMode.Stable,
+                TimeSpan.FromMilliseconds(50), Duration(p, "timeout_s", timeout));
+        return new WaitStableStep(new(path), new(axis.Device.Id, axis.Readback.Id), target, new(Number(p, toleranceKey, tolerance), axis.Target.Unit),
+            reached ? TimeSpan.Zero : Duration(p, "stable_duration_s", stable), TimeSpan.FromMilliseconds(50), Duration(p, "timeout_s", timeout));
+    }
+    private static TemperatureStabilityStep? TemperatureOverrides(string path, AxisControllerDefinition axis, JsonObject p)
+        => p.ContainsKey("tolerance_k") || p.ContainsKey("stable_duration_s")
+            ? new(new(path + ".stability_config"), axis.Device.Id, new(TemperatureThreshold(p, "tolerance_k", "tolerance"), stableFor: TemperatureDuration(p, "stable_duration_s", "stable_duration"))) : null;
+    private static Quantity? TemperatureThreshold(JsonObject p, string key, string alias)
+    {
+        if (p.ContainsKey(key) && p.ContainsKey(alias)) throw new FormatException($"Use one alias for {key}.");
+        return p.ContainsKey(key) || p.ContainsKey(alias) ? new Quantity(Number(p, p.ContainsKey(key) ? key : alias), PhysicalUnit.Kelvin) : null;
+    }
+    private static TimeSpan? TemperatureDuration(JsonObject p, string key, string alias)
+    {
+        if (p.ContainsKey(key) && p.ContainsKey(alias)) throw new FormatException($"Use one alias for {key}.");
+        return p.ContainsKey(key) || p.ContainsKey(alias) ? Duration(p, p.ContainsKey(key) ? key : alias, 0) : null;
+    }
     private static ExperimentStep Measurement(string name, JsonObject p, string path, ImportContext c)
     {
         if (name is "meas_r" or "meas_r_sample" or "meas_r_2w" or "meas_r_4w" or "meas_r_hallbar" or "meas_r_vdp")

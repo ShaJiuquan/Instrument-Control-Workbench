@@ -97,6 +97,12 @@ public sealed partial class MeasurementRunService
             case SoftwareTemperatureRampStep temperature:
                 await ExecuteTemperatureRampAsync(temperature, run);
                 break;
+            case TemperatureStabilityStep settings:
+                await run.Resources!.ConfigureTemperatureStabilityAsync(settings.Device, settings.Change, run.Token);
+                break;
+            case WaitTemperatureStep temperatureWait:
+                await WaitTemperatureAsync(temperatureWait, run);
+                break;
             case TemperatureControlStep command:
                 await run.Resources!.ConfigureTemperatureAsync(command.Device, command.Action, command.Rate, run.Token);
                 break;

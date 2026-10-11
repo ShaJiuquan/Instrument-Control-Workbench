@@ -1,0 +1,12 @@
+{
+  "experiment_id": "PPMS inherited temperature stability",
+  "type": "sequence",
+  "children": [
+    { "type": "command", "name": "temp_set_config", "source_line": 1, "params": { "tolerance_k": 0.1, "settling_threshold_k": 2, "stable_duration_s": 0 } },
+    {
+      "type": "scan", "name": "scan_temp", "source_line": 2,
+      "params": { "points": [300, 300.0006], "rate_k_per_min": 5, "wait_mode": "stable", "timeout_s": 1 },
+      "children": [ { "type": "measurement", "name": "measure_temp", "source_line": 3, "params": {} } ]
+    }
+  ]
+}

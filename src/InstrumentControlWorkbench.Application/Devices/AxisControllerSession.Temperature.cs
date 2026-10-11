@@ -7,6 +7,34 @@ namespace InstrumentControlWorkbench.Application.Devices;
 
 public sealed partial class AxisControllerSession
 {
+    private TemperatureStabilitySettings stabilitySettings = TemperatureStabilitySettings.Default;
+
+    internal async Task<TemperatureStabilitySettings> ConfigureTemperatureStabilityAsync(TemperatureStabilityChange change, CancellationToken token, RunId? owner = null)
+    {
+        ArgumentNullException.ThrowIfNull(change);
+        await operations.EnterAsync(token, owner);
+        try { _ = TemperaturePort(); token.ThrowIfCancellationRequested(); stabilitySettings = change.Apply(stabilitySettings); return stabilitySettings; }
+        finally { operations.Exit(); }
+    }
+
+    internal async Task<TemperatureStabilityObservation> ReadTemperatureStabilityAsync(CancellationToken token, RunId? owner = null)
+    {
+        await operations.EnterAsync(token, owner);
+        try
+        {
+            var temperature = TemperaturePort();
+            var before = await temperature.ReadControlConfigurationAsync(token);
+            var snapshot = await port.GetSnapshotAsync(token);
+            if (await temperature.ReadControlConfigurationAsync(token) != before)
+                throw new InvalidOperationException("Temperature control flags changed during stability observation.");
+            if (snapshot.Connected) { Definition.Target.Validate(snapshot.Target); Definition.Readback.Validate(snapshot.Readback); }
+            await PublishAsync(snapshot, token);
+            return new(snapshot, before, stabilitySettings);
+        }
+        catch { faulted = true; throw; }
+        finally { operations.Exit(); }
+    }
+
     public bool SupportsTemperatureConfiguration => Definition.SupportsSoftwareTemperatureRamp && port is ITemperatureConfigurationPort;
 
     internal async Task ConfigureTemperatureAsync(TemperatureControlAction action, Quantity? rate, CancellationToken token, RunId? owner = null)

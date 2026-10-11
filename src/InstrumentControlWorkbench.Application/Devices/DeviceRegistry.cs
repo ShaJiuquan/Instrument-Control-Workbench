@@ -23,6 +23,12 @@ public sealed class DeviceRegistry
     }
 
     public IReadOnlyList<DeviceDescriptor> Devices { get; }
+    public Task<TemperatureStabilitySettings> ConfigureTemperatureStabilityAsync(InstrumentId id, TemperatureStabilityChange change, CancellationToken token)
+        => GetManual(id) is AxisControllerSession axis ? axis.ConfigureTemperatureStabilityAsync(change, token)
+            : throw new NotSupportedException($"{id} has no temperature-control profile.");
+    public Task<TemperatureStabilityObservation> ReadTemperatureStabilityAsync(InstrumentId id, CancellationToken token)
+        => GetManual(id) is AxisControllerSession axis ? axis.ReadTemperatureStabilityAsync(token)
+            : throw new NotSupportedException($"{id} has no temperature-control profile.");
     public bool SupportsTemperatureConfiguration(InstrumentId id) => Get(id) is AxisControllerSession { SupportsTemperatureConfiguration: true };
     public Task ConfigureTemperatureAsync(InstrumentId id, TemperatureControlAction action, Quantity? rate, CancellationToken token)
         => GetManual(id) is AxisControllerSession axis ? axis.ConfigureTemperatureAsync(action, rate, token)

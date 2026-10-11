@@ -15,6 +15,14 @@ public sealed partial class JsonExperimentPlanDocument
         var o = new JsonObject { ["id"] = step.Id.Value };
         switch (step)
         {
+            case TemperatureStabilityStep settings:
+                o["kind"] = "temperature_stability"; o["device"] = settings.Device.Value;
+                if (settings.Change.Tolerance is { } tolerance) o["tolerance"] = EncodeQuantity(tolerance);
+                if (settings.Change.SettlingThreshold is { } settling) o["settlingThreshold"] = EncodeQuantity(settling);
+                if (settings.Change.StableFor is { } stableFor) o["stableSeconds"] = stableFor.TotalSeconds; break;
+            case WaitTemperatureStep wait:
+                o["kind"] = "wait_temperature"; o["device"] = wait.Device.Value; o["target"] = EncodeValue(wait.Target); o["mode"] = wait.Mode.ToString();
+                o["pollSeconds"] = wait.PollInterval.TotalSeconds; o["timeoutSeconds"] = wait.Timeout.TotalSeconds; break;
             case TemperatureControlStep command:
                 o["kind"] = "temperature_control"; o["device"] = command.Device.Value; o["action"] = command.Action.ToString();
                 if (command.Rate is { } commandRate) o["rate"] = EncodeQuantity(commandRate); break;
@@ -134,6 +142,15 @@ public sealed partial class JsonExperimentPlanDocument
         var kind = Text(o, "kind");
         switch (kind)
         {
+            case "temperature_stability":
+                Object(o, "id", "kind", "device", "tolerance", "settlingThreshold", "stableSeconds");
+                return new TemperatureStabilityStep(id, new(Text(o, "device")), new(
+                    o.ContainsKey("tolerance") ? DecodeQuantity(o["tolerance"]) : null,
+                    o.ContainsKey("settlingThreshold") ? DecodeQuantity(o["settlingThreshold"]) : null,
+                    o.ContainsKey("stableSeconds") ? Duration(o, "stableSeconds") : null));
+            case "wait_temperature":
+                Object(o, "id", "kind", "device", "target", "mode", "pollSeconds", "timeoutSeconds");
+                return new WaitTemperatureStep(id, new(Text(o, "device")), DecodeValue(o["target"]), NamedEnum<TemperatureWaitMode>(o, "mode"), Duration(o, "pollSeconds"), Duration(o, "timeoutSeconds"));
             case "temperature_control":
                 Object(o, "id", "kind", "device", "action", "rate");
                 return new TemperatureControlStep(id, new(Text(o, "device")), NamedEnum<TemperatureControlAction>(o, "action"), o.ContainsKey("rate") ? DecodeQuantity(o["rate"]) : null);

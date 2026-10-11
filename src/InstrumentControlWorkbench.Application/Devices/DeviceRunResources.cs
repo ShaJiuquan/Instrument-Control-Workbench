@@ -134,6 +134,28 @@ public sealed partial class DeviceRunResources
         }
         finally { gate.Release(); }
     }
+    internal async Task ConfigureTemperatureStabilityAsync(InstrumentId id, TemperatureStabilityChange change, CancellationToken token)
+    {
+        await gate.WaitAsync(token);
+        try
+        {
+            RequireActive(); await RequireStoppedTaskFinishedAsync(id);
+            var axis = Get(id) as AxisControllerSession ?? throw new NotSupportedException($"{id} is not an axis controller.");
+            await axis.ConfigureTemperatureStabilityAsync(change, token, Owner);
+        }
+        finally { gate.Release(); }
+    }
+    internal async Task<TemperatureStabilityObservation> ReadTemperatureStabilityAsync(InstrumentId id, CancellationToken token)
+    {
+        await gate.WaitAsync(token);
+        try
+        {
+            RequireActive(); await RequireStoppedTaskFinishedAsync(id); token.ThrowIfCancellationRequested(); touched.Add(id);
+            var axis = Get(id) as AxisControllerSession ?? throw new NotSupportedException($"{id} is not an axis controller.");
+            return await axis.ReadTemperatureStabilityAsync(token, Owner);
+        }
+        finally { gate.Release(); }
+    }
     internal async Task ConfigureTemperatureAsync(InstrumentId id, TemperatureControlAction action, Quantity? rate, CancellationToken token)
     {
         await gate.WaitAsync(token);
@@ -396,6 +418,10 @@ public sealed partial class DeviceRunResources
                         var temperature = await axis.CaptureTemperatureConfigurationAsync(Owner, token);
                         configuration["hardware_ramp_enabled"] = temperature.HardwareRampEnabled.ToString();
                         configuration["temperature_control_enabled"] = temperature.ControlEnabled.ToString();
+                        var stability = await axis.ConfigureTemperatureStabilityAsync(new(), token, Owner);
+                        configuration["temperature_tolerance_k"] = stability.Tolerance.Value.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+                        configuration["temperature_settling_threshold_k"] = stability.SettlingThreshold.Value.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+                        configuration["temperature_stable_duration_s"] = stability.StableFor.TotalSeconds.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
                     }
                     result.Add(new(id, session.Descriptor.Model, status.Timestamp,
                         status.Values.Select(v => new ParameterSnapshot(session.Descriptor.GetParameter(v.Key), v.Value)), configuration));

@@ -51,6 +51,8 @@ preservation, deterministic disabled-control behavior, refused/drifting writes,
 cancellation, pause/resume/abort, retained failed hold, strict native/PPMS import,
 published fixture, fresh archive/CSV/replay. Existing software-ramp tests remain
 applicable. No dependency or laboratory IO is introduced. Temperature hardware
-adapters, `temp_config`/`temp_set_config` stability state, PID/heater/cool-down,
+adapters, continuous background stability state, PID/heater/cool-down,
 disabled-control set_temperature/scans, background runs and native operator UI
 acceptance remain unfinished. The full PPMS migration remains active.
+
+Runtime stability configuration is now covered separately in [temperature-stability.md](temperature-stability.md).
