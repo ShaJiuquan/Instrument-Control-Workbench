@@ -22,8 +22,9 @@ public sealed partial class TcpKeithley2450SourceMeter
         var mode = Boolean(await transport.QueryAsync($":SENS:{senseToken}:RSEN?", token)) ? SensingMode.FourWire : SensingMode.TwoWire;
         var nplc = Number(await transport.QueryAsync($":SENS:{senseToken}:NPLC?", token));
         var autoRange = Boolean(await transport.QueryAsync($":SENS:{senseToken}:RANG:AUTO?", token));
+        Quantity? senseRange = autoRange ? null : new(Number(await transport.QueryAsync($":SENS:{senseToken}:RANG?", token)), Keithley2450SenseRanges.For(senseFunction)[0].Unit);
         var terminals = Word(await transport.QueryAsync(":ROUT:TERM?", token)) switch { "FRON" or "FRONT" => Terminals.Front, "REAR" => Terminals.Rear, _ => throw new IOException("Unknown 2450 terminal readback.") };
-        var source = new SourceSetpoint(function, level, compliance, manualRange); var sense = new SenseConfiguration(senseFunction, mode, nplc, autoRange);
+        var source = new SourceSetpoint(function, level, compliance, manualRange); var sense = new SenseConfiguration(senseFunction, mode, nplc, autoRange, senseRange);
         Keithley2450Limits.Validate(source); Keithley2450Limits.Validate(sense);
         await CheckErrorsAsync(token);
         snapshot = new(Id, snapshot.Identifier, InstrumentLifecycleState.Idle, true, output, terminals, source, sense, DateTimeOffset.UtcNow);

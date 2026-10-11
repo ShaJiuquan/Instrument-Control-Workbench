@@ -181,15 +181,16 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanDocument
                 ["autoRange"] = p.Sense.AutoRange
             },
         };
+        if (p.Sense.ManualRange is { } senseRange) ((JsonObject)result["sense"]!)["manualRange"] = EncodeQuantity(senseRange);
         if (p.ManualSourceRange is { } range) result["manualSourceRange"] = EncodeQuantity(range);
         return result;
     }
     private static SourcePreparation DecodePreparation(JsonNode? node)
     {
         var o = Object(node, "device", "function", "level", "compliance", "sense", "manualSourceRange");
-        var sense = Object(Required(o, "sense"), "function", "mode", "nplc", "autoRange");
+        var sense = Object(Required(o, "sense"), "function", "mode", "nplc", "autoRange", "manualRange");
         return new(new(Text(o, "device")), NamedEnum<SourceFunction>(o, "function"), DecodeQuantity(o["level"]), DecodeQuantity(o["compliance"]),
-            new(NamedEnum<SenseFunction>(sense, "function"), NamedEnum<SensingMode>(sense, "mode"), Number(sense, "nplc"), Boolean(sense, "autoRange")), o["manualSourceRange"] is null ? null : DecodeQuantity(o["manualSourceRange"]));
+            new(NamedEnum<SenseFunction>(sense, "function"), NamedEnum<SensingMode>(sense, "mode"), Number(sense, "nplc"), Boolean(sense, "autoRange"), sense["manualRange"] is null ? null : DecodeQuantity(sense["manualRange"])), o["manualSourceRange"] is null ? null : DecodeQuantity(o["manualSourceRange"]));
     }
     private static JsonObject Object(JsonNode? node, params string[] allowed)
     {

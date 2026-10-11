@@ -24,7 +24,9 @@ public sealed class MockKeithley2450SourceMeter : ISourceMeterPort
              Keithley2450Parameters.CurrentCompliance, Keithley2450Parameters.VoltageCompliance,
              Keithley2450Parameters.MeasuredCurrent, Keithley2450Parameters.MeasuredVoltage,
              Keithley2450Parameters.MeasuredResistance, Keithley2450Parameters.Nplc, Keithley2450Parameters.ManualVoltageRange,
-             Keithley2450Parameters.ManualCurrentRange, Keithley2450Parameters.SourceAutoRange, Keithley2450Parameters.EnableSourceAutoRange]);
+             Keithley2450Parameters.ManualCurrentRange, Keithley2450Parameters.SourceAutoRange, Keithley2450Parameters.EnableSourceAutoRange,
+             Keithley2450Parameters.ManualSenseVoltageRange, Keithley2450Parameters.ManualSenseCurrentRange, Keithley2450Parameters.ManualSenseResistanceRange,
+             Keithley2450Parameters.SenseAutoRange, Keithley2450Parameters.EnableSenseAutoRange]);
     }
 
     public InstrumentId Id { get; }
@@ -57,6 +59,7 @@ public sealed class MockKeithley2450SourceMeter : ISourceMeterPort
             await Task.Delay(25, cancellationToken);
             if (outputEnabled && (source.Function != setpoint.Function || source.ManualRange != setpoint.ManualRange))
                 throw new InvalidOperationException("Turn output off before changing source function or range mode.");
+            Keithley2450Limits.ValidateConfiguration(setpoint, sense);
             source = setpoint;
             lastHeartbeat = DateTimeOffset.Now;
         }
@@ -74,6 +77,9 @@ public sealed class MockKeithley2450SourceMeter : ISourceMeterPort
         {
             RequireConnected();
             await Task.Delay(20, cancellationToken);
+            if (!configuration.AutoRange && configuration.ManualRange is null)
+                configuration = configuration with { ManualRange = sense.Function == configuration.Function && sense.ManualRange is { } oldRange ? oldRange : Keithley2450SenseRanges.Resolve(configuration.Function, new(source.Compliance / 1.05, Keithley2450SenseRanges.For(configuration.Function)[0].Unit)) };
+            Keithley2450Limits.ValidateConfiguration(source, configuration);
             sense = configuration;
             lastHeartbeat = DateTimeOffset.Now;
         }

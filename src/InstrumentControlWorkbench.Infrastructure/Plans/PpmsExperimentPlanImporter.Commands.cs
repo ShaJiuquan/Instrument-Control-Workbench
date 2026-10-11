@@ -158,15 +158,22 @@ public sealed partial class PpmsExperimentPlanImporter
         }
         if (name is not ("measure_voltage" or "measure_current")) throw new NotSupportedException($"Measurement '{name}' is not migrated.");
         Fields(p, "meas_type", "name", "instrument", "channel", "sensing_mode", "nplc", "meter_range_v", "meter_range_a", "sense_channel", "filter_enabled", "filter_count", "filter_window_percent");
-        Choice(p, name == "measure_voltage" ? "meter_range_v" : "meter_range_a", "auto", "auto");
+        var senseFunction = name == "measure_voltage" ? SenseFunction.Voltage : SenseFunction.Current;
+        var selector = RangeSelector(p, name == "measure_voltage" ? "meter_range_v" : "meter_range_a", senseFunction == SenseFunction.Voltage ? PhysicalUnit.Volt : PhysicalUnit.Ampere);
+        Quantity? senseRange = selector is { } chosen ? Keithley2450SenseRanges.Resolve(senseFunction, chosen) : null;
+        if (p[name == "measure_voltage" ? "meter_range_a" : "meter_range_v"] is not null)
+            throw new NotSupportedException("The range field must match the requested measurement function.");
         if (Boolean(p, "filter_enabled", false)) throw new NotSupportedException("Meter filtering is not migrated.");
         if (Number(p, "sense_channel", 1) != 1) throw new NotSupportedException("Secondary meter inputs are not migrated.");
         var source = Source(p, c, null, name == "measure_voltage" ? "2182" : "k2450");
         var mode = Text(p, "sensing_mode", "2wire").Trim().ToLowerInvariant();
-        if (mode != (source.Sense.Mode == SensingMode.FourWire ? "4wire" : "2wire") || !source.Sense.AutoRange)
+        if (mode != (source.Sense.Mode == SensingMode.FourWire ? "4wire" : "2wire"))
             throw new NotSupportedException("Meter settings differ from the explicit source preparation.");
         if (!Text(p, "channel", "").Trim().Equals("", StringComparison.Ordinal) && !Text(p, "channel").Trim().Equals("none", StringComparison.OrdinalIgnoreCase))
             throw new NotSupportedException("Routed standalone meter reads are not migrated; source scan routes may be explicitly bound.");
-        return new SequenceStep(new(path), [Write(path + ".nplc", source.Device, Keithley2450Parameters.Nplc, Number(p, "nplc", 1)), new ReadStep(new(path + ".read"), [new(new(path + ".value"), new(source.Device, name == "measure_voltage" ? Keithley2450Parameters.MeasuredVoltage.Id : Keithley2450Parameters.MeasuredCurrent.Id))], MeasurementEnvironment(path, c))]);
+        if (senseRange is not null && source.Sense.Function != senseFunction)
+            throw new NotSupportedException("Manual meter range requires the requested sensing function in the frozen preparation.");
+        var rangeParameter = senseRange is null ? Keithley2450Parameters.EnableSenseAutoRange : Keithley2450Parameters.ManualSenseRange(senseFunction);
+        return new SequenceStep(new(path), [Write(path + ".sense_range", source.Device, rangeParameter, senseRange?.Value ?? 1), Write(path + ".nplc", source.Device, Keithley2450Parameters.Nplc, Number(p, "nplc", 1)), new ReadStep(new(path + ".read"), [new(new(path + ".value"), new(source.Device, name == "measure_voltage" ? Keithley2450Parameters.MeasuredVoltage.Id : Keithley2450Parameters.MeasuredCurrent.Id))], MeasurementEnvironment(path, c))]);
     }
 }

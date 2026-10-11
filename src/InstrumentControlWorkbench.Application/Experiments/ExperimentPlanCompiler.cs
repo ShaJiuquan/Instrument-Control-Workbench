@@ -36,11 +36,12 @@ internal static class ExperimentPlanCompiler
         foreach (var preparation in plan.Preparations)
         {
             var device = Source(preparation.Device);
-            Keithley2450Limits.Validate(preparation.ToSetpoint());
+            Keithley2450Limits.ValidateConfiguration(preparation.ToSetpoint(), preparation.Sense);
             var voltage = preparation.Function == SourceFunction.Voltage;
             device.GetParameter(voltage ? Keithley2450Parameters.SourceVoltage.Id : Keithley2450Parameters.SourceCurrent.Id).ValidateWrite(preparation.Level);
             device.GetParameter(voltage ? Keithley2450Parameters.CurrentCompliance.Id : Keithley2450Parameters.VoltageCompliance.Id).ValidateWrite(preparation.Compliance);
             device.GetParameter(Keithley2450Parameters.Nplc.Id).ValidateWrite(new(preparation.Sense.Nplc, PhysicalUnit.Dimensionless));
+            if (preparation.Sense.ManualRange is { } preparedSenseRange) device.GetParameter(Keithley2450Parameters.ManualSenseRange(preparation.Sense.Function).Id).ValidateWrite(preparedSenseRange);
             if (preparation.ManualSourceRange is { } preparedRange)
                 device.GetParameter(voltage ? Keithley2450Parameters.ManualVoltageRange.Id : Keithley2450Parameters.ManualCurrentRange.Id).ValidateWrite(preparedRange);
         }
@@ -52,6 +53,30 @@ internal static class ExperimentPlanCompiler
         var changedAddresses = writes.Select(w => w.Address).ToHashSet();
         foreach (var write in writes)
         {
+            if (write.Values is { } senseValues && (write.Address.Parameter == Keithley2450Parameters.ManualSenseVoltageRange.Id || write.Address.Parameter == Keithley2450Parameters.ManualSenseCurrentRange.Id))
+            {
+                var senseFunction = write.Address.Parameter == Keithley2450Parameters.ManualSenseVoltageRange.Id ? SenseFunction.Voltage : SenseFunction.Current;
+                foreach (var value in senseValues) Keithley2450SenseRanges.Validate(senseFunction, value);
+                if (preparations.TryGetValue(write.Address.Device, out var sensePreparation))
+                {
+                    if (sensePreparation.Sense.Function != senseFunction) throw new ArgumentException("Manual sense range differs from the prepared sensing function.");
+                    var compliance = sensePreparation.Function == SourceFunction.Voltage ? Keithley2450Parameters.CurrentCompliance.Id : Keithley2450Parameters.VoltageCompliance.Id;
+                    var level = sensePreparation.Function == SourceFunction.Voltage ? Keithley2450Parameters.SourceVoltage.Id : Keithley2450Parameters.SourceCurrent.Id;
+                    var sourceRange = sensePreparation.Function == SourceFunction.Voltage ? Keithley2450Parameters.ManualVoltageRange.Id : Keithley2450Parameters.ManualCurrentRange.Id;
+                    if (senseFunction != (sensePreparation.Function == SourceFunction.Voltage ? SenseFunction.Current : SenseFunction.Voltage))
+                        throw new NotSupportedException("Independent manual sense ranges require complementary sourcing and sensing.");
+                    var sourceRangeChanges = changedAddresses.Contains(new(write.Address.Device, sourceRange)) || changedAddresses.Contains(new(write.Address.Device, Keithley2450Parameters.EnableSourceAutoRange.Id));
+                    if (!changedAddresses.Contains(new(write.Address.Device, compliance)))
+                        foreach (var value in senseValues)
+                        {
+                            var requestedSense = sensePreparation.Sense with { AutoRange = false, ManualRange = value };
+                            var baseline = sensePreparation.ToSetpoint() with { Level = 0, ManualRange = sourceRangeChanges ? null : sensePreparation.ManualSourceRange };
+                            Keithley2450Limits.ValidateConfiguration(baseline, requestedSense);
+                            if (!sourceRangeChanges && !changedAddresses.Contains(new(write.Address.Device, level)))
+                                Keithley2450Limits.ValidateConfiguration(sensePreparation.ToSetpoint(), requestedSense);
+                        }
+                }
+            }
             if (write.Values is { } rangeValues && (write.Address.Parameter == Keithley2450Parameters.ManualVoltageRange.Id || write.Address.Parameter == Keithley2450Parameters.ManualCurrentRange.Id))
             {
                 var rangeFunction = write.Address.Parameter == Keithley2450Parameters.ManualVoltageRange.Id ? SourceFunction.Voltage : SourceFunction.Current;
@@ -79,6 +104,14 @@ internal static class ExperimentPlanCompiler
                 foreach (var value in write.Values)
                     if (levelWrite) Keithley2450SourceRanges.ValidateLevel(preparation.Function, value.Value, fixedRange);
                     else Keithley2450Limits.Validate(new SourceSetpoint(preparation.Function, 0, value.Value, fixedRange));
+            if (preparation.Sense.ManualRange is not null &&
+                !changedAddresses.Contains(new(write.Address.Device, Keithley2450Parameters.ManualSenseRange(preparation.Sense.Function).Id)) &&
+                !changedAddresses.Contains(new(write.Address.Device, Keithley2450Parameters.EnableSenseAutoRange.Id)))
+                foreach (var value in write.Values)
+                {
+                    var baseline = rangeChanged ? preparation.ToSetpoint() with { ManualRange = null } : preparation.ToSetpoint();
+                    Keithley2450Limits.ValidateConfiguration(levelWrite ? baseline with { Level = value.Value } : baseline with { Compliance = value.Value }, preparation.Sense);
+                }
             if (changedAddresses.Contains(new(write.Address.Device, counterpart))) continue;
             foreach (var value in write.Values)
             {

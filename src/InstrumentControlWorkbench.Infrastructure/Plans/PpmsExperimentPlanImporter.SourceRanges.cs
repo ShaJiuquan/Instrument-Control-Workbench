@@ -10,9 +10,15 @@ public sealed partial class PpmsExperimentPlanImporter
     private static Quantity? SourceRange(JsonObject p, SourceFunction function)
     {
         var key = function == SourceFunction.Voltage ? "source_range_v" : "source_range_a";
+        var selector = RangeSelector(p, key, function == SourceFunction.Voltage ? PhysicalUnit.Volt : PhysicalUnit.Ampere);
+        return selector is { } value ? Keithley2450SourceRanges.Resolve(function, value) : null;
+    }
+    private static Quantity? RangeSelector(JsonObject p, string key, PhysicalUnit unit)
+    {
         if (p[key] is null || p[key] is JsonValue text && text.TryGetValue<string>(out var word) && word.Trim().Equals("auto", StringComparison.OrdinalIgnoreCase)) return null;
         var value = ResistanceNumber(p, key, 0);
-        return Keithley2450SourceRanges.Resolve(function, new(value, function == SourceFunction.Voltage ? PhysicalUnit.Volt : PhysicalUnit.Ampere));
+        if (value <= 0) throw new FormatException($"{key} requires a positive finite range selector or auto.");
+        return new(value, unit);
     }
     private static SetParameterStep SourceRangeStep(string path, SourcePreparation source, Quantity? range)
     {

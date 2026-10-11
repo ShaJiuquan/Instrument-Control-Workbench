@@ -72,8 +72,10 @@ a complete wide point for consecutive scan measurements. Scan-local parallel
 wrappers join this collection in authored order. See
 [measurement-groups.md](measurement-groups.md) for input identity and boundaries.
 Standalone meter reads remain sequential; coherent native IV/source-sense reads
-are a separate implemented step. Filtering/manual sense ranges are rejected,
-and auto sense range needs an explicitly auto-ranged sense preparation. Source
+are a separate implemented step. Filtering is rejected. Matching meter_range_v/a
+fields accept auto or finite positive numeric/string selectors for complementary
+manual sensing; fixed selections require the corresponding prepared function.
+See [sense-ranges.md](sense-ranges.md) for source/compliance guards and limits. Source
 auto/manual ranges now map to typed owned writes with nominal/profile preflight
 and K2450 TCP readback acceptance. See [source-ranges.md](source-ranges.md);
 actual hardware acceptance remains pending.
@@ -111,7 +113,7 @@ live-origin failures, mode confirmation, pause/resume, cleanup and limitations.
 
 Continuous/ramp/cooling modes, disabled temperature-control settings,
 persistent magnet transitions, quench operations, state-based environment wait
-commands, conditional/general parallel/retry/race/for_each BT semantics, remaining resistance modes/persistent profile editing, filtering, manual sense ranges, changed source
+commands, conditional/general parallel/retry/race/for_each BT semantics, remaining resistance modes/persistent profile editing, filtering, remaining ohmmeter/other-family sense ranges, changed source
 functions, segment settle/mirror/repeat modifiers and additional instrument
 families remain required. They produce an import error, not a no-op or silent
 fallback. Numeric stability on bound controller ports does

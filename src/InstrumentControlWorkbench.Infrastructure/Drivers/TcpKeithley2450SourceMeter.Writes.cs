@@ -12,6 +12,7 @@ public sealed partial class TcpKeithley2450SourceMeter
         try
         {
             var previous = await ReconcileAsync(token);
+            Keithley2450Limits.ValidateConfiguration(requested, previous.Sense);
             if (previous.Source.Function != requested.Function && previous.OutputEnabled) throw new InvalidOperationException("Turn output off before changing 2450 source function.");
             if (previous.Source.ManualRange != requested.ManualRange && previous.OutputEnabled) throw new InvalidOperationException("Turn output off before changing 2450 source range mode or value.");
             var prefix = SourceToken(requested.Function);
@@ -48,13 +49,21 @@ public sealed partial class TcpKeithley2450SourceMeter
         await operations.WaitAsync(token);
         try
         {
-            RequireConnected(); var prefix = SenseToken(requested.Function);
+            var before = await ReconcileAsync(token); var prefix = SenseToken(requested.Function);
+            // Legacy fixed-mode documents retain the selected function's existing
+            // range, but actual snapshots always contain its observed nominal span.
+            if (!requested.AutoRange && requested.ManualRange is null)
+                requested = requested with { ManualRange = new(Number(await transport.QueryAsync($":SENS:{prefix}:RANG?", token)), Keithley2450SenseRanges.For(requested.Function)[0].Unit) };
+            Keithley2450Limits.ValidateConfiguration(before.Source, requested);
             await transport.WriteAsync($":SENS:FUNC \"{prefix}\"", token);
             await transport.WriteAsync($":SENS:{prefix}:RSEN {(requested.Mode == SensingMode.FourWire ? "ON" : "OFF")}", token);
             await transport.WriteAsync($":SENS:{prefix}:NPLC {requested.Nplc.ToString("G17", CultureInfo.InvariantCulture)}", token);
+            if (requested.ManualRange is { } range) await transport.WriteAsync($":SENS:{prefix}:RANG {range.Value.ToString("G17", CultureInfo.InvariantCulture)}", token);
             await transport.WriteAsync($":SENS:{prefix}:RANG:AUTO {(requested.AutoRange ? "ON" : "OFF")}", token);
             await CheckErrorsAsync(token);
-            if ((await ReconcileAsync(token)).Sense != requested) throw new IOException("2450 sense configuration readback differs from the request.");
+            var actual = await ReconcileAsync(token);
+            if (actual.Sense != requested || actual.Source != before.Source || actual.OutputEnabled != before.OutputEnabled || actual.Terminals != before.Terminals)
+                throw new IOException("2450 sense configuration readback or preserved source state differs from the request.");
         }
         finally { operations.Release(); }
     }

@@ -107,8 +107,7 @@ public sealed class DeviceRunResources
         {
             RequireActive();
             var manager = Get(id) as InstrumentManager ?? throw new NotSupportedException($"{id} is not a source meter.");
-            Keithley2450Limits.Validate(source);
-            Keithley2450Limits.Validate(sense);
+            Keithley2450Limits.ValidateConfiguration(source, sense);
             await PrepareMutationAsync(id);
             token.ThrowIfCancellationRequested();
             touched.Add(id);

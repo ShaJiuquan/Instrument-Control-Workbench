@@ -26,9 +26,10 @@ public sealed class PpmsResistanceImportTests
     [Fact]
     public async Task SourceManualRangeAliasConfiguresFourWireSampleAcquisition()
     {
-        var b = new Bench(); var document = b.Workspace.Import(Measurement("meas_r_sample", new() { ["sample_id"] = "sample1", ["mode"] = "volt_dc", ["voltage_v"] = 0.02, ["range_v"] = "20", ["settle_s"] = 0 }).ToJsonString(), b.Bindings);
+        var b = new Bench(); var document = b.Workspace.Import(Measurement("meas_r_sample", new() { ["sample_id"] = "sample1", ["mode"] = "volt_dc", ["voltage_v"] = 0.02, ["range_v"] = "20", ["current_range_a"] = "0.0005", ["settle_s"] = 0 }).ToJsonString(), b.Bindings);
         Assert.False((await b.Source.GetSnapshotAsync(Token)).Connected); await b.Runs.StartPlanAsync(document.Plan, Token);
         Assert.Single(b.Runs.LatestDataSet!.Rows); Assert.Equal(new(20, PhysicalUnit.Volt), (await b.Source.GetSnapshotAsync(Token)).Source.ManualRange);
+        Assert.Equal(new(0.001, PhysicalUnit.Ampere), (await b.Source.GetSnapshotAsync(Token)).Sense.ManualRange);
         Assert.False((await b.Source.GetSnapshotAsync(Token)).OutputEnabled); Assert.Empty((await b.Matrix.GetSnapshotAsync(Token)).Closed);
     }
     [Theory]

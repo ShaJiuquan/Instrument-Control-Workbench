@@ -9,7 +9,10 @@ internal sealed class Keithley2450ScpiPeer : IAsyncDisposable
 {
     private readonly Dictionary<SourceFunction, SourceSetpoint> sources = new() { [SourceFunction.Voltage] = new(SourceFunction.Voltage, 0, 105e-6), [SourceFunction.Current] = new(SourceFunction.Current, 0, 21) };
     private SourceFunction function;
-    private SenseConfiguration sense = new(SenseFunction.Current, SensingMode.TwoWire, 1, true);
+    private readonly Dictionary<SenseFunction, SenseConfiguration> senses = Enum.GetValues<SenseFunction>().ToDictionary(f => f, f => new SenseConfiguration(f, SensingMode.TwoWire, 1, true));
+    private readonly Dictionary<SenseFunction, double> senseRanges = new() { [SenseFunction.Current] = 1e-4, [SenseFunction.Voltage] = 20, [SenseFunction.Resistance] = 200000 };
+    private SenseFunction senseFunction = SenseFunction.Current;
+    private SenseConfiguration sense { get => senses[senseFunction]; set { senses[value.Function] = value; senseFunction = value.Function; } }
     private readonly Dictionary<string, bool> readback = new() { ["VOLT"] = false, ["CURR"] = false };
     public Keithley2450ScpiPeer() => Server = new(RespondAsync);
     public LoopbackScpiServer Server { get; }
@@ -19,6 +22,8 @@ internal sealed class Keithley2450ScpiPeer : IAsyncDisposable
     public bool RefuseOff { get; set; }
     public bool IgnoreLevelWrite { get; set; }
     public bool IgnoreRangeWrite { get; set; }
+    public bool IgnoreSenseRangeWrite { get; set; }
+    public double? SenseWriteChangesCompliance { get; set; }
     public int Aborts { get; private set; }
     public double ActualSource { get; set; } = 0.0197;
     public double ActualSense { get; set; } = 0.000021;
@@ -50,7 +55,7 @@ internal sealed class Keithley2450ScpiPeer : IAsyncDisposable
         if (parts[0] == ":OUTP") { if (value == "ON") Output = true; else if (!RefuseOff) Output = false; return Task.FromResult<byte[]?>(null); }
         if (command is ":FORM:DATA ASC" or ":SENS:COUN 1") return Task.FromResult<byte[]?>(null);
         if (parts[0] == ":SOUR:FUNC") { function = value == "VOLT" ? SourceFunction.Voltage : SourceFunction.Current; return Task.FromResult<byte[]?>(null); }
-        if (parts[0] == ":SENS:FUNC") { sense = sense with { Function = value.Trim('"') switch { "VOLT" => SenseFunction.Voltage, "CURR" => SenseFunction.Current, _ => SenseFunction.Resistance } }; return Task.FromResult<byte[]?>(null); }
+        if (parts[0] == ":SENS:FUNC") { sense = senses[value.Trim('"') switch { "VOLT" => SenseFunction.Voltage, "CURR" => SenseFunction.Current, _ => SenseFunction.Resistance }]; return Task.FromResult<byte[]?>(null); }
         if (path.Length >= 3 && path[0] == "SOUR")
         {
             var selected = path[1] == "VOLT" ? SourceFunction.Voltage : SourceFunction.Current; var old = sources[selected];
@@ -77,12 +82,23 @@ internal sealed class Keithley2450ScpiPeer : IAsyncDisposable
         }
         else if (path.Length >= 3 && path[0] == "SENS")
         {
-            if (path[2] == "RSEN?") reply = sense.Mode == SensingMode.FourWire ? "1" : "0";
+            var selected = path[1] == "VOLT" ? SenseFunction.Voltage : path[1] == "CURR" ? SenseFunction.Current : SenseFunction.Resistance;
+            if (path[2] == "RANG?") reply = senseRanges[selected].ToString("G17", CultureInfo.InvariantCulture);
+            else if (path[2] == "RSEN?") reply = sense.Mode == SensingMode.FourWire ? "1" : "0";
             else if (path[2] == "NPLC?") reply = sense.Nplc.ToString("G17", CultureInfo.InvariantCulture);
             else if (path[2] == "RANG" && path[^1] == "AUTO?") reply = sense.AutoRange ? "1" : "0";
             else if (path[2] == "RSEN") sense = sense with { Mode = value == "ON" ? SensingMode.FourWire : SensingMode.TwoWire };
             else if (path[2] == "NPLC") sense = sense with { Nplc = double.Parse(value, CultureInfo.InvariantCulture) };
-            else if (path[2] == "RANG") sense = sense with { AutoRange = value == "ON" };
+            else if (path[2] == "RANG" && path[^1] == "AUTO") sense = sense with { AutoRange = value == "ON", ManualRange = value == "ON" ? null : new(senseRanges[selected], Keithley2450SenseRanges.For(selected)[0].Unit) };
+            else if (path[2] == "RANG")
+            {
+                var range = double.Parse(value, CultureInfo.InvariantCulture);
+                if (!IgnoreSenseRangeWrite)
+                {
+                    senseRanges[selected] = range; sense = sense with { AutoRange = false, ManualRange = new(range, Keithley2450SenseRanges.For(selected)[0].Unit) };
+                    if (SenseWriteChangesCompliance is { } changed) sources[function] = sources[function] with { Compliance = changed };
+                }
+            }
             else throw new InvalidOperationException("Unexpected sense command: " + command);
         }
         else throw new InvalidOperationException("Unexpected SCPI command: " + command);

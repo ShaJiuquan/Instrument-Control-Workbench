@@ -52,8 +52,10 @@ public sealed partial class InstrumentManager : IDeviceSession
                 {new(level, new(snapshot.Source.Level, level.Unit)),
                  new(compliance, new(snapshot.Source.Compliance, compliance.Unit)),
                  new(Keithley2450Parameters.Nplc, new(snapshot.Sense.Nplc, PhysicalUnit.Dimensionless)),
-                 new(Keithley2450Parameters.SourceAutoRange, new(snapshot.Source.ManualRange is null ? 1 : 0, PhysicalUnit.Dimensionless))};
+                 new(Keithley2450Parameters.SourceAutoRange, new(snapshot.Source.ManualRange is null ? 1 : 0, PhysicalUnit.Dimensionless)),
+                 new(Keithley2450Parameters.SenseAutoRange, new(snapshot.Sense.AutoRange ? 1 : 0, PhysicalUnit.Dimensionless))};
             if (snapshot.Source.ManualRange is { } range) parameters.Add(new(voltageSource ? Keithley2450Parameters.ManualVoltageRange : Keithley2450Parameters.ManualCurrentRange, range));
+            if (snapshot.Sense.ManualRange is { } senseRange) parameters.Add(new(Keithley2450Parameters.ManualSenseRange(snapshot.Sense.Function), senseRange));
             return new InstrumentParameterSnapshot(snapshot.InstrumentId, snapshot.Identifier, DateTimeOffset.UtcNow, parameters,
                 new Dictionary<string, string>
                 {
@@ -63,6 +65,7 @@ public sealed partial class InstrumentManager : IDeviceSession
                     ["source_function"] = snapshot.Source.Function.ToString(),
                     ["source_range_mode"] = snapshot.Source.ManualRange is null ? "Auto" : "Manual",
                     ["sense_function"] = snapshot.Sense.Function.ToString(),
+                    ["sense_range_mode"] = snapshot.Sense.AutoRange ? "Auto" : "Manual",
                     ["sensing_mode"] = snapshot.Sense.Mode.ToString(),
                     ["terminals"] = snapshot.Terminals.ToString(),
                     ["output_enabled"] = snapshot.OutputEnabled.ToString(),
@@ -111,16 +114,21 @@ public sealed partial class InstrumentManager : IDeviceSession
         SenseConfiguration sense,
         CancellationToken cancellationToken, RunId? owner = null)
     {
-        Keithley2450Limits.Validate(source);
-        Keithley2450Limits.Validate(sense);
+        Keithley2450Limits.ValidateConfiguration(source, sense);
         await EnterOperationAsync(cancellationToken, owner);
         try
         {
-            if ((await ReadSourceSnapshotAsync(cancellationToken)).OutputEnabled)
+            var previous = await ReadSourceSnapshotAsync(cancellationToken);
+            if (previous.OutputEnabled)
                 throw new InvalidOperationException("Confirm output off before preparing source mode and configuration.");
             try
             {
                 Transition(InstrumentLifecycleEvent.ConfigureRequested);
+                if (!sense.AutoRange && sense.ManualRange is null && previous.Sense.Function == sense.Function && previous.Sense.ManualRange is { } retainedRange)
+                    sense = sense with { ManualRange = retainedRange };
+                Keithley2450Limits.ValidateConfiguration(source, sense);
+                if (previous.Sense.ManualRange is not null)
+                    await sourceMeter.ConfigureSenseAsync(previous.Sense with { AutoRange = true, ManualRange = null }, cancellationToken);
                 await sourceMeter.ConfigureSourceAsync(source, cancellationToken);
                 await sourceMeter.ConfigureSenseAsync(sense, cancellationToken);
                 Transition(InstrumentLifecycleEvent.Configured);

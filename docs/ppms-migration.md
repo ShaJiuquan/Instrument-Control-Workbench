@@ -297,3 +297,14 @@ files. The standard warnings-as-errors build/test audit remains the commit gate.
 Full-goal completion requires evidence against every inventory entry and the
 additional families above. A green small test suite, registered names, mock UI,
 or documentation does not prove parity or physical safety.
+
+26. Typed K2450 fixed sense ranges: complementary manual current/voltage spans,
+    explicit autorange action and actual nominal readback through existing ports,
+    compiler/resource/manager limits, live owned changes without changing source
+    settings, initial parameter/archive/CSV evidence and combined native fixture.
+    PPMS standalone meter and owned/scan-managed resistance/sample selectors now
+    accept finite numbers/strings and aliases. Single/paired/pause drift and
+    range-fault/failed-stop recovery share the existing lifecycle. 62 new tests;
+    no lab IO or new dependencies. Read sense-ranges.md. Ohmmeter selection,
+    per-row autorange span/quality, other families, native UI and real hardware
+    acceptance remain required. Whole migration goal remains active.

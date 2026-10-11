@@ -37,7 +37,8 @@ public sealed record SenseConfiguration(
     SenseFunction Function,
     SensingMode Mode,
     double Nplc,
-    bool AutoRange);
+    bool AutoRange,
+    Quantity? ManualRange = null);
 
 public sealed record MeasurementValue(double Value, string Unit, DateTimeOffset Timestamp);
 
@@ -89,11 +90,30 @@ public static class Keithley2450Limits
         }
     }
 
+    public static void ValidateConfiguration(SourceSetpoint source, SenseConfiguration sense)
+    {
+        Validate(source); Validate(sense);
+        if (sense.ManualRange is not { } range) return;
+        var complementary = source.Function == SourceFunction.Voltage ? SenseFunction.Current : SenseFunction.Voltage;
+        if (sense.Function != complementary)
+            throw new NotSupportedException("Independent manual sense ranges require complementary voltage/current sourcing and sensing; ohmmeter range selection is not implemented.");
+        if (source.Compliance <= range.Value * 0.001 || source.Compliance > range.Value * 1.05)
+            throw new ArgumentOutOfRangeException(nameof(source), "Compliance must be above 0.1% and at most 105% of the fixed sense range; implicit hardware limit changes are not accepted.");
+        if (source.Function == SourceFunction.Voltage && (source.ManualRange is { Value: > 20 } || Math.Abs(source.Level) > 21) && range.Value > 0.1 ||
+            source.Function == SourceFunction.Current && (source.ManualRange is { Value: > 0.1 } || Math.Abs(source.Level) > 0.105) && range.Value > 20)
+            throw new ArgumentOutOfRangeException(nameof(sense), "The source/sense range combination exceeds the declared power envelope.");
+    }
+
     public static void Validate(SenseConfiguration sense)
     {
         ArgumentNullException.ThrowIfNull(sense);
         if (!Enum.IsDefined(sense.Function) || !Enum.IsDefined(sense.Mode))
             throw new ArgumentOutOfRangeException(nameof(sense), "Unknown sense function or wiring mode.");
         Keithley2450Parameters.Nplc.ValidateWrite(new(sense.Nplc, PhysicalUnit.Dimensionless));
+        if (sense.ManualRange is { } range)
+        {
+            if (sense.AutoRange) throw new ArgumentException("An automatic sense range cannot also specify a manual span.", nameof(sense));
+            Keithley2450SenseRanges.Validate(sense.Function, range);
+        }
     }
 }

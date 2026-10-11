@@ -2,8 +2,9 @@
 
 Source ranges now flow through the existing Core source model, Application
 resource ownership and Infrastructure adapters. This stage adds no dependency
-or separate execution engine. It covers source ranges; sense ranges and reading
-quality remain migration work.
+or separate execution engine. It covers source ranges; explicit complementary
+sense ranges are implemented in [sense-ranges.md](sense-ranges.md), while reading
+quality remains migration work.
 
 ```mermaid
 flowchart LR
@@ -63,7 +64,8 @@ out-of-profile selectors reject with source-path/line diagnostics before IO.
 Imported scans check every point with the selected range/compliance. Resistance
 source-range aliases retain the same validation. Source-managed resistance
 inherits its enclosing source settings and does not change the source range.
-Sense range and filtering fields remain explicitly unsupported.
+Sense range selectors now follow [sense-ranges.md](sense-ranges.md); filtering
+fields remain explicitly unsupported.
 
 Source range changes compile into existing typed parameter writes while output
 is off. No driver interprets PPMS JSON. TCP configuration freshly reads range
@@ -96,6 +98,6 @@ Local TCP peers were used; no lab endpoint was contacted.
 The declared nominal ranges and operating constraints follow the manufacturer's
 [2450 reference manual E](https://www.tek.com/en/keithley-source-measure-units/keithley-smu-2400-series-sourcemeter-manual/model-2450-interactive-sou),
 sections on source ranges and operating boundaries. Actual firmware/range
-transitions, physical measurement accuracy, sense ranges/autozero/filter/quality,
+transitions, physical measurement accuracy, ohmmeter ranges/autozero/filter/quality,
 other source families and native settings/editor acceptance remain required.
 `hardwareVerified` remains false and the full PPMS goal remains active.

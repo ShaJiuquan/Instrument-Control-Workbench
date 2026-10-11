@@ -24,7 +24,9 @@ public sealed partial class PpmsExperimentPlanImporter
         Choice(p, "mode", "curr_dc", "volt_dc");
         foreach (var optional in new[] { "source_range_v", "meter_range_a", "sensing_mode" })
             if (p[optional] is null) p.Remove(optional);
-        var range = SourceRange(p, SourceFunction.Voltage); Choice(p, "meter_range_a", "auto", "auto");
+        var range = SourceRange(p, SourceFunction.Voltage);
+        var senseSelector = RangeSelector(p, "meter_range_a", PhysicalUnit.Ampere);
+        Quantity? senseRange = senseSelector is { } selected ? Keithley2450SenseRanges.Resolve(SenseFunction.Current, selected) : null;
         foreach (var environment in new[] { "record_temperature", "record_field", "record_angle" })
             _ = Boolean(p, environment, false); // Current Rust captures all three; these are legacy authoring flags.
         if (ResistanceNumber(p, "sense_channel", 1) != 1) throw new NotSupportedException("Only the primary integrated meter input is migrated.");
@@ -32,7 +34,7 @@ public sealed partial class PpmsExperimentPlanImporter
         foreach (var role in new[] { "source_instrument", "meter_instrument", "reference_instrument", "lock_in_instrument", "voltage_source_instrument", "current_meter_instrument" })
             if (p[role] is not null && Text(p, role).Trim().Length != 0 && (!c.Bindings.Instruments.TryGetValue(Text(p, role).Trim(), out var device) || device != source.Device))
                 throw new NotSupportedException($"{role} must explicitly bind the integrated volt_dc source/meter instance.");
-        if (source.Sense.Function != SenseFunction.Current || !source.Sense.AutoRange) throw new NotSupportedException("volt_dc requires prepared current sensing and auto range.");
+        if (source.Sense.Function != SenseFunction.Current) throw new NotSupportedException("volt_dc requires prepared current sensing.");
         var voltage = ResistanceNumber(p, "voltage_v", 0.1); var compliance = ResistanceNumber(p, "compliance_a", 1e-4); var nplc = ResistanceNumber(p, "nplc", 1);
         if (Math.Abs(voltage) > 200 || compliance is < 1e-9 or > 1.05 || nplc is < 0.01 or > 10) throw new FormatException("volt_dc voltage, compliance or NPLC is outside the PPMS profile.");
         Keithley2450Limits.Validate(new SourceSetpoint(SourceFunction.Voltage, voltage, compliance));
@@ -40,7 +42,7 @@ public sealed partial class PpmsExperimentPlanImporter
         var settle = Duration(p, "settle_s", 0.1); var sampleMeasurement = name != "meas_r";
         var scope = c.SourceScans.FirstOrDefault(s => s.Device == source.Device);
         var managed = Boolean(p, "source_managed", false) || scope.Device == source.Device;
-        if (!managed && range is { } fixedRange) Keithley2450Limits.Validate(new SourceSetpoint(SourceFunction.Voltage, voltage, compliance, fixedRange));
+        if (!managed) Keithley2450Limits.ValidateConfiguration(new SourceSetpoint(SourceFunction.Voltage, voltage, compliance, range), source.Sense with { AutoRange = senseRange is null, ManualRange = senseRange });
         SampleProfile? sample = null;
         if (sampleMeasurement)
         {
@@ -69,11 +71,14 @@ public sealed partial class PpmsExperimentPlanImporter
         }
         if (!managed)
         {
+            steps.Add(Write(path + ".sense_auto", source.Device, Keithley2450Parameters.EnableSenseAutoRange, 1));
             steps.Add(Write(path + ".zero", source.Device, Keithley2450Parameters.SourceVoltage, 0));
             steps.Add(Write(path + ".compliance", source.Device, Keithley2450Parameters.CurrentCompliance, compliance));
             steps.Add(SourceRangeStep(path, source, range));
             steps.Add(Write(path + ".level", source.Device, Keithley2450Parameters.SourceVoltage, voltage));
         }
+        if (senseRange is { } span) steps.Add(Write(path + ".sense_range", source.Device, Keithley2450Parameters.ManualSenseCurrentRange, span.Value));
+        else if (managed) steps.Add(Write(path + ".sense_range", source.Device, Keithley2450Parameters.EnableSenseAutoRange, 1));
         steps.Add(Write(path + ".nplc", source.Device, Keithley2450Parameters.Nplc, nplc));
         var minimum = new Quantity(2.220446049250313e-16, PhysicalUnit.Ampere); // Rust f64::EPSILON, not .NET double.Epsilon.
         var environmentReads = MeasurementEnvironment(path, c);

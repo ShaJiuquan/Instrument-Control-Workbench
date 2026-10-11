@@ -601,3 +601,34 @@ implementation.
   are not per-row actual range evidence. Automatic selected full-scale, sense
   range/quality, native editors and hardware certification remain pending. See
   source-ranges.md; all App/App.Tests stay excluded; full goal remains active.
+
+## Typed K2450 sense ranges
+
+- SenseConfiguration optional typed ManualRange is distinct from source range;
+  true AutoRange plus a manual value rejects. Immutable nominal voltage/current
+  spans and observed resistance spans use active-function units. Complementary
+  manual V/A selection supported; resistance span is read-only until ohmmeter
+  source strategy exists. Legacy false/null retains an observed matching register.
+- Core ValidateConfiguration checks source/compliance, >0.1%..105% fixed-sense
+  bounds and source/sense nominal power combinations. Compiler validates literal
+  choices/capability/static fixed-span changes; actual per-write checks remain for
+  dynamic/range-changing plans. Native optional sense.manualRange omits when absent.
+- Existing sessions/ports/descriptors provide active manual sense V/A read/write,
+  observed R span read, sense auto mode read and explicit enable action. Registry
+  ownership denies manual writes during run/pause. Live owned span changes are
+  supported and require unchanged actual source settings/output/terminals.
+- TCP freshly reconciles span, confirms writes and rejects implicit compliance
+  adjustment. Initial parameters capture actual mode/span; single/paired reads
+  discard configuration drift and pause drift denies output restoration.
+  Preparation clears old fixed sensing only while off before new source settings.
+- PPMS standalone meter and volt_dc channel/sample/managed import accept finite
+  numeric/string selectors and aliases. Owned source clears old fixed sensing,
+  managed acquisition preserves source state, defaults explicitly enable auto.
+- 62 new cases (27 Core/35 Application) verify tables/limits, both source modes,
+  save/archive/CSV, legacy actual retained settings, literal/dynamic guards, live
+  writes/refusal/implicit source changes and retained failed-stop recovery, drift,
+  consecutive runs, imported range aliases and diagnostics, overflow and native
+  combined-range fixture. Existing sample range test verifies both fixed ranges.
+  No lab IO. Full per-frame ranges/status/quality and automatic selected full
+  scale, ohmmeter selection, other families/UI/hardware remain required.
+  All App/App.Tests stay excluded; whole goal remains active. See sense-ranges.md.

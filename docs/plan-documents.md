@@ -116,3 +116,9 @@ index/label/displayRow/raw/notes, sample material/substrate/notes, electrode
 notes, wiring labels and meter spacing. Empty metadata omits, retaining earlier
 encodings. New fields require a reader that understands these version-1
 extensions. See ppms-profile-import.md.
+
+`preparations[].sense.manualRange` is an optional typed nominal measurement span.
+It requires `autoRange=false`; absent values preserve old automatic or observed
+retain-mode semantics. Exact units/choices and complementary source constraints
+validate before execution. Old strict readers can reject the populated optional
+version-1 field. See [sense-ranges.md](sense-ranges.md).
