@@ -82,7 +82,10 @@ public sealed class Keithley2182MeterSession : IDeviceSession
             K2182VoltageReading reading;
             try { reading = await port.ReadAsync(token); }
             catch (InstrumentReadException error) when (classifyReadFailure && error.Device == Descriptor.Id)
-            { throw new MeterAcquisitionException(error, before.Settings!, started, DateTimeOffset.UtcNow); }
+            {
+                if (token.IsCancellationRequested) throw new OperationCanceledException("Acquisition was canceled after its read failed.", error, token);
+                throw new MeterAcquisitionException(error, before.Settings!, started, DateTimeOffset.UtcNow);
+            }
             token.ThrowIfCancellationRequested();
             var after = await port.GetSnapshotAsync(token);
             if (!after.Connected || after.Acquiring || after.Settings != before.Settings)

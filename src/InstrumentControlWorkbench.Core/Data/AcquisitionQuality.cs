@@ -4,7 +4,7 @@ using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Core.Data;
 
-public enum ReadingQualityState { Unobserved, PartiallyObserved, ObservedNormal, ObservedWithIssues }
+public enum ReadingQualityState { Unobserved, PartiallyObserved, ObservedNormal, ObservedWithIssues, ContainsFailedAcquisitions }
 
 // One result-column's original acquisition evidence. Analysis and wide rows
 // preserve these input references; they do not invent new hardware status.

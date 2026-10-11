@@ -18,6 +18,7 @@ public sealed class RunDataRowValidator
     private readonly HashSet<(StepId Step, ParameterId Column)> standaloneVoltageColumns = [];
     private readonly Dictionary<StepId, ReadCurrentResistanceStep> independentResistance = [];
     private readonly Dictionary<StepId, Core.Routing.ResolvedSampleRoute> independentSamples = [];
+    public bool HasRecoverableAcquisitions => independentResistance.Values.Any(s => s.Retry is { ContinueOnAcquisitionFailure: true });
     public bool HasIndependentResistance => independentResistance.Count != 0;
     private readonly Queue<MeasurementDataRow> recent = new();
     private int count;
@@ -94,6 +95,20 @@ public sealed class RunDataRowValidator
         ValidateEnvironment(row);
         if (row.MeasurementGroup is null && row.Analysis is null)
         {
+            if (row.AcquisitionFailures.Count > 1 || row.AcquisitionFailures.Count != 0 && row.IndependentResistance.Count != 0)
+                throw new ArgumentException("A raw acquisition has one successful or failed independent outcome.");
+            foreach (var failure in row.AcquisitionFailures)
+            {
+                if (!independentResistance.TryGetValue(failure.Step, out var failedStep)) throw new ArgumentException("Acquisition failure requires its frozen measurement step.");
+                failure.Validate(failedStep, row, plan!.CurrentSourcePreparations.Any(p => p.Device == failedStep.Source) ? CurrentSourceModel.Keithley6221 : CurrentSourceModel.Keithley2450);
+                var allowed = schema.Columns.Single(c => c.Parameter.Id == failedStep.VoltageColumn).DependsOn.Concat(failedStep.EnvironmentReads.Select(e => e.Column)).ToHashSet();
+                if (row.Quality.Count != 0 || row.Values.Keys.Any(c => !allowed.Contains(c))) throw new ArgumentException("Failed acquisition cannot claim other electrical values or successful quality.");
+                if (independentSamples.TryGetValue(failure.Step, out var sample) && (row.Routing is null || row.Routing.Binding != sample.Binding || row.Routing.VoltageMeter != failure.Meter || failure.MeterSettings.Channel != 1))
+                    throw new ArgumentException("Failed sample requires its frozen route/meter/input1 provenance.");
+                if (!independentSamples.ContainsKey(failure.Step) && row.Routing is not null) throw new ArgumentException("Direct failed acquisition cannot claim sample provenance.");
+            }
+            if (independentResistance.Count != 0 && row.IndependentResistance.Count == 0 && row.AcquisitionFailures.Count == 0 && row.Quality.Count == 0)
+                throw new ArgumentException("An electrical acquisition with no values requires explicit failure proof.");
             var hasIndependentColumns = independentResistance.Values.Any(s => row.Values.ContainsKey(s.CurrentColumn) || row.Values.ContainsKey(s.VoltageColumn) || row.Values.ContainsKey(s.ResistanceColumn));
             if (hasIndependentColumns != (row.IndependentResistance.Count == 1) || row.IndependentResistance.Count > 1)
                 throw new ArgumentException("Independent resistance rows require exactly their declared acquisition evidence.");
@@ -161,7 +176,7 @@ public sealed class RunDataRowValidator
             {
                 if (last.Analysis?.Step != sample.Id) throw new ArgumentException("Sample group requires its validated analysis result.");
             }
-            else if (last.Analysis is not null || member.AcquisitionColumns.Any(c => !last.Values.ContainsKey(c)))
+            else if (last.Analysis is not null || member.AcquisitionColumns.Any(c => !last.Values.ContainsKey(c)) && !(last.AcquisitionFailures.Count == 1 && member.Acquisition.Id == last.AcquisitionFailures[0].Step))
                 throw new ArgumentException("Measurement member requires its declared acquisition columns.");
             var allowed = member.OutputColumns.ToHashSet(); var dependencies = new Stack<ParameterId>(allowed);
             while (dependencies.TryPop(out var id))
@@ -171,7 +186,7 @@ public sealed class RunDataRowValidator
             offset += member.InputCount;
         }
         var expected = MeasurementGroupSummary.BuildRow(group, summary.Inputs[0].FirstInputRow, inputs);
-        if (expected.Timestamp != row.Timestamp || !expected.Environment.SequenceEqual(row.Environment) || !expected.Quality.SequenceEqual(row.Quality) || !expected.IndependentResistance.SequenceEqual(row.IndependentResistance) || !expected.Values.Keys.ToHashSet().SetEquals(row.Values.Keys) || expected.Values.Any(p => row.Values[p.Key] != p.Value))
+        if (expected.Timestamp != row.Timestamp || !expected.Environment.SequenceEqual(row.Environment) || !expected.Quality.SequenceEqual(row.Quality) || !expected.IndependentResistance.SequenceEqual(row.IndependentResistance) || !expected.AcquisitionFailures.SequenceEqual(row.AcquisitionFailures) || !expected.Values.Keys.ToHashSet().SetEquals(row.Values.Keys) || expected.Values.Any(p => row.Values[p.Key] != p.Value))
             throw new ArgumentException("Measurement summary values/time differ from the preserved acquisitions.");
     }
     private void ValidateEnvironment(MeasurementDataRow row)
@@ -180,7 +195,7 @@ public sealed class RunDataRowValidator
         var observed = row.Environment.ToDictionary(o => o.Column);
         if (row.Analysis is null && row.MeasurementGroup is null)
         {
-            var required = row.Values.Keys.Where(environmentPolicies.ContainsKey).SelectMany(c => environmentPolicies[c]).Select(r => r.Column).ToHashSet();
+            var required = row.Values.Keys.Concat(row.AcquisitionFailures.Select(f => f.VoltageColumn)).Where(environmentPolicies.ContainsKey).SelectMany(c => environmentPolicies[c]).Select(r => r.Column).ToHashSet();
             if (!required.SetEquals(observed.Keys)) throw new ArgumentException("Acquisition environment evidence differs from its declared policy.");
         }
         foreach (var observation in row.Environment)

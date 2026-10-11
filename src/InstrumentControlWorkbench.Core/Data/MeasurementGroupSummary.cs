@@ -38,9 +38,11 @@ public sealed record MeasurementGroupSummary
         if (rows.Count != step.InputCount) throw new ArgumentException("Measurement group input is incomplete.");
         var elapsed = new ParameterId("elapsed"); var values = new Dictionary<ParameterId, Quantity>(); var inputs = new List<MeasurementGroupInput>();
         var offset = 0; var environment = new List<EnvironmentObservation>(); var quality = new List<AcquisitionQuality>(); var resistance = new List<IndependentResistanceEvidence>();
+        var failures = new List<IndependentResistanceFailure>();
         for (var i = 0; i < step.Members.Count; i++)
         {
             var member = step.Members[i]; inputs.Add(new(step.Labels[i], checked(firstInputRow + offset), member.InputCount));
+            failures.AddRange(rows[offset + member.InputCount - 1].AcquisitionFailures);
             quality.AddRange(rows[offset + member.InputCount - 1].Quality);
             resistance.AddRange(rows[offset + member.InputCount - 1].IndependentResistance);
             environment.AddRange(rows[offset + member.InputCount - 1].Environment);
@@ -55,10 +57,10 @@ public sealed record MeasurementGroupSummary
             foreach (var member in step.Members)
             {
                 end += member.InputCount;
-                if (rows[end - 1].Quality.Count == 0) throw new ArgumentException("A wide point cannot claim complete quality while a member has no evidence.");
+                if (rows[end - 1].Quality.Count == 0 && rows[end - 1].AcquisitionFailures.Count == 0) throw new ArgumentException("A wide point cannot claim complete quality while a member has no evidence.");
             }
         }
         values[elapsed] = rows[0].Values[elapsed];
-        return new(rows[0].Timestamp, values, measurementGroup: new(step.Id, inputs), environment: environment, quality: quality, independentResistance: resistance);
+        return new(rows[0].Timestamp, values, measurementGroup: new(step.Id, inputs), environment: environment, quality: quality, independentResistance: resistance, acquisitionFailures: failures);
     }
 }

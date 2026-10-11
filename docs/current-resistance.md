@@ -105,9 +105,10 @@ dependencies, lab IO or UI changes are included.
 ## Remaining work
 
 PPMS terminal voltage acquisition single retry is now supported; see
-[current-resistance-retry.md](current-resistance-retry.md). Recovery into invalid
-points remains unfinished: exhausted/ineligible acquisition errors stop
-the C# run after safe cleanup. Real K6221/K2182 transports,
+[current-resistance-retry.md](current-resistance-retry.md). Explicit native and PPMS current DC recovery into invalid points is now
+verified; see [current-resistance-invalid-points.md](current-resistance-invalid-points.md).
+Ineligible errors, drift/cancellation/cleanup failures and native policies without
+continuation still terminate the run. Real K6221/K2182 transports,
 delta/pulse/AC, synchronized acquisition, physical safety/timing acceptance and
 native settings/editor/history/plot acceptance remain required. This is a tested
 subset, not full PPMS parity.

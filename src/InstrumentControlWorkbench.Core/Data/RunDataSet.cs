@@ -22,7 +22,7 @@ public sealed record RunId
 
 public sealed record MeasurementDataRow
 {
-    public MeasurementDataRow(DateTimeOffset timestamp, IReadOnlyDictionary<ParameterId, Quantity> values, ResolvedSampleRoute? routing = null, SampleAnalysisSummary? analysis = null, MeasurementGroupSummary? measurementGroup = null, IEnumerable<EnvironmentObservation>? environment = null, IEnumerable<AcquisitionQuality>? quality = null, IEnumerable<IndependentResistanceEvidence>? independentResistance = null)
+    public MeasurementDataRow(DateTimeOffset timestamp, IReadOnlyDictionary<ParameterId, Quantity> values, ResolvedSampleRoute? routing = null, SampleAnalysisSummary? analysis = null, MeasurementGroupSummary? measurementGroup = null, IEnumerable<EnvironmentObservation>? environment = null, IEnumerable<AcquisitionQuality>? quality = null, IEnumerable<IndependentResistanceEvidence>? independentResistance = null, IEnumerable<IndependentResistanceFailure>? acquisitionFailures = null)
     {
         ArgumentNullException.ThrowIfNull(values);
         if (new[] { routing is not null, analysis is not null, measurementGroup is not null }.Count(v => v) > 1) throw new ArgumentException("A row has one provenance kind: electrode reading, sample analysis or measurement point.");
@@ -38,9 +38,14 @@ public sealed record MeasurementDataRow
         if (resistance.Length > 4096 || resistance.Any(r => r is null) || resistance.Select(r => r.Step).Distinct().Count() != resistance.Length)
             throw new ArgumentException("Independent resistance evidence requires bounded, distinct acquisition identities.");
         IndependentResistance = Array.AsReadOnly(resistance);
+        var failures = acquisitionFailures?.ToArray() ?? [];
+        if (failures.Length > 4096 || failures.Any(f => f is null) || failures.Select(f => f.Step).Distinct().Count() != failures.Length || failures.Any(f => resistance.Any(r => r.Step == f.Step)))
+            throw new ArgumentException("Acquisition failures require bounded distinct identities without successful evidence for the same step.");
+        AcquisitionFailures = Array.AsReadOnly(failures);
         Values = new ReadOnlyDictionary<ParameterId, Quantity>(new Dictionary<ParameterId, Quantity>(values));
     }
 
+    public IReadOnlyList<IndependentResistanceFailure> AcquisitionFailures { get; }
     public IReadOnlyList<IndependentResistanceEvidence> IndependentResistance { get; }
     public DateTimeOffset Timestamp { get; }
     public IReadOnlyDictionary<ParameterId, Quantity> Values { get; }
@@ -51,7 +56,7 @@ public sealed record MeasurementDataRow
     public IReadOnlyList<AcquisitionQuality> Quality { get; }
     public ReadingQualityIssues QualityIssues => Quality.Aggregate(ReadingQualityIssues.None, (issues, item) => issues | (item.Status?.Issues ?? ReadingQualityIssues.None));
     public int ObservedQualityColumns => Quality.Count(q => q.Status is not null);
-    public ReadingQualityState QualityState => ObservedQualityColumns == 0 ? ReadingQualityState.Unobserved :
+    public ReadingQualityState QualityState => AcquisitionFailures.Count != 0 ? ReadingQualityState.ContainsFailedAcquisitions : ObservedQualityColumns == 0 ? ReadingQualityState.Unobserved :
         ObservedQualityColumns < Quality.Count ? ReadingQualityState.PartiallyObserved :
         QualityIssues == ReadingQualityIssues.None ? ReadingQualityState.ObservedNormal : ReadingQualityState.ObservedWithIssues;
 }

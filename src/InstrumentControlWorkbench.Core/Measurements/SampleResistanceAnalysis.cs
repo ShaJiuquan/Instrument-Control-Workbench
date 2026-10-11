@@ -6,7 +6,7 @@ namespace InstrumentControlWorkbench.Core.Measurements;
 
 public enum SampleDerivedQuantity { LongitudinalResistance, TransverseResistance, HorizontalMeanResistance, VerticalMeanResistance, SheetResistance, Resistivity }
 [Flags]
-public enum SampleAnalysisIssues { None = 0, MissingGeometry = 1, NonPositiveVanDerPauwMean = 2, UnrepresentableResult = 4 }
+public enum SampleAnalysisIssues { None = 0, MissingGeometry = 1, NonPositiveVanDerPauwMean = 2, UnrepresentableResult = 4, FailedAcquisition = 8 }
 public sealed record SampleAnalysisResult(IReadOnlyDictionary<SampleDerivedQuantity, Quantity> Values, SampleAnalysisIssues Issues);
 
 // Pure measured-input analysis. No device access, field-reversal assumption,
@@ -35,32 +35,38 @@ public static class SampleResistanceAnalysis
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
     public static SampleAnalysisResult Calculate(SampleTopology topology, SampleGeometry geometry, IReadOnlyList<Quantity> resistances)
+    { ArgumentNullException.ThrowIfNull(resistances); return CalculateAvailable(topology, geometry, resistances.Select(r => (Quantity?)r).ToArray()); }
+
+    public static SampleAnalysisResult CalculateAvailable(SampleTopology topology, SampleGeometry geometry, IReadOnlyList<Quantity?> resistances)
     {
         ArgumentNullException.ThrowIfNull(geometry); ArgumentNullException.ThrowIfNull(resistances);
-        if (resistances.Count != Selections(topology).Count || resistances.Any(r => r.Unit != PhysicalUnit.Ohm))
+        if (resistances.Count != Selections(topology).Count || resistances.Any(r => r is { Unit: not PhysicalUnit.Ohm }))
             throw new ArgumentException("Analysis needs the complete ordered group of resistances in Ohm.", nameof(resistances));
-        var values = new Dictionary<SampleDerivedQuantity, Quantity>(); var issues = SampleAnalysisIssues.None;
+        var values = new Dictionary<SampleDerivedQuantity, Quantity>(); var issues = resistances.Any(r => r is null) ? SampleAnalysisIssues.FailedAcquisition : SampleAnalysisIssues.None;
         double? sheet = null;
         if (topology == SampleTopology.HallBar)
         {
-            values.Add(SampleDerivedQuantity.LongitudinalResistance, resistances[0]); values.Add(SampleDerivedQuantity.TransverseResistance, resistances[1]);
-            if (geometry.Width is { } width && geometry.Length is { } length)
+            if (resistances[0] is { } xx) values.Add(SampleDerivedQuantity.LongitudinalResistance, xx);
+            if (resistances[1] is { } xy) values.Add(SampleDerivedQuantity.TransverseResistance, xy);
+            if (resistances[0] is { } longitudinal && geometry.Width is { } width && geometry.Length is { } length)
             {
-                var r = resistances[0].Value;
+                var r = longitudinal.Value;
                 sheet = r == 0 ? 0 : Math.CopySign(Math.Exp(Math.Log(Math.Abs(r)) + Math.Log(width.Value) - Math.Log(length.Value)), r);
             }
-            else issues |= SampleAnalysisIssues.MissingGeometry;
+            else if (geometry.Width is null || geometry.Length is null) issues |= SampleAnalysisIssues.MissingGeometry;
         }
         else
         {
-            var h = MeanAbsolute(resistances.Take(4)); var v = MeanAbsolute(resistances.Skip(4));
-            values.Add(SampleDerivedQuantity.HorizontalMeanResistance, new(h, PhysicalUnit.Ohm)); values.Add(SampleDerivedQuantity.VerticalMeanResistance, new(v, PhysicalUnit.Ohm));
-            if (h > 0 && v > 0) sheet = SolveVanDerPauw(h, v);
-            else issues |= SampleAnalysisIssues.NonPositiveVanDerPauwMean;
+            double? h = resistances.Take(4).All(r => r is not null) ? MeanAbsolute(resistances.Take(4).Select(r => r!.Value)) : null;
+            double? v = resistances.Skip(4).All(r => r is not null) ? MeanAbsolute(resistances.Skip(4).Select(r => r!.Value)) : null;
+            if (h is { } horizontal) values.Add(SampleDerivedQuantity.HorizontalMeanResistance, new(horizontal, PhysicalUnit.Ohm));
+            if (v is { } vertical) values.Add(SampleDerivedQuantity.VerticalMeanResistance, new(vertical, PhysicalUnit.Ohm));
+            if (h > 0 && v > 0) sheet = SolveVanDerPauw(h.Value, v.Value);
+            else if (h == 0 || v == 0) issues |= SampleAnalysisIssues.NonPositiveVanDerPauwMean;
         }
         if (sheet is { } rs)
         {
-            if (double.IsFinite(rs) && (rs != 0 || topology == SampleTopology.HallBar && resistances[0].Value == 0))
+            if (double.IsFinite(rs) && (rs != 0 || topology == SampleTopology.HallBar && resistances[0]?.Value == 0))
             {
                 values.Add(SampleDerivedQuantity.SheetResistance, new(rs, PhysicalUnit.OhmPerSquare));
                 if (geometry.Thickness is { } thickness)

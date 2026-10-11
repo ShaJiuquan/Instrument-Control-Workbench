@@ -17,6 +17,8 @@ public sealed class InstrumentReadException : Exception
     public InstrumentId Device { get; }
     public InstrumentReadFailureKind Kind { get; }
     public int? CommandCode { get; }
+    public bool AllowsInvalidPoint => IsRecoverableAcquisition(Kind, CommandCode);
+    public static bool IsRecoverableAcquisition(InstrumentReadFailureKind kind, int? commandCode) => kind is InstrumentReadFailureKind.Overrange or InstrumentReadFailureKind.ReadTimeout or InstrumentReadFailureKind.BufferTimeout or InstrumentReadFailureKind.InvalidResponse or InstrumentReadFailureKind.VisaIoRead || kind == InstrumentReadFailureKind.CommandRejected && commandCode is -221 or -241 or 419 or 301;
     public bool AllowsSingleRetry => IsSingleRetryEligible(Kind, CommandCode);
     public static bool IsSingleRetryEligible(InstrumentReadFailureKind kind, int? commandCode) => kind is InstrumentReadFailureKind.ReadTimeout or InstrumentReadFailureKind.BufferTimeout || kind == InstrumentReadFailureKind.CommandRejected && commandCode == -221;
 }

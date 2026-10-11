@@ -95,5 +95,10 @@ perform two/eight routed acquisitions and call shared Core-style math.
 
 Optional terminal K2182 acquisition single retry is now implemented with fresh
 owned/managed cleanup and retained attempt evidence. See
-[bounded current resistance retry](current-resistance-retry.md). Invalid-point recovery,
-physical acceptance and full UI/PPMS parity remain pending.
+[bounded current resistance retry](current-resistance-retry.md). Explicit invalid-point recovery is now verified in the subsequent stage.
+Physical acceptance and full UI/PPMS parity remain pending.
+
+PPMS curr_dc and explicit native continuation now preserve absent electrical
+values and validated failure proof through partial Hall/vdP, wide points and
+archive/CSV. See [invalid points and available-input analysis](current-resistance-invalid-points.md).
+Physical drivers and full UI/PPMS parity remain pending.

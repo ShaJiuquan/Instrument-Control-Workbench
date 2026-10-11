@@ -242,7 +242,9 @@ internal static class ExperimentPlanCompiler
             AddColumn(independent.VoltageColumn, voltageInput, new(independent.Meter, voltageInput.Id), [.. axes, Elapsed.Id]);
             AddColumn(independent.CurrentColumn, new(independent.CurrentColumn, independent.CurrentReference == CurrentReference.ProgrammedSetpoint ? "Confirmed programmed current" : "Measured source current", PhysicalUnit.Ampere, ParameterAccess.Read), new(independent.Source, currentParameter.Id), [.. axes, Elapsed.Id]);
             AddColumn(independent.ResistanceColumn, new(independent.ResistanceColumn, "Independent resistance (V/I)", PhysicalUnit.Ohm, ParameterAccess.Read), null, [.. axes, Elapsed.Id, independent.VoltageColumn, independent.CurrentColumn]);
-            BindVariable(independent.VoltageColumn, PhysicalUnit.Volt, known); BindVariable(independent.CurrentColumn, PhysicalUnit.Ampere, known); BindVariable(independent.ResistanceColumn, PhysicalUnit.Ohm, known);
+            if (independent.Retry is { ContinueOnAcquisitionFailure: true })
+                foreach (var column in new[] { independent.VoltageColumn, independent.CurrentColumn, independent.ResistanceColumn }) known.Remove(column);
+            else { BindVariable(independent.VoltageColumn, PhysicalUnit.Volt, known); BindVariable(independent.CurrentColumn, PhysicalUnit.Ampere, known); BindVariable(independent.ResistanceColumn, PhysicalUnit.Ohm, known); }
             ValidateEnvironmentPolicy([independent.VoltageColumn, independent.CurrentColumn, independent.ResistanceColumn], independent.EnvironmentReads); ValidateEnvironment(independent.EnvironmentReads, axes);
         }
         void ValidateResistance(ReadResistanceStep resistance, Dictionary<ParameterId, PhysicalUnit> known, IReadOnlyList<ParameterId> axes)
@@ -323,7 +325,15 @@ internal static class ExperimentPlanCompiler
                         AddColumn(result.Column, new(result.Column, label, unit, ParameterAccess.Read), null, [.. axes, Elapsed.Id]);
                         // Geometry/numeric-dependent results may be unavailable. They
                         // are optional data columns, not guaranteed plan variables.
-                        if (result.Kind is not (SampleDerivedQuantity.SheetResistance or SampleDerivedQuantity.Resistivity)) BindVariable(result.Column, unit, known);
+                        var canBeUnavailable = result.Kind switch
+                        {
+                            SampleDerivedQuantity.LongitudinalResistance => analysis.Readings[0].Acquisition is ReadCurrentResistanceStep { Retry.ContinueOnAcquisitionFailure: true },
+                            SampleDerivedQuantity.TransverseResistance => analysis.Readings[1].Acquisition is ReadCurrentResistanceStep { Retry.ContinueOnAcquisitionFailure: true },
+                            SampleDerivedQuantity.HorizontalMeanResistance => analysis.Readings.Take(4).Any(r => r.Acquisition is ReadCurrentResistanceStep { Retry.ContinueOnAcquisitionFailure: true }),
+                            SampleDerivedQuantity.VerticalMeanResistance => analysis.Readings.Skip(4).Any(r => r.Acquisition is ReadCurrentResistanceStep { Retry.ContinueOnAcquisitionFailure: true }),
+                            _ => true,
+                        };
+                        if (!canBeUnavailable) BindVariable(result.Column, unit, known);
                         else
                         {
                             if (known.TryGetValue(result.Column, out var previousUnit) && previousUnit != unit) throw new ArgumentException($"Variable {result.Column} cannot change units.");

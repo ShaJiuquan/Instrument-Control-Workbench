@@ -23,7 +23,8 @@ public sealed class MatrixRouteExpectation : IEquatable<MatrixRouteExpectation>
     public override int GetHashCode() { var hash = new HashCode(); hash.Add(Device); foreach (var point in Closed) hash.Add(point); return hash.ToHashCode(); }
 }
 
-// Acquisition only: setup, settling and owned/managed output stay ordinary steps.
+// Ordinary steps own initial setup/output. Explicit retry/recovery shares the
+// same lifecycle and may park owned excitation after a terminal acquisition error.
 public sealed record ReadCurrentResistanceStep : ResistanceAcquisitionStep
 {
     public ReadCurrentResistanceStep(StepId id, InstrumentId source, InstrumentId meter, CurrentReference currentReference,

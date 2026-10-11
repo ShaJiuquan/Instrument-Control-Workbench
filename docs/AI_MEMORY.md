@@ -730,3 +730,25 @@ archive/CSV; exhausted retry preserves both errors and faults, with no invalid
 or fabricated zero row.54 new tests (10 Core44 Application). Physical ports,
 recover-invalid-point semantics and full UI/PPMS remain unfinished. App drafts
 remain excluded. See current-resistance-retry.md; full goal remains active.
+
+## Invalid current DC points and available-input analysis (2026-10-11)
+
+Native policy adds explicit ContinueOnAcquisitionFailure=false by default;
+PPMS curr_dc enables it. Only terminal typed K2182 voltage acquisitions recover
+(overrange/read-buffer-timeout/invalid-response/VISA-read/-221/-241/419/301)
+after fresh attached bounded cleanup and exact source/meter/route/input checks.
+Source-side failures, drift, parameters, snapshots and cleanup stay fatal;
+cancellation terminates without an unfinished row. First and final read errors remain with cleanup errors; a typed read racing
+cancellation becomes OperationCanceledException retaining the original cause.
+Completed stop proof is consumed before new observation, so unknown state cannot
+reuse it. Invalid rows retain axes/elapsed/environment and separate immutable
+IndependentResistanceFailure with source configuration, settings, error/status,
+chronology and optional retry; V/I/R and successful quality are absent. Remove
+runtime variables and reject optional/stale preflight dependencies. Complete
+ordered sample groups use each committed row, nullable Ohm input math and explicit
+FailedAcquisition; Hall preserves valid longitudinal geometry independently of
+transverse, vdP needs all four inputs for each mean and both for sheet. Raw/sample/
+wide failure collections and kind-derived status round-trip native/fresh archive/
+CSV; tamper rejection preserves previous exports.68 new cases (18 Core50 App).
+Physical ports, source-side/other modes and full UI/PPMS/packaging/lab remain
+unfinished;29 UI drafts excluded. See current-resistance-invalid-points.md.

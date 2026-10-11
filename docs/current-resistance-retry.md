@@ -2,7 +2,8 @@
 
 The independent C# executor supports one optional retry for a terminal K2182
 voltage-read failure. This is a verified part of the PPMS current DC migration;
-continuous failure-to-invalid-point recovery is still unfinished.
+explicit failure-to-invalid-point recovery is now verified separately; see
+[current-resistance-invalid-points.md](current-resistance-invalid-points.md).
 
 ## Error boundary and policy
 
@@ -59,11 +60,12 @@ that controlled dwell while run leases remain held, then reacquired for fresh
 state/route confirmation. Measured-current mode reacquires actual source current
 for the successful attempt; programmed current stays explicitly programmed.
 
-A second failure never causes a third attempt. This stage still faults the run,
-preserving both acquisition exceptions and normal bounded cleanup. Cancellation
-produces no unfinished row. Recoverable invalid rows, absent dependent values,
-partial Hall/vdP calculation and scan continuation will require a separate data
-model extension; zero, NaN and invented healthy quality are not substitutes.
+A second failure never causes a third attempt. The legacy/default native policy still faults the run, preserving both
+acquisition exceptions and bounded cleanup. Explicit continuation now records
+eligible acquisition failures only after fresh safe confirmation. Cancellation
+produces no unfinished row. Recoverable invalid rows, absent dependent values, partial Hall/vdP and scan
+continuation now use the separate validated failure data boundary described in
+current-resistance-invalid-points.md; no zero, NaN or healthy-quality substitutes.
 
 ## Data and verification
 
@@ -88,6 +90,6 @@ non-cooperative timed-out abort without overlapping recovery, cancellation,
 interruptible pause/resume/drift/abort, four sample topologies, parent scans,
 healthy repository fixture, native/archive fresh replay and mixed wide-point CSV,
 plus forged ownership/kind/code/time/meter/summary and malformed policy rejection.
-Physical K2182/K6221 transports and laboratory acceptance, invalid-point recovery,
+Physical K2182/K6221 transports and laboratory acceptance, remaining modes,
 advanced modes and native UI acceptance remain pending. No dependency, Rust edit
 or laboratory IO is introduced. The full migration goal remains active.

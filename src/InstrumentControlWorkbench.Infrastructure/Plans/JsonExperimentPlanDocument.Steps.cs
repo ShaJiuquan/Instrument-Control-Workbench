@@ -69,6 +69,7 @@ public sealed partial class JsonExperimentPlanDocument
                 o["voltageColumn"] = independent.VoltageColumn.Value; o["currentColumn"] = independent.CurrentColumn.Value; o["resistanceColumn"] = independent.ResistanceColumn.Value;
                 o["minimumCurrent"] = EncodeQuantity(independent.MinimumCurrent); EncodeEnvironment(o, independent.EnvironmentReads);
                 if (independent.Retry is { } retry) o["retry"] = new JsonObject { ["ownsSourceOutput"] = retry.OwnsSourceOutput, ["settleSeconds"] = retry.Settle.TotalSeconds };
+                if (independent.Retry is { ContinueOnAcquisitionFailure: true }) o["retry"]!["continueOnAcquisitionFailure"] = true;
                 if (independent.ExpectedProgrammedCurrent is { } expected) o["expectedProgrammedCurrent"] = EncodeValue(expected);
                 if (independent.RequiredRoute is { } required) o["requiredRoute"] = new JsonObject { ["device"] = required.Device.Value, ["closed"] = new JsonArray(required.Closed.Select(p => (JsonNode)new JsonObject { ["slot"] = p.Slot, ["row"] = p.Row, ["column"] = p.Column }).ToArray()) };
                 break;
@@ -201,8 +202,8 @@ public sealed partial class JsonExperimentPlanDocument
                 CurrentResistanceRetry? retryPolicy = null;
                 if (o.ContainsKey("retry"))
                 {
-                    var retryObject = Object(o["retry"], "ownsSourceOutput", "settleSeconds");
-                    retryPolicy = new(Boolean(retryObject, "ownsSourceOutput"), Duration(retryObject, "settleSeconds"));
+                    var retryObject = Object(o["retry"], "ownsSourceOutput", "settleSeconds", "continueOnAcquisitionFailure");
+                    retryPolicy = new(Boolean(retryObject, "ownsSourceOutput"), Duration(retryObject, "settleSeconds"), retryObject.ContainsKey("continueOnAcquisitionFailure") && Boolean(retryObject, "continueOnAcquisitionFailure"));
                 }
                 return new ReadCurrentResistanceStep(id, new(Text(o, "source")), new(Text(o, "meter")), NamedEnum<CurrentReference>(o, "currentReference"),
                     new(Text(o, "voltageColumn")), new(Text(o, "currentColumn")), new(Text(o, "resistanceColumn")), DecodeQuantity(o["minimumCurrent"]),
