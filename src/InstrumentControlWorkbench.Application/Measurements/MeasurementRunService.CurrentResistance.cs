@@ -14,7 +14,7 @@ public sealed partial class MeasurementRunService
         var reading = await run.Resources!.ReadCurrentResistanceAsync(step, expected, run.Token, context is null ? null : 1, duration => DwellAsync(run, duration)); var evidence = reading.Evidence;
         if (reading.Failure is { } failure)
         {
-            foreach (var column in new[] { step.VoltageColumn, step.CurrentColumn, step.ResistanceColumn }) run.Variables.Remove(column);
+            foreach (var column in new[] { step.VoltageColumn, step.CurrentColumn, step.ResistanceColumn }) run.Blackboard.Remove(column);
             var unavailable = new Dictionary<ParameterId, Quantity>(run.Axes) { [ExperimentPlanCompiler.Elapsed.Id] = new(run.Elapsed.Elapsed.TotalSeconds, PhysicalUnit.Second) };
             var contextReadings = await ReadEnvironmentAsync(step.EnvironmentReads, unavailable, run);
             await CommitRowAsync(new(DateTimeOffset.UtcNow, unavailable, routing: context, environment: contextReadings, acquisitionFailures: [failure]), step.Id, run, started);

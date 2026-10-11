@@ -106,7 +106,11 @@ public sealed partial class MeasurementRunService
         }
         catch
         {
-            lock (admissionGate) { active = null; run.Finalized.TrySetResult(); run.Dispose(); }
+            lock (admissionGate)
+            {
+                run.Blackboard.Complete(MeasurementRunState.Faulted, null); run.Phase = RunExecutionPhase.Idle;
+                lastBlackboardState = run.Blackboard; active = null; run.Finalized.TrySetResult(); run.Dispose();
+            }
             throw;
         }
         LatestDataSet = null;
@@ -160,7 +164,7 @@ public sealed partial class MeasurementRunService
             result = MeasurementRunState.Faulted;
         }
         RunBlackboardSnapshot? blackboard = null;
-        try { blackboard = new(run.Id, DateTimeOffset.UtcNow, run.Elapsed.Elapsed, run.Variables); }
+        try { blackboard = run.Blackboard.Capture(); }
         catch (Exception error) { errors.Add(error); result = MeasurementRunState.Faulted; }
         if (run.DataSet is { } completed)
         {
@@ -180,6 +184,7 @@ public sealed partial class MeasurementRunService
         }
         LatestBlackboardSnapshot = blackboard;
         LatestOutcome = new(run.Id, result, Array.AsReadOnly(errors.ToArray()));
+        run.Blackboard.Complete(result, blackboard);
         await PublishAsync(run, result switch
         {
             MeasurementRunState.Completed => WorkbenchNotificationKind.RunCompleted,
@@ -277,6 +282,8 @@ public sealed partial class MeasurementRunService
         lock (admissionGate)
         {
             if (active != run) throw new InvalidOperationException("Run ownership changed unexpectedly.");
+            run.Phase = RunExecutionPhase.Idle;
+            lastBlackboardState = run.Blackboard;
             active = null;
             run.Dispose();
         }

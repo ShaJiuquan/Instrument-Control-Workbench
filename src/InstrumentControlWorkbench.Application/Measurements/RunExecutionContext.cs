@@ -28,6 +28,7 @@ internal sealed class RunExecutionContext : IDisposable
     public RunExecutionContext(CancellationToken token)
     {
         cancellation = CancellationTokenSource.CreateLinkedTokenSource(token);
+        Blackboard = new(Id, Elapsed);
     }
 
     public RunId Id { get; } = RunId.New();
@@ -37,10 +38,11 @@ internal sealed class RunExecutionContext : IDisposable
     // root token: a node deadline is a fault, whereas operator abort is abort.
     public CancellationToken? ScopedToken { get; set; }
     public CancellationToken Token => ScopedToken ?? cancellation.Token;
-    public volatile RunExecutionPhase Phase = RunExecutionPhase.Starting;
+    public RunBlackboardState Blackboard { get; }
+    public RunExecutionPhase Phase { get => Blackboard.Phase; set => Blackboard.Phase = value; }
     public DeviceRunResources? Resources { get; set; }
     public InstrumentId? NotificationInstrument { get; init; }
-    public Dictionary<ParameterId, BlackboardEntry> Variables { get; } = [];
+    public IReadOnlyDictionary<ParameterId, BlackboardEntry> Variables => Blackboard.Variables;
     public Dictionary<ParameterId, Quantity> Axes { get; } = [];
     public TimeSpan PausedDuration { get; set; }
     public TimeSpan ActiveElapsed => Elapsed.Elapsed - PausedDuration;
@@ -57,7 +59,7 @@ internal sealed class RunExecutionContext : IDisposable
     public void SetVariable(ParameterId id, Quantity value, StepId source)
         => SetVariable(id, new BlackboardQuantity(value), source);
     public void SetVariable(ParameterId id, BlackboardValue value, StepId source, BlackboardWriteKind kind = BlackboardWriteKind.Step)
-        => Variables[id] = new(value, source, DateTimeOffset.UtcNow, Elapsed.Elapsed, kind);
+        => Blackboard.Set(id, value, source, kind);
 
     public void Pause()
     {

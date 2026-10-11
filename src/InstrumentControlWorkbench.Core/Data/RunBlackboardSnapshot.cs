@@ -4,7 +4,7 @@ using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Core.Data;
 
-// A run-owned terminal observation, distinct from an absent historical snapshot.
+// A frozen run-owned observation, also used for terminal history snapshots.
 public sealed record RunBlackboardSnapshot
 {
     public const int MaximumEntries = 100_000;

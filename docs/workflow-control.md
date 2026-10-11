@@ -435,3 +435,62 @@ and does not truncate variables or invent a terminal outcome. Acquisition
 terminal state and a later result-listener delivery fault remain separate, as
 in the existing result pipeline. Catalog reads currently include full snapshots;
 paged/lazy historical diagnostics and a live variable feed remain pending.
+
+
+## Live blackboard diagnostics
+
+`MeasurementRunService.ActiveRunId` identifies the admitted run, including
+starting and retained safety recovery. `ObserveBlackboardAsync(id)` returns a
+frozen `RunBlackboardObservation`: run ID, revision, execution phase, immutable
+quantity/Boolean/Text entries with source/time/transfer evidence, lexical subtree
+IDs from outermost to innermost, and optional producer outcome. An observed
+revision waits for a newer state; negative/future revisions and unavailable IDs
+reject. Revisions include phases, writes, removals, scope entry and rollback, so
+they are cursors rather than write counts. Reader cancellation only cancels its
+own wait. There is no instrument IO in either diagnostic API.
+
+`WatchBlackboardAsync(id, screenCancellation)` is an async enumerable for a UI
+listener. Its first iteration resolves and pins one run generation; later runs
+cannot replace that enumerator's state. It yields the current observation and
+then coalesced changes, finishes after the producer outcome, and creates no
+background task. Consumers own iteration/disposal/cancellation and UI dispatch.
+Immediate reads resolve the active or most recently finalized run; older IDs
+are unavailable after replacement. An already opened stream still delivers its
+own terminal snapshot, even when a newer experiment has finished.
+
+Application `RunBlackboardState` serializes mutation and observation under one
+lock. The sequential executor has a read-only live dictionary view; consumers
+only receive defensive Core snapshots. Shared change signals are allocated
+only while readers wait and retain no per-reader event queue or historical
+snapshot list. Slow consumers may skip intermediate writes. Existing global
+notification channels do not receive an additional message for each write.
+Snapshot copies happen on demand, are bounded by the existing 100,000-entry
+Core observation contract, and can delay concurrent writes while copying;
+paged/delta diagnostics and a durable per-write journal remain separate work.
+
+Subtree scopes identify local shadow values. Whole parent dictionaries and
+write stamps restore atomically with scope exit on failure, timeout and abort;
+selected successful exports follow the existing workflow semantics. Retry and
+fallback restore atomically before the next attempt/branch. Invalid current
+resistance and unavailable derived values remove old variables through the
+same boundary, so a diagnostic read cannot enumerate a dictionary during
+clear/restore or see a stale value after row delivery.
+
+Producer terminal status does **not** prove hardware safety or lease release.
+A completed diagnostic observation may still have `Finalizing` or
+`SafetyRecoveryRequired` phase. A stopped-but-unconfirmed group remains reserved
+and explicit recovery updates its phase/revision without changing the frozen
+terminal snapshot/outcome. Final listener errors are reported in diagnostic
+outcome while the acquired dataset may retain its earlier completed state.
+Reservation failure closes known-run waiters with a faulted outcome and absent
+terminal snapshot; it creates no dataset or invented empty acquisition. Normal
+empty execution has an explicit observed-empty snapshot. Archive finalizers
+reuse the same terminal snapshot after existing independent safe-stop logic.
+
+Concurrent readers, independent read/stream cancellation, delayed generation
+consumption, typed local/provenance views, pause/resume/abort, nested successful
+exports and failure/deadline rollback, retry/fallback stamps, empty/pre-cancelled
+admission, reservation failure, finalizer waits/errors, retained safety recovery
+and removal of failed electrical values are covered by Application tests.
+No native variable display, per-write persistence, generalized concurrent
+execution or physical instrument acceptance is claimed.

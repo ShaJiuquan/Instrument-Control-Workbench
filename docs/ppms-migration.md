@@ -681,3 +681,21 @@ report delivery errors after safe-stop and keep committed rows unfinalized,
 without silent truncation. Complete variable change history/live diagnostics,
 paged/lazy history, expression/concurrent execution, the editor/device UI and
 remaining physical PPMS feature acceptance are still unfinished.
+
+
+### Live blackboard observations
+
+Application execution now exposes real run-owned variable observations and
+coalesced async streams. Reads are frozen and revision-aware, preserve typed
+values/units/source/UTC/elapsed and identify nested subtree local scopes.
+Concurrent observers independently cancel; stream generations survive later
+run replacement. All existing executor writes, failed-value removal and
+subtree/retry/fallback restores use the synchronized producer boundary.
+Starting/finalizer/recovery phases and terminal outcomes remain distinct from
+hardware safety/resource release; terminal archive snapshot is shared.
+Reservation failures close known-run waiters without invented acquisition data.
+This is a tested Application use case; native variable panels, paged history,
+per-write journaling and full parallel/background execution remain unfinished.
+See workflow-control.md and ControlFlowTests.BlackboardLive/BlackboardAdmission
+and Keithley6221ExecutionTests.BlackboardLive. No UI/Rust/dependency changes;
+full migration remains active, GitHub only.

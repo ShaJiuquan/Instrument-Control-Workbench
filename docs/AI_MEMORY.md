@@ -1090,3 +1090,25 @@ fixtures now explicitly clear terminal Blackboard when reconstructing acquiring
 headers. Paged/lazy catalog, live diagnostics, expressions/concurrency and other
 PPMS/native UI/lab scope remain pending. GitHub only; independent C# engine;
 original29 UI drafts untouched; no dependency/Rust/lab changes.
+
+
+## Live run blackboard observations (2026-10-11)
+
+Application-owned RunBlackboardState is the actual mutable producer boundary;
+all writes/removals/scope restores and diagnostic copies synchronize. Core
+RunBlackboardSnapshot reused as frozen live/terminal data. Public immediate
+revision reads and pinned async streams include owner, phase, subtree lexical
+stack and optional producer outcome. Signals coalesce with no event queue or
+background task; multiple readers independently cancel. Slow stream remains
+on its original run across replacement, while new immediate reads only resolve
+active/latest run. No added global per-write notifications. Phase/revision
+changes on recovery retain the same terminal snapshot; producer done is not
+resource/safety proof. Admission failure closes waiters with unknown snapshot;
+empty normal runs remain observed-empty. Finalizer failure can differ from
+acquired dataset state. Targeted tests include true concurrent readers, 1000
+writes, paused/aborted/nested/timeout controls, stream cancellation/replacement,
+failed reservation/no hardware IO, final delivery errors and invalid-point
+stale removal. Original29 UI drafts preserved/excluded, Rust read-only, no new
+dependencies. Paged/lazy history and diagnostics, per-write journal, native UI
+integration, expressions/parallel/background and full PPMS/lab remain pending.
+Independent C# engine; GitHub only; full goal active.

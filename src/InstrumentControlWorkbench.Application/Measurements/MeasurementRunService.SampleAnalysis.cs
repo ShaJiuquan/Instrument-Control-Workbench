@@ -41,7 +41,7 @@ public sealed partial class MeasurementRunService
         run.MeasurementInputs?.Add(row);
         foreach (var column in step.Columns)
             if (result.Values.TryGetValue(column.Kind, out var value)) run.SetVariable(column.Column, value, step.Id);
-            else run.Variables.Remove(column.Column);
+            else run.Blackboard.Remove(column.Column);
         foreach (var listener in listeners)
             await listener.OnRowAsync(run.Id, row, listener == History ? CancellationToken.None : run.Token);
         await notifications.PublishAsync(new(WorkbenchNotificationKind.DataRowReceived,
