@@ -5,17 +5,59 @@ using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Application.Devices;
 
-internal sealed record SoftwareTemperatureRampState(Quantity Start, TemperatureControlConfiguration Control, Quantity Rate);
+internal sealed record SoftwareTemperatureRampState(Quantity Start, TemperatureControlConfiguration Control, Quantity Rate, Quantity Goal, Quantity? SoftwareRate);
 
 public sealed partial class AxisControllerSession
 {
     private TemperatureStabilitySettings stabilitySettings = TemperatureStabilitySettings.Default;
+    private readonly TemperatureStabilityObserver stabilityObserver = new();
+    private Quantity? softwareTarget;
+    private Quantity? softwareRate;
+    private void ResetTemperatureRuntime() { stabilityObserver.Reset(); softwareTarget = null; softwareRate = null; }
+
+    // Caller owns the session operation gate; no cached defaults prove flags.
+    private async Task<TemperatureStabilityObservation> ObserveTemperatureAsync(CancellationToken token)
+    {
+        var temperature = TemperaturePort();
+        var before = await temperature.ReadControlConfigurationAsync(token);
+        var snapshot = await port.GetSnapshotAsync(token);
+        if (await temperature.ReadControlConfigurationAsync(token) != before)
+            throw new InvalidOperationException("Temperature control flags changed during stability observation.");
+        if (snapshot.Connected) { Definition.Target.Validate(snapshot.Target); Definition.Readback.Validate(snapshot.Readback); }
+        return new(snapshot, before, stabilitySettings, softwareTarget);
+    }
+    private TemperatureRuntimeStatus DeriveTemperatureRuntime(TemperatureStabilityObservation observed)
+    {
+        var elapsed = stateClock.GetElapsedTime(stateOrigin, stateClock.GetTimestamp());
+        if (!observed.Snapshot.Connected || faulted)
+        {
+            ResetTemperatureRuntime();
+            return new(TemperatureStabilityState.Fault, null, observed.Control, stabilitySettings, null, softwareTarget, softwareRate);
+        }
+        var state = stabilityObserver.Observe(observed, elapsed);
+        Quantity? error = state is TemperatureStabilityState.Cooling or TemperatureStabilityState.Fault ? null
+            : new((observed.SoftwareTarget ?? observed.Snapshot.Target).Value - observed.Snapshot.Readback.Value, PhysicalUnit.Kelvin);
+        return new(state, error, observed.Control, observed.Settings,
+            stabilityObserver.InToleranceSince is { } since ? elapsed - since : null, observed.SoftwareTarget, softwareRate);
+    }
+
+    internal async Task ResetTemperatureEvidenceAsync(RunId owner, CancellationToken token)
+    {
+        await operations.EnterAsync(token, owner);
+        try { _ = TemperaturePort(); token.ThrowIfCancellationRequested(); stabilityObserver.Reset(); }
+        finally { operations.Exit(); }
+    }
 
     internal async Task<TemperatureStabilitySettings> ConfigureTemperatureStabilityAsync(TemperatureStabilityChange change, CancellationToken token, RunId? owner = null)
     {
         ArgumentNullException.ThrowIfNull(change);
         await operations.EnterAsync(token, owner);
-        try { _ = TemperaturePort(); token.ThrowIfCancellationRequested(); stabilitySettings = change.Apply(stabilitySettings); return stabilitySettings; }
+        try
+        {
+            _ = TemperaturePort(); token.ThrowIfCancellationRequested(); var next = change.Apply(stabilitySettings);
+            if (next != stabilitySettings) stabilityObserver.Reset();
+            stabilitySettings = next; return stabilitySettings;
+        }
         finally { operations.Exit(); }
     }
 
@@ -24,16 +66,11 @@ public sealed partial class AxisControllerSession
         await operations.EnterAsync(token, owner);
         try
         {
-            var temperature = TemperaturePort();
-            var before = await temperature.ReadControlConfigurationAsync(token);
-            var snapshot = await port.GetSnapshotAsync(token);
-            if (await temperature.ReadControlConfigurationAsync(token) != before)
-                throw new InvalidOperationException("Temperature control flags changed during stability observation.");
-            if (snapshot.Connected) { Definition.Target.Validate(snapshot.Target); Definition.Readback.Validate(snapshot.Readback); }
-            await PublishAsync(snapshot, token);
-            return new(snapshot, before, stabilitySettings);
+            var observed = await ObserveTemperatureAsync(token);
+            var status = await PublishAsync(observed.Snapshot, token, observed);
+            return observed with { Runtime = status.Temperature };
         }
-        catch { faulted = true; throw; }
+        catch { faulted = true; ResetTemperatureRuntime(); throw; }
         finally { operations.Exit(); }
     }
 
@@ -67,15 +104,16 @@ public sealed partial class AxisControllerSession
             if (!snapshot.Connected || snapshot.Target != before.Target || snapshot.Rate != (rate ?? before.Rate) ||
                 confirmed != expected || await temperature.ReadControlConfigurationAsync(token) != expected)
                 throw new InvalidOperationException("Temperature command did not confirm its target, rate and independent control flags.");
-            await PublishAsync(snapshot, token);
+            await PublishAsync(snapshot, token, new(snapshot, expected, stabilitySettings, softwareTarget));
         }
-        catch { faulted = true; throw; }
+        catch { faulted = true; ResetTemperatureRuntime(); throw; }
         finally { operations.Exit(); }
     }
 
-    internal async Task<SoftwareTemperatureRampState> BeginSoftwareTemperatureRampAsync(Quantity target, bool enableControl, RunId owner, CancellationToken token)
+    internal async Task<SoftwareTemperatureRampState> BeginSoftwareTemperatureRampAsync(Quantity target, bool enableControl, Quantity? requestedSoftwareRate, RunId owner, CancellationToken token)
     {
         TemperatureRampPath.ValidateTemperature(target); Definition.Target.ValidateWrite(target);
+        if (requestedSoftwareRate is { } requested) TemperatureRampPath.ValidateRate(requested);
         await operations.EnterAsync(token, owner);
         try
         {
@@ -97,14 +135,16 @@ public sealed partial class AxisControllerSession
             var confirmed = await port.GetSnapshotAsync(token);
             if (configuration != expected || !confirmed.Connected || confirmed.Target != snapshot.Readback || confirmed.Rate != snapshot.Rate || await temperature.ReadControlConfigurationAsync(token) != configuration)
                 throw new InvalidOperationException("Temperature control did not confirm its initial hold, software mode, rate and expected control flags.");
-            await PublishAsync(confirmed, token); return new(snapshot.Readback, expected, snapshot.Rate);
+            softwareTarget = requestedSoftwareRate is not null ? target : null; softwareRate = requestedSoftwareRate;
+            await PublishAsync(confirmed, token, new(confirmed, expected, stabilitySettings, softwareTarget)); return new(snapshot.Readback, expected, snapshot.Rate, target, requestedSoftwareRate);
         }
-        catch { faulted = true; throw; }
+        catch { faulted = true; ResetTemperatureRuntime(); throw; }
         finally { operations.Exit(); }
     }
-    internal async Task WriteSoftwareTemperatureTargetAsync(Quantity target, SoftwareTemperatureRampState state, RunId owner, CancellationToken token)
+    internal async Task WriteSoftwareTemperatureTargetAsync(Quantity target, SoftwareTemperatureRampState state, bool final, RunId owner, CancellationToken token)
     {
         TemperatureRampPath.ValidateTemperature(target); Definition.Target.ValidateWrite(target);
+        if (state.SoftwareRate is { } requested) TemperatureRampPath.ValidateRate(requested);
         await operations.EnterAsync(token, owner);
         try
         {
@@ -115,9 +155,10 @@ public sealed partial class AxisControllerSession
             var snapshot = await port.GetSnapshotAsync(token);
             if (!snapshot.Connected || snapshot.Target != target || snapshot.Rate != state.Rate || await temperature.ReadControlConfigurationAsync(token) != expected)
                 throw new InvalidOperationException("Temperature target, rate or control configuration changed during a write.");
-            await PublishAsync(snapshot, token);
+            softwareTarget = final ? null : state.Goal; softwareRate = final ? null : state.SoftwareRate;
+            await PublishAsync(snapshot, token, new(snapshot, expected, stabilitySettings, softwareTarget));
         }
-        catch { faulted = true; throw; }
+        catch { faulted = true; ResetTemperatureRuntime(); throw; }
         finally { operations.Exit(); }
     }
     // Caller owns the operation gate. Park a live target before changing ramp
@@ -169,9 +210,10 @@ public sealed partial class AxisControllerSession
             var confirmed = await port.GetSnapshotAsync(token);
             if (!confirmed.Connected || confirmed.Target != target || confirmed.Rate != rate || await temperature.ReadControlConfigurationAsync(token) != expected)
                 throw new InvalidOperationException("Hardware temperature target, rate or control flags changed during write.");
-            await PublishAsync(confirmed, token);
+            softwareTarget = null; softwareRate = null;
+            await PublishAsync(confirmed, token, new(confirmed, expected, stabilitySettings));
         }
-        catch { faulted = true; throw; }
+        catch { faulted = true; ResetTemperatureRuntime(); throw; }
         finally { operations.Exit(); }
     }
 
@@ -179,12 +221,16 @@ public sealed partial class AxisControllerSession
     {
         await operations.EnterAsync(token, owner);
         try { return await TemperaturePort().ReadControlConfigurationAsync(token); }
-        catch { faulted = true; throw; }
+        catch { faulted = true; ResetTemperatureRuntime(); throw; }
         finally { operations.Exit(); }
     }
-    internal async Task RestoreTemperatureTargetAsync(Quantity target, TemperatureControlConfiguration expected, Quantity expectedRate, RunId owner, CancellationToken token)
+    internal async Task RestoreTemperatureTargetAsync(Quantity target, TemperatureControlConfiguration expected, Quantity expectedRate, Quantity? resumedSoftwareTarget, Quantity? resumedSoftwareRate, RunId owner, CancellationToken token)
     {
-        Definition.Target.ValidateWrite(target); await operations.EnterAsync(token, owner);
+        Definition.Target.ValidateWrite(target);
+        if (resumedSoftwareTarget is { } goal) TemperatureRampPath.ValidateTemperature(goal);
+        if (resumedSoftwareRate is { } requestedRate) TemperatureRampPath.ValidateRate(requestedRate);
+        if ((resumedSoftwareTarget is null) != (resumedSoftwareRate is null)) throw new ArgumentException("Resume software target and rate must be supplied together.");
+        await operations.EnterAsync(token, owner);
         try
         {
             var temperature = TemperaturePort();
@@ -195,9 +241,10 @@ public sealed partial class AxisControllerSession
             var snapshot = await port.GetSnapshotAsync(token);
             if (!snapshot.Connected || snapshot.Target != target || snapshot.Rate != expectedRate || await temperature.ReadControlConfigurationAsync(token) != expected)
                 throw new InvalidOperationException("Temperature configuration changed during restoration.");
-            await PublishAsync(snapshot, token);
+            stabilityObserver.Reset(); softwareTarget = resumedSoftwareTarget; softwareRate = resumedSoftwareRate;
+            await PublishAsync(snapshot, token, new(snapshot, expected, stabilitySettings, softwareTarget));
         }
-        catch { faulted = true; throw; }
+        catch { faulted = true; ResetTemperatureRuntime(); throw; }
         finally { operations.Exit(); }
     }
     private ITemperatureControlPort TemperaturePort() => Definition.SupportsSoftwareTemperatureRamp && port is ITemperatureControlPort temperature

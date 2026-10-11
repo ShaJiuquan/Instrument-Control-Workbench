@@ -185,13 +185,15 @@ public sealed partial class TemperatureControlExecutionTests
         public NotificationHub Hub { get; } = new();
         public MockKeithley2450SourceMeter Source { get; } = new();
         public DeviceRegistry Devices { get; }
+        public AxisControllerSession TemperatureSession { get; }
         public MeasurementRunService Runs { get; }
         public InstrumentId Id => Port.Definition.Device.Id;
         public ExperimentImportBindings Bindings => new([], [KeyValuePair.Create("temperature", Port.Definition)]);
-        public Bench(IRunResultListener? listener = null)
+        public Bench(IRunResultListener? listener = null, bool useStateClock = false)
         {
             Port = new(Clock); var manager = new InstrumentManager(Source, Hub); var leases = new InstrumentLeaseService(TimeSpan.FromSeconds(5));
-            Devices = new([manager, new AxisControllerSession(Port, Hub)], leases);
+            TemperatureSession = new(Port, Hub, useStateClock ? Clock : null);
+            Devices = new([manager, TemperatureSession], leases);
             Runs = new(manager, leases, Hub, listener is null ? [] : [listener], deviceRegistry: Devices);
         }
         public TemperatureControlStep Command(TemperatureControlAction action) => new(new("command"), Id, action, action == TemperatureControlAction.RampOn ? Rate(7) : null);

@@ -208,7 +208,7 @@
       "evidence": {
         "implementation": "src/InstrumentControlWorkbench.Core/Devices/TemperatureStability.cs; src/InstrumentControlWorkbench.Core/Experiments/TemperatureStabilityStep.cs; src/InstrumentControlWorkbench.Application/Devices/AxisControllerSession.Temperature.cs; src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Temperature.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.Commands.cs",
         "tests": "tests/InstrumentControlWorkbench.Core.Tests/TemperatureStabilityTests.cs; tests/InstrumentControlWorkbench.Application.Tests/TemperatureControlExecutionTests.Stability.cs",
-        "limits": "Session-owned patches; inherited set/step scan configuration; fresh flags/snapshot, typed wait-local states, pause/reset, cancellation and retained failed hold; native plans, archive and CSV simulation. Rust continuous cache, cross-wait timer reuse, persistence, hardware and native UI pending. See temperature-stability.md."
+        "limits": "Session-owned patches and shared observer across manual/run status and waits; changed config resets, identical patches preserve timer. Final software goal/rate, fresh coherent flags/snapshot, pause/stop/fault reset, typed notifications. Native/archive/CSV simulation. Autonomous background operation, persistence, firmware/physical/UI remain pending. See temperature-runtime.md."
       }
     },
     {
@@ -1508,12 +1508,19 @@
     "status": "partial",
     "documentation": "docs/temperature-stability.md",
     "fixture": "examples/plans/ppms-temperature-stability-import.json",
-    "scope": "Independent session configuration and wait-local state observer; no hardware mutation for config; explicit initial plan settings required for reproducible fresh-session replay."
+    "scope": "Independent session configuration and shared observer. Real observations drive state; unchanged config preserves evidence, changed config/pause/stop/fault clear it. No background worker, persistence or physical/UI parity."
   },
   "temperatureSetpoints": {
     "status": "partial",
     "documentation": "docs/temperature-setpoints.md",
     "fixture": "examples/plans/ppms-preserved-temperature-setpoints-import.json",
     "scope": "enable_control=false preserves actual flag for set_temperature; parked preparation, current rate/control confirmation, hardware/native/PPMS/archive simulation. Scan flag propagation, background and physical/UI parity pending."
+  },
+  "temperatureRuntime": {
+    "status": "partial",
+    "documentation": "docs/temperature-runtime.md",
+    "implementation": "Session-owned shared Core observer; typed DeviceStatus and fresh observations/notifications; final software goal/requested rate separate from hardware values; shared stable time and explicit pause/stop/fault reset",
+    "tests": "tests/InstrumentControlWorkbench.Core.Tests/TemperatureRuntimeTests.cs; tests/InstrumentControlWorkbench.Application.Tests/TemperatureControlExecutionTests.Runtime.cs",
+    "limits": "Observation-driven, no independent polling or background ramp; no continuous-sampling guarantee, persistence, firmware status/physical or native UI parity."
   }
 }

@@ -42,19 +42,22 @@ public sealed record DeviceDescriptor
 public sealed record DeviceStatus
 {
     public DeviceStatus(DeviceDescriptor descriptor, InstrumentLifecycleState lifecycle, bool connected,
-        bool safetyConfirmed, DateTimeOffset timestamp, IReadOnlyDictionary<ParameterId, Quantity> values)
+        bool safetyConfirmed, DateTimeOffset timestamp, IReadOnlyDictionary<ParameterId, Quantity> values, TemperatureRuntimeStatus? temperature = null)
     {
         ArgumentNullException.ThrowIfNull(descriptor);
         ArgumentNullException.ThrowIfNull(values);
         if (!Enum.IsDefined(lifecycle)) throw new ArgumentOutOfRangeException(nameof(lifecycle));
         if (safetyConfirmed && !connected && descriptor.DriverKind == DriverKind.Hardware) throw new ArgumentException("A disconnected observation cannot confirm the hardware stop policy.", nameof(safetyConfirmed));
         foreach (var value in values) descriptor.GetParameter(value.Key).Validate(value.Value);
+        if (temperature is not null && (!descriptor.Parameters.Any(p => p.Unit == PhysicalUnit.Kelvin && p.Access.HasFlag(ParameterAccess.Read)) || !connected && temperature.State != TemperatureStabilityState.Fault))
+            throw new ArgumentException("Temperature runtime requires a readable Kelvin profile and fault state when disconnected.", nameof(temperature));
         Descriptor = descriptor;
         Lifecycle = lifecycle;
         Connected = connected;
         SafetyConfirmed = safetyConfirmed;
         Timestamp = timestamp;
         Values = new ReadOnlyDictionary<ParameterId, Quantity>(new Dictionary<ParameterId, Quantity>(values));
+        Temperature = temperature;
     }
 
     public DeviceDescriptor Descriptor { get; }
@@ -63,4 +66,5 @@ public sealed record DeviceStatus
     public bool SafetyConfirmed { get; }
     public DateTimeOffset Timestamp { get; }
     public IReadOnlyDictionary<ParameterId, Quantity> Values { get; }
+    public TemperatureRuntimeStatus? Temperature { get; }
 }

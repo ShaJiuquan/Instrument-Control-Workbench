@@ -13,14 +13,17 @@ public sealed partial class AxisControllerSession : IDeviceSession
     private readonly InstrumentOperationGate operations;
     private readonly NotificationHub notifications;
     private bool faulted;
+    private readonly TimeProvider stateClock;
+    private readonly long stateOrigin;
 
-    public AxisControllerSession(IAxisControllerPort port, NotificationHub notifications)
+    public AxisControllerSession(IAxisControllerPort port, NotificationHub notifications, TimeProvider? stateClock = null)
     {
         if (port.Definition.SupportsSoftwareTemperatureRamp && port is not ITemperatureControlPort)
             throw new ArgumentException("Temperature ramp capability requires a temperature-control port.", nameof(port));
         this.port = port;
         this.notifications = notifications;
         operations = new(port.Definition.Device.Id);
+        this.stateClock = stateClock ?? TimeProvider.System; stateOrigin = this.stateClock.GetTimestamp();
     }
 
     public AxisControllerDefinition Definition => port.Definition;
@@ -34,11 +37,12 @@ public sealed partial class AxisControllerSession : IDeviceSession
         try
         {
             var current = await port.GetSnapshotAsync(token);
+            if (!current.Connected) ResetTemperatureRuntime();
             var snapshot = current.Connected ? current : await port.ConnectAsync(token);
             faulted = false;
             return await PublishAsync(snapshot, token);
         }
-        catch { faulted = true; throw; }
+        catch { faulted = true; ResetTemperatureRuntime(); throw; }
         finally { operations.Exit(); }
     }
 
@@ -46,7 +50,7 @@ public sealed partial class AxisControllerSession : IDeviceSession
     {
         await operations.EnterAsync(token, owner);
         try { return await PublishAsync(await port.GetSnapshotAsync(token), token); }
-        catch { faulted = true; throw; }
+        catch { faulted = true; ResetTemperatureRuntime(); throw; }
         finally { operations.Exit(); }
     }
 
@@ -57,7 +61,7 @@ public sealed partial class AxisControllerSession : IDeviceSession
         {
             var snapshot = await port.GetSnapshotAsync(token);
             if (snapshot.Moving) throw new InvalidOperationException("Confirm hold before disconnecting a moving controller.");
-            await port.DisconnectAsync(token);
+            await port.DisconnectAsync(token); ResetTemperatureRuntime();
             await PublishAsync(await port.GetSnapshotAsync(token), token);
         }
         finally { operations.Exit(); }
@@ -91,7 +95,7 @@ public sealed partial class AxisControllerSession : IDeviceSession
                 throw new InvalidOperationException("Hardware temperature ramp or control configuration did not confirm.");
             await PublishAsync(snapshot, token);
         }
-        catch { faulted = true; throw; }
+        catch { faulted = true; ResetTemperatureRuntime(); throw; }
         finally { operations.Exit(); }
     }
 
@@ -100,6 +104,7 @@ public sealed partial class AxisControllerSession : IDeviceSession
         await operations.EnterAsync(token, owner);
         try
         {
+            ResetTemperatureRuntime();
             var temperature = Definition.SupportsSoftwareTemperatureRamp ? (ITemperatureControlPort)port : null;
             TemperatureControlConfiguration? configuration = null;
             Exception? observationError = null;
@@ -120,17 +125,27 @@ public sealed partial class AxisControllerSession : IDeviceSession
                 await temperature.ReadControlConfigurationAsync(token) != configuration))
                 throw new InvalidOperationException($"{Descriptor.Id}: temperature hold changed control flags or did not park at live readback.");
             faulted = false;
-            var status = await PublishAsync(snapshot, token);
+            var status = await PublishAsync(snapshot, token, temperature is not null && configuration is not null ? new(snapshot, configuration, stabilitySettings) : null);
             await notifications.PublishAsync(new(WorkbenchNotificationKind.SafetyStateChanged,
                 $"{Descriptor.DisplayName}: current position held; no automatic return to zero.", Descriptor.Id), token);
             return status;
         }
-        catch { faulted = true; throw; }
+        catch { faulted = true; ResetTemperatureRuntime(); throw; }
         finally { operations.Exit(); }
     }
 
-    private async Task<DeviceStatus> PublishAsync(AxisControllerSnapshot snapshot, CancellationToken token)
+    private async Task<DeviceStatus> PublishAsync(AxisControllerSnapshot snapshot, CancellationToken token, TemperatureStabilityObservation? observed = null)
     {
+        TemperatureRuntimeStatus? runtime = null;
+        if (Definition.SupportsSoftwareTemperatureRamp)
+        {
+            if (snapshot.Connected)
+            {
+                observed ??= await ObserveTemperatureAsync(token);
+                snapshot = observed.Snapshot; runtime = DeriveTemperatureRuntime(observed);
+            }
+            else { ResetTemperatureRuntime(); runtime = new(TemperatureStabilityState.Fault, null, null, stabilitySettings, null, null); }
+        }
         var state = !snapshot.Connected ? InstrumentLifecycleState.Disconnected : faulted ? InstrumentLifecycleState.Faulted :
             snapshot.Moving ? InstrumentLifecycleState.Running : InstrumentLifecycleState.Idle;
         var status = new DeviceStatus(Descriptor, state, snapshot.Connected, (snapshot.Connected || Descriptor.DriverKind == DriverKind.Simulation) && !snapshot.Moving,
@@ -139,7 +154,7 @@ public sealed partial class AxisControllerSession : IDeviceSession
                 [port.Definition.Target.Id] = snapshot.Target,
                 [port.Definition.Readback.Id] = snapshot.Readback,
                 [port.Definition.Rate.Id] = snapshot.Rate,
-            });
+            }, runtime);
         await notifications.PublishAsync(new(WorkbenchNotificationKind.DeviceStateChanged,
             $"{Descriptor.DisplayName}: {state}", Descriptor.Id, Device: status), token);
         return status;

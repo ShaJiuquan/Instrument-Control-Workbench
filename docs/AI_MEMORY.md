@@ -896,3 +896,21 @@ IO, Rust edits or original29 UI edits. Mandatory hook and exact committed-source
 audit precede GitHub stage publication. Full migration remains active; continuous
 runtime/persistence, PID/heater/cooling/background, advanced instruments/BT/data/
 graphical flow/native UI and hardware acceptance remain pending. GitHub only.
+
+
+## Shared temperature runtime and software intent (2026-10-11)
+
+Device session now owns one Core observer shared by manual status, acquisition,
+waits and typed DeviceStatus notifications. Monotonic TimeProvider and fresh
+flag/snapshot/flag evidence replace separate wait-local timers; second waits can
+reuse stable evidence. Changed settings, failed/disconnected observations, hold,
+pause and resumed targets reset evidence; identical patches retain it. Software
+ramp status uses final requested target and separate software rate, preserving
+actual hardware quantities; direct/final/aborted ramps clear intent. Pause captures
+and restores goal/rate only after existing control/rate/target guards. Core rejects
+contradictory status facts; no autonomous sampler/worker or continuously sampled
+interval is claimed. See [temperature-runtime.md](temperature-runtime.md). No
+physical IO, new dependencies, Rust or original29 UI edits. Persistence, firmware
+states, background/PID/heater/cooling, caller-managed scans, full native/graphical
+UI and other PPMS/hardware scope remain pending. Mandatory hook and exact committed
+source audit precede GitHub publication. Full goal active; GitHub only.

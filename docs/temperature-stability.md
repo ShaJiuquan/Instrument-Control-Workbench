@@ -46,16 +46,15 @@ continue through the existing separately bounded resource lifecycle; failed hold
 retains ownership until explicit safety recovery. Manual patches/observations
 are unavailable while a run owns the device.
 
-Each explicit wait requires fresh evidence. Stable time excludes operator pause;
-resume resets the observer rather than crediting an unobserved pause. Target or
-settings changes and out-of-band observations also reset it. This deliberately
-uses a wait-local observer: it does not implement the Rust controller's continuous
-background state cache or reuse previously accumulated stable time across waits.
-Session settings survive successive runs but are not persisted across app restart.
-Continuous/background temperature operations, PID/heater/cooling commands,
-caller-managed scan control, full native UI and physical acceptance remain
-pending. Caller-managed direct/software/hardware sets are covered in
-[temperature-setpoints.md](temperature-setpoints.md). This is a tested simulation/API migration slice, not full PPMS parity.
+The device session now shares stability evidence across status, notifications and
+successive waits. Changed configuration, faults/disconnect, explicit hold, pause
+and resume reset that evidence; unchanged configuration retains it. Software
+ramping uses the final requested target. See
+[temperature-runtime.md](temperature-runtime.md) for typed state, time and sampling
+boundaries. Settings are not persisted across app restart; autonomous background
+operations, PID/heater/cooling, caller-managed scans, full UI and physical
+acceptance remain pending. Caller-managed setpoints are covered in
+[temperature-setpoints.md](temperature-setpoints.md).
 
 Version-1 native plans add `temperature_stability` (device and optional typed
 thresholds/duration) and `wait_temperature` (device, target, named mode, polling

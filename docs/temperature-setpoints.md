@@ -45,7 +45,7 @@ step scans apply explicit thresholds after each ramp, and settle before polling.
 Their `enable_control=false` option remains rejected: the reference step-scan
 factory does not propagate that option; C# does not silently reinterpret it as
 control-off. Background ramping, automatic cooling, PID/heater controls,
-continuous stability cache/persistence, native controls and hardware acceptance
+runtime persistence, native controls and hardware acceptance
 remain pending. This is a tested simulation/API slice, not full PPMS parity.
 
 The fixture `examples/plans/ppms-preserved-temperature-setpoints-import.json`
@@ -55,3 +55,5 @@ Tests save/load its native conversion, archive/reload, replay in a fresh session
 and export CSV. Additional cases cover original enabled/disabled flags, hardware
 parking, refusal/drift, cancellation, pause restoration, full-group retained failed
 hold/recovery, actual optional capability preflight and old native defaults.
+
+Shared status and final software goal/rate are covered in [temperature-runtime.md](temperature-runtime.md).

@@ -14,12 +14,12 @@ public sealed partial class MeasurementRunService
         var definition = devices.GetAxisDefinition(step.Device);
         definition.Target.ValidateWrite(target);
         if (step.Rate is not null) definition.Target.ValidateWrite(new(TemperatureRampPath.MilliKelvin(target) / 1000.0, PhysicalUnit.Kelvin));
-        var state = await run.Resources!.BeginSoftwareTemperatureRampAsync(step.Device, target, step.EnableControl, run.Token);
+        var state = await run.Resources!.BeginSoftwareTemperatureRampAsync(step.Device, target, step.EnableControl, step.Rate, run.Token);
         if (step.Rate is not { } rate)
         {
             await PauseCheckpointAsync(run);
             run.ExecutedSteps++;
-            await run.Resources.WriteSoftwareTemperatureTargetAsync(step.Device, target, state, run.Token);
+            await run.Resources.WriteSoftwareTemperatureTargetAsync(step.Device, target, state, final: true, run.Token);
             return;
         }
         var path = new TemperatureRampPath(state.Start, target, rate);
@@ -30,7 +30,7 @@ public sealed partial class MeasurementRunService
         {
             await PauseCheckpointAsync(run);
             run.ExecutedSteps++;
-            await run.Resources.WriteSoftwareTemperatureTargetAsync(step.Device, path.RoundedTarget, state, run.Token);
+            await run.Resources.WriteSoftwareTemperatureTargetAsync(step.Device, path.RoundedTarget, state, final: true, run.Token);
             return;
         }
         long updated = 0;
@@ -38,24 +38,28 @@ public sealed partial class MeasurementRunService
         {
             await PauseCheckpointAsync(run);
             run.ExecutedSteps++;
-            await run.Resources.WriteSoftwareTemperatureTargetAsync(step.Device, next, state, run.Token);
+            var final = ++updated == path.UpdateCount;
+            await run.Resources.WriteSoftwareTemperatureTargetAsync(step.Device, next, state, final, run.Token);
             // Preserve the remaining active tick across pause; no wall-clock
             // catch-up and no delay after programming the final setpoint.
-            if (++updated < path.UpdateCount) await DwellAsync(run, TimeSpan.FromSeconds(TemperatureRampPath.TickSeconds));
+            if (!final) await DwellAsync(run, TimeSpan.FromSeconds(TemperatureRampPath.TickSeconds));
         }
     }
     private async Task WaitTemperatureAsync(WaitTemperatureStep wait, RunExecutionContext run)
     {
         var target = Resolve(wait.Target, run);
         var startedAt = run.ActiveElapsed;
-        var observer = new TemperatureStabilityObserver();
         TemperatureStabilityState? previous = null;
         var pauseVersion = run.PauseVersion;
         while (true)
         {
             run.Token.ThrowIfCancellationRequested();
             await PauseCheckpointAsync(run);
-            if (pauseVersion != run.PauseVersion) { observer.Reset(); previous = null; pauseVersion = run.PauseVersion; }
+            if (pauseVersion != run.PauseVersion)
+            {
+                await run.Resources!.ResetTemperatureEvidenceAsync(wait.Device, run.Token);
+                previous = null; pauseVersion = run.PauseVersion;
+            }
             if (run.ActiveElapsed - startedAt > wait.Timeout) throw new TimeoutException($"{wait.Id}: temperature stability timeout.");
             var observation = await run.Resources!.ReadTemperatureStabilityAsync(wait.Device, run.Token);
             var now = run.ActiveElapsed;
@@ -63,7 +67,7 @@ public sealed partial class MeasurementRunService
             // Larger target drift is not a valid stability observation.
             if (!observation.Snapshot.Connected || Math.Abs(observation.Snapshot.Target.Value - target.Value) > 0.000500001)
                 throw new InvalidOperationException($"{wait.Id}: temperature controller disconnected or target changed during wait.");
-            var state = observer.Observe(observation, now);
+            var state = observation.Runtime?.State ?? throw new InvalidOperationException("Temperature observation has no session runtime state.");
             if (state != previous)
             {
                 await notifications.PublishAsync(new(WorkbenchNotificationKind.LogAppended,
