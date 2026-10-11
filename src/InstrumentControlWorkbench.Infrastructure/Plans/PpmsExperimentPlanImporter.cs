@@ -82,6 +82,16 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
                     Fields(p, "timeout_s"); var timeoutChildren = Children(node, path, c, depth);
                     if (timeoutChildren.Count != 1) throw new FormatException("timeout requires exactly one child.");
                     return new TimeoutStep(id, Duration(p, "timeout_s", 60), timeoutChildren[0]);
+                case "subtree":
+                    Fields(p, "inputs", "outputs"); var scopeMappings = new List<VariableBinding>[] { [], [] };
+                    foreach (var (name, index) in new[] { ("inputs", 0), ("outputs", 1) })
+                        if (p.ContainsKey(name))
+                            foreach (var entry in p[name] as JsonObject ?? throw new FormatException($"{name} must be an object."))
+                            {
+                                if (entry.Value is not JsonValue v || !v.TryGetValue<string>(out var target)) throw new FormatException($"{name} mapping must be a string.");
+                                scopeMappings[index].Add(new(new(entry.Key), new(target)));
+                            }
+                    return new SubtreeStep(id, Children(node, path, c, depth), scopeMappings[0], scopeMappings[1]);
                 case "force_success":
                 case "force_failure":
                 case "inverter":
@@ -128,6 +138,7 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
         "wait_before" => "delay",
         "loop" or "repeat_n" => "repeat",
         "with_timeout" => "timeout",
+        "scope" or "isolated" => "subtree",
         "scan_temp" => "scan_temperature",
         "time_s" => "scan_time",
         "field" => "scan_field",

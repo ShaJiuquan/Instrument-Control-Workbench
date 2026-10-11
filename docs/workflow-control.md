@@ -147,3 +147,52 @@ operator abort, refused cleanup and noncooperative live-call retention. No new
 package, physical IO, Rust edit or original UI draft change. Parallel/subtree/
 background/script-expression controls, native flow editor and hardware acceptance
 remain pending; full PPMS migration remains active.
+
+
+## Subtree variable scopes
+
+`SubtreeStep` contains authored children and explicit typed `VariableBinding`
+inputs/outputs. A child inherits the current parent quantities. Inputs map parent
+source IDs to child destination IDs, reading one complete parent snapshot; local
+input aliases can shadow inherited units within the child. Child assignments and
+acquisitions update local variables. Only declared outputs are copied back, using
+one completed child snapshot. Output destinations must retain existing parent
+units, or introduce a new typed parent variable.
+
+A successful empty scope may export inherited values. A logical Failure, exception
+or cancellation restores the parent variables and exports nothing. An outer
+ForceSuccess may convert ordinary Failure, but cannot leak failed-scope writes or
+make newly defined outputs guaranteed. Nested scopes restore the nearest parent.
+All children, input dependencies, output availability/units and execution budgets
+are validated before admission, including branches skipped at runtime. Missing
+inputs/outputs and duplicate/ambiguous mappings reject instead of falling back to
+stale values or mapping order. Both mappings freeze their caller-owned lists.
+
+Variable isolation leaves acquisition rows, quality, analysis summaries and actual
+instrument writes under the same run/resource group. It does not roll back device
+state. Actual scan coordinates remain in row axes; an input alias does not relabel
+those observations. Pause resumes the same local scope. Timeout/abort and driver
+faults unwind scopes before the existing independent stop, retained claims and
+explicit recovery. Local variable cleanup cannot authorize release after bad hold.
+
+Native version1 stores `kind: subtree`, `children`, `inputs` and `outputs` (objects
+mapping source ID to destination ID). PPMS `subtree`, `scope`, `isolated` use
+optional `params.inputs`/`params.outputs` objects and a required children array.
+Map values must be valid string IDs; duplicate destinations are invalid. Zero to
+10,000 children and up to10,000 bindings per map are bounded by the existing
+whole-document/plan budgets. The Rust reference copies inputs parent→child and
+outputs child→parent through an inherited blackboard. C# implements that numeric
+quantity scope; Rust Bool/Text blackboard values and expression controls
+remain further migration work.
+
+The [nested PPMS subtree fixture](../examples/plans/ppms-subtree-import.json) runs
+four field observations inside two number-scan iterations. Acceptance adds native
+checks consuming the exported final number/field and a fifth observation outside
+the scan, then saves, reopens, exports CSV and re-executes on fresh sessions.
+Additional tests preserve vdP raw/derived evidence and grouped-quality archives
+under a subtree. Mapping swaps, inheritance, local unit shadow, output unit
+collision, early failure through ForceSuccess, cancellation, timeout, pause,
+actual device state and retained failed hold are exercised. No new package,
+physical IO, Rust edits or original29 UI draft changes. Full PPMS migration,
+non-numeric blackboard/expressions, parallel execution and native editor/hardware
+acceptance remain incomplete.

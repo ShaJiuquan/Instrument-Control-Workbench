@@ -62,6 +62,13 @@ public sealed partial class JsonExperimentPlanDocument
                 o["kind"] = "retry"; o["maxAttempts"] = s.MaxAttempts; o["delaySeconds"] = s.Delay.TotalSeconds; o["body"] = EncodeStep(s.Body, depth + 1, ref count); break;
             case TimeoutStep s:
                 o["kind"] = "timeout"; o["timeoutSeconds"] = s.Timeout.TotalSeconds; o["body"] = EncodeStep(s.Body, depth + 1, ref count); break;
+            case SubtreeStep s:
+                o["kind"] = "subtree"; var localChildren = new JsonArray();
+                foreach (var child in s.Children) localChildren.Add(EncodeStep(child, depth + 1, ref count));
+                o["children"] = localChildren;
+                var inputs = new JsonObject(); foreach (var input in s.Inputs) inputs[input.Source.Value] = input.Destination.Value;
+                var outputs = new JsonObject(); foreach (var output in s.Outputs) outputs[output.Source.Value] = output.Destination.Value;
+                o["inputs"] = inputs; o["outputs"] = outputs; break;
             case ResultDecoratorStep s:
                 o["kind"] = "result_decorator"; o["effect"] = s.Effect.ToString(); o["body"] = EncodeStep(s.Body, depth + 1, ref count); break;
             case RepeatStep s:
@@ -204,6 +211,14 @@ public sealed partial class JsonExperimentPlanDocument
             case "timeout":
                 Object(o, "id", "kind", "timeoutSeconds", "body");
                 return new TimeoutStep(id, Duration(o, "timeoutSeconds"), DecodeStep(Required(o, "body"), depth + 1, ref count));
+            case "subtree":
+                Object(o, "id", "kind", "children", "inputs", "outputs");
+                var scopedChildren = new List<ExperimentStep>(); foreach (var child in Array(Required(o, "children"))) scopedChildren.Add(DecodeStep(child, depth + 1, ref count));
+                var scopedMappings = new List<VariableBinding>[] { [], [] };
+                foreach (var (name, index) in new[] { ("inputs", 0), ("outputs", 1) })
+                    foreach (var entry in Required(o, name) as JsonObject ?? throw new FormatException($"{name} must be an object."))
+                        scopedMappings[index].Add(new(new(entry.Key), new(entry.Value?.GetValue<string>() ?? throw new FormatException($"{name} mapping must be a string."))));
+                return new SubtreeStep(id, scopedChildren, scopedMappings[0], scopedMappings[1]);
             case "result_decorator":
                 Object(o, "id", "kind", "effect", "body");
                 return new ResultDecoratorStep(id, NamedEnum<ResultEffect>(o, "effect"), DecodeStep(Required(o, "body"), depth + 1, ref count));

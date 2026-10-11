@@ -76,17 +76,18 @@ public sealed partial class SampleResistanceExecutionTests
         Assert.DoesNotContain(new ParameterId("r_sheet"), summary.Values.Keys); Assert.DoesNotContain(new ParameterId("rho_xx"), summary.Values.Keys);
     }
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task GeometryAndGroupPlanArchiveRoundTripWithStreamingCsvEvidence(bool timeout)
+    [InlineData("plain")]
+    [InlineData("timeout")]
+    [InlineData("subtree")]
+    public async Task GeometryAndGroupPlanArchiveRoundTripWithStreamingCsvEvidence(string scope)
     {
         using var folder = new TemporaryFolder(); RunId id;
         var codec = new JsonExperimentPlanDocument(); var path = Path.Combine(folder.Path, "analysis.plan.json");
         var original = SampleResistanceAnalysisPlan.Create(Recipe(Configuration(SampleTopology.VanDerPauw, Geometry)));
-        if (timeout) original = new(original.Name, new TimeoutStep(new("bounded.analysis"), TimeSpan.FromSeconds(20), original.Root), original.Preparations, original.Metadata, original.Routing);
+        if (scope != "plain") original = new(original.Name, scope == "timeout" ? new TimeoutStep(new("bounded.analysis"), TimeSpan.FromSeconds(20), original.Root) : new SubtreeStep(new("scoped.analysis"), [original.Root]), original.Preparations, original.Metadata, original.Routing);
         await codec.SaveAsync(path, original, Token); var plan = await codec.LoadAsync(path, Token);
         Assert.Equal(Geometry, plan.Routing!.Samples[0].Geometry);
-        Assert.IsType<SampleAnalysisStep>(timeout ? Assert.IsType<TimeoutStep>(plan.Root).Body : plan.Root);
+        Assert.IsType<SampleAnalysisStep>(plan.Root switch { TimeoutStep bounded => bounded.Body, SubtreeStep local => local.Children.Single(), _ => plan.Root });
         await using (var archive = new FileRunArchive(Path.Combine(folder.Path, "runs")))
         {
             var b = new Bench(archive); await b.Runs.StartPlanAsync(plan, Token); id = b.Runs.LatestDataSet!.Id;
@@ -94,7 +95,7 @@ public sealed partial class SampleResistanceExecutionTests
         await using var reopened = new FileRunArchive(Path.Combine(folder.Path, "runs")); var loaded = await reopened.LoadAsync(id, Token);
         Assert.True(loaded.IsFinalized); Assert.Equal(9, loaded.DataSet.Rows.Count); Assert.Equal(1, loaded.DataSet.Rows[^1].Analysis!.FirstInputRow);
         Assert.Equal(Geometry, loaded.DataSet.Plan!.Routing!.Samples[0].Geometry);
-        if (timeout)
+        if (scope != "plain")
         {
             var fresh = new Bench(); await fresh.Runs.StartPlanAsync(loaded.DataSet.Plan, Token);
             Assert.Equal(9, fresh.Runs.LatestDataSet!.Rows.Count);

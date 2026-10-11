@@ -1170,7 +1170,12 @@
         "scope",
         "isolated"
       ],
-      "status": "pending"
+      "status": "partial",
+      "implementation": {
+        "boundary": "Core SubtreeStep/VariableBinding; Application unit-aware preflight and same owned execution; Infrastructure codecs",
+        "tests": "SubtreeStepTests.cs; ControlFlowTests.Subtree*.cs and lifecycle/driver/archives; SampleResistanceExecutionTests.Analysis.cs",
+        "limits": "Inherited quantity variables; simultaneous input/output maps; local shadow, parent restore on failure/error/cancel and selected success exports with stable parent units. Native/PPMS subtree/scope/isolated; bounded strict maps, all resource/data/document visitors; scan fixture/archive/CSV/fresh replay plus vdP/wide-group evidence. Rust Bool/Text blackboard, expressions/parallel/native UI/physical remain pending. See workflow-control.md."
+      }
     },
     {
       "id": "for_each",
@@ -1242,7 +1247,12 @@
     },
     {
       "id": "subtree",
-      "status": "pending"
+      "status": "partial",
+      "implementation": {
+        "boundary": "Core SubtreeStep/VariableBinding; Application unit-aware preflight and same owned execution; Infrastructure codecs",
+        "tests": "SubtreeStepTests.cs; ControlFlowTests.Subtree*.cs and lifecycle/driver/archives; SampleResistanceExecutionTests.Analysis.cs",
+        "limits": "Inherited quantity variables; simultaneous input/output maps; local shadow, parent restore on failure/error/cancel and selected success exports with stable parent units. Native/PPMS subtree/scope/isolated; bounded strict maps, all resource/data/document visitors; scan fixture/archive/CSV/fresh replay plus vdP/wide-group evidence. Rust Bool/Text blackboard, expressions/parallel/native UI/physical remain pending. See workflow-control.md."
+      }
     },
     {
       "id": "for_each",
@@ -1540,5 +1550,12 @@
     "nativeKind": "timeout",
     "fixture": "examples/plans/ppms-timeout-import.json",
     "limits": "Wall-clock deadline includes pause. Child token propagation, nested expiry identity/root abort, real child drain before independent cleanup; live or failed stops retain ownership. Native/PPMS alias strict bounds/one child/default60s/zero immediate expiration; field fixture archive/CSV/fresh execution and vdP summary replay. No forceful noncooperative IO interrupt, generic timeout recovery, parallel/background/script/subtree/UI/physical acceptance. See workflow-control.md."
+  },
+  "subtreeScopes": {
+    "status": "partial",
+    "reference": "nested_experiment_service/node_execution/handlers/subtree.rs and blackboard.rs at Rust35763295",
+    "nativeKind": "subtree",
+    "fixture": "examples/plans/ppms-subtree-import.json",
+    "limits": "Inherited quantity variables; simultaneous input/output maps; local shadow, parent restore on failure/error/cancel and selected success exports with stable parent units. Native/PPMS subtree/scope/isolated; bounded strict maps, all resource/data/document visitors; scan fixture/archive/CSV/fresh replay plus vdP/wide-group evidence. Rust Bool/Text blackboard, expressions/parallel/native UI/physical remain pending. See workflow-control.md."
   }
 }

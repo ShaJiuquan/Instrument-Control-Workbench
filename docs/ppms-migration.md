@@ -594,3 +594,14 @@ field fixture, partial archives/CSV and vdP summary replay are covered. No hard
 real-time or noncooperative force-interrupt claim; adapters must honor cancellation
 for prompt stop. See workflow-control.md. Remaining parallel/subtree/script/
 background/editor/physical scope is unchanged. No new package or Rust/UI edits.
+
+### Subtree quantity scopes
+
+Typed inherited variables, input aliases and explicit successful outputs now
+execute in the owned C# run. Nested scopes, strict preflight and all data/document
+visitors preserve units and provenance. Failures/cancellation restore parents;
+actual writes and committed acquisition remain under the same resource group.
+Native and PPMS subtree/scope/isolated formats, executable scan/field fixture,
+vdP/grouped archives and CSV/fresh replay cover the slice. Rust Bool/Text
+blackboard and expression controls remain pending alongside parallel/editor/
+physical scope. See workflow-control.md. No new package, Rust or UI-draft edits.

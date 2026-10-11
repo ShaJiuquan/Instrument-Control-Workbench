@@ -203,6 +203,7 @@ internal static class ExperimentPlanCompiler
             FallbackStep fallback => fallback.Children.All(CanReportWorkflowFailure),
             RetryStep retry => CanReportWorkflowFailure(retry.Body),
             TimeoutStep timeout => CanReportWorkflowFailure(timeout.Body),
+            SubtreeStep subtree => subtree.Children.Any(CanReportWorkflowFailure),
             SequenceStep sequence => sequence.Children.Any(CanReportWorkflowFailure),
             RepeatStep repeat => CanReportWorkflowFailure(repeat.Body),
             ScanStep scan => CanReportWorkflowFailure(scan.Body),
@@ -418,6 +419,13 @@ internal static class ExperimentPlanCompiler
                     return checked(1 + decoratedCost);
                 case TimeoutStep timeout:
                     return checked(1 + Visit(timeout.Body, known, axes, depth + 1));
+                case SubtreeStep subtree:
+                    var local = new Dictionary<ParameterId, PhysicalUnit>(known);
+                    foreach (var input in subtree.Inputs) local[input.Destination] = ValueUnit(new VariableValue(input.Source), known);
+                    long subtreeCost = 1;
+                    foreach (var child in subtree.Children) subtreeCost = checked(subtreeCost + Visit(child, local, axes, depth + 1));
+                    foreach (var output in subtree.Outputs) BindVariable(output.Destination, ValueUnit(new VariableValue(output.Source), local), known);
+                    return subtreeCost;
                 case SequenceStep sequence:
                     return checked(1 + sequence.Children.Sum(child => Visit(child, known, axes, depth + 1)));
                 case RepeatStep repeat:

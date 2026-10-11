@@ -1,0 +1,25 @@
+{
+  "experiment_id": "PPMS nested subtree mappings and number scan",
+  "type": "scan", "name": "scan_number", "source_line": 1,
+  "params": { "points": [1, 2] },
+  "children": [
+    {
+      "type": "subtree", "source_line": 7,
+      "params": {
+        "inputs": { "ppms.root.axis": "local.number" },
+        "outputs": { "selected.field": "latest.field", "local.number": "iteration.copy" }
+      },
+      "children": [
+        {
+          "type": "isolated", "source_line": 8,
+          "params": {
+            "inputs": { "local.number": "nested.number" },
+            "outputs": { "ppms.root.0.0.0.value": "selected.field" }
+          },
+          "children": [ { "type": "measurement", "name": "measure_field", "params": {} } ]
+        },
+        { "type": "measurement", "name": "measure_field", "params": {} }
+      ]
+    }
+  ]
+}

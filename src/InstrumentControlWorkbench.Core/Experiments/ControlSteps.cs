@@ -6,6 +6,34 @@ namespace InstrumentControlWorkbench.Core.Experiments;
 public enum StepOutcome { Success, Failure }
 public enum ResultEffect { ForceSuccess, ForceFailure, Invert }
 
+public sealed record VariableBinding
+{
+    public VariableBinding(ParameterId source, ParameterId destination)
+    {
+        ArgumentNullException.ThrowIfNull(source); ArgumentNullException.ThrowIfNull(destination);
+        Source = source; Destination = destination;
+    }
+    public ParameterId Source { get; }
+    public ParameterId Destination { get; }
+}
+
+public sealed record SubtreeStep : ExperimentStep
+{
+    public SubtreeStep(StepId id, IEnumerable<ExperimentStep> children, IEnumerable<VariableBinding>? inputs = null, IEnumerable<VariableBinding>? outputs = null) : base(id)
+    {
+        ArgumentNullException.ThrowIfNull(children); var items = children.ToArray();
+        if (items.Length > 10_000 || items.Any(c => c is null)) throw new ArgumentException("Subtree requires at most 10,000 non-null children.", nameof(children));
+        var mappings = new[] { (inputs ?? []).ToArray(), (outputs ?? []).ToArray() };
+        foreach (var map in mappings)
+            if (map.Length > 10_000 || map.Any(m => m is null) || map.Select(m => m.Source).Distinct().Count() != map.Length || map.Select(m => m.Destination).Distinct().Count() != map.Length)
+                throw new ArgumentException("Subtree mappings require at most 10,000 non-null bindings with distinct sources and destinations.");
+        Children = Array.AsReadOnly(items); Inputs = Array.AsReadOnly(mappings[0]); Outputs = Array.AsReadOnly(mappings[1]);
+    }
+    public IReadOnlyList<ExperimentStep> Children { get; }
+    public IReadOnlyList<VariableBinding> Inputs { get; }
+    public IReadOnlyList<VariableBinding> Outputs { get; }
+}
+
 public sealed record TimeoutStep : ExperimentStep
 {
     public TimeoutStep(StepId id, TimeSpan timeout, ExperimentStep body) : base(id)

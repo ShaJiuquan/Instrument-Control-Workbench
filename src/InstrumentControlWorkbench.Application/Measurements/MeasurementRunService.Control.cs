@@ -6,6 +6,31 @@ namespace InstrumentControlWorkbench.Application.Measurements;
 
 public sealed partial class MeasurementRunService
 {
+    private async Task<StepOutcome> ExecuteSubtreeAsync(SubtreeStep step, RunExecutionContext run, IReadOnlyList<IRunResultListener> listeners, bool ivPlot)
+    {
+        var parent = new Dictionary<ParameterId, Quantity>(run.Variables);
+        Dictionary<ParameterId, Quantity> exported;
+        try
+        {
+            // Simultaneous input mapping reads the parent snapshot, so swaps
+            // cannot depend on mapping order. The child inherits other values.
+            foreach (var input in step.Inputs) run.Variables[input.Destination] = parent[input.Source];
+            foreach (var child in step.Children)
+                if (await ExecuteStepAsync(child, run, listeners, ivPlot) == StepOutcome.Failure) return StepOutcome.Failure;
+            run.Token.ThrowIfCancellationRequested();
+            exported = step.Outputs.ToDictionary(output => output.Destination, output => run.Variables[output.Source]);
+        }
+        finally
+        {
+            run.Variables.Clear(); foreach (var item in parent) run.Variables.Add(item.Key, item.Value);
+        }
+        // Publish all selected outputs only after successful child completion
+        // and full resolution. Failures/cancellation never leak local writes.
+        run.Token.ThrowIfCancellationRequested();
+        foreach (var item in exported) run.Variables[item.Key] = item.Value;
+        return StepOutcome.Success;
+    }
+
     private async Task<StepOutcome> ExecuteTimeoutAsync(TimeoutStep step, RunExecutionContext run, IReadOnlyList<IRunResultListener> listeners, bool ivPlot)
     {
         var parentToken = run.Token;

@@ -949,3 +949,22 @@ See workflow-control.md. No new packages, Rust or original29 UI edits. Mandatory
 hook and exact committed-source audit precede GitHub publication. Parallel/subtree/
 script/background/full UI and hardware remain pending. Full goal active; GitHub
 only, own engine inspired by OpenTAP.
+
+
+## Numeric subtree scope and explicit variable mapping (2026-10-11)
+
+Core SubtreeStep/VariableBinding and Application preflight/executor implement
+inherited numeric quantity scopes, simultaneous parent→child input aliases,
+local unit shadow and selected child→parent outputs after success only. Parent
+variables restore on failure/error/abort; even outer ForceSuccess cannot leak
+failed local writes or guarantee late outputs. Actual instrument writes and
+committed rows remain run-owned. All raw/derived/document visitors descend into
+scopes; native v1 and PPMS subtree/scope/isolated preserve mappings and source
+lines. Missing/ambiguous/invalid mappings and output unit changes reject before
+IO. Fixture scan+field exports, archive/CSV/fresh replay, vdP and wide-group
+provenance, pause/cancel/timeout/driver faults/retained cleanup are verified.
+Rust blackboard also has Bool/Text; these are not implemented by the
+quantity-only C# scope. Full non-numeric/expression/parallel/UI/hardware and other
+PPMS work remains active. See workflow-control.md. No new dependencies, Rust or
+original29 UI edits. Mandatory hook and exact committed-source audit precede
+GitHub publication; independent C# engine and GitHub-only decision unchanged.

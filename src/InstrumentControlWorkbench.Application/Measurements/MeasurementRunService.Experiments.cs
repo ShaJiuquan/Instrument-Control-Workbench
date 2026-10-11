@@ -34,6 +34,8 @@ public sealed partial class MeasurementRunService
                 outcome = await ExecuteRetryAsync(retry, run, started, ivPlot); break;
             case TimeoutStep timeout:
                 outcome = await ExecuteTimeoutAsync(timeout, run, started, ivPlot); break;
+            case SubtreeStep subtree:
+                outcome = await ExecuteSubtreeAsync(subtree, run, started, ivPlot); break;
             case ResultDecoratorStep decorator:
                 var childOutcome = await ExecuteStepAsync(decorator.Body, run, started, ivPlot);
                 outcome = decorator.Effect switch
