@@ -9,6 +9,7 @@ internal sealed class Keithley2450ScpiPeer : IAsyncDisposable
 {
     private readonly Dictionary<SourceFunction, SourceSetpoint> sources = new() { [SourceFunction.Voltage] = new(SourceFunction.Voltage, 0, 105e-6), [SourceFunction.Current] = new(SourceFunction.Current, 0, 21) };
     private SourceFunction function;
+    private readonly Dictionary<SenseFunction, Keithley2450AcquisitionSettings> acquisition = Enum.GetValues<SenseFunction>().ToDictionary(f => f, _ => new Keithley2450AcquisitionSettings(true, false, false, 10, AveragingMode.Repeat));
     private readonly Dictionary<SenseFunction, SenseConfiguration> senses = Enum.GetValues<SenseFunction>().ToDictionary(f => f, f => new SenseConfiguration(f, SensingMode.TwoWire, 1, true));
     private readonly Dictionary<SenseFunction, double> senseRanges = new() { [SenseFunction.Current] = 1e-4, [SenseFunction.Voltage] = 20, [SenseFunction.Resistance] = 200000 };
     private SenseFunction senseFunction = SenseFunction.Current;
@@ -27,6 +28,9 @@ internal sealed class Keithley2450ScpiPeer : IAsyncDisposable
     public int Aborts { get; private set; }
     public double ActualSource { get; set; } = 0.0197;
     public double ActualSense { get; set; } = 0.000021;
+    public bool IgnoreAcquisitionWrites { get; set; }
+    public int ZeroRefreshes { get; private set; }
+    public void SetAcquisition(SenseFunction function, Keithley2450AcquisitionSettings settings) => acquisition[function] = settings;
     public ushort ExtraSourceStatus { get; set; }
     public ushort MeasurementStatus { get; set; }
     public Queue<string> Errors { get; } = new();
@@ -41,6 +45,7 @@ internal sealed class Keithley2450ScpiPeer : IAsyncDisposable
         {
             "*IDN?" => Identifier,
             "*LANG?" => Language,
+            "*OPC?" => "1",
             ":OUTP?" => Output ? "1" : "0",
             ":SOUR:FUNC?" => sourcePrefix,
             ":SENS:FUNC?" => "\"" + sensePrefix + "\"",
@@ -54,6 +59,7 @@ internal sealed class Keithley2450ScpiPeer : IAsyncDisposable
         };
         if (reply is not null) return Task.FromResult<byte[]?>(LoopbackScpiServer.Reply(reply));
         var parts = command.Split(' ', 2); var path = parts[0].Split(':', StringSplitOptions.RemoveEmptyEntries); var value = parts.Length == 2 ? parts[1] : "";
+        if (command == ":SENS:AZER:ONCE") { ZeroRefreshes++; return Task.FromResult<byte[]?>(null); }
         if (command == ":ABOR") { Aborts++; return Task.FromResult<byte[]?>(null); }
         if (parts[0] == ":OUTP") { if (value == "ON") Output = true; else if (!RefuseOff) Output = false; return Task.FromResult<byte[]?>(null); }
         if (command is ":FORM:DATA ASC" or ":SENS:COUN 1") return Task.FromResult<byte[]?>(null);
@@ -86,7 +92,22 @@ internal sealed class Keithley2450ScpiPeer : IAsyncDisposable
         else if (path.Length >= 3 && path[0] == "SENS")
         {
             var selected = path[1] == "VOLT" ? SenseFunction.Voltage : path[1] == "CURR" ? SenseFunction.Current : SenseFunction.Resistance;
-            if (path[2] == "RANG?") reply = senseRanges[selected].ToString("G17", CultureInfo.InvariantCulture);
+            var settings = acquisition[selected];
+            if (path[2] == "AZER?") reply = settings.AutoZero ? "1" : "0";
+            else if (path[2] == "AVER" && path[^1] == "STAT?") reply = settings.AveragingEnabled ? "1" : "0";
+            else if (path[2] == "AVER" && path[^1] == "COUN?") reply = settings.AveragingCount.ToString(CultureInfo.InvariantCulture);
+            else if (path[2] == "AVER" && path[^1] == "TCON?") reply = settings.AveragingMode == AveragingMode.Repeat ? "REP" : "MOV";
+            else if (path[2] == "RANG" && path[^1] == "REB?") reply = settings.AutorangeRebound ? "1" : "0";
+            else if (path[2] == "AZER" || path[2] == "AVER" || path[2] == "RANG" && path[^1] == "REB")
+            {
+                if (!IgnoreAcquisitionWrites)
+                    acquisition[selected] = new(path[2] == "AZER" ? value == "ON" : settings.AutoZero,
+                        path[^1] == "REB" ? value == "ON" : settings.AutorangeRebound,
+                        path[^1] == "STAT" ? value == "ON" : settings.AveragingEnabled,
+                        path[^1] == "COUN" ? int.Parse(value, CultureInfo.InvariantCulture) : settings.AveragingCount,
+                        path[^1] == "TCON" ? value == "MOV" ? AveragingMode.Moving : AveragingMode.Repeat : settings.AveragingMode);
+            }
+            else if (path[2] == "RANG?") reply = senseRanges[selected].ToString("G17", CultureInfo.InvariantCulture);
             else if (path[2] == "RSEN?") reply = sense.Mode == SensingMode.FourWire ? "1" : "0";
             else if (path[2] == "NPLC?") reply = sense.Nplc.ToString("G17", CultureInfo.InvariantCulture);
             else if (path[2] == "RANG" && path[^1] == "AUTO?") reply = sense.AutoRange ? "1" : "0";

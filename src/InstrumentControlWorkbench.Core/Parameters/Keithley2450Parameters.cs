@@ -4,6 +4,13 @@ namespace InstrumentControlWorkbench.Core.Parameters;
 
 public static class Keithley2450Parameters
 {
+    public static ParameterDescriptor ActiveSenseFunction { get; } = new(new("k2450.sense_function"), "Active sense function (0 = Voltage, 1 = Current, 2 = Resistance)", PhysicalUnit.Dimensionless, ParameterAccess.ReadWrite, new(0, PhysicalUnit.Dimensionless), new(2, PhysicalUnit.Dimensionless));
+    public static ParameterDescriptor AutoZero { get; } = new(new("k2450.auto_zero"), "Automatic zero/reference updates", PhysicalUnit.Dimensionless, ParameterAccess.ReadWrite, new(0, PhysicalUnit.Dimensionless), new(1, PhysicalUnit.Dimensionless));
+    public static ParameterDescriptor AutorangeRebound { get; } = new(new("k2450.autorange_rebound"), "Restore current/voltage range after autoranging", PhysicalUnit.Dimensionless, ParameterAccess.ReadWrite, new(0, PhysicalUnit.Dimensionless), new(1, PhysicalUnit.Dimensionless));
+    public static ParameterDescriptor AveragingEnabled { get; } = new(new("k2450.averaging_enabled"), "Instrument averaging enabled", PhysicalUnit.Dimensionless, ParameterAccess.ReadWrite, new(0, PhysicalUnit.Dimensionless), new(1, PhysicalUnit.Dimensionless));
+    public static ParameterDescriptor AveragingCount { get; } = new(new("k2450.averaging_count"), "Instrument averaging count", PhysicalUnit.Dimensionless, ParameterAccess.ReadWrite, new(1, PhysicalUnit.Dimensionless), new(100, PhysicalUnit.Dimensionless));
+    public static ParameterDescriptor AveragingMode { get; } = new(new("k2450.averaging_mode"), "Averaging mode (0 = Repeat, 1 = Moving)", PhysicalUnit.Dimensionless, ParameterAccess.ReadWrite, new(0, PhysicalUnit.Dimensionless), new(1, PhysicalUnit.Dimensionless));
+    public static ParameterDescriptor RefreshZero { get; } = new(new("k2450.refresh_zero"), "Refresh zero/reference once for the active aperture", PhysicalUnit.Dimensionless, ParameterAccess.Write, new(1, PhysicalUnit.Dimensionless), new(1, PhysicalUnit.Dimensionless));
     public static ParameterDescriptor ManualSenseVoltageRange { get; } = new(new("k2450.manual_sense_voltage_range"), "Manual sense voltage range", PhysicalUnit.Volt, ParameterAccess.ReadWrite, new(0.02, PhysicalUnit.Volt), new(200, PhysicalUnit.Volt));
     public static ParameterDescriptor ManualSenseCurrentRange { get; } = new(new("k2450.manual_sense_current_range"), "Manual sense current range", PhysicalUnit.Ampere, ParameterAccess.ReadWrite, new(1e-8, PhysicalUnit.Ampere), new(1, PhysicalUnit.Ampere));
     public static ParameterDescriptor ManualSenseResistanceRange { get; } = new(new("k2450.manual_sense_resistance_range"), "Observed manual resistance range", PhysicalUnit.Ohm, ParameterAccess.Read, new(20, PhysicalUnit.Ohm), new(2e8, PhysicalUnit.Ohm));

@@ -49,13 +49,15 @@ public sealed partial class InstrumentManager : IDeviceSession
             var level = voltageSource ? Keithley2450Parameters.SourceVoltage : Keithley2450Parameters.SourceCurrent;
             var compliance = voltageSource ? Keithley2450Parameters.CurrentCompliance : Keithley2450Parameters.VoltageCompliance;
             var parameters = new List<ParameterSnapshot>
-                {new(level, new(snapshot.Source.Level, level.Unit)),
+                {new(Keithley2450Parameters.ActiveSenseFunction, new((int)snapshot.Sense.Function, PhysicalUnit.Dimensionless)),
+                 new(level, new(snapshot.Source.Level, level.Unit)),
                  new(compliance, new(snapshot.Source.Compliance, compliance.Unit)),
                  new(Keithley2450Parameters.Nplc, new(snapshot.Sense.Nplc, PhysicalUnit.Dimensionless)),
                  new(Keithley2450Parameters.SourceAutoRange, new(snapshot.Source.ManualRange is null ? 1 : 0, PhysicalUnit.Dimensionless)),
                  new(Keithley2450Parameters.SenseAutoRange, new(snapshot.Sense.AutoRange ? 1 : 0, PhysicalUnit.Dimensionless))};
             if (snapshot.Source.ManualRange is { } range) parameters.Add(new(voltageSource ? Keithley2450Parameters.ManualVoltageRange : Keithley2450Parameters.ManualCurrentRange, range));
             if (snapshot.Sense.ManualRange is { } senseRange) parameters.Add(new(Keithley2450Parameters.ManualSenseRange(snapshot.Sense.Function), senseRange));
+            if (snapshot.Sense.Acquisition is { } acquisition) parameters.AddRange(acquisition.CaptureParameters(snapshot.Sense.Function));
             return new InstrumentParameterSnapshot(snapshot.InstrumentId, snapshot.Identifier, DateTimeOffset.UtcNow, parameters,
                 new Dictionary<string, string>
                 {
@@ -133,6 +135,7 @@ public sealed partial class InstrumentManager : IDeviceSession
                 await sourceMeter.ConfigureSenseAsync(sense, cancellationToken);
                 Transition(InstrumentLifecycleEvent.Configured);
                 var snapshot = await sourceMeter.GetSnapshotAsync(cancellationToken);
+                if (sense.Acquisition is not null && snapshot.Sense.Acquisition != sense.Acquisition) throw new InvalidOperationException("Requested acquisition settings were not confirmed.");
                 await PublishLogAsync($"Configured source {source.Level:0.###} {source.LevelUnit}, compliance {source.Compliance:0.###E+0} {source.ComplianceUnit}.", cancellationToken);
                 return await PublishSnapshotAsync(snapshot with { Lifecycle = lifecycle }, cancellationToken);
             }

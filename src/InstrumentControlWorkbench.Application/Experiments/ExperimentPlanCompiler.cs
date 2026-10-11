@@ -41,6 +41,8 @@ internal static class ExperimentPlanCompiler
             device.GetParameter(voltage ? Keithley2450Parameters.SourceVoltage.Id : Keithley2450Parameters.SourceCurrent.Id).ValidateWrite(preparation.Level);
             device.GetParameter(voltage ? Keithley2450Parameters.CurrentCompliance.Id : Keithley2450Parameters.VoltageCompliance.Id).ValidateWrite(preparation.Compliance);
             device.GetParameter(Keithley2450Parameters.Nplc.Id).ValidateWrite(new(preparation.Sense.Nplc, PhysicalUnit.Dimensionless));
+            if (preparation.Sense.Acquisition is { } acquisition)
+                foreach (var parameter in acquisition.CaptureParameters(preparation.Sense.Function)) device.GetParameter(parameter.Descriptor.Id).ValidateWrite(parameter.Value);
             if (preparation.Sense.ManualRange is { } preparedSenseRange) device.GetParameter(Keithley2450Parameters.ManualSenseRange(preparation.Sense.Function).Id).ValidateWrite(preparedSenseRange);
             if (preparation.ManualSourceRange is { } preparedRange)
                 device.GetParameter(voltage ? Keithley2450Parameters.ManualVoltageRange.Id : Keithley2450Parameters.ManualCurrentRange.Id).ValidateWrite(preparedRange);
@@ -53,6 +55,9 @@ internal static class ExperimentPlanCompiler
         var changedAddresses = writes.Select(w => w.Address).ToHashSet();
         foreach (var write in writes)
         {
+            if (write.Values is { } functionValues && write.Address.Parameter == Keithley2450Parameters.ActiveSenseFunction.Id && functionValues.Any(v => v.Value != Math.Truncate(v.Value))) throw new ArgumentException("Sense function requires an integral enum code.");
+            if (write.Values is { } acquisitionValues && Keithley2450AcquisitionSettings.IsParameter(write.Address.Parameter))
+                foreach (var value in acquisitionValues) Keithley2450AcquisitionSettings.ValidateParameter(write.Address.Parameter, value);
             if (write.Values is { } senseValues && (write.Address.Parameter == Keithley2450Parameters.ManualSenseVoltageRange.Id || write.Address.Parameter == Keithley2450Parameters.ManualSenseCurrentRange.Id))
             {
                 var senseFunction = write.Address.Parameter == Keithley2450Parameters.ManualSenseVoltageRange.Id ? SenseFunction.Voltage : SenseFunction.Current;

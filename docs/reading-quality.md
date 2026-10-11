@@ -73,3 +73,7 @@ firmware compatibility sweep, real compliance accuracy, hardware timing or nativ
 UI quality indicator acceptance is claimed. Other driver families, autorange
 full-scale evidence, rebound/autozero/filter settings and UI presentation remain
 follow-up work.
+
+Confirmed per-row five-field profiles are now retained alongside raw status; see
+[acquisition-settings.md](acquisition-settings.md) for snapshot-vs-buffer evidence
+and averaging-window limitations.

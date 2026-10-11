@@ -187,7 +187,7 @@ public sealed class SenseRangeExecutionTests
         foreach (var function in new[] { SourceFunction.Voltage, SourceFunction.Current, SourceFunction.Voltage })
         {
             var plan = b.Scan(function); await b.Runs.StartPlanAsync(plan, Token); Assert.Equal(3, b.Runs.LatestDataSet!.Rows.Count);
-            var state = await b.Source.GetSnapshotAsync(Token); Assert.Equal(plan.Preparations[0].ToSetpoint() with { Level = 0.03 }, state.Source); Assert.Equal(plan.Preparations[0].Sense, state.Sense); Assert.False(peer.Output); Assert.False(b.Runs.HasActiveRun);
+            var state = await b.Source.GetSnapshotAsync(Token); Assert.Equal(plan.Preparations[0].ToSetpoint() with { Level = 0.03 }, state.Source); Assert.Equal(plan.Preparations[0].Sense with { Acquisition = new(true, false, false, 10, AveragingMode.Repeat) }, state.Sense); Assert.False(peer.Output); Assert.False(b.Runs.HasActiveRun);
         }
         await b.Source.DisconnectAsync(Token);
     }
@@ -246,7 +246,7 @@ public sealed class SenseRangeExecutionTests
         try
         {
             await Until(events, WorkbenchNotificationKind.DataRowReceived); b.Runs.Pause(); await Until(events, WorkbenchNotificationKind.RunPaused); Assert.False(peer.Output);
-            b.Runs.Resume(); await Until(events, WorkbenchNotificationKind.RunResumed); Assert.True(peer.Output); Assert.Equal(prep.Sense, (await b.Source.GetSnapshotAsync(Token)).Sense);
+            b.Runs.Resume(); await Until(events, WorkbenchNotificationKind.RunResumed); Assert.True(peer.Output); Assert.Equal(prep.Sense with { Acquisition = new(true, false, false, 10, AveragingMode.Repeat) }, (await b.Source.GetSnapshotAsync(Token)).Sense);
             b.Runs.Abort(); await running; Assert.False(peer.Output); Assert.Single(b.Runs.LatestDataSet!.Rows); Assert.Equal(MeasurementRunState.Aborted, b.Runs.LatestDataSet.State); Assert.False(b.Runs.HasActiveRun);
         }
         finally { if (!running.IsCompleted) { b.Runs.Abort(); await Record.ExceptionAsync(() => running); } await b.Source.DisconnectAsync(Token); }

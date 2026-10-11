@@ -96,14 +96,20 @@ internal static partial class RunArchiveJson
         public static RowDto From(int index, MeasurementDataRow row) => new(index, row.Timestamp,
             row.Values.OrderBy(p => p.Key.Value, StringComparer.Ordinal).ToDictionary(p => p.Key.Value, p => QuantityDto.From(p.Value)), row.Routing is null ? null : SampleRouteDto.From(row.Routing), row.Analysis is null ? null : SampleAnalysisDto.From(row.Analysis), row.MeasurementGroup is null ? null : MeasurementGroupDto.From(row.MeasurementGroup), row.Environment.Count == 0 ? null : row.Environment.Select(EnvironmentObservationDto.From).ToArray(), row.Quality.Count == 0 ? null : row.Quality.Select(AcquisitionQualityDto.From).ToArray());
     }
-    internal sealed record AcquisitionQualityDto(string Step, string Device, string Column, DateTimeOffset CapturedAt, ushort? SourceStatus, ushort? MeasurementStatus)
+    internal sealed record AcquisitionQualityDto(string Step, string Device, string Column, DateTimeOffset CapturedAt, ushort? SourceStatus, ushort? MeasurementStatus,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] AcquisitionSettingsDto? AcquisitionConfiguration = null)
     {
         public AcquisitionQuality ToDomain()
         {
             if ((SourceStatus is null) != (MeasurementStatus is null)) throw new FormatException("Both buffer quality words must be present or absent.");
-            return new(new(Step), new(Device), new(Column), CapturedAt, SourceStatus is { } source ? new(source, MeasurementStatus!.Value) : null);
+            return new(new(Step), new(Device), new(Column), CapturedAt, SourceStatus is { } source ? new(source, MeasurementStatus!.Value) : null, AcquisitionConfiguration?.ToDomain());
         }
-        public static AcquisitionQualityDto From(AcquisitionQuality quality) => new(quality.Step.Value, quality.Device.Value, quality.Column.Value, quality.CapturedAt, quality.Status?.Source, quality.Status?.Measurement);
+        public static AcquisitionQualityDto From(AcquisitionQuality quality) => new(quality.Step.Value, quality.Device.Value, quality.Column.Value, quality.CapturedAt, quality.Status?.Source, quality.Status?.Measurement, quality.AcquisitionConfiguration is { } settings ? AcquisitionSettingsDto.From(settings) : null);
+    }
+    internal sealed record AcquisitionSettingsDto(bool AutoZero, bool AutorangeRebound, bool AveragingEnabled, int AveragingCount, string AveragingMode)
+    {
+        public Keithley2450AcquisitionSettings ToDomain() => new(AutoZero, AutorangeRebound, AveragingEnabled, AveragingCount, AveragingMode switch { "Repeat" => Core.Instruments.AveragingMode.Repeat, "Moving" => Core.Instruments.AveragingMode.Moving, _ => throw new FormatException("Unknown averaging mode.") });
+        public static AcquisitionSettingsDto From(Keithley2450AcquisitionSettings settings) => new(settings.AutoZero, settings.AutorangeRebound, settings.AveragingEnabled, settings.AveragingCount, settings.AveragingMode.ToString());
     }
     internal sealed record EnvironmentObservationDto(EnvironmentRole Role, string Column, string? Device, string? Parameter,
         DateTimeOffset CapturedAt, QuantityDto? Value, string? Error)

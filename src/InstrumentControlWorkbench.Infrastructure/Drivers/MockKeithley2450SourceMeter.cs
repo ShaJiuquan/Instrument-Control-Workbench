@@ -9,7 +9,8 @@ public sealed class MockKeithley2450SourceMeter : ISourceMeterPort
 {
     private readonly SemaphoreSlim operationLock = new(1, 1);
     private SourceSetpoint source = new(SourceFunction.Voltage, 0.0, 105e-6);
-    private SenseConfiguration sense = new(SenseFunction.Current, SensingMode.FourWire, 1.0, true);
+    private SenseConfiguration sense = new(SenseFunction.Current, SensingMode.FourWire, 1.0, true, Acquisition: new(true, false, false, 10, AveragingMode.Repeat));
+    private readonly Dictionary<SenseFunction, Keithley2450AcquisitionSettings> acquisition = Enum.GetValues<SenseFunction>().ToDictionary(f => f, _ => new Keithley2450AcquisitionSettings(true, false, false, 10, AveragingMode.Repeat));
     private bool connected;
     private bool outputEnabled;
     private DateTimeOffset lastHeartbeat = DateTimeOffset.MinValue;
@@ -26,7 +27,9 @@ public sealed class MockKeithley2450SourceMeter : ISourceMeterPort
              Keithley2450Parameters.MeasuredResistance, Keithley2450Parameters.Nplc, Keithley2450Parameters.ManualVoltageRange,
              Keithley2450Parameters.ManualCurrentRange, Keithley2450Parameters.SourceAutoRange, Keithley2450Parameters.EnableSourceAutoRange,
              Keithley2450Parameters.ManualSenseVoltageRange, Keithley2450Parameters.ManualSenseCurrentRange, Keithley2450Parameters.ManualSenseResistanceRange,
-             Keithley2450Parameters.SenseAutoRange, Keithley2450Parameters.EnableSenseAutoRange]);
+             Keithley2450Parameters.SenseAutoRange, Keithley2450Parameters.EnableSenseAutoRange,
+             Keithley2450Parameters.ActiveSenseFunction, Keithley2450Parameters.AutoZero, Keithley2450Parameters.AutorangeRebound, Keithley2450Parameters.AveragingEnabled,
+             Keithley2450Parameters.AveragingCount, Keithley2450Parameters.AveragingMode, Keithley2450Parameters.RefreshZero]);
     }
 
     public InstrumentId Id { get; }
@@ -80,6 +83,8 @@ public sealed class MockKeithley2450SourceMeter : ISourceMeterPort
             if (!configuration.AutoRange && configuration.ManualRange is null)
                 configuration = configuration with { ManualRange = sense.Function == configuration.Function && sense.ManualRange is { } oldRange ? oldRange : Keithley2450SenseRanges.Resolve(configuration.Function, new(source.Compliance / 1.05, Keithley2450SenseRanges.For(configuration.Function)[0].Unit)) };
             Keithley2450Limits.ValidateConfiguration(source, configuration);
+            configuration = configuration with { Acquisition = configuration.Acquisition ?? acquisition[configuration.Function] };
+            acquisition[configuration.Function] = configuration.Acquisition;
             sense = configuration;
             lastHeartbeat = DateTimeOffset.Now;
         }
@@ -87,6 +92,13 @@ public sealed class MockKeithley2450SourceMeter : ISourceMeterPort
         {
             operationLock.Release();
         }
+    }
+
+    public async Task RefreshZeroAsync(CancellationToken token)
+    {
+        await operationLock.WaitAsync(token);
+        try { RequireConnected(); if (outputEnabled) throw new InvalidOperationException("Turn output off before a zero/reference refresh."); token.ThrowIfCancellationRequested(); lastHeartbeat = DateTimeOffset.UtcNow; }
+        finally { operationLock.Release(); }
     }
 
     public async Task EnableOutputAsync(CancellationToken cancellationToken)

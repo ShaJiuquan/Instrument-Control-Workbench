@@ -143,7 +143,7 @@ public sealed partial class MeasurementRunService
         {
             var observation = await run.Resources!.ReadObservationAsync(channel.Address.Device, channel.Address.Parameter, run.Token);
             var value = observation.Value;
-            quality.Add(new(read.Id, channel.Address.Device, channel.Column, observation.CapturedAt, observation.Status));
+            quality.Add(new(read.Id, channel.Address.Device, channel.Column, observation.CapturedAt, observation.Status, observation.AcquisitionConfiguration));
             values[channel.Column] = value;
             run.Variables[channel.Column] = value;
         }
@@ -180,7 +180,7 @@ public sealed partial class MeasurementRunService
         };
         run.Variables[step.VoltageColumn] = voltage; run.Variables[step.CurrentColumn] = current;
         var environment = await ReadEnvironmentAsync(step.EnvironmentReads, values, run);
-        await CommitRowAsync(new(frame.Timestamp, values, environment: environment, quality: new[] { step.VoltageColumn, step.CurrentColumn }.Select(c => new AcquisitionQuality(step.Id, step.Device, c, frame.Timestamp, frame.Status))), step.Id, run, started);
+        await CommitRowAsync(new(frame.Timestamp, values, environment: environment, quality: new[] { step.VoltageColumn, step.CurrentColumn }.Select(c => new AcquisitionQuality(step.Id, step.Device, c, frame.Timestamp, frame.Status, frame.AcquisitionConfiguration))), step.Id, run, started);
         if (ivPlot)
         {
             var point = new MeasurementPoint(frame.Timestamp, run.Elapsed.Elapsed, voltage.Value, current.Value, "V", "A");
@@ -204,7 +204,7 @@ public sealed partial class MeasurementRunService
             [ExperimentPlanCompiler.Elapsed.Id] = new(run.Elapsed.Elapsed.TotalSeconds, PhysicalUnit.Second),
         };
         var environment = await ReadEnvironmentAsync(step.EnvironmentReads, values, run);
-        var row = new MeasurementDataRow(reading.Timestamp, values, context, environment: environment, quality: new[] { step.VoltageColumn, step.CurrentColumn, step.ResistanceColumn }.Select(c => new AcquisitionQuality(step.Id, step.Device, c, reading.Timestamp, reading.Status)));
+        var row = new MeasurementDataRow(reading.Timestamp, values, context, environment: environment, quality: new[] { step.VoltageColumn, step.CurrentColumn, step.ResistanceColumn }.Select(c => new AcquisitionQuality(step.Id, step.Device, c, reading.Timestamp, reading.Status, reading.AcquisitionConfiguration)));
         run.Variables[step.VoltageColumn] = voltage; run.Variables[step.CurrentColumn] = current;
         run.Variables[step.ResistanceColumn] = values[step.ResistanceColumn];
         await CommitRowAsync(row, step.Id, run, started);

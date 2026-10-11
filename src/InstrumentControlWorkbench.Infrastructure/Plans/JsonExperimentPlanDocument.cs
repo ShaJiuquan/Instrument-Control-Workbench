@@ -181,6 +181,14 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanDocument
                 ["autoRange"] = p.Sense.AutoRange
             },
         };
+        if (p.Sense.Acquisition is { } acquisition) ((JsonObject)result["sense"]!)["acquisition"] = new JsonObject
+        {
+            ["autoZero"] = acquisition.AutoZero,
+            ["autorangeRebound"] = acquisition.AutorangeRebound,
+            ["averagingEnabled"] = acquisition.AveragingEnabled,
+            ["averagingCount"] = acquisition.AveragingCount,
+            ["averagingMode"] = acquisition.AveragingMode.ToString()
+        };
         if (p.Sense.ManualRange is { } senseRange) ((JsonObject)result["sense"]!)["manualRange"] = EncodeQuantity(senseRange);
         if (p.ManualSourceRange is { } range) result["manualSourceRange"] = EncodeQuantity(range);
         return result;
@@ -188,9 +196,15 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanDocument
     private static SourcePreparation DecodePreparation(JsonNode? node)
     {
         var o = Object(node, "device", "function", "level", "compliance", "sense", "manualSourceRange");
-        var sense = Object(Required(o, "sense"), "function", "mode", "nplc", "autoRange", "manualRange");
+        var sense = Object(Required(o, "sense"), "function", "mode", "nplc", "autoRange", "manualRange", "acquisition");
+        Keithley2450AcquisitionSettings? acquisition = null;
+        if (sense["acquisition"] is { } configured)
+        {
+            var settings = Object(configured, "autoZero", "autorangeRebound", "averagingEnabled", "averagingCount", "averagingMode");
+            acquisition = new(Boolean(settings, "autoZero"), Boolean(settings, "autorangeRebound"), Boolean(settings, "averagingEnabled"), Integer(settings, "averagingCount"), NamedEnum<AveragingMode>(settings, "averagingMode"));
+        }
         return new(new(Text(o, "device")), NamedEnum<SourceFunction>(o, "function"), DecodeQuantity(o["level"]), DecodeQuantity(o["compliance"]),
-            new(NamedEnum<SenseFunction>(sense, "function"), NamedEnum<SensingMode>(sense, "mode"), Number(sense, "nplc"), Boolean(sense, "autoRange"), sense["manualRange"] is null ? null : DecodeQuantity(sense["manualRange"])), o["manualSourceRange"] is null ? null : DecodeQuantity(o["manualSourceRange"]));
+            new(NamedEnum<SenseFunction>(sense, "function"), NamedEnum<SensingMode>(sense, "mode"), Number(sense, "nplc"), Boolean(sense, "autoRange"), sense["manualRange"] is null ? null : DecodeQuantity(sense["manualRange"]), acquisition), o["manualSourceRange"] is null ? null : DecodeQuantity(o["manualSourceRange"]));
     }
     private static JsonObject Object(JsonNode? node, params string[] allowed)
     {

@@ -163,7 +163,14 @@ public sealed partial class PpmsExperimentPlanImporter
         Quantity? senseRange = selector is { } chosen ? Keithley2450SenseRanges.Resolve(senseFunction, chosen) : null;
         if (p[name == "measure_voltage" ? "meter_range_a" : "meter_range_v"] is not null)
             throw new NotSupportedException("The range field must match the requested measurement function.");
-        if (Boolean(p, "filter_enabled", false)) throw new NotSupportedException("Meter filtering is not migrated.");
+        var nplc = Number(p, "nplc", 1);
+        var filterEnabled = Boolean(p, "filter_enabled", false); var filterCount = Number(p, "filter_count", 10);
+        if (filterCount is < 2 or > 100 || filterCount != Math.Truncate(filterCount)) throw new ArgumentException("PPMS filter count must be an integer from 2 to 100.");
+        if (filterEnabled && nplc * filterCount > (name == "measure_voltage" ? 200 : 500)) throw new ArgumentException("NPLC times filter count exceeds the PPMS measurement budget.");
+        var window = Number(p, "filter_window_percent", 0.1);
+        if (window is < 0 or > 10) throw new ArgumentException("PPMS filter window percent must be from 0 to 10.");
+        if (name == "measure_voltage") c.Metadata[path + ".k2450_unused_filter_window_percent"] = new(window, PhysicalUnit.Dimensionless);
+        else if (p["filter_window_percent"] is not null) throw new NotSupportedException("PPMS current filtering has no window percentage.");
         if (Number(p, "sense_channel", 1) != 1) throw new NotSupportedException("Secondary meter inputs are not migrated.");
         var source = Source(p, c, null, name == "measure_voltage" ? "2182" : "k2450");
         var mode = Text(p, "sensing_mode", "2wire").Trim().ToLowerInvariant();
@@ -174,6 +181,13 @@ public sealed partial class PpmsExperimentPlanImporter
         if (senseRange is not null && source.Sense.Function != senseFunction)
             throw new NotSupportedException("Manual meter range requires the requested sensing function in the frozen preparation.");
         var rangeParameter = senseRange is null ? Keithley2450Parameters.EnableSenseAutoRange : Keithley2450Parameters.ManualSenseRange(senseFunction);
-        return new SequenceStep(new(path), [Write(path + ".sense_range", source.Device, rangeParameter, senseRange?.Value ?? 1), Write(path + ".nplc", source.Device, Keithley2450Parameters.Nplc, Number(p, "nplc", 1)), new ReadStep(new(path + ".read"), [new(new(path + ".value"), new(source.Device, name == "measure_voltage" ? Keithley2450Parameters.MeasuredVoltage.Id : Keithley2450Parameters.MeasuredCurrent.Id))], MeasurementEnvironment(path, c))]);
+        var settings = new List<ExperimentStep> { Write(path + ".sense_function", source.Device, Keithley2450Parameters.ActiveSenseFunction, (int)senseFunction), Write(path + ".filter_off", source.Device, Keithley2450Parameters.AveragingEnabled, 0) };
+        if (filterEnabled)
+        {
+            settings.Add(Write(path + ".filter_count", source.Device, Keithley2450Parameters.AveragingCount, filterCount));
+            settings.Add(Write(path + ".filter_mode", source.Device, Keithley2450Parameters.AveragingMode, (int)AveragingMode.Repeat));
+            settings.Add(Write(path + ".filter_on", source.Device, Keithley2450Parameters.AveragingEnabled, 1));
+        }
+        return new SequenceStep(new(path), [.. settings, Write(path + ".sense_range", source.Device, rangeParameter, senseRange?.Value ?? 1), Write(path + ".nplc", source.Device, Keithley2450Parameters.Nplc, Number(p, "nplc", 1)), new ReadStep(new(path + ".read"), [new(new(path + ".value"), new(source.Device, name == "measure_voltage" ? Keithley2450Parameters.MeasuredVoltage.Id : Keithley2450Parameters.MeasuredCurrent.Id))], MeasurementEnvironment(path, c))]);
     }
 }

@@ -19,6 +19,8 @@ hardware, credentials, or proprietary experiment definitions.
 
 Per-reading K2450 buffer quality, safe capture checks and analysis/archive
 propagation are documented in [reading-quality.md](docs/reading-quality.md).
+Autozero, zero refresh, averaging and rebound profiles are documented in
+[acquisition-settings.md](docs/acquisition-settings.md).
 
 ## Current Status
 

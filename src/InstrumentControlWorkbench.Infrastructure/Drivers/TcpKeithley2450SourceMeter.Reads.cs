@@ -24,12 +24,25 @@ public sealed partial class TcpKeithley2450SourceMeter
         var autoRange = Boolean(await transport.QueryAsync($":SENS:{senseToken}:RANG:AUTO?", token));
         Quantity? senseRange = autoRange ? null : new(Number(await transport.QueryAsync($":SENS:{senseToken}:RANG?", token)), Keithley2450SenseRanges.For(senseFunction)[0].Unit);
         var terminals = Word(await transport.QueryAsync(":ROUT:TERM?", token)) switch { "FRON" or "FRONT" => Terminals.Front, "REAR" => Terminals.Rear, _ => throw new IOException("Unknown 2450 terminal readback.") };
-        var source = new SourceSetpoint(function, level, compliance, manualRange); var sense = new SenseConfiguration(senseFunction, mode, nplc, autoRange, senseRange);
+        var source = new SourceSetpoint(function, level, compliance, manualRange); var sense = new SenseConfiguration(senseFunction, mode, nplc, autoRange, senseRange, await ReadAcquisitionSettingsAsync(senseFunction, token));
         Keithley2450Limits.Validate(source); Keithley2450Limits.Validate(sense);
         await CheckErrorsAsync(token);
         snapshot = new(Id, snapshot.Identifier, InstrumentLifecycleState.Idle, true, output, terminals, source, sense, DateTimeOffset.UtcNow);
         return snapshot;
     }
+    private async Task<Keithley2450AcquisitionSettings> ReadAcquisitionSettingsAsync(SenseFunction function, CancellationToken token)
+    {
+        var prefix = SenseToken(function);
+        var autoZero = Boolean(await transport.QueryAsync($":SENS:{prefix}:AZER?", token));
+        var enabled = Boolean(await transport.QueryAsync($":SENS:{prefix}:AVER:STAT?", token));
+        var count = Number(await transport.QueryAsync($":SENS:{prefix}:AVER:COUN?", token));
+        if (count is < 1 or > 100 || count != Math.Truncate(count)) throw new IOException("2450 averaging count must be an integer from 1 to 100.");
+        var mode = Word(await transport.QueryAsync($":SENS:{prefix}:AVER:TCON?", token)) switch
+        { "REP" or "REPEAT" => AveragingMode.Repeat, "MOV" or "MOVING" => AveragingMode.Moving, _ => throw new IOException("Unknown 2450 averaging mode.") };
+        var rebound = function != SenseFunction.Resistance && Boolean(await transport.QueryAsync($":SENS:{prefix}:RANG:AUTO:REB?", token));
+        return new(autoZero, rebound, enabled, (int)count, mode);
+    }
+
     public async Task<MeasurementValue> ReadAsync(CancellationToken token)
     {
         await operations.WaitAsync(token);

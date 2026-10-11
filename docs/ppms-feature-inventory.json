@@ -1234,5 +1234,10 @@
     "stage": "same-buffer K2450 acquisition quality",
     "tests": "ReadingQualityModelTests; TcpKeithley2450Tests.Quality; SampleResistanceExecutionTests.Quality; analysis and wide-point legacy/tamper tests",
     "limits": "Native SCPI TCP loopback only. Raw source/sense statuses, numeric single and paired reads, measured-source verification, capture/safety guards, finite warnings, analysis/wide propagation, strict live/archive provenance and CSV. Simulation and old rows unobserved. Actual autorange full scale, rebound/autozero/filter, other hardware families and native UI acceptance remain pending. See reading-quality.md."
+  },
+  "acquisitionProfileImplementation": {
+    "stage": "typed K2450 acquisition profiles and per-row confirmation",
+    "tests": "AcquisitionSettingsModelTests; AcquisitionSettingsExecutionTests (+ Import); existing sense-range pause and consecutive reprepare tests",
+    "limits": "Native SDK TCP and simulation only; optional retain-actual per-function profiles, integer controls, active-function selection, fresh config confirmation, zero/reference completion action, PPMS Repeat import with unused window metadata, profile snapshots and per-row archive/CSV propagation. No lab accuracy, firmware Moving history, used autorange span or native UI acceptance; other families and full PPMS migration remain pending. See acquisition-settings.md."
   }
 }

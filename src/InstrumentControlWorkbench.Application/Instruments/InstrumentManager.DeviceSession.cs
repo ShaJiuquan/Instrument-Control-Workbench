@@ -63,8 +63,14 @@ public sealed partial class InstrumentManager
             {
                 if (snapshot.Sense.ManualRange is not null && snapshot.Sense.Function != sense.Value)
                     throw new InvalidOperationException("Configure the requested sense function and its range explicitly before acquisition.");
-                var requestedSense = snapshot.Sense with { Function = sense.Value };
-                await sourceMeter.ConfigureSenseAsync(requestedSense, token);
+                var requestedSense = snapshot.Sense with { Function = sense.Value, Acquisition = snapshot.Sense.Function == sense.Value ? snapshot.Sense.Acquisition : null };
+                if (requestedSense != snapshot.Sense)
+                {
+                    await sourceMeter.ConfigureSenseAsync(requestedSense, token);
+                    var preparedSnapshot = await ReadSourceSnapshotAsync(token);
+                    requestedSense = requestedSense with { Acquisition = preparedSnapshot.Sense.Acquisition };
+                    if (!preparedSnapshot.Connected || preparedSnapshot.Source != snapshot.Source || preparedSnapshot.Sense != requestedSense || preparedSnapshot.OutputEnabled != snapshot.OutputEnabled || preparedSnapshot.Terminals != snapshot.Terminals) throw new InvalidOperationException("Sense function preparation changed unexpected state.");
+                }
                 var measured = await sourceMeter.ReadAsync(token);
                 var expectedUnit = sense switch { SenseFunction.Current => "A", SenseFunction.Voltage => "V", _ => "ohm" };
                 if (measured.Unit != expectedUnit) throw new InvalidOperationException($"{parameter} readback must use {expectedUnit}.");
@@ -75,7 +81,7 @@ public sealed partial class InstrumentManager
                     throw new InvalidOperationException("Source state or sensing configuration changed during acquisition.");
                 measured.Status?.ValidateAcquisition(requestedSense.Mode, snapshot.Terminals, requireSourceReadback: false);
                 await PublishSnapshotAsync(after with { Lifecycle = lifecycle }, token);
-                return new(value, measured.Timestamp, measured.Status);
+                return new(value, measured.Timestamp, measured.Status, requestedSense.Acquisition);
             }
             catch { Transition(InstrumentLifecycleEvent.FaultDetected); throw; }
         }
@@ -97,18 +103,25 @@ public sealed partial class InstrumentManager
             {
                 if (snapshot.Sense.ManualRange is not null && snapshot.Sense.Function != senseFunction)
                     throw new InvalidOperationException("Configure complementary sensing and its range explicitly before paired acquisition.");
+                var expectedSense = snapshot.Sense;
                 if (snapshot.Sense.Function != senseFunction)
-                    await sourceMeter.ConfigureSenseAsync(snapshot.Sense with { Function = senseFunction }, token);
+                {
+                    expectedSense = snapshot.Sense with { Function = senseFunction, Acquisition = null };
+                    await sourceMeter.ConfigureSenseAsync(expectedSense, token);
+                    var preparedSnapshot = await ReadSourceSnapshotAsync(token);
+                    expectedSense = expectedSense with { Acquisition = preparedSnapshot.Sense.Acquisition };
+                    if (!preparedSnapshot.Connected || preparedSnapshot.Source != snapshot.Source || preparedSnapshot.Sense != expectedSense || preparedSnapshot.OutputEnabled != snapshot.OutputEnabled || preparedSnapshot.Terminals != snapshot.Terminals) throw new InvalidOperationException("Complementary sensing changed unexpected state.");
+                }
                 var reading = await sourceMeter.ReadSourceSenseAsync(token);
                 if (reading.Function != function || reading.SenseFunction != senseFunction)
                     throw new InvalidOperationException("Source/sense readback functions differ from the requested acquisition.");
                 var after = await ReadSourceSnapshotAsync(token);
-                if (!after.Connected || !after.OutputEnabled || after.Source != snapshot.Source || after.Sense != (snapshot.Sense with { Function = senseFunction }) || after.Terminals != snapshot.Terminals ||
+                if (!after.Connected || !after.OutputEnabled || after.Source != snapshot.Source || after.Sense != expectedSense || after.Terminals != snapshot.Terminals ||
                     requiredSensingMode is { } expectedMode && after.Sense.Mode != expectedMode)
                     throw new InvalidOperationException("Source state or sensing configuration changed during acquisition.");
                 reading.Status?.ValidateAcquisition(snapshot.Sense.Mode, snapshot.Terminals, requireSourceReadback: true);
                 await PublishSnapshotAsync(after with { Lifecycle = lifecycle }, token);
-                return reading;
+                return new(reading.Function, reading.SenseFunction, reading.Source, reading.Sense, reading.Timestamp, reading.Status, expectedSense.Acquisition);
             }
             catch { Transition(InstrumentLifecycleEvent.FaultDetected); throw; }
         }
@@ -118,11 +131,30 @@ public sealed partial class InstrumentManager
     public async Task WriteParameterAsync(ParameterId parameter, Quantity value, CancellationToken token, RunId? owner = null)
     {
         Descriptor.GetParameter(parameter).ValidateWrite(value);
+        if (Keithley2450AcquisitionSettings.IsParameter(parameter)) Keithley2450AcquisitionSettings.ValidateParameter(parameter, value);
+        if (parameter == Keithley2450Parameters.ActiveSenseFunction.Id && value.Value != Math.Truncate(value.Value)) throw new ArgumentException("Sense function requires an integral enum code.");
         await EnterOperationAsync(token, owner);
         try
         {
             var snapshot = await ReadSourceSnapshotAsync(token);
             if (!snapshot.Connected) throw new InvalidOperationException($"{InstrumentId} is disconnected.");
+            if (parameter == Keithley2450Parameters.RefreshZero.Id)
+            {
+                if (snapshot.OutputEnabled) throw new InvalidOperationException("Turn output off before refreshing zero/reference.");
+                try
+                {
+                    await sourceMeter.RefreshZeroAsync(token);
+                    var after = await ReadSourceSnapshotAsync(token);
+                    if (!after.Connected || after.OutputEnabled || after.Source != snapshot.Source || after.Sense != snapshot.Sense || after.Terminals != snapshot.Terminals) throw new InvalidOperationException("Zero/reference refresh changed unexpected state.");
+                    await PublishSnapshotAsync(after with { Lifecycle = lifecycle }, token);
+                    await PublishLogAsync("Zero/reference refresh completed for the active aperture.", token);
+                    return;
+                }
+                catch { Transition(InstrumentLifecycleEvent.FaultDetected); throw; }
+            }
+            var functionWrite = parameter == Keithley2450Parameters.ActiveSenseFunction.Id;
+            var acquisitionWrite = Keithley2450AcquisitionSettings.IsParameter(parameter);
+            if (parameter == Keithley2450Parameters.AutorangeRebound.Id && snapshot.Sense.Function == SenseFunction.Resistance) throw new NotSupportedException("Resistance sensing has no autorange rebound control.");
             var voltage = snapshot.Source.Function == SourceFunction.Voltage;
             var levelId = voltage ? Keithley2450Parameters.SourceVoltage.Id : Keithley2450Parameters.SourceCurrent.Id;
             var complianceId = voltage ? Keithley2450Parameters.CurrentCompliance.Id : Keithley2450Parameters.VoltageCompliance.Id;
@@ -130,7 +162,7 @@ public sealed partial class InstrumentManager
             var rangeWrite = parameter == rangeId || parameter == Keithley2450Parameters.EnableSourceAutoRange.Id;
             var senseRangeId = Keithley2450Parameters.ManualSenseRange(snapshot.Sense.Function).Id;
             var senseRangeWrite = parameter == senseRangeId || parameter == Keithley2450Parameters.EnableSenseAutoRange.Id;
-            if (parameter != levelId && parameter != complianceId && parameter != Keithley2450Parameters.Nplc.Id && !rangeWrite && !senseRangeWrite)
+            if (parameter != levelId && parameter != complianceId && parameter != Keithley2450Parameters.Nplc.Id && !rangeWrite && !senseRangeWrite && !acquisitionWrite && !functionWrite)
                 throw new InvalidOperationException($"{parameter} requires a different source mode; configure source mode and compliance explicitly first.");
             if (rangeWrite && snapshot.OutputEnabled) throw new InvalidOperationException("Confirm output off before changing source range.");
             var source = parameter == levelId ? snapshot.Source with { Level = value.Value } :
@@ -139,13 +171,21 @@ public sealed partial class InstrumentManager
                 parameter == Keithley2450Parameters.EnableSourceAutoRange.Id ? snapshot.Source with { ManualRange = null } : snapshot.Source;
             var sense = parameter == senseRangeId ? snapshot.Sense with { AutoRange = false, ManualRange = value } :
                 parameter == Keithley2450Parameters.EnableSenseAutoRange.Id ? snapshot.Sense with { AutoRange = true, ManualRange = null } : snapshot.Sense;
+            if (parameter == Keithley2450Parameters.Nplc.Id) sense = sense with { Nplc = value.Value };
+            if (functionWrite && (SenseFunction)(int)value.Value != snapshot.Sense.Function) sense = sense with { Function = (SenseFunction)(int)value.Value, AutoRange = true, ManualRange = null, Acquisition = null };
+            if (acquisitionWrite) sense = sense with { Acquisition = (snapshot.Sense.Acquisition ?? throw new NotSupportedException("Observed acquisition settings are required before changing an individual setting.")).WithParameter(parameter, value) };
             Keithley2450Limits.ValidateConfiguration(source, sense);
             try
             {
                 if (parameter == levelId || parameter == complianceId || rangeWrite) await sourceMeter.ConfigureSourceAsync(source, token);
-                else if (senseRangeWrite) await sourceMeter.ConfigureSenseAsync(sense, token);
-                else if (parameter == Keithley2450Parameters.Nplc.Id) await sourceMeter.ConfigureSenseAsync(snapshot.Sense with { Nplc = value.Value }, token);
-                await PublishSnapshotAsync((await ReadSourceSnapshotAsync(token)) with { Lifecycle = lifecycle }, token);
+                else if (senseRangeWrite || acquisitionWrite || functionWrite || parameter == Keithley2450Parameters.Nplc.Id) await sourceMeter.ConfigureSenseAsync(sense, token);
+                var after = await ReadSourceSnapshotAsync(token);
+                if (senseRangeWrite || acquisitionWrite || functionWrite || parameter == Keithley2450Parameters.Nplc.Id)
+                {
+                    var expectedSense = sense with { Acquisition = sense.Acquisition ?? after.Sense.Acquisition };
+                    if (!after.Connected || after.Source != snapshot.Source || after.Sense != expectedSense || after.OutputEnabled != snapshot.OutputEnabled || after.Terminals != snapshot.Terminals) throw new InvalidOperationException("Sense setting changed unexpected state.");
+                }
+                await PublishSnapshotAsync(after with { Lifecycle = lifecycle }, token);
             }
             catch { Transition(InstrumentLifecycleEvent.FaultDetected); throw; }
         }
@@ -175,8 +215,11 @@ public sealed partial class InstrumentManager
         {
             values[level.Id] = new(snapshot.Source.Level, level.Unit);
             values[compliance.Id] = new(snapshot.Source.Compliance, compliance.Unit);
+            values[Keithley2450Parameters.ActiveSenseFunction.Id] = new((int)snapshot.Sense.Function, PhysicalUnit.Dimensionless);
             values[Keithley2450Parameters.Nplc.Id] = new(snapshot.Sense.Nplc, PhysicalUnit.Dimensionless);
             values[Keithley2450Parameters.SenseAutoRange.Id] = new(snapshot.Sense.AutoRange ? 1 : 0, PhysicalUnit.Dimensionless);
+            if (snapshot.Sense.Acquisition is { } acquisition)
+                foreach (var captured in acquisition.CaptureParameters(snapshot.Sense.Function)) values[captured.Descriptor.Id] = captured.Value;
             if (snapshot.Sense.ManualRange is { } senseRange) values[Keithley2450Parameters.ManualSenseRange(snapshot.Sense.Function).Id] = senseRange;
             values[Keithley2450Parameters.SourceAutoRange.Id] = new(snapshot.Source.ManualRange is null ? 1 : 0, PhysicalUnit.Dimensionless);
             if (snapshot.Source.ManualRange is { } range) values[(voltage ? Keithley2450Parameters.ManualVoltageRange : Keithley2450Parameters.ManualCurrentRange).Id] = range;

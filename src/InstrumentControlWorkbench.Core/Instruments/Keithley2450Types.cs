@@ -38,7 +38,8 @@ public sealed record SenseConfiguration(
     SensingMode Mode,
     double Nplc,
     bool AutoRange,
-    Quantity? ManualRange = null);
+    Quantity? ManualRange = null,
+    Keithley2450AcquisitionSettings? Acquisition = null);
 
 public sealed record MeasurementValue(double Value, string Unit, DateTimeOffset Timestamp, Keithley2450ReadingStatus? Status = null);
 
@@ -110,6 +111,8 @@ public static class Keithley2450Limits
         if (!Enum.IsDefined(sense.Function) || !Enum.IsDefined(sense.Mode))
             throw new ArgumentOutOfRangeException(nameof(sense), "Unknown sense function or wiring mode.");
         Keithley2450Parameters.Nplc.ValidateWrite(new(sense.Nplc, PhysicalUnit.Dimensionless));
+        if (sense.Function == SenseFunction.Resistance && sense.Acquisition is { AutorangeRebound: true })
+            throw new NotSupportedException("Autorange rebound is available only for voltage/current sensing.");
         if (sense.ManualRange is { } range)
         {
             if (sense.AutoRange) throw new ArgumentException("An automatic sense range cannot also specify a manual span.", nameof(sense));

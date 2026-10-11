@@ -54,12 +54,27 @@ public sealed partial class TcpKeithley2450SourceMeter
             // range, but actual snapshots always contain its observed nominal span.
             if (!requested.AutoRange && requested.ManualRange is null)
                 requested = requested with { ManualRange = new(Number(await transport.QueryAsync($":SENS:{prefix}:RANG?", token)), Keithley2450SenseRanges.For(requested.Function)[0].Unit) };
+            var observedAcquisition = before.Sense.Function == requested.Function ? before.Sense.Acquisition! : await ReadAcquisitionSettingsAsync(requested.Function, token);
+            requested = requested with { Acquisition = requested.Acquisition ?? observedAcquisition };
             Keithley2450Limits.ValidateConfiguration(before.Source, requested);
+            if (before.Sense == requested) return;
             await transport.WriteAsync($":SENS:FUNC \"{prefix}\"", token);
             await transport.WriteAsync($":SENS:{prefix}:RSEN {(requested.Mode == SensingMode.FourWire ? "ON" : "OFF")}", token);
             await transport.WriteAsync($":SENS:{prefix}:NPLC {requested.Nplc.ToString("G17", CultureInfo.InvariantCulture)}", token);
             if (requested.ManualRange is { } range) await transport.WriteAsync($":SENS:{prefix}:RANG {range.Value.ToString("G17", CultureInfo.InvariantCulture)}", token);
             await transport.WriteAsync($":SENS:{prefix}:RANG:AUTO {(requested.AutoRange ? "ON" : "OFF")}", token);
+            var settings = requested.Acquisition!;
+            if (settings.AutoZero != observedAcquisition.AutoZero)
+                await transport.WriteAsync($":SENS:{prefix}:AZER {(settings.AutoZero ? "ON" : "OFF")}", token);
+            if (requested.Function != SenseFunction.Resistance && settings.AutorangeRebound != observedAcquisition.AutorangeRebound)
+                await transport.WriteAsync($":SENS:{prefix}:RANG:AUTO:REB {(settings.AutorangeRebound ? "ON" : "OFF")}", token);
+            if (settings.AveragingEnabled != observedAcquisition.AveragingEnabled || settings.AveragingCount != observedAcquisition.AveragingCount || settings.AveragingMode != observedAcquisition.AveragingMode)
+            {
+                await transport.WriteAsync($":SENS:{prefix}:AVER:STAT OFF", token);
+                await transport.WriteAsync($":SENS:{prefix}:AVER:COUN {settings.AveragingCount}", token);
+                await transport.WriteAsync($":SENS:{prefix}:AVER:TCON {(settings.AveragingMode == AveragingMode.Repeat ? "REP" : "MOV")}", token);
+                await transport.WriteAsync($":SENS:{prefix}:AVER:STAT {(settings.AveragingEnabled ? "ON" : "OFF")}", token);
+            }
             await CheckErrorsAsync(token);
             var actual = await ReconcileAsync(token);
             if (actual.Sense != requested || actual.Source != before.Source || actual.OutputEnabled != before.OutputEnabled || actual.Terminals != before.Terminals)
@@ -67,6 +82,25 @@ public sealed partial class TcpKeithley2450SourceMeter
         }
         finally { operations.Release(); }
     }
+    public async Task RefreshZeroAsync(CancellationToken token)
+    {
+        await operations.WaitAsync(token);
+        try
+        {
+            var before = await ReconcileAsync(token);
+            if (before.OutputEnabled) throw new InvalidOperationException("Turn output off before a zero/reference refresh.");
+            await transport.WriteAsync(RefreshZero, token);
+            if (!Boolean(await transport.QueryAsync(OperationComplete, token))) throw new IOException("2450 zero/reference completion was not confirmed.");
+            await CheckErrorsAsync(token);
+            var after = await ReconcileAsync(token);
+            if (after.Source != before.Source || after.Sense != before.Sense || after.OutputEnabled || after.Terminals != before.Terminals)
+                throw new IOException("2450 state changed during zero/reference refresh.");
+        }
+        finally { operations.Release(); }
+    }
+    private const string RefreshZero = ":SENS:AZER:ONCE";
+    private const string OperationComplete = "*OPC?";
+
     public async Task EnableOutputAsync(CancellationToken token)
     {
         await operations.WaitAsync(token);

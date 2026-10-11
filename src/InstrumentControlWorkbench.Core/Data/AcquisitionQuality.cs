@@ -10,14 +10,15 @@ public enum ReadingQualityState { Unobserved, PartiallyObserved, ObservedNormal,
 // preserve these input references; they do not invent new hardware status.
 public sealed record AcquisitionQuality
 {
-    public AcquisitionQuality(StepId step, InstrumentId device, ParameterId column, DateTimeOffset capturedAt, Keithley2450ReadingStatus? status)
+    public AcquisitionQuality(StepId step, InstrumentId device, ParameterId column, DateTimeOffset capturedAt, Keithley2450ReadingStatus? status, Keithley2450AcquisitionSettings? acquisitionConfiguration = null)
     {
         ArgumentNullException.ThrowIfNull(step); ArgumentException.ThrowIfNullOrWhiteSpace(device.Value); ArgumentNullException.ThrowIfNull(column);
-        Step = step; Device = device; Column = column; CapturedAt = capturedAt; Status = status;
+        Step = step; Device = device; Column = column; CapturedAt = capturedAt; Status = status; AcquisitionConfiguration = acquisitionConfiguration;
     }
     public StepId Step { get; }
     public InstrumentId Device { get; }
     public ParameterId Column { get; }
     public DateTimeOffset CapturedAt { get; }
     public Keithley2450ReadingStatus? Status { get; }
+    public Keithley2450AcquisitionSettings? AcquisitionConfiguration { get; }
 }
