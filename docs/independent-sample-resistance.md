@@ -92,3 +92,8 @@ The read-only Rust reference remains commit
 channel_resistance/curr_dc and channel/sample routing resolvers. The current Rust
 sample context requires cleanup ownership and K2182 input 1; Hall/vdP handlers
 perform two/eight routed acquisitions and call shared Core-style math.
+
+Optional terminal K2182 acquisition single retry is now implemented with fresh
+owned/managed cleanup and retained attempt evidence. See
+[bounded current resistance retry](current-resistance-retry.md). Invalid-point recovery,
+physical acceptance and full UI/PPMS parity remain pending.

@@ -77,3 +77,8 @@ Independent current-DC sample acquisition and Hall/van der Pauw analysis now sha
 the existing sample pipeline, preserve both source/meter roles and retain every
 input record through wide points, native documents, archives and CSV. See
 [independent-sample-resistance.md](independent-sample-resistance.md) for verified scope and remaining work.
+
+Optional terminal K2182 acquisition single retry is now implemented with fresh
+owned/managed cleanup and retained attempt evidence. See
+[bounded current resistance retry](current-resistance-retry.md). Invalid-point recovery,
+physical acceptance and full UI/PPMS parity remain pending.

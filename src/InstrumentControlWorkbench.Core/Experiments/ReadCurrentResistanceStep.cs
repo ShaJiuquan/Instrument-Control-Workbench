@@ -28,7 +28,7 @@ public sealed record ReadCurrentResistanceStep : ResistanceAcquisitionStep
 {
     public ReadCurrentResistanceStep(StepId id, InstrumentId source, InstrumentId meter, CurrentReference currentReference,
         ParameterId voltageColumn, ParameterId currentColumn, ParameterId resistanceColumn, Quantity minimumCurrent,
-        PlanValue? expectedProgrammedCurrent = null, MatrixRouteExpectation? requiredRoute = null, IEnumerable<EnvironmentRead>? environmentReads = null) : base(id)
+        PlanValue? expectedProgrammedCurrent = null, MatrixRouteExpectation? requiredRoute = null, IEnumerable<EnvironmentRead>? environmentReads = null, CurrentResistanceRetry? retry = null) : base(id)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(source.Value); ArgumentException.ThrowIfNullOrWhiteSpace(meter.Value);
         ArgumentNullException.ThrowIfNull(voltageColumn); ArgumentNullException.ThrowIfNull(currentColumn); ArgumentNullException.ThrowIfNull(resistanceColumn);
@@ -37,10 +37,11 @@ public sealed record ReadCurrentResistanceStep : ResistanceAcquisitionStep
         if (expectedProgrammedCurrent is ConstantValue constant && (constant.Value.Unit != PhysicalUnit.Ampere || Math.Abs(constant.Value.Value) <= minimumCurrent.Value))
             throw new ArgumentException("Expected programmed current must be nonzero Ampere above the threshold.");
         if (requiredRoute is { } route && (route.Device == source || route.Device == meter)) throw new ArgumentException("Routing requires a separate matrix device.");
-        Source = source; Meter = meter; CurrentReference = currentReference; VoltageColumn = voltageColumn; CurrentColumn = currentColumn;
+        Retry = retry; Source = source; Meter = meter; CurrentReference = currentReference; VoltageColumn = voltageColumn; CurrentColumn = currentColumn;
         ResistanceColumn = resistanceColumn; MinimumCurrent = minimumCurrent; ExpectedProgrammedCurrent = expectedProgrammedCurrent; RequiredRoute = requiredRoute;
         EnvironmentReads = EnvironmentRead.Freeze(environmentReads, [voltageColumn, currentColumn, resistanceColumn]);
     }
+    public CurrentResistanceRetry? Retry { get; }
     public InstrumentId Source { get; }
     public override InstrumentId Device => Source;
     public override SourceFunction Function => SourceFunction.Current;

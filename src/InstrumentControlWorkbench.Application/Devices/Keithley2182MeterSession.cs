@@ -62,7 +62,7 @@ public sealed class Keithley2182MeterSession : IDeviceSession
         => (await ReadObservationAsync(parameter, token, owner)).Value;
     public Task<ParameterObservation> ReadObservationAsync(ParameterId parameter, CancellationToken token, RunId? owner = null)
         => ReadObservationAsync(parameter, token, owner, null);
-    public async Task<ParameterObservation> ReadObservationAsync(ParameterId parameter, CancellationToken token, RunId? owner, int? requiredInput)
+    public async Task<ParameterObservation> ReadObservationAsync(ParameterId parameter, CancellationToken token, RunId? owner, int? requiredInput, bool classifyReadFailure = false)
     {
         var descriptor = Descriptor.GetParameter(parameter);
         if (!descriptor.Access.HasFlag(ParameterAccess.Read)) throw new InvalidOperationException($"{parameter} is write-only.");
@@ -78,7 +78,11 @@ public sealed class Keithley2182MeterSession : IDeviceSession
                 return new(value, before.Timestamp);
             }
             if (requiredInput is { } input && before.Settings!.Channel != input) throw new InvalidOperationException("Meter input differs from the frozen sample wiring.");
-            var reading = await port.ReadAsync(token);
+            var started = DateTimeOffset.UtcNow;
+            K2182VoltageReading reading;
+            try { reading = await port.ReadAsync(token); }
+            catch (InstrumentReadException error) when (classifyReadFailure && error.Device == Descriptor.Id)
+            { throw new MeterAcquisitionException(error, before.Settings!, started, DateTimeOffset.UtcNow); }
             token.ThrowIfCancellationRequested();
             var after = await port.GetSnapshotAsync(token);
             if (!after.Connected || after.Acquiring || after.Settings != before.Settings)
@@ -144,4 +148,15 @@ public sealed class Keithley2182MeterSession : IDeviceSession
         await notifications.PublishAsync(new(WorkbenchNotificationKind.DeviceStateChanged, $"{Descriptor.DisplayName}: {state}", Descriptor.Id, Device: status), token);
         return status;
     }
+}
+
+// Only the ReadAsync boundary can produce this envelope. Snapshot, settings,
+// validation, cancellation and route failures cannot enter the retry path.
+internal sealed class MeterAcquisitionException(InstrumentReadException error, Keithley2182Settings settings, DateTimeOffset startedAt, DateTimeOffset failedAt)
+    : Exception(error.Message, error)
+{
+    public InstrumentReadException Failure { get; } = error;
+    public Keithley2182Settings Settings { get; } = settings;
+    public DateTimeOffset StartedAt { get; } = startedAt;
+    public DateTimeOffset FailedAt { get; } = failedAt;
 }

@@ -113,7 +113,7 @@ public sealed partial class PpmsExperimentPlanImporter
                 var route = samples.Routing.Resolve(sampleBinding);
                 var read = new ReadCurrentResistanceStep(new(path + ".read." + index), source.Device, meter, CurrentReference.ProgrammedSetpoint,
                     new(path + ".V_V"), new(path + ".I_A"), new(path + ".R_ohms"), threshold, expected,
-                    new(route.Matrix, route.Closed), MeasurementEnvironment(path, c));
+                    new(route.Matrix, route.Closed), MeasurementEnvironment(path, c), new CurrentResistanceRetry(true, settle));
                 return new ReadSampleResistanceStep(read, sampleBinding, samples.RouteSettle, acquisitionSettle: settle);
             }).ToArray();
             steps.Add(reads.Length == 1 ? reads[0] : new SampleAnalysisStep(new(path + ".analysis"), reads,
@@ -122,7 +122,7 @@ public sealed partial class PpmsExperimentPlanImporter
         }
         steps.Add(new ReadCurrentResistanceStep(new(path + ".read"), source.Device, meter, CurrentReference.ProgrammedSetpoint,
             new(path + ".V_V"), new(path + ".I_A"), new(path + ".R_ohms"), threshold, expected,
-            binding is null ? null : new(binding.Route.Device, binding.Route.Closed), MeasurementEnvironment(path, c)));
+            binding is null ? null : new(binding.Route.Device, binding.Route.Closed), MeasurementEnvironment(path, c), new CurrentResistanceRetry(!managed, managed ? TimeSpan.Zero : settle)));
         if (!managed) steps.Add(new SourceOutputStep(new(path + ".done"), source.Device, false));
         return new SequenceStep(new(path), steps);
     }

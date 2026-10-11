@@ -714,3 +714,19 @@ input enforcement is a separate four-argument overload, avoiding loss of meter
 configuration evidence through the default interface implementation. Real ports,
 retry/invalid points, advanced modes and remaining UI/lab/PPMS remain unfinished.
 All App/App.Tests drafts remain excluded. See independent-sample-resistance.md.
+
+## Independent current acquisition retry stage (2026-10-11)
+
+Explicit native CurrentResistanceRetry policy and PPMS curr_dc import now allow
+one retry of terminal K2182 voltage ReadTimeout/BufferTimeout/-221 errors only.
+The actual port-read boundary excludes snapshot/configuration/route/source errors.
+Owned source-off plus meter-abort or managed meter-only cleanup uses attached
+bounded stop tasks; live/faulted cleanup cannot overlap retries or release claims.
+Fresh source/meter/route equality precedes restore/read. Retry dwell must use the
+ordinary pause checkpoint outside the resource gate to avoid deadlock; leases
+stay held and fresh full configuration checks follow. Successful attempts retain
+first failure, observed meter settings and cleanup times through raw/sample/wide/
+archive/CSV; exhausted retry preserves both errors and faults, with no invalid
+or fabricated zero row.54 new tests (10 Core44 Application). Physical ports,
+recover-invalid-point semantics and full UI/PPMS remain unfinished. App drafts
+remain excluded. See current-resistance-retry.md; full goal remains active.

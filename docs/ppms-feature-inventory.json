@@ -1329,9 +1329,8 @@
       "Three-file authored profiles and three-row simulation fixture; 32 new cases"
     ],
     "remaining": [
-      "Independent sample topology and Hall/vdP analysis",
       "Physical K6221/K2182 adapters",
-      "Retry/recover invalid points and advanced modes",
+      "Recover acquisition failures into invalid points and advanced modes",
       "UI and physical laboratory acceptance"
     ],
     "reference": "independent-channel-routing.md"
@@ -1348,10 +1347,26 @@
     ],
     "remaining": [
       "Physical K6221/K2182 drivers and lab acceptance",
-      "Retry/recover invalid points",
+      "Recover terminal acquisition failures into invalid points and partial analyses",
       "Delta/pulse/AC and corrected Hall",
       "Advanced settings and full UI/PPMS parity"
     ],
     "reference": "independent-sample-resistance.md"
+  },
+  "currentResistanceRetry": {
+    "status": "partial",
+    "implemented": [
+      "Explicit null/default-fatal or single retry native policy; PPMS owned channel/sample and managed current-scan import",
+      "Typed terminal K2182 acquisition boundary: read/buffer timeout and -221 only",
+      "Attached independent bounded source-off/meter-idle tasks; exact source/meter/route confirmation, pause/resume/abort without gate deadlock",
+      "Programmed and fresh measured current reference; retained failure/meter settings/cleanup timing through raw/analysis/wide/native/archive/CSV",
+      "54 new cases:10 Core44 Application; healthy published native fixture"
+    ],
+    "remaining": [
+      "Recover exhausted/ineligible recoverable acquisitions into absent-valued invalid rows and continue scans",
+      "Partial Hall/vdP math and invalid-point aggregation/persistence/UI",
+      "Physical transports and laboratory acceptance; remaining advanced modes and full UI/PPMS scope"
+    ],
+    "reference": "current-resistance-retry.md"
   }
 }

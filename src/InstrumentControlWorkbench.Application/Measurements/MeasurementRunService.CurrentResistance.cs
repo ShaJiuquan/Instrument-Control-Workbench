@@ -11,7 +11,9 @@ public sealed partial class MeasurementRunService
     private async Task AcquireCurrentResistanceRowAsync(ReadCurrentResistanceStep step, RunExecutionContext run, IReadOnlyList<IRunResultListener> started, ResolvedSampleRoute? context = null)
     {
         var expected = step.ExpectedProgrammedCurrent is { } request ? Resolve(request, run) : (Quantity?)null;
-        var reading = await run.Resources!.ReadCurrentResistanceAsync(step, expected, run.Token, context is null ? null : 1); var evidence = reading.Evidence;
+        var reading = await run.Resources!.ReadCurrentResistanceAsync(step, expected, run.Token, context is null ? null : 1, duration => DwellAsync(run, duration)); var evidence = reading.Evidence;
+        if (evidence.Retry is { } retried) await notifications.PublishAsync(new(Core.Notifications.WorkbenchNotificationKind.LogAppended,
+            $"{step.Id}: voltage acquisition succeeded on attempt2 after {retried.Kind}; fresh idle confirmation recorded.", step.Meter, RunId: run.Id.ToString(), Step: step.Id), CancellationToken.None);
         var values = new Dictionary<ParameterId, Quantity>(run.Axes)
         {
             [step.VoltageColumn] = evidence.Voltage,

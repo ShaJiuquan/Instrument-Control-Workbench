@@ -13,6 +13,7 @@ public sealed record ReadSampleResistanceStep : ExperimentStep
         ArgumentNullException.ThrowIfNull(binding); ExperimentDurations.Validate(settle); ExperimentDurations.Validate(acquisitionSettle);
         if (acquisition is not (ReadResistanceStep or ReadCurrentResistanceStep)) throw new ArgumentException("Unsupported sample acquisition profile.");
         if (acquisition is ReadCurrentResistanceStep && routingManagedExternally) throw new ArgumentException("Independent samples must own source cleanup.");
+        if (acquisition is ReadCurrentResistanceStep { Retry.OwnsSourceOutput: false }) throw new ArgumentException("Sample retries must own source output.");
         Acquisition = acquisition; Binding = binding; Settle = settle; RoutingManagedExternally = routingManagedExternally; AcquisitionSettle = acquisitionSettle;
     }
     public ResistanceAcquisitionStep Acquisition { get; }

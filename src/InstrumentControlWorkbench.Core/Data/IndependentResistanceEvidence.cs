@@ -9,11 +9,11 @@ public sealed record IndependentResistanceEvidence
 {
     public IndependentResistanceEvidence(ReadCurrentResistanceStep acquisition, SourceSetpoint sourceConfiguration,
         Quantity current, Quantity voltage, DateTimeOffset sourceCapturedAt, DateTimeOffset voltageCapturedAt,
-        DateTimeOffset sourceConfirmedBefore, DateTimeOffset sourceConfirmedAfter)
-        : this(acquisition, new CurrentExcitationConfiguration(sourceConfiguration), current, voltage, sourceCapturedAt, voltageCapturedAt, sourceConfirmedBefore, sourceConfirmedAfter) { }
+        DateTimeOffset sourceConfirmedBefore, DateTimeOffset sourceConfirmedAfter, CurrentResistanceRetryEvidence? retry = null)
+        : this(acquisition, new CurrentExcitationConfiguration(sourceConfiguration), current, voltage, sourceCapturedAt, voltageCapturedAt, sourceConfirmedBefore, sourceConfirmedAfter, retry) { }
     public IndependentResistanceEvidence(ReadCurrentResistanceStep acquisition, CurrentExcitationConfiguration sourceConfiguration,
         Quantity current, Quantity voltage, DateTimeOffset sourceCapturedAt, DateTimeOffset voltageCapturedAt,
-        DateTimeOffset sourceConfirmedBefore, DateTimeOffset sourceConfirmedAfter)
+        DateTimeOffset sourceConfirmedBefore, DateTimeOffset sourceConfirmedAfter, CurrentResistanceRetryEvidence? retry = null)
     {
         ArgumentNullException.ThrowIfNull(acquisition); ArgumentNullException.ThrowIfNull(sourceConfiguration);
         if (sourceConfiguration.Model == CurrentSourceModel.Keithley6221 && acquisition.CurrentReference != CurrentReference.ProgrammedSetpoint || current.Unit != PhysicalUnit.Ampere || voltage.Unit != PhysicalUnit.Volt || Math.Abs(current.Value) <= acquisition.MinimumCurrent.Value)
@@ -22,12 +22,15 @@ public sealed record IndependentResistanceEvidence
             throw new ArgumentException("Programmed current must equal the confirmed source setpoint.");
         if (sourceConfirmedBefore > sourceCapturedAt || sourceCapturedAt > voltageCapturedAt || voltageCapturedAt > sourceConfirmedAfter)
             throw new ArgumentException("Source and meter capture times must lie in the ordered source confirmation interval.");
+        retry?.Validate(acquisition.Retry, sourceConfirmedBefore); Retry = retry;
         Step = acquisition.Id; Source = acquisition.Source; Meter = acquisition.Meter; CurrentReference = acquisition.CurrentReference;
         VoltageColumn = acquisition.VoltageColumn; CurrentColumn = acquisition.CurrentColumn; ResistanceColumn = acquisition.ResistanceColumn;
         MinimumCurrent = acquisition.MinimumCurrent; Route = acquisition.RequiredRoute; SourceConfiguration = sourceConfiguration;
         Current = current; Voltage = voltage; Resistance = new(voltage.Value / current.Value, PhysicalUnit.Ohm);
         SourceCapturedAt = sourceCapturedAt; VoltageCapturedAt = voltageCapturedAt; SourceConfirmedBefore = sourceConfirmedBefore; SourceConfirmedAfter = sourceConfirmedAfter;
     }
+    public CurrentResistanceRetryEvidence? Retry { get; }
+    public int Attempts => Retry is null ? 1 : 2;
     public StepId Step { get; }
     public InstrumentId Source { get; }
     public InstrumentId Meter { get; }

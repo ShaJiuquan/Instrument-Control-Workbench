@@ -19,13 +19,18 @@ public sealed partial class DeviceRunResources
         }
         finally { gate.Release(); }
     }
-    public async Task<(IndependentResistanceEvidence Evidence, IReadOnlyList<AcquisitionQuality> Quality)> ReadCurrentResistanceAsync(
+    public Task<(IndependentResistanceEvidence Evidence, IReadOnlyList<AcquisitionQuality> Quality)> ReadCurrentResistanceAsync(
         ReadCurrentResistanceStep step, Quantity? expectedProgrammedCurrent, CancellationToken token, int? requiredMeterInput = null)
+        => ReadCurrentResistanceAsync(step, expectedProgrammedCurrent, token, requiredMeterInput, null);
+
+    internal async Task<(IndependentResistanceEvidence Evidence, IReadOnlyList<AcquisitionQuality> Quality)> ReadCurrentResistanceAsync(
+        ReadCurrentResistanceStep step, Quantity? expectedProgrammedCurrent, CancellationToken token, int? requiredMeterInput, Func<TimeSpan, Task>? retryDwell)
     {
         ArgumentNullException.ThrowIfNull(step);
         if (expectedProgrammedCurrent is { } expected && (expected.Unit != PhysicalUnit.Ampere || Math.Abs(expected.Value) <= step.MinimumCurrent.Value))
             throw new ArgumentException("Expected programmed current must be defined Ampere excitation.");
         await gate.WaitAsync(token);
+        var gateHeld = true;
         try
         {
             RequireActive();
@@ -53,7 +58,71 @@ public sealed partial class DeviceRunResources
                 sourceFrame = await manager!.ReadSourceSenseAsync(SourceFunction.Current, token, Owner, before!.Sense.Mode);
             var current = sourceFrame?.Source ?? new(configuration.Level, PhysicalUnit.Ampere);
             if (Math.Abs(current.Value) <= step.MinimumCurrent.Value) throw new InvalidOperationException("Current is zero or below the resistance threshold.");
-            var voltage = await meter.ReadObservationAsync(Keithley2182Parameters.Voltage.Id, token, Owner, requiredMeterInput);
+            ParameterObservation voltage;
+            CurrentResistanceRetryEvidence? retryEvidence = null;
+            try { voltage = await meter.ReadObservationAsync(Keithley2182Parameters.Voltage.Id, token, Owner, requiredMeterInput, classifyReadFailure: true); }
+            catch (MeterAcquisitionException failure) when (step.Retry is { } retry && failure.Failure.AllowsSingleRetry && !token.IsCancellationRequested)
+            {
+                // The read task is terminal. Cleanup has its own bounded lifetime,
+                // and each stop stays attached until terminal even on timeout.
+                var retryStops = retry.OwnsSourceOutput ? new[] { step.Source, step.Meter } : new[] { step.Meter };
+                foreach (var id in retryStops) pendingStops.Add(id, StopAndCaptureAsync(Get(id)));
+                var failures = await AwaitStopsAsync(retryStops, CancellationToken.None);
+                if (failures.Count != 0) throw new AggregateException("Acquisition retry cleanup failed; no second read or output restore is allowed.", new[] { failure }.Concat(failures.Select(f => f.Error)));
+                token.ThrowIfCancellationRequested();
+                if (step.RequiredRoute is { } held) await ((MatrixSwitchSession)Get(held.Device)).ConfirmHeldRouteAsync(Owner, token, held.Closed);
+                var retrySource = manager is null ? null : await manager.CaptureRunSourceStateAsync(Owner, token);
+                var retryPure = pure is null ? null : await pure.CaptureSourceStateAsync(Owner, token);
+                var outputExpected = !retry.OwnsSourceOutput;
+                if (retrySource is not null && (!retrySource.Connected || retrySource.OutputEnabled != outputExpected || retrySource.Source != before!.Source || retrySource.Sense != before.Sense || retrySource.Terminals != before.Terminals) ||
+                    retryPure is not null && (!retryPure.Connected || retryPure.OutputEnabled != outputExpected || retryPure.Settings != pureBefore!.Settings))
+                    throw new InvalidOperationException("Excitation changed after failed acquisition; retry refused.", failure);
+                DateTimeOffset? offAt = retry.OwnsSourceOutput ? DateTimeOffset.UtcNow : null;
+                var retrySettings = await meter.CaptureResumeSettingsAsync(Owner, token);
+                if (retrySettings != failure.Settings) throw new InvalidOperationException("Meter settings changed after failed acquisition; retry refused.", failure);
+                var idleAt = DateTimeOffset.UtcNow;
+                if (retry.OwnsSourceOutput)
+                {
+                    // Check every guard route, as normal enable does. Do not
+                    // reconfigure or overwrite a physical operator change.
+                    foreach (var matrix in sessions.Values.OfType<MatrixSwitchSession>().Where(m => m.Definition.GuardedSources.Contains(step.Source)))
+                    {
+                        await PrepareMutationAsync(matrix.Descriptor.Id); touched.Add(matrix.Descriptor.Id);
+                        await matrix.ConfirmHeldRouteAsync(Owner, token);
+                    }
+                    await PrepareMutationAsync(step.Source);
+                    if (manager is not null) await manager.EnterRunAsync(token, Owner, expectedResumeState: before);
+                    else await pure!.EnableOutputAsync(Owner, token, pureBefore);
+                }
+                if (retryDwell is not null)
+                {
+                    // Pause uses this same resource gate. The run retains its
+                    // leases while its ordinary dwell parks/restores resources.
+                    gate.Release(); gateHeld = false;
+                    try { await retryDwell(retry.Settle); }
+                    finally { await gate.WaitAsync(CancellationToken.None); gateHeld = true; }
+                    RequireActive(); await PrepareMutationAsync(step.Source);
+                }
+                else if (retry.Settle > TimeSpan.Zero) await Task.Delay(retry.Settle, token);
+                var originalSource = before;
+                before = manager is null ? null : await manager.CaptureRunSourceStateAsync(Owner, token);
+                pureBefore = pure is null ? null : await pure.CaptureSourceStateAsync(Owner, token);
+                if (before is not null && (!before.Connected || !before.OutputEnabled || new CurrentExcitationConfiguration(before.Source) != configuration || before.Sense != originalSource!.Sense || before.Terminals != originalSource.Terminals) ||
+                    pureBefore is not null && (!pureBefore.OutputEnabled || new CurrentExcitationConfiguration(CurrentSourceModel.Keithley6221, pureBefore.Settings!.Current, pureBefore.Settings.Compliance, pureBefore.Settings.ManualRange) != configuration))
+                    throw new InvalidOperationException("Excitation did not remain confirmed for the second acquisition.", failure);
+                if (step.RequiredRoute is { } secondRoute) await ((MatrixSwitchSession)Get(secondRoute.Device)).ConfirmHeldRouteAsync(Owner, token, secondRoute.Closed);
+                beforeAt = DateTimeOffset.UtcNow;
+                sourceFrame = step.CurrentReference == CurrentReference.MeasuredSourceReadback ? await manager!.ReadSourceSenseAsync(SourceFunction.Current, token, Owner, before!.Sense.Mode) : null;
+                current = sourceFrame?.Source ?? new(configuration.Level, PhysicalUnit.Ampere);
+                if (Math.Abs(current.Value) <= step.MinimumCurrent.Value) throw new InvalidOperationException("Retried source current is below the resistance threshold.");
+                await PrepareMutationAsync(step.Meter);
+                // No enclosing loop: a second failure remains fatal in this stage.
+                try { voltage = await meter.ReadObservationAsync(Keithley2182Parameters.Voltage.Id, token, Owner, requiredMeterInput, classifyReadFailure: true); }
+                catch (Exception second) when (second is not OperationCanceledException && !token.IsCancellationRequested)
+                { throw new AggregateException("Both independent voltage acquisition attempts failed.", failure, second); }
+                if (voltage.MeterConfiguration != failure.Settings) throw new InvalidOperationException("Meter settings changed before the second acquisition; resistance discarded.", failure);
+                retryEvidence = new(failure.Failure.Kind, failure.Failure.CommandCode, failure.Message, failure.StartedAt, failure.FailedAt, idleAt, offAt, failure.Settings);
+            }
             token.ThrowIfCancellationRequested();
             if (manager is not null)
             {
@@ -69,7 +138,7 @@ public sealed partial class DeviceRunResources
             if (step.RequiredRoute is { } expectedRoute)
                 await ((MatrixSwitchSession)Get(expectedRoute.Device)).ConfirmHeldRouteAsync(Owner, token, expectedRoute.Closed);
             var currentAt = sourceFrame?.Timestamp ?? beforeAt;
-            var evidence = new IndependentResistanceEvidence(step, configuration, current, voltage.Value, currentAt, voltage.CapturedAt, beforeAt, afterAt);
+            var evidence = new IndependentResistanceEvidence(step, configuration, current, voltage.Value, currentAt, voltage.CapturedAt, beforeAt, afterAt, retryEvidence);
             IReadOnlyList<AcquisitionQuality> quality = Array.AsReadOnly(new[]
             {
                 new AcquisitionQuality(step.Id, step.Source, step.CurrentColumn, currentAt, sourceFrame?.Status, sourceFrame?.AcquisitionConfiguration),
@@ -77,6 +146,6 @@ public sealed partial class DeviceRunResources
             });
             return (evidence, quality);
         }
-        finally { gate.Release(); }
+        finally { if (gateHeld) gate.Release(); }
     }
 }

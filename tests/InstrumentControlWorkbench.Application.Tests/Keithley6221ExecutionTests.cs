@@ -219,11 +219,15 @@ public sealed partial class Keithley6221ExecutionTests
     {
         private readonly MockKeithley2182Meter inner = new(new("meter"), "External voltage simulation");
         public DeviceDescriptor Descriptor => inner.Descriptor; public Func<CancellationToken, Task>? OnRead { get; set; }
+        public Func<CancellationToken, Task>? OnAbort { get; set; }
+        public Func<CancellationToken, Task>? OnSnapshot { get; set; }
+        public int ReadCalls { get; private set; }
+        public int AbortCalls { get; private set; }
         public Task<K2182MeterSnapshot> ConnectAsync(CancellationToken token) => inner.ConnectAsync(token);
-        public Task<K2182MeterSnapshot> GetSnapshotAsync(CancellationToken token) => inner.GetSnapshotAsync(token);
+        public async Task<K2182MeterSnapshot> GetSnapshotAsync(CancellationToken token) { if (OnSnapshot is { } action) await action(token); return await inner.GetSnapshotAsync(token); }
         public Task ConfigureAsync(Keithley2182Settings settings, CancellationToken token) => inner.ConfigureAsync(settings, token);
-        public async Task<K2182VoltageReading> ReadAsync(CancellationToken token) { if (OnRead is { } action) await action(token); return await inner.ReadAsync(token); }
-        public Task AbortAcquisitionAsync(CancellationToken token) => inner.AbortAcquisitionAsync(token);
+        public async Task<K2182VoltageReading> ReadAsync(CancellationToken token) { ReadCalls++; if (OnRead is { } action) await action(token); return await inner.ReadAsync(token); }
+        public async Task AbortAcquisitionAsync(CancellationToken token) { AbortCalls++; if (OnAbort is { } action) await action(token); await inner.AbortAcquisitionAsync(token); }
         public Task DisconnectAsync(CancellationToken token) => inner.DisconnectAsync(token);
     }
 }

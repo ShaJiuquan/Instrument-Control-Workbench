@@ -68,6 +68,7 @@ public sealed partial class JsonExperimentPlanDocument
                 o["kind"] = "read_current_resistance"; o["source"] = independent.Source.Value; o["meter"] = independent.Meter.Value; o["currentReference"] = independent.CurrentReference.ToString();
                 o["voltageColumn"] = independent.VoltageColumn.Value; o["currentColumn"] = independent.CurrentColumn.Value; o["resistanceColumn"] = independent.ResistanceColumn.Value;
                 o["minimumCurrent"] = EncodeQuantity(independent.MinimumCurrent); EncodeEnvironment(o, independent.EnvironmentReads);
+                if (independent.Retry is { } retry) o["retry"] = new JsonObject { ["ownsSourceOutput"] = retry.OwnsSourceOutput, ["settleSeconds"] = retry.Settle.TotalSeconds };
                 if (independent.ExpectedProgrammedCurrent is { } expected) o["expectedProgrammedCurrent"] = EncodeValue(expected);
                 if (independent.RequiredRoute is { } required) o["requiredRoute"] = new JsonObject { ["device"] = required.Device.Value, ["closed"] = new JsonArray(required.Closed.Select(p => (JsonNode)new JsonObject { ["slot"] = p.Slot, ["row"] = p.Row, ["column"] = p.Column }).ToArray()) };
                 break;
@@ -190,16 +191,22 @@ public sealed partial class JsonExperimentPlanDocument
                     return new ReadChannel(new(Text(channel, "column")), DecodeAddress(channel["address"]));
                 }), DecodeEnvironment(o));
             case "read_current_resistance":
-                Object(o, "id", "kind", "source", "meter", "currentReference", "voltageColumn", "currentColumn", "resistanceColumn", "minimumCurrent", "expectedProgrammedCurrent", "requiredRoute", "environmentReads");
+                Object(o, "id", "kind", "source", "meter", "currentReference", "voltageColumn", "currentColumn", "resistanceColumn", "minimumCurrent", "expectedProgrammedCurrent", "requiredRoute", "environmentReads", "retry");
                 MatrixRouteExpectation? expectation = null;
                 if (o.ContainsKey("requiredRoute"))
                 {
                     var route = Object(o["requiredRoute"], "device", "closed");
                     expectation = new(new(Text(route, "device")), Array(Required(route, "closed")).Select(p => { var point = Object(p, "slot", "row", "column"); return new MatrixCrossPoint(Integer(point, "slot"), Integer(point, "row"), Integer(point, "column")); }));
                 }
+                CurrentResistanceRetry? retryPolicy = null;
+                if (o.ContainsKey("retry"))
+                {
+                    var retryObject = Object(o["retry"], "ownsSourceOutput", "settleSeconds");
+                    retryPolicy = new(Boolean(retryObject, "ownsSourceOutput"), Duration(retryObject, "settleSeconds"));
+                }
                 return new ReadCurrentResistanceStep(id, new(Text(o, "source")), new(Text(o, "meter")), NamedEnum<CurrentReference>(o, "currentReference"),
                     new(Text(o, "voltageColumn")), new(Text(o, "currentColumn")), new(Text(o, "resistanceColumn")), DecodeQuantity(o["minimumCurrent"]),
-                    o.ContainsKey("expectedProgrammedCurrent") ? DecodeValue(o["expectedProgrammedCurrent"]) : null, expectation, DecodeEnvironment(o));
+                    o.ContainsKey("expectedProgrammedCurrent") ? DecodeValue(o["expectedProgrammedCurrent"]) : null, expectation, DecodeEnvironment(o), retryPolicy);
             case "read_independent_sample_resistance":
                 Object(o, "id", "kind", "acquisition", "binding", "settleSeconds", "acquisitionSettleSeconds");
                 var independentSample = DecodeStep(Required(o, "acquisition"), depth + 1, ref count) as ReadCurrentResistanceStep ?? throw new FormatException("Independent sample needs its current-source/meter acquisition.");

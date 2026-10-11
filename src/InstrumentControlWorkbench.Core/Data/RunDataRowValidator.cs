@@ -106,6 +106,7 @@ public sealed class RunDataRowValidator
                     !row.Values.TryGetValue(step.CurrentColumn, out var current) || current != evidence.Current || !row.Values.TryGetValue(step.VoltageColumn, out var voltage) || voltage != evidence.Voltage ||
                     !row.Values.TryGetValue(step.ResistanceColumn, out var resistance) || resistance != evidence.Resistance)
                     throw new ArgumentException("Independent resistance identity, configuration, times or V/I differs from its plan and values.");
+                evidence.Retry?.Validate(step.Retry, evidence.SourceConfirmedBefore);
                 var expectedExcitation = step.ExpectedProgrammedCurrent switch
                 {
                     null => (Quantity?)null,
@@ -120,6 +121,7 @@ public sealed class RunDataRowValidator
                     step.CurrentReference == CurrentReference.ProgrammedSetpoint && (currentQuality.Status is not null || currentQuality.AcquisitionConfiguration is not null) ||
                     currentQuality.Status is { } status && (!status.SourceReadback || !status.OutputEnabled))
                     throw new ArgumentException("Independent resistance quality must preserve the actual source/meter observation kind and capture times.");
+                if (evidence.Retry is { } retry && retry.MeterSettings != voltageQuality.MeterConfiguration) throw new ArgumentException("Retry must retain the unchanged observed meter configuration.");
                 if (independentSamples.TryGetValue(evidence.Step, out var sampleContext) &&
                     (row.Routing is null || row.Routing.Binding != sampleContext.Binding || row.Routing.VoltageMeter != step.Meter || voltageQuality.MeterConfiguration.Channel != 1))
                     throw new ArgumentException("Independent sample must preserve its electrode selection, meter identity and wired input 1.");
