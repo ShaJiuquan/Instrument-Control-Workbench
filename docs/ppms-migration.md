@@ -490,3 +490,25 @@ and the two-row ppms-temperature-controls-import.json fixture. No dependencies,
 Rust writes, physical IO or29 UI drafts changed. Stability configuration, PID/
 heater/cooling/background/physical controller/native UI remain pending; full
 PPMS migration remains active. GitHub only; independent C# executor.
+
+
+## macOS application packaging and native probe (2026-10-11)
+
+A Release self-contained .app packaging script now publishes the existing SDK/
+Avalonia runtime, validates native manifest/runtime/executable and refuses existing
+output including dangling links; exported source without Git metadata remains
+buildable with explicit unknown provenance. App name matches bundle/native menu.
+Actual local draft UI opened: four simulators, rotation connect/readback, device
+document validation, two-device15-row plan pause/owned source-off/manual disable/
+resume/finish, persisted history and UI CSV checked. A fresh self-contained Release
+process reopened15-row history. Closing during another active simulated run
+terminated the original process and finalized10-row Aborted archive; subsequent
+CUA AX observation automatically opened a new process, not continued old run.
+Native coordinate resize rejects noWindowsAvailable while AX/process live;
+1060x720 and failed-safety recovery/close acceptance still pending.29 original UI
+drafts unchanged/excluded; package probe includes them and is distinct from clean
+committed-source package. No Rust edits, physical IO or new package references.
+Script guards, mandatory hook, exact clean audit/package and GitHub publication
+are required. See [macos-packaging.md](macos-packaging.md). Full goal active;
+remaining controller/stability/BT/advanced measurement/DB/flow/UI/packaging/hardware
+work is not complete. GitHub only; independent C# executor inspired by OpenTAP.

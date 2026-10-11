@@ -172,3 +172,6 @@ Physical drivers and full UI/PPMS parity remain pending.
 
 Independent K2182 configuration commands, per-input range/filter retention and
 K6221 source-delay register support: [implementation and examples](docs/independent-device-commands.md).
+
+
+Build a self-contained macOS application bundle with the existing SDK: [macOS packaging and native acceptance](docs/macos-packaging.md).
