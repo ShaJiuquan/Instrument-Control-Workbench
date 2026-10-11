@@ -29,6 +29,8 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanDocument
             ["root"] = EncodeStep(plan.Root, 0, ref count),
         };
         if (plan.Routing is { } routing) root["routing"] = EncodeRouting(routing);
+        if (plan.CurrentSourcePreparations.Count != 0) root["currentSourcePreparations"] = new JsonArray(plan.CurrentSourcePreparations.Select(p => (JsonNode)new JsonObject
+        { ["device"] = p.Device.Value, ["current"] = EncodeQuantity(p.Settings.Current), ["compliance"] = EncodeQuantity(p.Settings.Compliance), ["manualRange"] = p.Settings.ManualRange is { } range ? EncodeQuantity(range) : null }).ToArray());
         var text = root.ToJsonString(JsonOptions);
         if (Encoding.UTF8.GetByteCount(text) > MaximumBytes) throw new ArgumentOutOfRangeException(nameof(plan), "Plan document exceeds 4 MiB.");
         return text;
@@ -39,7 +41,7 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanDocument
         ArgumentNullException.ThrowIfNull(text);
         if (Encoding.UTF8.GetByteCount(text) > MaximumBytes) throw new ArgumentOutOfRangeException(nameof(text), "Plan document exceeds 4 MiB.");
         var root = Object(JsonNode.Parse(text, documentOptions: new JsonDocumentOptions { MaxDepth = 512 }),
-            "format", "version", "name", "root", "preparations", "metadata", "routing");
+            "format", "version", "name", "root", "preparations", "metadata", "routing", "currentSourcePreparations");
         if (Text(root, "format") != Format) throw new FormatException("This is not an Instrument Workbench plan document.");
         if (Integer(root, "version") != ExperimentPlan.FormatVersion) throw new NotSupportedException("Unsupported plan version; the file was not changed.");
         var count = 0;
@@ -47,7 +49,12 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanDocument
         var preparations = Array(Required(root, "preparations")).Select(DecodePreparation).ToArray();
         var metadata = Required(root, "metadata") as JsonObject ?? throw new FormatException("Metadata must be an object.");
         return new(Text(root, "name"), step, preparations, metadata.ToDictionary(p => p.Key, p => DecodeQuantity(p.Value)),
-            root.ContainsKey("routing") ? DecodeRouting(Required(root, "routing")) : null);
+            root.ContainsKey("routing") ? DecodeRouting(Required(root, "routing")) : null,
+            root.ContainsKey("currentSourcePreparations") ? Array(Required(root, "currentSourcePreparations")).Select(n =>
+            {
+                var p = Object(n, "device", "current", "compliance", "manualRange");
+                return new CurrentSourcePreparation(new(Text(p, "device")), new(DecodeQuantity(Required(p, "current")), DecodeQuantity(Required(p, "compliance")), p["manualRange"] is null ? null : DecodeQuantity(p["manualRange"])));
+            }) : null);
     }
 
     public async Task<ExperimentPlan> LoadAsync(string path, CancellationToken token)
@@ -97,7 +104,7 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanDocument
 
     private static void CheckEnvelope(ExperimentPlan plan)
     {
-        if (plan.Preparations.Count > 10_000 || plan.Metadata.Count > 10_000)
+        if (plan.Preparations.Count + plan.CurrentSourcePreparations.Count > 10_000 || plan.Metadata.Count > 10_000)
             throw new FormatException("Too many preparation or metadata entries.");
         var pending = new Stack<(ExperimentStep Step, int Depth)>();
         pending.Push((plan.Root, 0));

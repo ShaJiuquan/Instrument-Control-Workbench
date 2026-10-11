@@ -67,7 +67,13 @@
         "environmentImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.Environment.cs; src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Environment.cs; src/InstrumentControlWorkbench.Core/Data/RunDataRowValidator.cs",
         "environmentTests": "tests/InstrumentControlWorkbench.Application.Tests/EnvironmentAcquisitionTests.cs; tests/InstrumentControlWorkbench.Application.Tests/PpmsResistanceImportTests.cs",
         "environmentLimits": "All supported imported measurements automatically retain temperature/field/angle, source, actual value or unavailable error and UTC read completion time. Atomic admission includes bound controller readbacks; unbound roles record errors without guessing devices. Serialized C# capture follows electrical acquisition, unlike concurrent Rust futures. Raw sample observations, first-input analysis context and per-member wide-point evidence persist and validate through native/archive/CSV. Physical timing, sensor quality, remaining acquisition families/settings/UI and hardware remain pending. See environment-acquisition.md.",
-        "sourceRangeEvidence": "K2450 source-range subset implemented and protocol-tested through native/imported plans; 45 source-range cases. Actual physical families, sense range/quality and remaining per-feature semantics stay pending. See k2450SourceRanges and source-ranges.md."
+        "sourceRangeEvidence": "K2450 source-range subset implemented and protocol-tested through native/imported plans; 45 source-range cases. Actual physical families, sense range/quality and remaining per-feature semantics stay pending. See k2450SourceRanges and source-ranges.md.",
+        "pureCurrentSource": {
+          "status": "partial",
+          "implementation": "src/InstrumentControlWorkbench.Core/Instruments/Keithley6221Settings.cs; src/InstrumentControlWorkbench.Core/Instruments/Ports/IK6221CurrentSourcePort.cs; src/InstrumentControlWorkbench.Application/Devices/Keithley6221CurrentSourceSession.cs; src/InstrumentControlWorkbench.Infrastructure/Drivers/MockKeithley6221CurrentSource.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.CurrentSources.cs",
+          "tests": "tests/InstrumentControlWorkbench.Core.Tests/Keithley6221ModelTests.cs; tests/InstrumentControlWorkbench.Application.Tests/Keithley6221ExecutionTests*.cs",
+          "limits": "Pure DC simulator with separate settings/port/profile/constraints; no SMU sense/measurement. Native current-source preparations, explicit configured source, current command/scans/curr_dc and basic K6221 command aliases, source-setting evidence and archived model identity, shared atomic leases/pause/stop/fault recovery including live timeout retention. Real transport, actual full-scale/quality, source delay/response/filtering/advanced modes, automatic independent sample wiring/analysis, retry-to-invalid-point and UI/lab acceptance pending. See k6221-current-source.md."
+        }
       }
     },
     {
@@ -264,7 +270,13 @@
           "status": "partial",
           "implementation": "src/InstrumentControlWorkbench.Core/Experiments/ReadCurrentResistanceStep.cs; src/InstrumentControlWorkbench.Application/Devices/DeviceRunResources.CurrentResistance.cs; src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.CurrentResistance.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.CurrentResistance.cs",
           "tests": "tests/InstrumentControlWorkbench.Core.Tests/CurrentResistanceModelTests.cs; tests/InstrumentControlWorkbench.Application.Tests/CurrentResistanceExecutionTests*.cs",
-          "limits": "Supported K2450 current excitation + explicitly simulated K2182; named programmed or measured current, separate times and quality, source/meter drift rejection, explicit guarded matrix routes, owned/scan-managed curr_dc import, signed persisted current axes, wide/archive/CSV provenance. Real K2182/K6221, independent automatic sample wiring/analysis, retry-to-invalid-point, delta/pulse/AC and UI/lab acceptance pending. See current-resistance.md."
+          "limits": "Supported K2450 current excitation + explicitly simulated K2182; named programmed or measured current, separate times and quality, source/meter drift rejection, explicit guarded matrix routes, owned/scan-managed curr_dc import, signed persisted current axes, wide/archive/CSV provenance. K6221 pure DC simulator now supported; real K2182/K6221, independent automatic sample wiring/analysis, retry-to-invalid-point, delta/pulse/AC and UI/lab acceptance pending. See current-resistance.md."
+        },
+        "pureCurrentSource": {
+          "status": "partial",
+          "implementation": "src/InstrumentControlWorkbench.Core/Instruments/Keithley6221Settings.cs; src/InstrumentControlWorkbench.Core/Instruments/Ports/IK6221CurrentSourcePort.cs; src/InstrumentControlWorkbench.Application/Devices/Keithley6221CurrentSourceSession.cs; src/InstrumentControlWorkbench.Infrastructure/Drivers/MockKeithley6221CurrentSource.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.CurrentSources.cs",
+          "tests": "tests/InstrumentControlWorkbench.Core.Tests/Keithley6221ModelTests.cs; tests/InstrumentControlWorkbench.Application.Tests/Keithley6221ExecutionTests*.cs",
+          "limits": "Pure DC simulator with separate settings/port/profile/constraints; no SMU sense/measurement. Native current-source preparations, explicit configured source, current command/scans/curr_dc and basic K6221 command aliases, source-setting evidence and archived model identity, shared atomic leases/pause/stop/fault recovery including live timeout retention. Real transport, actual full-scale/quality, source delay/response/filtering/advanced modes, automatic independent sample wiring/analysis, retry-to-invalid-point and UI/lab acceptance pending. See k6221-current-source.md."
         }
       }
     },
@@ -556,7 +568,13 @@
           "status": "partial",
           "implementation": "src/InstrumentControlWorkbench.Core/Experiments/ReadCurrentResistanceStep.cs; src/InstrumentControlWorkbench.Application/Devices/DeviceRunResources.CurrentResistance.cs; src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.CurrentResistance.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.CurrentResistance.cs",
           "tests": "tests/InstrumentControlWorkbench.Core.Tests/CurrentResistanceModelTests.cs; tests/InstrumentControlWorkbench.Application.Tests/CurrentResistanceExecutionTests*.cs",
-          "limits": "Supported K2450 current excitation + explicitly simulated K2182; named programmed or measured current, separate times and quality, source/meter drift rejection, explicit guarded matrix routes, owned/scan-managed curr_dc import, signed persisted current axes, wide/archive/CSV provenance. Real K2182/K6221, independent automatic sample wiring/analysis, retry-to-invalid-point, delta/pulse/AC and UI/lab acceptance pending. See current-resistance.md."
+          "limits": "Supported K2450 current excitation + explicitly simulated K2182; named programmed or measured current, separate times and quality, source/meter drift rejection, explicit guarded matrix routes, owned/scan-managed curr_dc import, signed persisted current axes, wide/archive/CSV provenance. K6221 pure DC simulator now supported; real K2182/K6221, independent automatic sample wiring/analysis, retry-to-invalid-point, delta/pulse/AC and UI/lab acceptance pending. See current-resistance.md."
+        },
+        "pureCurrentSource": {
+          "status": "partial",
+          "implementation": "src/InstrumentControlWorkbench.Core/Instruments/Keithley6221Settings.cs; src/InstrumentControlWorkbench.Core/Instruments/Ports/IK6221CurrentSourcePort.cs; src/InstrumentControlWorkbench.Application/Devices/Keithley6221CurrentSourceSession.cs; src/InstrumentControlWorkbench.Infrastructure/Drivers/MockKeithley6221CurrentSource.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.CurrentSources.cs",
+          "tests": "tests/InstrumentControlWorkbench.Core.Tests/Keithley6221ModelTests.cs; tests/InstrumentControlWorkbench.Application.Tests/Keithley6221ExecutionTests*.cs",
+          "limits": "Pure DC simulator with separate settings/port/profile/constraints; no SMU sense/measurement. Native current-source preparations, explicit configured source, current command/scans/curr_dc and basic K6221 command aliases, source-setting evidence and archived model identity, shared atomic leases/pause/stop/fault recovery including live timeout retention. Real transport, actual full-scale/quality, source delay/response/filtering/advanced modes, automatic independent sample wiring/analysis, retry-to-invalid-point and UI/lab acceptance pending. See k6221-current-source.md."
         }
       }
     },
@@ -655,25 +673,57 @@
       "id": "k6221.set_current",
       "nodeType": "command",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "pureCurrentSource": {
+          "status": "partial",
+          "implementation": "src/InstrumentControlWorkbench.Core/Instruments/Keithley6221Settings.cs; src/InstrumentControlWorkbench.Core/Instruments/Ports/IK6221CurrentSourcePort.cs; src/InstrumentControlWorkbench.Application/Devices/Keithley6221CurrentSourceSession.cs; src/InstrumentControlWorkbench.Infrastructure/Drivers/MockKeithley6221CurrentSource.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.CurrentSources.cs",
+          "tests": "tests/InstrumentControlWorkbench.Core.Tests/Keithley6221ModelTests.cs; tests/InstrumentControlWorkbench.Application.Tests/Keithley6221ExecutionTests*.cs",
+          "limits": "Pure DC simulator with separate settings/port/profile/constraints; no SMU sense/measurement. Native current-source preparations, explicit configured source, current command/scans/curr_dc and basic K6221 command aliases, source-setting evidence and archived model identity, shared atomic leases/pause/stop/fault recovery including live timeout retention. Real transport, actual full-scale/quality, source delay/response/filtering/advanced modes, automatic independent sample wiring/analysis, retry-to-invalid-point and UI/lab acceptance pending. See k6221-current-source.md."
+        }
+      }
     },
     {
       "id": "k6221.set_compliance",
       "nodeType": "command",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "pureCurrentSource": {
+          "status": "partial",
+          "implementation": "src/InstrumentControlWorkbench.Core/Instruments/Keithley6221Settings.cs; src/InstrumentControlWorkbench.Core/Instruments/Ports/IK6221CurrentSourcePort.cs; src/InstrumentControlWorkbench.Application/Devices/Keithley6221CurrentSourceSession.cs; src/InstrumentControlWorkbench.Infrastructure/Drivers/MockKeithley6221CurrentSource.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.CurrentSources.cs",
+          "tests": "tests/InstrumentControlWorkbench.Core.Tests/Keithley6221ModelTests.cs; tests/InstrumentControlWorkbench.Application.Tests/Keithley6221ExecutionTests*.cs",
+          "limits": "Pure DC simulator with separate settings/port/profile/constraints; no SMU sense/measurement. Native current-source preparations, explicit configured source, current command/scans/curr_dc and basic K6221 command aliases, source-setting evidence and archived model identity, shared atomic leases/pause/stop/fault recovery including live timeout retention. Real transport, actual full-scale/quality, source delay/response/filtering/advanced modes, automatic independent sample wiring/analysis, retry-to-invalid-point and UI/lab acceptance pending. See k6221-current-source.md."
+        }
+      }
     },
     {
       "id": "k6221.set_output",
       "nodeType": "command",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "pureCurrentSource": {
+          "status": "partial",
+          "implementation": "src/InstrumentControlWorkbench.Core/Instruments/Keithley6221Settings.cs; src/InstrumentControlWorkbench.Core/Instruments/Ports/IK6221CurrentSourcePort.cs; src/InstrumentControlWorkbench.Application/Devices/Keithley6221CurrentSourceSession.cs; src/InstrumentControlWorkbench.Infrastructure/Drivers/MockKeithley6221CurrentSource.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.CurrentSources.cs",
+          "tests": "tests/InstrumentControlWorkbench.Core.Tests/Keithley6221ModelTests.cs; tests/InstrumentControlWorkbench.Application.Tests/Keithley6221ExecutionTests*.cs",
+          "limits": "Pure DC simulator with separate settings/port/profile/constraints; no SMU sense/measurement. Native current-source preparations, explicit configured source, current command/scans/curr_dc and basic K6221 command aliases, source-setting evidence and archived model identity, shared atomic leases/pause/stop/fault recovery including live timeout retention. Real transport, actual full-scale/quality, source delay/response/filtering/advanced modes, automatic independent sample wiring/analysis, retry-to-invalid-point and UI/lab acceptance pending. See k6221-current-source.md."
+        }
+      }
     },
     {
       "id": "k6221.set_range",
       "nodeType": "command",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "pureCurrentSource": {
+          "status": "partial",
+          "implementation": "src/InstrumentControlWorkbench.Core/Instruments/Keithley6221Settings.cs; src/InstrumentControlWorkbench.Core/Instruments/Ports/IK6221CurrentSourcePort.cs; src/InstrumentControlWorkbench.Application/Devices/Keithley6221CurrentSourceSession.cs; src/InstrumentControlWorkbench.Infrastructure/Drivers/MockKeithley6221CurrentSource.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.CurrentSources.cs",
+          "tests": "tests/InstrumentControlWorkbench.Core.Tests/Keithley6221ModelTests.cs; tests/InstrumentControlWorkbench.Application.Tests/Keithley6221ExecutionTests*.cs",
+          "limits": "Pure DC simulator with separate settings/port/profile/constraints; no SMU sense/measurement. Native current-source preparations, explicit configured source, current command/scans/curr_dc and basic K6221 command aliases, source-setting evidence and archived model identity, shared atomic leases/pause/stop/fault recovery including live timeout retention. Real transport, actual full-scale/quality, source delay/response/filtering/advanced modes, automatic independent sample wiring/analysis, retry-to-invalid-point and UI/lab acceptance pending. See k6221-current-source.md."
+        }
+      }
     },
     {
       "id": "k2450.set_source_function",
@@ -1262,6 +1312,12 @@
     "status": "partial",
     "implementation": "src/InstrumentControlWorkbench.Core/Experiments/ReadCurrentResistanceStep.cs; src/InstrumentControlWorkbench.Application/Devices/DeviceRunResources.CurrentResistance.cs; src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.CurrentResistance.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.CurrentResistance.cs",
     "tests": "tests/InstrumentControlWorkbench.Core.Tests/CurrentResistanceModelTests.cs; tests/InstrumentControlWorkbench.Application.Tests/CurrentResistanceExecutionTests*.cs",
-    "limits": "Supported K2450 current excitation + explicitly simulated K2182; named programmed or measured current, separate times and quality, source/meter drift rejection, explicit guarded matrix routes, owned/scan-managed curr_dc import, signed persisted current axes, wide/archive/CSV provenance. Real K2182/K6221, independent automatic sample wiring/analysis, retry-to-invalid-point, delta/pulse/AC and UI/lab acceptance pending. See current-resistance.md."
+    "limits": "Supported K2450 current excitation + explicitly simulated K2182; named programmed or measured current, separate times and quality, source/meter drift rejection, explicit guarded matrix routes, owned/scan-managed curr_dc import, signed persisted current axes, wide/archive/CSV provenance. K6221 pure DC simulator now supported; real K2182/K6221, independent automatic sample wiring/analysis, retry-to-invalid-point, delta/pulse/AC and UI/lab acceptance pending. See current-resistance.md."
+  },
+  "k6221CurrentSource": {
+    "status": "partial",
+    "implementation": "src/InstrumentControlWorkbench.Core/Instruments/Keithley6221Settings.cs; src/InstrumentControlWorkbench.Core/Instruments/Ports/IK6221CurrentSourcePort.cs; src/InstrumentControlWorkbench.Application/Devices/Keithley6221CurrentSourceSession.cs; src/InstrumentControlWorkbench.Infrastructure/Drivers/MockKeithley6221CurrentSource.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.CurrentSources.cs",
+    "tests": "tests/InstrumentControlWorkbench.Core.Tests/Keithley6221ModelTests.cs; tests/InstrumentControlWorkbench.Application.Tests/Keithley6221ExecutionTests*.cs",
+    "limits": "Pure DC simulator with separate settings/port/profile/constraints; no SMU sense/measurement. Native current-source preparations, explicit configured source, current command/scans/curr_dc and basic K6221 command aliases, source-setting evidence and archived model identity, shared atomic leases/pause/stop/fault recovery including live timeout retention. Real transport, actual full-scale/quality, source delay/response/filtering/advanced modes, automatic independent sample wiring/analysis, retry-to-invalid-point and UI/lab acceptance pending. See k6221-current-source.md."
   }
 }

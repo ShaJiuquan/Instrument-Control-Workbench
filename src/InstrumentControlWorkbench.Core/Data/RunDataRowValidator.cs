@@ -91,6 +91,7 @@ public sealed class RunDataRowValidator
             {
                 if (!independentResistance.TryGetValue(evidence.Step, out var step) || evidence.Source != step.Source || evidence.Meter != step.Meter || evidence.CurrentReference != step.CurrentReference ||
                     evidence.MinimumCurrent != step.MinimumCurrent || evidence.VoltageColumn != step.VoltageColumn || evidence.CurrentColumn != step.CurrentColumn || evidence.ResistanceColumn != step.ResistanceColumn ||
+                    evidence.SourceConfiguration.Model != (plan!.CurrentSourcePreparations.Any(p => p.Device == step.Source) ? CurrentSourceModel.Keithley6221 : CurrentSourceModel.Keithley2450) ||
                     !Equals(evidence.Route, step.RequiredRoute) || evidence.SourceConfirmedAfter > row.Timestamp ||
                     !row.Values.TryGetValue(step.CurrentColumn, out var current) || current != evidence.Current || !row.Values.TryGetValue(step.VoltageColumn, out var voltage) || voltage != evidence.Voltage ||
                     !row.Values.TryGetValue(step.ResistanceColumn, out var resistance) || resistance != evidence.Resistance)

@@ -3,9 +3,9 @@
 This slice measures external voltage while a separately reserved source supplies
 current, then computes R = V/I. Execution uses the existing independent C# engine;
 OpenTAP is an architectural reference, not a package dependency. Current sources
-currently use the K2450 boundary; external K2182 voltage has an explicit simulator.
-Neither K6221 hardware support nor electrical coupling of the two simulators is
-claimed.
+now use either the K2450 boundary or the [pure K6221 DC boundary](k6221-current-source.md);
+external K2182 voltage and K6221 DC output have explicit simulators. Real K6221
+hardware support and electrical coupling of the simulators are not claimed.
 
 ```mermaid
 flowchart LR
@@ -106,7 +106,11 @@ dependencies, lab IO or UI changes are included.
 
 PPMS retry/recover-to-invalid-point behavior is not migrated: current errors stop
 the C# run after safe cleanup. Automatic sample wiring, Hall/van der Pauw analysis
-with an independent meter, pure K6221 ports/drivers, real K2182 transport,
+with an independent meter, real K6221/K2182 transports,
 delta/pulse/AC, synchronized acquisition, physical safety/timing acceptance and
 native settings/editor/history/plot acceptance remain required. This is a tested
 subset, not full PPMS parity.
+
+Pure K6221 DC simulation now runs this acquisition with a model-specific native
+preparation and archived model identity. Its programmed current cannot claim a
+measured source readback. See [k6221-current-source.md](k6221-current-source.md).

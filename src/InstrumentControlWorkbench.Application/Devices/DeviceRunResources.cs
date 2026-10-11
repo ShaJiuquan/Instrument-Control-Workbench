@@ -6,7 +6,7 @@ using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Application.Devices;
 
-internal sealed record DeviceResumeState(InstrumentId Device, bool OutputEnabled, ParameterId? Target, Quantity? TargetValue, SourceMeterSnapshot? SourceState = null, TemperatureControlConfiguration? TemperatureState = null, Keithley2182Settings? MeterState = null);
+internal sealed record DeviceResumeState(InstrumentId Device, bool OutputEnabled, ParameterId? Target, Quantity? TargetValue, SourceMeterSnapshot? SourceState = null, TemperatureControlConfiguration? TemperatureState = null, Keithley2182Settings? MeterState = null, Core.Instruments.Ports.K6221CurrentSourceSnapshot? CurrentSourceState = null);
 
 public sealed record DeviceCleanupFailure(InstrumentId InstrumentId, Exception Error);
 
@@ -147,13 +147,14 @@ public sealed partial class DeviceRunResources
         finally { gate.Release(); }
     }
 
-    public async Task EnableSourceOutputAsync(InstrumentId id, CancellationToken token, SensingMode? requiredSensingMode = null, SourceMeterSnapshot? expectedResumeState = null)
+    public async Task EnableSourceOutputAsync(InstrumentId id, CancellationToken token, SensingMode? requiredSensingMode = null, SourceMeterSnapshot? expectedResumeState = null, Core.Instruments.Ports.K6221CurrentSourceSnapshot? expectedCurrentState = null)
     {
         await gate.WaitAsync(token);
         try
         {
             RequireActive();
-            var manager = Get(id) as InstrumentManager ?? throw new NotSupportedException($"{id} has no source-output capability.");
+            var session = Get(id);
+            if (session is not (InstrumentManager or Keithley6221CurrentSourceSession)) throw new NotSupportedException($"{id} has no source-output capability.");
             await PrepareMutationAsync(id);
             foreach (var matrix in sessions.Values.OfType<MatrixSwitchSession>().Where(m => m.Definition.GuardedSources.Contains(id)))
             {
@@ -163,6 +164,13 @@ public sealed partial class DeviceRunResources
             }
             token.ThrowIfCancellationRequested();
             touched.Add(id);
+            if (session is Keithley6221CurrentSourceSession current)
+            {
+                if (requiredSensingMode is not null || expectedResumeState is not null) throw new ArgumentException("Pure current source has no sensing mode or SMU resume state.");
+                await current.EnableOutputAsync(Owner, token, expectedCurrentState); return;
+            }
+            var manager = (InstrumentManager)session;
+            if (expectedCurrentState is not null) throw new ArgumentException("SMU resume cannot use a pure current-source snapshot.");
             var status = await manager.GetDeviceStatusAsync(token, Owner);
             if (!status.Connected) throw new InvalidOperationException($"{id} is disconnected.");
             if (status.SafetyConfirmed || expectedResumeState is not null) await manager.EnterRunAsync(token, Owner, requiredSensingMode, expectedResumeState);
@@ -332,7 +340,8 @@ public sealed partial class DeviceRunResources
         try
         {
             RequireActive();
-            var session = Get(id) as InstrumentManager ?? throw new NotSupportedException($"{id} has no source-output capability.");
+            var session = Get(id);
+            if (session is not (InstrumentManager or Keithley6221CurrentSourceSession)) throw new NotSupportedException($"{id} has no source-output capability.");
             token.ThrowIfCancellationRequested();
             touched.Add(id);
             if (!pendingStops.ContainsKey(id)) pendingStops.Add(id, StopAndCaptureAsync(session));
@@ -363,7 +372,7 @@ public sealed partial class DeviceRunResources
                 else
                 {
                     var status = await session.GetDeviceStatusAsync(token, Owner);
-                    if (session is Keithley2182MeterSession && !status.Connected) throw new InvalidOperationException($"{id}: disconnected meter cannot provide run settings.");
+                    if (session is Keithley2182MeterSession or Keithley6221CurrentSourceSession && !status.Connected) throw new InvalidOperationException($"{id}: disconnected device cannot provide run settings.");
                     var configuration = new Dictionary<string, string>
                     {
                         ["display_name"] = session.Descriptor.DisplayName,
@@ -398,6 +407,11 @@ public sealed partial class DeviceRunResources
             }
             else if (session is Keithley2182MeterSession meter)
                 result.Add(new(session.Descriptor.Id, false, null, null, MeterState: await meter.CaptureResumeSettingsAsync(Owner, token)));
+            else if (session is Keithley6221CurrentSourceSession current)
+            {
+                var snapshot = await current.CaptureSourceStateAsync(Owner, token);
+                result.Add(new(session.Descriptor.Id, snapshot.OutputEnabled, null, null, CurrentSourceState: snapshot));
+            }
             else if (session is AxisControllerSession axis)
                 result.Add(new(session.Descriptor.Id, false, axis.Definition.Target.Id, status.Values[axis.Definition.Target.Id], TemperatureState: axis.Definition.SupportsSoftwareTemperatureRamp ? await axis.CaptureTemperatureConfigurationAsync(Owner, token) : null));
             else if (session is not MatrixSwitchSession) throw new NotSupportedException($"Pause has no resume policy for {session.Descriptor.Id}.");
@@ -424,6 +438,12 @@ public sealed partial class DeviceRunResources
                 await PrepareMutationAsync(state.Device); touched.Add(state.Device);
                 if (await ((Keithley2182MeterSession)Get(state.Device)).CaptureResumeSettingsAsync(Owner, token) != state.MeterState)
                     throw new InvalidOperationException($"{state.Device}: voltage meter configuration changed while paused; resume refused.");
+            }
+            foreach (var state in states.Where(s => s.CurrentSourceState is not null))
+            {
+                await PrepareMutationAsync(state.Device); touched.Add(state.Device);
+                var current = await ((Keithley6221CurrentSourceSession)Get(state.Device)).CaptureSourceStateAsync(Owner, token);
+                if (current.OutputEnabled || current.Settings != state.CurrentSourceState!.Settings) throw new InvalidOperationException($"{state.Device}: current source configuration changed while paused; resume refused.");
             }
             foreach (var state in states.Where(s => s.TemperatureState is not null))
             {
@@ -452,7 +472,7 @@ public sealed partial class DeviceRunResources
             }
             else await WriteAsync(state.Device, state.Target!, state.TargetValue!.Value, token);
         }
-        foreach (var state in states.Where(s => s.OutputEnabled)) await EnableSourceOutputAsync(state.Device, token, expectedResumeState: state.SourceState);
+        foreach (var state in states.Where(s => s.OutputEnabled)) await EnableSourceOutputAsync(state.Device, token, expectedResumeState: state.SourceState, expectedCurrentState: state.CurrentSourceState);
     }
 
     private async Task RequireStoppedTaskFinishedAsync(InstrumentId id)

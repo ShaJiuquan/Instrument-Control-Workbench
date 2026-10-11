@@ -1,0 +1,31 @@
+{
+  "format": "instrument-workbench-devices",
+  "version": 1,
+  "primarySource": null,
+  "devices": [
+    {
+      "id": "current-source",
+      "model": "K6221",
+      "displayName": "Pure DC current simulator",
+      "category": "Source",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      }
+    },
+    {
+      "id": "nanovoltmeter",
+      "model": "K2182",
+      "displayName": "Independent voltage simulator",
+      "category": "Meter",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      }
+    }
+  ],
+  "aliases": {
+    "k6221": "current-source",
+    "k2182": "nanovoltmeter"
+  }
+}

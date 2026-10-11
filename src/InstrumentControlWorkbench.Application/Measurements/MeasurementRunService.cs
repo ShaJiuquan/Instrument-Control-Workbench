@@ -124,6 +124,12 @@ public sealed partial class MeasurementRunService
                     if (!status.SafetyConfirmed) await resources.DisableSourceOutputAsync(preparation.Device, run.Token);
                     await resources.ConfigureSourceMeterAsync(preparation.Device, preparation.ToSetpoint(), preparation.Sense, run.Token);
                 }
+                foreach (var preparation in compiled.Plan.CurrentSourcePreparations)
+                {
+                    var status = await resources.GetStatusAsync(preparation.Device, run.Token);
+                    if (!status.SafetyConfirmed) await resources.DisableSourceOutputAsync(preparation.Device, run.Token);
+                    await resources.ConfigureCurrentSourceAsync(preparation.Device, preparation.Settings, run.Token);
+                }
             }
             var snapshots = run.Resources is null ? Array.Empty<InstrumentParameterSnapshot>() :
                 await run.Resources.CaptureParametersAsync(run.Token);

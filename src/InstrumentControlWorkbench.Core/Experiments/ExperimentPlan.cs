@@ -197,12 +197,16 @@ public sealed record SourcePreparation
 public sealed record ExperimentPlan
 {
     public ExperimentPlan(string name, ExperimentStep root, IEnumerable<SourcePreparation>? preparations = null,
-        IReadOnlyDictionary<string, Quantity>? metadata = null, RoutingConfiguration? routing = null)
+        IReadOnlyDictionary<string, Quantity>? metadata = null, RoutingConfiguration? routing = null, IEnumerable<CurrentSourcePreparation>? currentSourcePreparations = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name); ArgumentNullException.ThrowIfNull(root);
         var items = preparations?.ToArray() ?? [];
         if (items.Any(p => p is null) || items.Select(p => p.Device).Distinct().Count() != items.Length)
             throw new ArgumentException("Source preparations must have unique device IDs.", nameof(preparations));
+        var currents = (currentSourcePreparations ?? []).ToArray();
+        if (currents.Any(p => p is null) || currents.Select(p => p.Device).Concat(items.Select(p => p.Device)).Distinct().Count() != currents.Length + items.Length || currents.Length + items.Length > 64)
+            throw new ArgumentException("Pure current-source and SMU preparations require distinct bounded device IDs.");
+        CurrentSourcePreparations = Array.AsReadOnly(currents);
         Name = name; Root = root; Preparations = Array.AsReadOnly(items); Routing = routing;
         Metadata = new ReadOnlyDictionary<string, Quantity>(new Dictionary<string, Quantity>(metadata ?? new Dictionary<string, Quantity>()));
     }
@@ -210,6 +214,7 @@ public sealed record ExperimentPlan
     public string Name { get; }
     public ExperimentStep Root { get; }
     public IReadOnlyList<SourcePreparation> Preparations { get; }
+    public IReadOnlyList<CurrentSourcePreparation> CurrentSourcePreparations { get; }
     public RoutingConfiguration? Routing { get; }
     public IReadOnlyDictionary<string, Quantity> Metadata { get; }
 }

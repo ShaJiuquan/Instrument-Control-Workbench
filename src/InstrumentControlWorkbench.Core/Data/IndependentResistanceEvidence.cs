@@ -10,9 +10,13 @@ public sealed record IndependentResistanceEvidence
     public IndependentResistanceEvidence(ReadCurrentResistanceStep acquisition, SourceSetpoint sourceConfiguration,
         Quantity current, Quantity voltage, DateTimeOffset sourceCapturedAt, DateTimeOffset voltageCapturedAt,
         DateTimeOffset sourceConfirmedBefore, DateTimeOffset sourceConfirmedAfter)
+        : this(acquisition, new CurrentExcitationConfiguration(sourceConfiguration), current, voltage, sourceCapturedAt, voltageCapturedAt, sourceConfirmedBefore, sourceConfirmedAfter) { }
+    public IndependentResistanceEvidence(ReadCurrentResistanceStep acquisition, CurrentExcitationConfiguration sourceConfiguration,
+        Quantity current, Quantity voltage, DateTimeOffset sourceCapturedAt, DateTimeOffset voltageCapturedAt,
+        DateTimeOffset sourceConfirmedBefore, DateTimeOffset sourceConfirmedAfter)
     {
-        ArgumentNullException.ThrowIfNull(acquisition); Keithley2450Limits.Validate(sourceConfiguration);
-        if (sourceConfiguration.Function != SourceFunction.Current || current.Unit != PhysicalUnit.Ampere || voltage.Unit != PhysicalUnit.Volt || Math.Abs(current.Value) <= acquisition.MinimumCurrent.Value)
+        ArgumentNullException.ThrowIfNull(acquisition); ArgumentNullException.ThrowIfNull(sourceConfiguration);
+        if (sourceConfiguration.Model == CurrentSourceModel.Keithley6221 && acquisition.CurrentReference != CurrentReference.ProgrammedSetpoint || current.Unit != PhysicalUnit.Ampere || voltage.Unit != PhysicalUnit.Volt || Math.Abs(current.Value) <= acquisition.MinimumCurrent.Value)
             throw new ArgumentException("Independent resistance requires current excitation, voltage input and defined V/I.");
         if (acquisition.CurrentReference == CurrentReference.ProgrammedSetpoint && current.Value != sourceConfiguration.Level)
             throw new ArgumentException("Programmed current must equal the confirmed source setpoint.");
@@ -33,7 +37,7 @@ public sealed record IndependentResistanceEvidence
     public ParameterId ResistanceColumn { get; }
     public Quantity MinimumCurrent { get; }
     public MatrixRouteExpectation? Route { get; }
-    public SourceSetpoint SourceConfiguration { get; }
+    public CurrentExcitationConfiguration SourceConfiguration { get; }
     public Quantity Current { get; }
     public Quantity Voltage { get; }
     public Quantity Resistance { get; }

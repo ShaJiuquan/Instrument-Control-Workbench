@@ -17,7 +17,8 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
         var context = new ImportContext(bindings);
         var step = Decode(root, "ppms.root", context, 0);
         var plan = new ExperimentPlan(Text(root, "experiment_id", Text(root, "label", "Imported PPMS experiment")), step,
-            bindings.Preparations.Where(p => context.Sources.Contains(p.Device)), context.Metadata, context.UsesSamples ? bindings.Samples!.Routing : context.UsesChannelProfiles ? bindings.ChannelProfiles!.Routing : null);
+            bindings.Preparations.Where(p => context.Sources.Contains(p.Device)), context.Metadata, context.UsesSamples ? bindings.Samples!.Routing : context.UsesChannelProfiles ? bindings.ChannelProfiles!.Routing : null,
+            bindings.CurrentSourcePreparations.Where(p => context.CurrentSources.Contains(p.Device)));
         // Also bound generated wrapper nodes and the native document before returning.
         _ = new JsonExperimentPlanDocument().Serialize(plan);
         return plan;
@@ -40,6 +41,7 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
     {
         public ExperimentImportBindings Bindings { get; } = bindings;
         public HashSet<InstrumentId> Sources { get; } = [];
+        public HashSet<InstrumentId> CurrentSources { get; } = [];
         public Dictionary<string, Quantity> Metadata { get; } = [];
         public bool UsesSamples { get; set; }
         public bool UsesChannelProfiles { get; set; }

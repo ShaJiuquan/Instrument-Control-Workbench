@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using InstrumentControlWorkbench.Core.Data;
 using InstrumentControlWorkbench.Core.Experiments;
 using InstrumentControlWorkbench.Core.Instruments;
 using InstrumentControlWorkbench.Core.Parameters;
@@ -20,7 +21,7 @@ public sealed partial class PpmsExperimentPlanImporter
         Choice(p, "mode", "curr_dc", "curr_dc");
         var sourceName = Text(p, "source_instrument", "k6221").Trim();
         var meterName = Text(p, "meter_instrument", "k2182").Trim();
-        var source = Source(new JsonObject { ["instrument"] = sourceName }, c, SourceFunction.Current);
+        var source = CurrentSource(new JsonObject { ["instrument"] = sourceName }, c);
         if (!c.Bindings.Instruments.TryGetValue(meterName, out var meter) || !c.Bindings.StandaloneVoltageMeters.Contains(meter) || meter == source.Device)
             throw new NotSupportedException("curr_dc requires an explicitly bound independent voltage meter.");
         var input = ResistanceNumber(p, "sense_channel", 1);
@@ -28,14 +29,18 @@ public sealed partial class PpmsExperimentPlanImporter
         var rangeSelector = RangeSelector(p, "meter_range_v", PhysicalUnit.Volt);
         Quantity? meterRange = rangeSelector is { } selector ? Keithley2182Settings.ResolveRange((int)input, selector) : null;
         var nplc = ResistanceNumber(p, "nplc", 1); Keithley2182Parameters.Nplc.ValidateWrite(new(nplc, PhysicalUnit.Dimensionless));
-        var sourceRange = SourceRange(p, SourceFunction.Current); var compliance = ResistanceNumber(p, "compliance_v", 10);
+        var sourceRange = SourceRange(p, source); var compliance = ResistanceNumber(p, "compliance_v", 10);
         var delay = new DelayStep(new(path + ".settle"), TimeSpan.FromSeconds(ResistanceNumber(p, "settle_s", 0.1))); var settle = delay.Duration;
         foreach (var flag in new[] { "record_temperature", "record_field", "record_angle" }) _ = Boolean(p, flag, false);
         var scope = c.SourceScans.FirstOrDefault(s => s.Device == source.Device); var managed = Boolean(p, "source_managed", false) || scope.Device == source.Device;
         var threshold = new Quantity(2.220446049250313e-16, PhysicalUnit.Ampere);
-        var current = new Quantity(scope.Device == source.Device ? source.Level.Value : ResistanceNumber(p, "current_a", 1e-5), PhysicalUnit.Ampere);
+        var current = new Quantity(scope.Device == source.Device ? source.Configuration.Level : ResistanceNumber(p, "current_a", 1e-5), PhysicalUnit.Ampere);
         PlanValue expected = scope.Device == source.Device ? new VariableValue(scope.Axis) : new ConstantValue(current);
-        if (!managed) Keithley2450Limits.ValidateConfiguration(new(SourceFunction.Current, current.Value, compliance, sourceRange), source.Sense with { AutoRange = true, ManualRange = null });
+        if (!managed)
+        {
+            _ = new CurrentExcitationConfiguration(source.Configuration.Model, current, new(compliance, PhysicalUnit.Volt), sourceRange);
+            if (source.Smu is { } smu) Keithley2450Limits.ValidateConfiguration(new(SourceFunction.Current, current.Value, compliance, sourceRange), smu.Sense with { AutoRange = true, ManualRange = null });
+        }
         var channel = Text(p, "channel", "").Trim(); if (channel == "" && scope.Device == source.Device) channel = scope.Channel;
         if (channel == "") channel = "ch1";
         ImportChannelRoute? binding = null;
@@ -52,10 +57,10 @@ public sealed partial class PpmsExperimentPlanImporter
         steps.Add(Write(path + ".nplc", meter, Keithley2182Parameters.Nplc, nplc));
         if (!managed)
         {
-            steps.Add(Write(path + ".sense_auto", source.Device, Keithley2450Parameters.EnableSenseAutoRange, 1));
-            steps.Add(Write(path + ".zero", source.Device, Keithley2450Parameters.SourceCurrent, 0));
-            steps.Add(Write(path + ".compliance", source.Device, Keithley2450Parameters.VoltageCompliance, compliance));
-            steps.Add(SourceRangeStep(path, source, sourceRange)); steps.Add(Write(path + ".level", source.Device, Keithley2450Parameters.SourceCurrent, current.Value));
+            if (!source.Pure) steps.Add(Write(path + ".sense_auto", source.Device, Keithley2450Parameters.EnableSenseAutoRange, 1));
+            steps.Add(Write(path + ".zero", source.Device, source.Current, 0));
+            steps.Add(Write(path + ".compliance", source.Device, source.Compliance, compliance));
+            steps.Add(SourceRangeStep(path, source, sourceRange)); steps.Add(Write(path + ".level", source.Device, source.Current, current.Value));
             steps.Add(new SourceOutputStep(new(path + ".on"), source.Device, true)); steps.Add(delay);
         }
         else

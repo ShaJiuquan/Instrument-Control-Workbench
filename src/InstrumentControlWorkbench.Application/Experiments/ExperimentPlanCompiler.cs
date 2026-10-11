@@ -31,6 +31,7 @@ internal static class ExperimentPlanCompiler
         var steps = new HashSet<StepId>();
         var variables = new Dictionary<ParameterId, PhysicalUnit>();
         var preparations = plan.Preparations.ToDictionary(p => p.Device);
+        var currentPreparations = plan.CurrentSourcePreparations.ToDictionary(p => p.Device);
         var sampleRoutes = new Dictionary<StepId, ResolvedSampleRoute>();
         var writes = new List<(ParameterAddress Address, IReadOnlyList<Quantity>? Values)>();
         foreach (var preparation in plan.Preparations)
@@ -47,6 +48,13 @@ internal static class ExperimentPlanCompiler
             if (preparation.ManualSourceRange is { } preparedRange)
                 device.GetParameter(voltage ? Keithley2450Parameters.ManualVoltageRange.Id : Keithley2450Parameters.ManualCurrentRange.Id).ValidateWrite(preparedRange);
         }
+        foreach (var preparation in plan.CurrentSourcePreparations)
+        {
+            var device = Device(preparation.Device);
+            if (device.Model != "K6221" || device.StopPolicy != DeviceStopPolicy.OutputOff) throw new ArgumentException("Pure current-source preparation requires its K6221 DC profile.");
+            device.GetParameter(Keithley6221Parameters.Current.Id).ValidateWrite(preparation.Settings.Current);
+            device.GetParameter(Keithley6221Parameters.Compliance.Id).ValidateWrite(preparation.Settings.Compliance);
+        }
         var cost = Visit(plan.Root, variables, [], 0);
         if (cost > 10_000_000) throw new ArgumentOutOfRangeException(nameof(plan), "Plan exceeds the 10,000,000 step execution budget.");
         // Check coupled ranges statically only when the counterpart is fixed.
@@ -55,6 +63,13 @@ internal static class ExperimentPlanCompiler
         var changedAddresses = writes.Select(w => w.Address).ToHashSet();
         foreach (var write in writes)
         {
+            if (Device(write.Address.Device).Model == "K6221" && write.Values is { } currentValues)
+            {
+                foreach (var value in currentValues) Keithley6221Parameters.ValidateWrite(write.Address.Parameter, value);
+                if (currentPreparations.TryGetValue(write.Address.Device, out var preparedCurrent) && preparedCurrent.Settings.ManualRange is not null &&
+                    !changedAddresses.Any(a => a.Device == write.Address.Device && (a.Parameter == Keithley6221Parameters.ManualRange.Id || a.Parameter == Keithley6221Parameters.EnableAutoRange.Id)) && write.Address.Parameter == Keithley6221Parameters.Current.Id)
+                    foreach (var value in currentValues) _ = new Keithley6221Settings(value, preparedCurrent.Settings.Compliance, preparedCurrent.Settings.ManualRange);
+            }
             if (write.Values is { } meterValues && Keithley2182Parameters.IsParameter(write.Address.Parameter))
                 foreach (var value in meterValues) Keithley2182Parameters.ValidateWrite(write.Address.Parameter, value);
             if (write.Values is { } functionValues && write.Address.Parameter == Keithley2450Parameters.ActiveSenseFunction.Id && functionValues.Any(v => v.Value != Math.Truncate(v.Value))) throw new ArgumentException("Sense function requires an integral enum code.");
@@ -335,7 +350,8 @@ internal static class ExperimentPlanCompiler
                             throw new ArgumentException($"{guardedSource}: matrix excitation guard must use output-off policy.");
                     return 1;
                 case SourceOutputStep output:
-                    Source(output.Device);
+                    var outputDevice = Device(output.Device);
+                    if (outputDevice.Model is not ("K2450" or "K6221") || outputDevice.StopPolicy != DeviceStopPolicy.OutputOff) throw new NotSupportedException("Device has no implemented output-source profile.");
                     return 1;
                 case ReadStep read:
                     ValidateEnvironmentPolicy(read.Channels.Select(c => c.Column), read.EnvironmentReads);
@@ -349,15 +365,16 @@ internal static class ExperimentPlanCompiler
                     ValidateEnvironment(read.EnvironmentReads, axes);
                     return 1;
                 case ReadCurrentResistanceStep independent:
-                    var excitation = Source(independent.Source);
-                    if (!preparations.TryGetValue(independent.Source, out var currentPreparation) || currentPreparation.Function != SourceFunction.Current ||
-                        independent.CurrentReference == CurrentReference.MeasuredSourceReadback && currentPreparation.Sense.Function != SenseFunction.Voltage)
+                    var excitation = Device(independent.Source); var pureCurrent = excitation.Model == "K6221";
+                    if (excitation.StopPolicy != DeviceStopPolicy.OutputOff || pureCurrent && (!currentPreparations.ContainsKey(independent.Source) || independent.CurrentReference != CurrentReference.ProgrammedSetpoint) ||
+                        !pureCurrent && (excitation.Model != "K2450" || !preparations.TryGetValue(independent.Source, out var currentPreparation) || currentPreparation.Function != SourceFunction.Current ||
+                        independent.CurrentReference == CurrentReference.MeasuredSourceReadback && currentPreparation.Sense.Function != SenseFunction.Voltage))
                         throw new ArgumentException("Independent resistance requires current-source preparation and complementary sensing for measured source readback.");
                     var independentMeter = Device(independent.Meter);
                     if (independentMeter.Model != "K2182" || independentMeter.StopPolicy != DeviceStopPolicy.AbortAcquisition)
                         throw new NotSupportedException("Independent resistance requires the supported passive K2182 profile.");
                     var voltageInput = Parameter(new(independent.Meter, Keithley2182Parameters.Voltage.Id), ParameterAccess.Read);
-                    var currentParameter = independent.CurrentReference == CurrentReference.ProgrammedSetpoint ? Keithley2450Parameters.SourceCurrent : Keithley2450Parameters.MeasuredCurrent;
+                    var currentParameter = pureCurrent ? Keithley6221Parameters.Current : independent.CurrentReference == CurrentReference.ProgrammedSetpoint ? Keithley2450Parameters.SourceCurrent : Keithley2450Parameters.MeasuredCurrent;
                     excitation.GetParameter(currentParameter.Id);
                     if (independent.ExpectedProgrammedCurrent is { } expectedCurrent &&
                         (ValueUnit(expectedCurrent, known) != PhysicalUnit.Ampere || expectedCurrent is VariableValue expectedVariable && !axes.Contains(expectedVariable.Variable)))

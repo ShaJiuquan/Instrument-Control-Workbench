@@ -2,6 +2,7 @@ using InstrumentControlWorkbench.Core.Data;
 using InstrumentControlWorkbench.Core.Devices;
 using InstrumentControlWorkbench.Core.Experiments;
 using InstrumentControlWorkbench.Core.Instruments;
+using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Infrastructure.Data;
 
@@ -13,10 +14,11 @@ internal static partial class RunArchiveJson
         public MatrixRouteExpectation ToDomain() => new(new(Device), Required(Closed).Select(p => new MatrixCrossPoint(Required(p).Slot, p.Row, p.Column)));
         public static CurrentRouteDto From(MatrixRouteExpectation route) => new(route.Device.Value, route.Closed.Select(p => new MatrixPointDto(p.Slot, p.Row, p.Column)).ToArray());
     }
-    internal sealed record CurrentSourceConfigurationDto(double Level, double Compliance, QuantityDto? ManualRange)
+    internal sealed record CurrentSourceConfigurationDto(double Level, double Compliance, QuantityDto? ManualRange,
+        [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? Model = null)
     {
-        public SourceSetpoint ToDomain() => new(SourceFunction.Current, Level, Compliance, ManualRange?.ToDomain());
-        public static CurrentSourceConfigurationDto From(SourceSetpoint source) => new(source.Level, source.Compliance, source.ManualRange is { } span ? QuantityDto.From(span) : null);
+        public CurrentExcitationConfiguration ToDomain() => new(Model switch { null or "Keithley2450" => CurrentSourceModel.Keithley2450, "Keithley6221" => CurrentSourceModel.Keithley6221, _ => throw new FormatException("Unknown current excitation model.") }, new(Level, PhysicalUnit.Ampere), new(Compliance, PhysicalUnit.Volt), ManualRange?.ToDomain());
+        public static CurrentSourceConfigurationDto From(CurrentExcitationConfiguration source) => new(source.Level, source.Compliance, source.ManualRange is { } span ? QuantityDto.From(span) : null, source.Model.ToString());
     }
     internal sealed record IndependentResistanceDto(string Step, string Source, string Meter, string CurrentReference,
         string VoltageColumn, string CurrentColumn, string ResistanceColumn, QuantityDto MinimumCurrent, CurrentRouteDto? Route,

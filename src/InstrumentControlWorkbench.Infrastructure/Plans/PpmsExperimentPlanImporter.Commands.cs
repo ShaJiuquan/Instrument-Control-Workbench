@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using InstrumentControlWorkbench.Core.Data;
 using InstrumentControlWorkbench.Core.Devices;
 using InstrumentControlWorkbench.Core.Experiments;
 using InstrumentControlWorkbench.Core.Instruments;
@@ -12,6 +13,14 @@ public sealed partial class PpmsExperimentPlanImporter
     {
         switch (name)
         {
+            case "k6221.set_current":
+            case "k6221.set_compliance":
+            case "k6221.set_output":
+            case "k6221.set_range":
+            case "k6221.set_source_range":
+            case "k6221.set_auto_range":
+            case "k6221.set_source_auto_range":
+                return CurrentSourceCommand(name, p, path, c);
             case "wait":
                 Fields(p, "seconds", "wait_kind"); Choice(p, "wait_kind", "wait", "wait");
                 return new DelayStep(new(path), Duration(p, "seconds", 5));
@@ -75,20 +84,23 @@ public sealed partial class PpmsExperimentPlanImporter
         Fields(p, "instrument", "channel", voltage ? "target_v" : "target_a", voltage ? "compliance_a" : "compliance_v",
             voltage ? "source_range_v" : "source_range_a", voltage ? "voltage_mode" : "current_mode");
         Choice(p, voltage ? "voltage_mode" : "current_mode", "source", "source");
-        var source = Source(p, c, function, voltage ? "k2450" : "k6221");
-        var range = SourceRange(p, function);
+        var smu = voltage ? Source(p, c, function) : null;
+        var current = voltage ? null : CurrentSource(p, c);
+        var sourceDevice = smu?.Device ?? current!.Device;
+        var range = voltage ? SourceRange(p, function) : SourceRange(p, current!);
         var target = Number(p, voltage ? "target_v" : "target_a");
         if (voltage && Math.Abs(target) > 200) throw new FormatException("PPMS voltage targets must lie in -200..200 V.");
-        if (range is { } fixedRange) Keithley2450Limits.Validate(new SourceSetpoint(function, target, Number(p, voltage ? "compliance_a" : "compliance_v", voltage ? 1e-4 : 1), fixedRange));
-        var steps = new List<ExperimentStep> { new SourceOutputStep(new(path + ".off"), source.Device, false) };
-        if (ChannelRoute(p, path, c, source.Device, "ch1") is { } route) steps.Add(route);
+        if (voltage) { if (range is { } fixedRange) Keithley2450Limits.Validate(new SourceSetpoint(function, target, Number(p, "compliance_a", 1e-4), fixedRange)); }
+        else _ = new CurrentExcitationConfiguration(current!.Configuration.Model, new(target, PhysicalUnit.Ampere), new(Number(p, "compliance_v", 1), PhysicalUnit.Volt), range);
+        var steps = new List<ExperimentStep> { new SourceOutputStep(new(path + ".off"), sourceDevice, false) };
+        if (ChannelRoute(p, path, c, sourceDevice, "ch1") is { } route) steps.Add(route);
         // Park at zero before changing compliance so a previous high level cannot
         // invalidate an otherwise safe new level/compliance pair.
-        steps.Add(Write(path + ".zero", source.Device, voltage ? Keithley2450Parameters.SourceVoltage : Keithley2450Parameters.SourceCurrent, 0));
-        steps.Add(Write(path + ".compliance", source.Device, voltage ? Keithley2450Parameters.CurrentCompliance : Keithley2450Parameters.VoltageCompliance, Number(p, voltage ? "compliance_a" : "compliance_v", voltage ? 1e-4 : 1)));
-        steps.Add(SourceRangeStep(path, source, range));
-        steps.Add(Write(path + ".level", source.Device, voltage ? Keithley2450Parameters.SourceVoltage : Keithley2450Parameters.SourceCurrent, target));
-        steps.Add(new SourceOutputStep(new(path + ".on"), source.Device, true));
+        steps.Add(Write(path + ".zero", sourceDevice, voltage ? Keithley2450Parameters.SourceVoltage : current!.Current, 0));
+        steps.Add(Write(path + ".compliance", sourceDevice, voltage ? Keithley2450Parameters.CurrentCompliance : current!.Compliance, Number(p, voltage ? "compliance_a" : "compliance_v", voltage ? 1e-4 : 1)));
+        steps.Add(voltage ? SourceRangeStep(path, smu!, range) : SourceRangeStep(path, current!, range));
+        steps.Add(Write(path + ".level", sourceDevice, voltage ? Keithley2450Parameters.SourceVoltage : current!.Current, target));
+        steps.Add(new SourceOutputStep(new(path + ".on"), sourceDevice, true));
         return new SequenceStep(new(path), steps);
     }
     private static RouteMatrixStep? ChannelRoute(JsonObject p, string path, ImportContext c, InstrumentId source, string fallback, string? measurementMode = null)

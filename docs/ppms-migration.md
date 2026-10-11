@@ -348,3 +348,15 @@ binding, wide-point aggregation and validated archive/CSV. Real K2182 and K6221
 drivers, automatic independent sample wiring/analysis, retry-to-invalid-point
 semantics, native UI and lab acceptance remain pending. See
 [current-resistance.md](current-resistance.md); full goal remains active.
+
+## Pure K6221 DC current-source stage (2026-10-11)
+
+Dedicated settings/snapshot/Core port, Application session and explicit simulator
+now support K6221 DC output without SMU sensing. Native preparations, current
+parameters/scans, owned/managed PPMS curr_dc and basic concrete K6221 commands
+share lifecycle/leases/pause/output-off/recovery. Model-tagged independent
+resistance evidence uses the actual family's constraints and validates through
+wide/archive/CSV, retaining legacy K2450 archives. Physical transports, advanced
+modes, independent sample routing/analysis, retry-to-invalid-point semantics and
+UI/lab acceptance remain pending. See [k6221-current-source.md](k6221-current-source.md).
+All App/App.Tests drafts remain excluded; the full goal stays active.
