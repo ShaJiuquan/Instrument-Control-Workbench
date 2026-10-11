@@ -53,7 +53,7 @@ public sealed class RoutingProfileCatalog
     }
 
     public ExperimentImportBindings Bind(ExperimentImportBindings devices, InstrumentId matrix,
-        IEnumerable<KeyValuePair<WiringProfileId, InstrumentId>> wiringSources, WiringProfileId channelWiring, TimeSpan routeSettle = default)
+        IEnumerable<KeyValuePair<WiringProfileId, InstrumentId>> wiringSources, WiringProfileId channelWiring, TimeSpan routeSettle = default, InstrumentId? channelVoltageMeter = null)
     {
         ArgumentNullException.ThrowIfNull(devices); ArgumentNullException.ThrowIfNull(wiringSources); ArgumentNullException.ThrowIfNull(channelWiring);
         if (devices.Samples is not null || devices.ChannelProfiles is not null || devices.Channels.Count != 0)
@@ -71,6 +71,7 @@ public sealed class RoutingProfileCatalog
             .Select(s => KeyValuePair.Create(s.OriginalId, s.Id));
         var sampleRouting = new ImportSampleRouting(routing, ModeWirings.Where(p => sources.ContainsKey(p.Value.Value)), aliases, routeSettle);
         return new(devices.Instruments, devices.Axes, devices.Preparations, samples: sampleRouting,
-            channelProfiles: new(this, routing, channelWiring, routeSettle));
+            channelProfiles: new(this, routing, channelWiring, routeSettle, channelVoltageMeter),
+            standaloneVoltageMeters: devices.StandaloneVoltageMeters, currentSourcePreparations: devices.CurrentSourcePreparations);
     }
 }

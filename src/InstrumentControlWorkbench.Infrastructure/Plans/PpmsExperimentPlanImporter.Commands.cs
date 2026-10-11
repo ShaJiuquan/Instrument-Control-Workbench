@@ -109,7 +109,11 @@ public sealed partial class PpmsExperimentPlanImporter
         if (channel.Equals("none", StringComparison.OrdinalIgnoreCase)) return null;
         if (!c.Bindings.Channels.TryGetValue(channel, out var binding) && c.Bindings.ChannelProfiles is { } profiles)
         {
-            binding = profiles.Resolve(channel, c.Bindings.Preparations.Single(p => p.Device == source).Sense.Mode, measurementMode); c.UsesChannelProfiles = true;
+            var smu = c.Bindings.Preparations.SingleOrDefault(p => p.Device == source);
+            var pure = c.Bindings.CurrentSourcePreparations.Any(p => p.Device == source);
+            if (smu is null && !pure) throw new NotSupportedException("Catalog routing needs an explicit source preparation.");
+            binding = profiles.Resolve(channel, profiles.VoltageMeter is not null ? SensingMode.TwoWire : smu?.Sense.Mode ?? SensingMode.TwoWire,
+                measurementMode ?? (pure || profiles.VoltageMeter is not null ? "curr_dc" : null)); c.UsesChannelProfiles = true;
         }
         if (binding is null || binding.Source != source)
             throw new NotSupportedException($"Channel '{channel}' needs an explicit route for {source}; use channel='none' only for externally wired experiments.");

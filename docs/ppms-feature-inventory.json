@@ -1319,5 +1319,21 @@
     "implementation": "src/InstrumentControlWorkbench.Core/Instruments/Keithley6221Settings.cs; src/InstrumentControlWorkbench.Core/Instruments/Ports/IK6221CurrentSourcePort.cs; src/InstrumentControlWorkbench.Application/Devices/Keithley6221CurrentSourceSession.cs; src/InstrumentControlWorkbench.Infrastructure/Drivers/MockKeithley6221CurrentSource.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.CurrentSources.cs",
     "tests": "tests/InstrumentControlWorkbench.Core.Tests/Keithley6221ModelTests.cs; tests/InstrumentControlWorkbench.Application.Tests/Keithley6221ExecutionTests*.cs",
     "limits": "Pure DC simulator with separate settings/port/profile/constraints; no SMU sense/measurement. Native current-source preparations, explicit configured source, current command/scans/curr_dc and basic K6221 command aliases, source-setting evidence and archived model identity, shared atomic leases/pause/stop/fault recovery including live timeout retention. Real transport, actual full-scale/quality, source delay/response/filtering/advanced modes, automatic independent sample wiring/analysis, retry-to-invalid-point and UI/lab acceptance pending. See k6221-current-source.md."
+  },
+  "independentChannelRouting": {
+    "status": "partial",
+    "implemented": [
+      "Explicit optional catalog channel meter; preserves both source preparations and standalone meter bindings",
+      "curr_dc aliases and mode-map validation; owned and managed current routes for K6221 or K2450",
+      "Native steps, source/meter/matrix admission, drift checks, failed-stop retention, wide/archive/re-execution/CSV",
+      "Three-file authored profiles and three-row simulation fixture; 32 new cases"
+    ],
+    "remaining": [
+      "Independent sample topology and Hall/vdP analysis",
+      "Physical K6221/K2182 adapters",
+      "Retry/recover invalid points and advanced modes",
+      "UI and physical laboratory acceptance"
+    ],
+    "reference": "independent-channel-routing.md"
   }
 }

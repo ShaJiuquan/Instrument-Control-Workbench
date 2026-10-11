@@ -114,3 +114,8 @@ subset, not full PPMS parity.
 Pure K6221 DC simulation now runs this acquisition with a model-specific native
 preparation and archived model identity. Its programmed current cannot claim a
 measured source readback. See [k6221-current-source.md](k6221-current-source.md).
+
+Automatic channel routing from frozen catalogs now supports explicitly bound
+current sources and independent voltage meters. Owned acquisition and managed
+scans retain native/wide/archive/CSV evidence. Independent sample analysis remains
+pending. See [independent-channel-routing.md](independent-channel-routing.md).

@@ -51,6 +51,11 @@ public sealed class ExperimentImportBindings
         if (meters.Length > 64 || meters.Distinct().Count() != meters.Length || meters.Any(m => !Instruments.Values.Contains(m) || items.Any(p => p.Device == m) || currents.Any(p => p.Device == m)))
             throw new ArgumentException("Standalone meter bindings must reference distinct aliased devices without source preparations.");
         StandaloneVoltageMeters = Array.AsReadOnly(meters);
+        if (channelProfiles?.VoltageMeter is { } channelMeter &&
+            (!meters.Contains(channelMeter) || !Instruments.Values.Contains(channelProfiles.Wiring.SourceMeter) || !Instruments.Values.Contains(channelProfiles.Routing.Matrix) ||
+                !currents.Any(p => p.Device == channelProfiles.Wiring.SourceMeter) &&
+                !items.Any(p => p.Device == channelProfiles.Wiring.SourceMeter && p.Function == SourceFunction.Current)))
+            throw new ArgumentException("Independent catalog channels require an explicitly bound voltage meter and current-source preparation.");
     }
     public IReadOnlyDictionary<string, InstrumentId> Instruments { get; }
     public IReadOnlyDictionary<string, AxisControllerDefinition> Axes { get; }

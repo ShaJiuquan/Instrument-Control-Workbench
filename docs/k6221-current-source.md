@@ -111,3 +111,8 @@ delay/output filtering/response and advanced modes, independent automatic sample
 wiring/Hall/van der Pauw analysis, retry-to-invalid-point semantics, delta/pulse/AC,
 native operator/editor/history/plot acceptance and packaging remain required.
 This stage is a tested DC subset; the full PPMS migration goal remains active.
+
+Automatic channel routing from frozen catalogs now supports explicitly bound
+current sources and independent voltage meters. Owned acquisition and managed
+scans retain native/wide/archive/CSV evidence. Independent sample analysis remains
+pending. See [independent-channel-routing.md](independent-channel-routing.md).

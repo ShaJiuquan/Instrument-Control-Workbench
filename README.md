@@ -150,3 +150,8 @@ Physical K2182/K6221 support remains pending.
 ## License
 
 MIT.
+
+Automatic channel routing from frozen catalogs now supports explicitly bound
+current sources and independent voltage meters. Owned acquisition and managed
+scans retain native/wide/archive/CSV evidence. Independent sample analysis remains
+pending. See [independent-channel-routing.md](docs/independent-channel-routing.md).

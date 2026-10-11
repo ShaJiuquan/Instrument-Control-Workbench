@@ -1,0 +1,23 @@
+{
+  "type": "sequence",
+  "experiment_id": "Independent current channel routing demonstration",
+  "children": [
+    {
+      "type": "measurement",
+      "name": "meas_r",
+      "params": { "mode": "curr_dc", "channel": "main contacts", "current_a": 0.00001, "settle_s": 0 }
+    },
+    {
+      "type": "scan",
+      "name": "scan_current",
+      "params": { "points": [0.00001, -0.00002], "channel": "ch2", "compliance_v": 100, "settle_s": 0 },
+      "children": [
+        {
+          "type": "measurement",
+          "name": "meas_r",
+          "params": { "mode": "curr_dc" }
+        }
+      ]
+    }
+  ]
+}

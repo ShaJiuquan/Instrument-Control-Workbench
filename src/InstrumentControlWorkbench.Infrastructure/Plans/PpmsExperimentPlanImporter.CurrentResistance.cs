@@ -46,7 +46,11 @@ public sealed partial class PpmsExperimentPlanImporter
         ImportChannelRoute? binding = null;
         if (!channel.Equals("none", StringComparison.OrdinalIgnoreCase))
         {
-            if (!c.Bindings.Channels.TryGetValue(channel, out binding) || binding.Source != source.Device || binding.VoltageMeter != meter)
+            if (!c.Bindings.Channels.TryGetValue(channel, out binding) && c.Bindings.ChannelProfiles is { } profiles)
+            {
+                binding = profiles.Resolve(channel, SensingMode.TwoWire, "curr_dc"); c.UsesChannelProfiles = true;
+            }
+            if (binding is null || binding.Source != source.Device || binding.VoltageMeter != meter)
                 throw new NotSupportedException($"Channel '{channel}' needs an explicit curr_dc route binding for this source and independent meter.");
         }
         var steps = new List<ExperimentStep>(); if (!managed) steps.Add(new SourceOutputStep(new(path + ".off"), source.Device, false));

@@ -360,3 +360,15 @@ wide/archive/CSV, retaining legacy K2450 archives. Physical transports, advanced
 modes, independent sample routing/analysis, retry-to-invalid-point semantics and
 UI/lab acceptance remain pending. See [k6221-current-source.md](k6221-current-source.md).
 All App/App.Tests drafts remain excluded; the full goal stays active.
+
+## Independent current channel catalog stage (2026-10-11)
+
+Catalog binding preserves K6221 preparations and standalone voltage meters.
+Optional channelVoltageMeter explicitly binds the selected source/meter/matrix;
+curr_dc aliases and mode maps resolve without SMU sensing assumptions. Owned
+channels and managed current scans use native steps and existing safety/ownership.
+32 new cases cover both source families, authored three-file profiles, role/port/
+mode errors, drift, retained failed-stop claims and native/wide/archive/CSV.
+Independent sample/Hall/vdP, real drivers, retry semantics and UI/lab acceptance
+remain pending. App/App.Tests drafts remain excluded; the full goal stays active.
+See [independent-channel-routing.md](independent-channel-routing.md).

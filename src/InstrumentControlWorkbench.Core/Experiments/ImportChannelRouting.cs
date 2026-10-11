@@ -11,7 +11,7 @@ public sealed class ImportChannelRouting
         ["source_plus", "i_plus", "current_plus", "a"], ["source_minus", "i_minus", "current_minus", "b"],
         ["sense_plus", "vxx_plus", "v_plus", "hall_plus", "vxy_plus", "c"], ["sense_minus", "vxx_minus", "v_minus", "hall_minus", "vxy_minus", "d"],
     ];
-    public ImportChannelRouting(RoutingProfileCatalog catalog, RoutingConfiguration routing, WiringProfileId wiring, TimeSpan settle)
+    public ImportChannelRouting(RoutingProfileCatalog catalog, RoutingConfiguration routing, WiringProfileId wiring, TimeSpan settle, InstrumentId? voltageMeter = null)
     {
         ArgumentNullException.ThrowIfNull(catalog); ArgumentNullException.ThrowIfNull(routing); ArgumentNullException.ThrowIfNull(wiring);
         ExperimentDurations.Validate(settle);
@@ -22,15 +22,26 @@ public sealed class ImportChannelRouting
         if (layout is null || layout.SourcePlus != Wiring.SourcePlus || layout.SourceMinus != Wiring.SourceMinus ||
             layout.SensePlus != Wiring.SensePlus || layout.SenseMinus != Wiring.SenseMinus)
             throw new ArgumentException("Bound channel ports differ from the authored wiring layout.");
-        Catalog = catalog; Routing = routing; Settle = settle;
+        if (Wiring.SourceMeter == routing.Matrix) throw new ArgumentException("Channel source and matrix must be distinct instruments.");
+        if (voltageMeter is { } meter)
+        {
+            if (string.IsNullOrWhiteSpace(meter.Value) || meter == Wiring.SourceMeter || meter == routing.Matrix)
+                throw new ArgumentException("Channel voltage meter must be a distinct instrument.");
+            if (new[] { Wiring.SourcePlus, Wiring.SourceMinus, Wiring.SensePlus, Wiring.SenseMinus }.Distinct().Count() != 4)
+                throw new ArgumentException("Independent source/meter wiring needs four distinct instrument ports.");
+        }
+        Catalog = catalog; Routing = routing; Settle = settle; VoltageMeter = voltageMeter;
     }
     public RoutingProfileCatalog Catalog { get; }
     public RoutingConfiguration Routing { get; }
     public InstrumentWiringProfile Wiring { get; }
+    public InstrumentId? VoltageMeter { get; }
     public TimeSpan Settle { get; }
     public ImportChannelRoute Resolve(string query, SensingMode sensingMode, string? measurementMode = null)
     {
         if (!Enum.IsDefined(sensingMode)) throw new ArgumentOutOfRangeException(nameof(sensingMode));
+        if (VoltageMeter is not null && measurementMode is not null && !measurementMode.Equals("curr_dc", StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Independent channel acquisition supports only curr_dc.");
         if (measurementMode is not null && (!Catalog.ModeWirings.TryGetValue(measurementMode, out var expected) || expected != Wiring.Id))
             throw new ArgumentException("Selected channel wiring differs from the measurement mode wiring.");
         var channel = Catalog.ResolveChannel(query); var points = new List<MatrixCrossPoint>();
@@ -49,6 +60,6 @@ public sealed class ImportChannelRouting
             throw new ArgumentException("Opposite polarities must use different instrument ports and sample terminals.");
         if (sensingMode == SensingMode.FourWire && (ports.Distinct().Count() != 4 || terminals.Distinct().Count() != 4))
             throw new ArgumentException("Four-wire channels need four independent ports and sample terminals.");
-        return new(Wiring.SourceMeter, new(new("import.channel"), Routing.Matrix, points.Distinct(), Settle));
+        return new(Wiring.SourceMeter, new(new("import.channel"), Routing.Matrix, points.Distinct(), Settle), VoltageMeter);
     }
 }
