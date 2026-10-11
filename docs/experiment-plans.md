@@ -38,7 +38,7 @@ offline model's stop state; disconnected Hardware descriptors cannot.
 | SequenceStep | Run children in order; empty sequence is allowed |
 | RepeatStep | Execute body for a positive bounded count |
 | ScanStep | Write each typed axis value, run body, then dwell; nesting creates outer/inner axes |
-| ForEachStep | Bind value plus `<variable>.index` (1-based) and `.total`, then run body |
+| ForEachStep | Bind value plus `<variable>.index` (1-based) and `.total`, then run body; optional typed delay-before-point timing ([contract](iteration-scans.md)) |
 | SetParameterStep | Write a literal or already-defined variable through the owned registry |
 | AssignValueStep | Assign a literal or variable with stable units |
 | SourceOutputStep | Enable/disable an implemented source-meter profile under ownership |

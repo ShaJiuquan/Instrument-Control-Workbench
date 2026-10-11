@@ -540,13 +540,23 @@
       "id": "scan_number",
       "nodeType": "scan",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.Iterations.cs; src/InstrumentControlWorkbench.Core/Experiments/ExperimentPlan.cs; src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs",
+        "tests": "tests/InstrumentControlWorkbench.Core.Tests/TimedIterationTests.cs; tests/InstrumentControlWorkbench.Application.Tests/IterationScanTests*.cs",
+        "limits": "Number/time step iteration verified in simulation, delay-before-point semantics, nested axes and lifecycle/save/archive/CSV. Full UI, extra point modifiers, background/timing/device laboratory acceptance remain. See iteration-scans.md."
+      }
     },
     {
       "id": "scan_time",
       "nodeType": "scan",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.Iterations.cs; src/InstrumentControlWorkbench.Core/Experiments/ExperimentPlan.cs; src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs",
+        "tests": "tests/InstrumentControlWorkbench.Core.Tests/TimedIterationTests.cs; tests/InstrumentControlWorkbench.Application.Tests/IterationScanTests*.cs",
+        "limits": "Number/time step iteration verified in simulation, delay-before-point semantics, nested axes and lifecycle/save/archive/CSV. Full UI, extra point modifiers, background/timing/device laboratory acceptance remain. See iteration-scans.md."
+      }
     },
     {
       "id": "scan_current",
@@ -1412,5 +1422,20 @@
     ],
     "reference": "independent-device-commands.md",
     "tests": "45 new cases (9 Core36 Application); working1377 before required commit/clean audit"
+  },
+  "iterationScans": {
+    "status": "partial",
+    "implemented": [
+      "Number and time/time_s import, ordered zero/descending/duplicate integer axes and bounded per-point waits",
+      "Typed optional native timing, preflight/budgets, nested axes/index/total and separate elapsed evidence",
+      "Pause/cancel/abort, listener fault, failed hold retaining whole group and explicit recovery",
+      "Five-row repository fixture, native save/reopen and fresh archive/CSV/re-execution;35 cases (7 Core28 Application)"
+    ],
+    "remaining": [
+      "Additional point modifiers, full native UI/flow/history/plots",
+      "Physical environment/controller timing acceptance",
+      "Full remaining PPMS/BT/background/DB/packaging scope"
+    ],
+    "reference": "iteration-scans.md"
   }
 }

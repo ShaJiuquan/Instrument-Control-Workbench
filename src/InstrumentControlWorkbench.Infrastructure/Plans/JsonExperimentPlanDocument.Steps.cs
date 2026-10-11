@@ -44,6 +44,7 @@ public sealed partial class JsonExperimentPlanDocument
                 o["values"] = EncodeValues(s.Values); o["dwellSeconds"] = s.Dwell.TotalSeconds; o["body"] = EncodeStep(s.Body, depth + 1, ref count); break;
             case ForEachStep s:
                 o["kind"] = "for_each"; o["variable"] = s.Variable.Value; o["values"] = EncodeValues(s.Values);
+                if (s.Timing != IterationTiming.Immediate) o["timing"] = s.Timing.ToString();
                 o["body"] = EncodeStep(s.Body, depth + 1, ref count); break;
             case SetParameterStep s:
                 o["kind"] = "set"; o["address"] = EncodeAddress(s.Address); o["value"] = EncodeValue(s.Value); break;
@@ -156,8 +157,9 @@ public sealed partial class JsonExperimentPlanDocument
                 return new ScanStep(id, DecodeAddress(o["axis"]), new(Text(o, "column")), DecodeValues(o["values"]),
                     Duration(o, "dwellSeconds"), DecodeStep(Required(o, "body"), depth + 1, ref count));
             case "for_each":
-                Object(o, "id", "kind", "variable", "values", "body");
-                return new ForEachStep(id, new(Text(o, "variable")), DecodeValues(o["values"]), DecodeStep(Required(o, "body"), depth + 1, ref count));
+                Object(o, "id", "kind", "variable", "values", "body", "timing");
+                return new ForEachStep(id, new(Text(o, "variable")), DecodeValues(o["values"]), DecodeStep(Required(o, "body"), depth + 1, ref count),
+                    o.ContainsKey("timing") ? NamedEnum<IterationTiming>(o, "timing") : IterationTiming.Immediate);
             case "set":
                 Object(o, "id", "kind", "address", "value");
                 return new SetParameterStep(id, DecodeAddress(o["address"]), DecodeValue(o["value"]));

@@ -774,3 +774,22 @@ whole goal active. See independent-device-commands.md.
 
 This stage adds45 cases (9 Core36 Application); full working1377 passed.
 Mandatory commit and exact archive audits are required for every publication.
+
+
+## Number/time iteration scans (2026-10-11)
+
+PPMS scan_number and scan_time/time_s now reuse native ForEachStep, with explicit
+Core IterationTiming (default Immediate, optional DelayBeforePoint requiring
+bounded seconds). Time values are per-point waits before children, as current
+Rust scan_iter.rs code actually executes, not absolute elapsed deadlines. Number
+values nonnegative/near-integer rounded; flat/nested list/step/count/segments,
+strict controls and source-line diagnostics. Index/total and nested optional axes
+persist; existing elapsed column remains actual wall time. Existing Dwell pause
+budget, output-off/hold/group claims, cancellation, listener fault and retained
+failed hold/recovery verified. Native version1 optional timing defaults/unknown
+rejection, fresh save/archive/CSV/re-execution and five-row fixture.35 new cases
+(7 Core28 Application). No dependencies, Rust edits, lab IO or UI draft changes.
+K6221 raw socket1394 confirmed by manufacturer; fresh pure-DC/armed evidence and
+zeroing abort semantics still unresolved, so do not register a guessed hardware
+adapter. See iteration-scans.md and k6221-tcp-investigation.md. Whole goal active;
+full controllers/BT/background/DB/native UI/packaging/lab remain unfinished.

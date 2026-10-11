@@ -78,16 +78,31 @@ public sealed record ScanStep : ExperimentStep
     public ExperimentStep Body { get; }
 }
 
+public enum IterationTiming { Immediate, DelayBeforePoint }
+
 public sealed record ForEachStep : ExperimentStep
 {
-    public ForEachStep(StepId id, ParameterId variable, ScanValues values, ExperimentStep body) : base(id)
+    public ForEachStep(StepId id, ParameterId variable, ScanValues values, ExperimentStep body, IterationTiming timing = IterationTiming.Immediate) : base(id)
     {
         ArgumentNullException.ThrowIfNull(variable); ArgumentNullException.ThrowIfNull(values); ArgumentNullException.ThrowIfNull(body);
-        Variable = variable; Values = values; Body = body;
+        if (!Enum.IsDefined(timing)) throw new ArgumentOutOfRangeException(nameof(timing));
+        if (timing == IterationTiming.DelayBeforePoint)
+        {
+            if (values.Unit != PhysicalUnit.Second) throw new ArgumentException("Timed iteration values must be seconds.", nameof(values));
+            foreach (var value in values.Values)
+            {
+                if (value.Value < 0 || value.Value > (uint.MaxValue - 1) / 1000.0)
+                    throw new ArgumentOutOfRangeException(nameof(values), "Point delay is outside the supported timer range.");
+                ExperimentDurations.Validate(TimeSpan.FromSeconds(value.Value));
+            }
+        }
+        Variable = variable; Values = values; Body = body; Timing = timing;
     }
     public ParameterId Variable { get; }
     public ScanValues Values { get; }
     public ExperimentStep Body { get; }
+    // Each point is a delay before its body, not an absolute elapsed-time target.
+    public IterationTiming Timing { get; }
 }
 
 public sealed record SetParameterStep : ExperimentStep

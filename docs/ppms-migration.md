@@ -450,3 +450,14 @@ whole goal active. See independent-device-commands.md.
 
 This stage adds45 cases (9 Core36 Application); full working1377 passed.
 Mandatory commit and exact archive audits are required for every publication.
+
+
+## Number/time iteration scans (2026-10-11)
+
+PPMS `scan_number`, `scan_time` and `time_s` now use native iterators with
+explicit delay-before-point timing, bounded values, nested axes/index/total,
+pause/cancellation, independent stop and retained failed cleanup, native/archive/
+CSV re-execution. Existing iterators default to immediate execution. See
+[iteration-scans.md](iteration-scans.md) and the five-row repository example.
+K6221 raw TCP/mode safety is still under investigation; no hardware adapter or
+UI changes are included. The full migration goal remains active.

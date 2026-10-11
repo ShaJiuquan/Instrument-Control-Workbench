@@ -109,6 +109,7 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
         "wait_before" => "delay",
         "loop" or "repeat_n" => "repeat",
         "scan_temp" => "scan_temperature",
+        "time_s" => "scan_time",
         "field" => "scan_field",
         "angle" => "scan_angle",
         "resistance" or "measure_r" or "meas_resistance" or "measure_resistance" or "res" or "meas_res" or "meas-res" or "rxx" or "rxx_rxy" => "meas_r",

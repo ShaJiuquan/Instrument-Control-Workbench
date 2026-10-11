@@ -63,6 +63,10 @@ public sealed partial class MeasurementRunService
                     {
                         run.Token.ThrowIfCancellationRequested();
                         await PauseCheckpointAsync(run);
+                        if (loop.Timing == IterationTiming.DelayBeforePoint)
+                            await DwellAsync(run, TimeSpan.FromSeconds(loop.Values.Values[i].Value));
+                        run.Token.ThrowIfCancellationRequested();
+                        await PauseCheckpointAsync(run);
                         run.Variables[loop.Variable] = run.Axes[loop.Variable] = loop.Values.Values[i];
                         run.Variables[index] = run.Axes[index] = new(i + 1, PhysicalUnit.Dimensionless);
                         run.Variables[total] = run.Axes[total] = new(loop.Values.Values.Count, PhysicalUnit.Dimensionless);

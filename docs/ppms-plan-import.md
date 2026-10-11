@@ -176,3 +176,14 @@ sample contexts and wide-point member identity persist through native plans,
 archives and CSV. Legacy boolean record_* flags remain accepted. See
 [environment-acquisition.md](environment-acquisition.md) for timing, cancellation,
 error-as-data and physical acceptance boundaries.
+
+
+## Number/time iteration scans (2026-10-11)
+
+PPMS `scan_number`, `scan_time` and `time_s` now use native iterators with
+explicit delay-before-point timing, bounded values, nested axes/index/total,
+pause/cancellation, independent stop and retained failed cleanup, native/archive/
+CSV re-execution. Existing iterators default to immediate execution. See
+[iteration-scans.md](iteration-scans.md) and the five-row repository example.
+K6221 raw TCP/mode safety is still under investigation; no hardware adapter or
+UI changes are included. The full migration goal remains active.

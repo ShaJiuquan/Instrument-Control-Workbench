@@ -1,0 +1,18 @@
+{
+  "experiment_id": "PPMS nested number and time scans",
+  "type": "sequence",
+  "children": [
+    {
+      "type": "scan", "name": "scan_number", "source_line": 1,
+      "params": { "axis": "scan_number", "points": [0, 2] },
+      "children": [
+        {
+          "type": "scan", "name": "scan_time", "source_line": 2,
+          "params": { "axis": "scan_time", "points": { "mode": "list", "values": [0.01, 0.02] } },
+          "children": [ { "type": "measurement", "name": "measure_field", "source_line": 3, "params": {} } ]
+        }
+      ]
+    },
+    { "type": "measurement", "name": "measure_field", "source_line": 4, "params": {} }
+  ]
+}

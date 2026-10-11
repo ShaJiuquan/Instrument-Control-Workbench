@@ -122,3 +122,14 @@ It requires `autoRange=false`; absent values preserve old automatic or observed
 retain-mode semantics. Exact units/choices and complementary source constraints
 validate before execution. Old strict readers can reject the populated optional
 version-1 field. See [sense-ranges.md](sense-ranges.md).
+
+
+## Number/time iteration scans (2026-10-11)
+
+PPMS `scan_number`, `scan_time` and `time_s` now use native iterators with
+explicit delay-before-point timing, bounded values, nested axes/index/total,
+pause/cancellation, independent stop and retained failed cleanup, native/archive/
+CSV re-execution. Existing iterators default to immediate execution. See
+[iteration-scans.md](iteration-scans.md) and the five-row repository example.
+K6221 raw TCP/mode safety is still under investigation; no hardware adapter or
+UI changes are included. The full migration goal remains active.

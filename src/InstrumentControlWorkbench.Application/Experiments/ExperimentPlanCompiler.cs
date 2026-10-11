@@ -358,7 +358,7 @@ internal static class ExperimentPlanCompiler
                     var index = new ParameterId($"{loop.Variable}.index");
                     var total = new ParameterId($"{loop.Variable}.total");
                     if (axes.Contains(loop.Variable)) throw new ArgumentException($"Iterator {loop.Variable} is already active.");
-                    AddColumn(loop.Variable, new(loop.Variable, "Iterator value", loop.Values.Unit, ParameterAccess.Read), null, []);
+                    AddColumn(loop.Variable, new(loop.Variable, loop.Timing == IterationTiming.DelayBeforePoint ? "Delay before point" : "Iterator value", loop.Values.Unit, ParameterAccess.Read), null, []);
                     AddColumn(index, new(index, "Iterator index (1-based)", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
                     AddColumn(total, new(total, "Iterator total", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
                     BindVariable(loop.Variable, loop.Values.Unit, known);

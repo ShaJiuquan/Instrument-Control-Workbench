@@ -10,6 +10,7 @@ public sealed partial class PpmsExperimentPlanImporter
 {
     private static ExperimentStep Scan(string name, JsonObject p, JsonObject node, string path, ImportContext c, int depth)
     {
+        if (name is "scan_number" or "scan_time") return IterationScan(name, p, node, path, c, depth);
         if (name is "scan_voltage" or "scan_current")
         {
             var voltage = name == "scan_voltage";
@@ -74,7 +75,9 @@ public sealed partial class PpmsExperimentPlanImporter
         var p = Object(value);
         if (p.ContainsKey("segments"))
         {
-            Fields(p, "segments"); var segments = p["segments"] as JsonArray ?? throw new FormatException("segments must be an array.");
+            Fields(p, "mode", "segments");
+            if (!Text(p, "mode", "segments").Trim().Equals("segments", StringComparison.OrdinalIgnoreCase)) throw new FormatException("Segments require segments point mode.");
+            var segments = p["segments"] as JsonArray ?? throw new FormatException("segments must be an array.");
             var result = new List<Quantity>();
             for (var i = 0; i < segments.Count; i++)
             {
