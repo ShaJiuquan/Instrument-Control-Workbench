@@ -31,7 +31,7 @@ public sealed partial class PpmsExperimentPlanImporter
             c.SourceScans.Push((sourceDevice, Text(p, "channel", voltage ? "" : "ch1").Trim(), new ParameterId(path + ".axis")));
             try { sourceChildren = ScanChildren(node, path, c, depth); }
             finally { c.SourceScans.Pop(); }
-            var body = new SequenceStep(new(path + ".body"), [new DelayStep(new(path + ".settle"), Duration(p, "settle_s", 0.1)), .. sourceChildren]);
+            var body = new SequenceStep(new(path + ".body"), [.. ScanAxisVariables(name, new(path + ".axis"), path), new DelayStep(new(path + ".settle"), Duration(p, "settle_s", 0.1)), .. sourceChildren]);
             var steps = new List<ExperimentStep> { new SourceOutputStep(new(path + ".off"), sourceDevice, false) };
             if (ChannelRoute(p, path, c, sourceDevice, voltage ? "" : "ch1") is { } route) steps.Add(route);
             steps.Add(Write(path + ".zero", sourceDevice, parameter, 0));
@@ -52,7 +52,7 @@ public sealed partial class PpmsExperimentPlanImporter
         var wait = Stability(path + ".stable", axis, new VariableValue(column), p, toleranceKey, role == "field" ? 0.0005 : tolerance, stable, timeout);
         var settle = new DelayStep(new(path + ".settle"), Duration(p, "settle_s", 0));
         var scanChildren = ScanChildren(node, path, c, depth);
-        var children = new SequenceStep(new(path + ".body"), role == "temperature" ? [settle, wait, .. scanChildren] : [wait, settle, .. scanChildren]);
+        var children = new SequenceStep(new(path + ".body"), [.. ScanAxisVariables(name, column, path), .. (role == "temperature" ? new ExperimentStep[] { settle, wait } : new ExperimentStep[] { wait, settle }), .. scanChildren]);
         if (role == "temperature")
         {
             if (!Boolean(p, "enable_control", true)) throw new NotSupportedException("Temperature scans with disabled control are not migrated.");

@@ -990,3 +990,33 @@ Full audit also exposed an owned LoopbackScpiServer teardown race: Stop could
 precede the accept loop's next iteration. Token-cancelled accept now drains
 before listener Stop; a 32-session regression checks handler/socket-read drain.
 This changes only the local test peer, not physical transport behavior.
+
+## Numeric condition and pure iterator contracts (2026-10-11)
+
+ValueCondition optional typed EqualityTolerance uses strict absolute tolerance
+only for Equal/NotEqual; native old exact behavior remains. Full compiler checks
+positive/unit/operator compatibility; codecs preserve optional fields and reject
+explicit null. ForEachStep IndexBase defaults OneBased; PPMS for_each/iterate
+uses ZeroBased, preserves row counters/labels/native documents. PPMS numeric
+if_then_else aliases lower to typed assignment+IfElseStep with 1e-9 equality,
+gt default and strict operator/child/field validation. Migrated scans publish
+ppms.axis.* quantity aliases each point, with voltage/bias dual names and latest
+nested/post-scan value retained; no fake observation/fallback zero. Numeric pure
+iterator direct children resolve value/iterator_value/index/total; explicit
+injection overrides dynamic values and missing RHS uses the point. Nested
+counter/row axes are distinct. Schema points_mode normalizes to mode with
+conflicts rejected. Fixture/archive/CSV/fresh execution, availability/units,
+compatibility, epsilon boundaries, pause/abort and owned TCP/timeout error tests
+cover the slice. Unknown/custom/nonnumeric/pol_voltage variables, dynamic command injection, advanced
+point modifiers, while/expressions/parallel/native UI/lab remain pending.
+Independent C# engine and GitHub only; 29 UI drafts excluded; no new dependency
+or Rust edit.
+
+
+QuantityFromNumberValue explicitly qualifies an untyped dimensionless variable
+in an authored PhysicalUnit. Compiler/Resolve reject missing or already physical
+inputs; native quantityFromNumber codecs preserve and strictly validate it.
+This makes an injected point a correctly unit-tagged threshold for a physical
+axis without permitting arbitrary physical unit conversion. Numeric fixture
+archive/CSV/fresh replay includes this expression, plus a field/iterator test
+selects opposite branches for negative/positive dynamic Tesla thresholds.

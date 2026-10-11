@@ -28,8 +28,21 @@ public sealed record ParameterAddress
 public abstract record PlanValue;
 public sealed record ConstantValue(Quantity Value) : PlanValue;
 public sealed record VariableValue(ParameterId Variable) : PlanValue;
+// Interpret an unqualified numeric input in an explicitly authored unit.
+// This cannot convert a variable which already carries a physical unit.
+public sealed record QuantityFromNumberValue : PlanValue
+{
+    public QuantityFromNumberValue(ParameterId variable, PhysicalUnit unit)
+    {
+        ArgumentNullException.ThrowIfNull(variable);
+        if (!Enum.IsDefined(unit)) throw new ArgumentOutOfRangeException(nameof(unit));
+        Variable = variable; Unit = unit;
+    }
+    public ParameterId Variable { get; }
+    public PhysicalUnit Unit { get; }
+}
 public enum ComparisonOperator { Equal, NotEqual, Less, LessOrEqual, Greater, GreaterOrEqual }
-public sealed record ValueCondition(ParameterId Variable, ComparisonOperator Operator, PlanValue Value);
+public sealed record ValueCondition(ParameterId Variable, ComparisonOperator Operator, PlanValue Value, Quantity? EqualityTolerance = null);
 public sealed record ReadChannel(ParameterId Column, ParameterAddress Address);
 
 public abstract record ExperimentStep
@@ -79,13 +92,15 @@ public sealed record ScanStep : ExperimentStep
 }
 
 public enum IterationTiming { Immediate, DelayBeforePoint }
+public enum IterationIndexBase { ZeroBased, OneBased }
 
 public sealed record ForEachStep : ExperimentStep
 {
-    public ForEachStep(StepId id, ParameterId variable, ScanValues values, ExperimentStep body, IterationTiming timing = IterationTiming.Immediate) : base(id)
+    public ForEachStep(StepId id, ParameterId variable, ScanValues values, ExperimentStep body, IterationTiming timing = IterationTiming.Immediate, IterationIndexBase indexBase = IterationIndexBase.OneBased) : base(id)
     {
         ArgumentNullException.ThrowIfNull(variable); ArgumentNullException.ThrowIfNull(values); ArgumentNullException.ThrowIfNull(body);
         if (!Enum.IsDefined(timing)) throw new ArgumentOutOfRangeException(nameof(timing));
+        if (!Enum.IsDefined(indexBase)) throw new ArgumentOutOfRangeException(nameof(indexBase));
         if (timing == IterationTiming.DelayBeforePoint)
         {
             if (values.Unit != PhysicalUnit.Second) throw new ArgumentException("Timed iteration values must be seconds.", nameof(values));
@@ -96,13 +111,14 @@ public sealed record ForEachStep : ExperimentStep
                 ExperimentDurations.Validate(TimeSpan.FromSeconds(value.Value));
             }
         }
-        Variable = variable; Values = values; Body = body; Timing = timing;
+        Variable = variable; Values = values; Body = body; Timing = timing; IndexBase = indexBase;
     }
     public ParameterId Variable { get; }
     public ScanValues Values { get; }
     public ExperimentStep Body { get; }
     // Each point is a delay before its body, not an absolute elapsed-time target.
     public IterationTiming Timing { get; }
+    public IterationIndexBase IndexBase { get; }
 }
 
 public sealed record SetParameterStep : ExperimentStep

@@ -165,12 +165,18 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanDocument
     {
         ConstantValue c => new() { ["constant"] = EncodeQuantity(c.Value) },
         VariableValue variable => new() { ["variable"] = variable.Variable.Value },
+        QuantityFromNumberValue qualified => new() { ["quantityFromNumber"] = new JsonObject { ["variable"] = qualified.Variable.Value, ["unit"] = qualified.Unit.ToString() } },
         _ => throw new NotSupportedException($"No document codec exists for {v.GetType().Name}."),
     };
     private static PlanValue DecodeValue(JsonNode? node)
     {
-        var o = Object(node, "constant", "variable");
-        if (o.Count != 1) throw new FormatException("A value must contain exactly one of constant or variable.");
+        var o = Object(node, "constant", "variable", "quantityFromNumber");
+        if (o.Count != 1) throw new FormatException("A value must contain exactly one value expression.");
+        if (o.ContainsKey("quantityFromNumber"))
+        {
+            var qualified = Object(Required(o, "quantityFromNumber"), "variable", "unit");
+            return new QuantityFromNumberValue(new(Text(qualified, "variable")), NamedEnum<PhysicalUnit>(qualified, "unit"));
+        }
         return o.ContainsKey("constant") ? new ConstantValue(DecodeQuantity(o["constant"])) : new VariableValue(new(Text(o, "variable")));
     }
     private static JsonObject EncodeValues(ScanValues values) => new()

@@ -41,7 +41,7 @@ public sealed partial class PpmsExperimentPlanImporter
             values = new(values.Values.Select(q => new Quantity(Math.Round(q.Value), PhysicalUnit.Dimensionless)));
         }
         return new ForEachStep(new(path + ".scan"), new(path + ".axis"), values,
-            new SequenceStep(new(path + ".body"), ScanChildren(node, path, c, depth)),
+            new SequenceStep(new(path + ".body"), [.. ScanAxisVariables(name, new(path + ".axis"), path), .. ScanChildren(node, path, c, depth)]),
             time ? IterationTiming.DelayBeforePoint : IterationTiming.Immediate);
     }
 }

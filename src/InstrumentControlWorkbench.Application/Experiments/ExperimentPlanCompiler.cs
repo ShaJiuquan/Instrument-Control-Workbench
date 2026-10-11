@@ -172,6 +172,8 @@ internal static class ExperimentPlanCompiler
                 ConstantValue constant => constant.Value.Unit,
                 VariableValue variable when variable.Variable is not null && known.TryGetValue(variable.Variable, out var unit) => unit,
                 VariableValue variable => throw new ArgumentException($"Variable {variable.Variable} is not defined on every path before use."),
+                QuantityFromNumberValue qualified when known.TryGetValue(qualified.Variable, out var inputUnit) && inputUnit == PhysicalUnit.Dimensionless => qualified.Unit,
+                QuantityFromNumberValue qualified => throw new ArgumentException($"Numeric input {qualified.Variable} must be defined and dimensionless before unit qualification."),
                 _ => throw new NotSupportedException($"Unsupported value expression {value.GetType().Name}."),
             };
         }
@@ -223,6 +225,8 @@ internal static class ExperimentPlanCompiler
             if (!Enum.IsDefined(condition.Operator)) throw new ArgumentOutOfRangeException(nameof(condition.Operator));
             var left = ValueUnit(new VariableValue(condition.Variable), known);
             if (left != ValueUnit(condition.Value, known)) throw new ArgumentException("Comparison operands must have matching units.");
+            if (condition.EqualityTolerance is { } equalityTolerance && (equalityTolerance.Value <= 0 || equalityTolerance.Unit != left || condition.Operator is not (ComparisonOperator.Equal or ComparisonOperator.NotEqual)))
+                throw new ArgumentException("Equality tolerance requires positive matching units and an equality operator.");
         }
         void ValidateSourceSense(InstrumentId device, SourceFunction function, ParameterId voltageColumn, ParameterId currentColumn,
             Dictionary<ParameterId, PhysicalUnit> known, IReadOnlyList<ParameterId> axes)
@@ -446,7 +450,7 @@ internal static class ExperimentPlanCompiler
                     var total = new ParameterId($"{loop.Variable}.total");
                     if (axes.Contains(loop.Variable)) throw new ArgumentException($"Iterator {loop.Variable} is already active.");
                     AddColumn(loop.Variable, new(loop.Variable, loop.Timing == IterationTiming.DelayBeforePoint ? "Delay before point" : "Iterator value", loop.Values.Unit, ParameterAccess.Read), null, []);
-                    AddColumn(index, new(index, "Iterator index (1-based)", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
+                    AddColumn(index, new(index, loop.IndexBase == IterationIndexBase.OneBased ? "Iterator index (1-based)" : "Iterator index (0-based)", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
                     AddColumn(total, new(total, "Iterator total", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
                     BindVariable(loop.Variable, loop.Values.Unit, known);
                     BindVariable(index, PhysicalUnit.Dimensionless, known); BindVariable(total, PhysicalUnit.Dimensionless, known);

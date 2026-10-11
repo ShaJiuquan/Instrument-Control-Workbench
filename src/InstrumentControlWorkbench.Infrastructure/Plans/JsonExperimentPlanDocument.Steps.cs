@@ -53,7 +53,8 @@ public sealed partial class JsonExperimentPlanDocument
                 foreach (var child in s.Children) children.Add(EncodeStep(child, depth + 1, ref count));
                 o["children"] = children; break;
             case ConditionStep s:
-                o["kind"] = "condition"; o["variable"] = s.Condition.Variable.Value; o["operator"] = s.Condition.Operator.ToString(); o["value"] = EncodeValue(s.Condition.Value); break;
+                o["kind"] = "condition"; o["variable"] = s.Condition.Variable.Value; o["operator"] = s.Condition.Operator.ToString(); o["value"] = EncodeValue(s.Condition.Value);
+                if (s.Condition.EqualityTolerance is { } conditionTolerance) o["equalityTolerance"] = EncodeQuantity(conditionTolerance); break;
             case FallbackStep s:
                 o["kind"] = "fallback"; var branches = new JsonArray();
                 foreach (var child in s.Children) branches.Add(EncodeStep(child, depth + 1, ref count));
@@ -79,6 +80,7 @@ public sealed partial class JsonExperimentPlanDocument
             case ForEachStep s:
                 o["kind"] = "for_each"; o["variable"] = s.Variable.Value; o["values"] = EncodeValues(s.Values);
                 if (s.Timing != IterationTiming.Immediate) o["timing"] = s.Timing.ToString();
+                if (s.IndexBase != IterationIndexBase.OneBased) o["indexBase"] = s.IndexBase.ToString();
                 o["body"] = EncodeStep(s.Body, depth + 1, ref count); break;
             case SetParameterStep s:
                 o["kind"] = "set"; o["address"] = EncodeAddress(s.Address); o["value"] = EncodeValue(s.Value); break;
@@ -141,6 +143,7 @@ public sealed partial class JsonExperimentPlanDocument
                     ["value"] = EncodeValue(s.Condition.Value)
                 };
                 o["then"] = EncodeStep(s.Then, depth + 1, ref count);
+                if (s.Condition.EqualityTolerance is { } branchTolerance) o["condition"]!["equalityTolerance"] = EncodeQuantity(branchTolerance);
                 if (s.Else is { } otherwise) o["else"] = EncodeStep(otherwise, depth + 1, ref count); break;
             case BranchOnOutcomeStep s:
                 o["kind"] = "branch_outcome"; o["condition"] = EncodeStep(s.Condition, depth + 1, ref count);
@@ -203,8 +206,8 @@ public sealed partial class JsonExperimentPlanDocument
                 foreach (var child in Array(Required(o, "children"))) children.Add(DecodeStep(child, depth + 1, ref count));
                 return new SequenceStep(id, children);
             case "condition":
-                Object(o, "id", "kind", "variable", "operator", "value");
-                return new ConditionStep(id, new(new(Text(o, "variable")), NamedEnum<ComparisonOperator>(o, "operator"), DecodeValue(o["value"])));
+                Object(o, "id", "kind", "variable", "operator", "value", "equalityTolerance");
+                return new ConditionStep(id, new(new(Text(o, "variable")), NamedEnum<ComparisonOperator>(o, "operator"), DecodeValue(o["value"]), o.ContainsKey("equalityTolerance") ? DecodeQuantity(Required(o, "equalityTolerance")) : null));
             case "fallback":
                 Object(o, "id", "kind", "children"); var branches = new List<ExperimentStep>();
                 foreach (var child in Array(o["children"])) branches.Add(DecodeStep(child ?? throw new FormatException("Null fallback branch."), depth + 1, ref count));
@@ -234,9 +237,10 @@ public sealed partial class JsonExperimentPlanDocument
                 return new ScanStep(id, DecodeAddress(o["axis"]), new(Text(o, "column")), DecodeValues(o["values"]),
                     Duration(o, "dwellSeconds"), DecodeStep(Required(o, "body"), depth + 1, ref count));
             case "for_each":
-                Object(o, "id", "kind", "variable", "values", "body", "timing");
+                Object(o, "id", "kind", "variable", "values", "body", "timing", "indexBase");
                 return new ForEachStep(id, new(Text(o, "variable")), DecodeValues(o["values"]), DecodeStep(Required(o, "body"), depth + 1, ref count),
-                    o.ContainsKey("timing") ? NamedEnum<IterationTiming>(o, "timing") : IterationTiming.Immediate);
+                    o.ContainsKey("timing") ? NamedEnum<IterationTiming>(o, "timing") : IterationTiming.Immediate,
+                    o.ContainsKey("indexBase") ? NamedEnum<IterationIndexBase>(o, "indexBase") : IterationIndexBase.OneBased);
             case "set":
                 Object(o, "id", "kind", "address", "value");
                 return new SetParameterStep(id, DecodeAddress(o["address"]), DecodeValue(o["value"]));
@@ -307,11 +311,11 @@ public sealed partial class JsonExperimentPlanDocument
                     Duration(o, "stableSeconds"), Duration(o, "pollSeconds"), Duration(o, "timeoutSeconds"));
             case "if_else":
                 Object(o, "id", "kind", "condition", "then", "else");
-                var condition = Object(o["condition"], "variable", "operator", "value");
+                var condition = Object(o["condition"], "variable", "operator", "value", "equalityTolerance");
                 var then = DecodeStep(Required(o, "then"), depth + 1, ref count);
                 var otherwise = o.ContainsKey("else") ? DecodeStep(Required(o, "else"), depth + 1, ref count) : null;
                 return new IfElseStep(id, new(new(Text(condition, "variable")), NamedEnum<ComparisonOperator>(condition, "operator"),
-                    DecodeValue(condition["value"])), then, otherwise);
+                    DecodeValue(condition["value"]), condition.ContainsKey("equalityTolerance") ? DecodeQuantity(Required(condition, "equalityTolerance")) : null), then, otherwise);
             case "branch_outcome":
                 Object(o, "id", "kind", "condition", "then", "else");
                 return new BranchOnOutcomeStep(id, DecodeStep(Required(o, "condition"), depth + 1, ref count),

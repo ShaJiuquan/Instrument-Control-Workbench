@@ -217,10 +217,9 @@ both paths. No speculative failed-path variable is treated as an observation.
 Native v1 uses `branch_outcome` with required `condition`/`then` and optional
 `else`; explicit null children and extra fields reject. PPMS `if_then_else`,
 `conditional`, `branch` node mode takes exactly two or three children; `then` and
-`else` are sequence wrappers. Source locations survive conversion. PPMS numeric
-mode (`variable`, `op`, `value`) rejects explicitly pending its iterator/axis
-comparison migration. Existing typed `IfElseStep` is a separate numeric API;
-this slice does not claim PPMS numeric/while or expression parity.
+`else` are sequence wrappers. Source locations survive conversion. PPMS numeric mode (`variable`, `op`, `value`) is described below. Existing
+typed `IfElseStep` remains the numeric API; this node-result slice does not
+claim while or arbitrary expression parity.
 
 Tests cover exact branch selection/outcomes, condition state, guaranteed-variable
 preflight, hidden invalid branches and costs, IO/timeout/listener error
@@ -230,3 +229,56 @@ saves/reloads native plans and archives, exports CSV and executes in a fresh
 service; grouped quality and vdP raw/derived evidence also round-trip under the
 branch. These are simulation and owned loopback protocol tests, not lab or UI
 acceptance.
+
+
+## PPMS numeric conditions and pure iterators
+
+Native ValueCondition keeps exact equality by default. Optional typed
+EqualityTolerance enables strict abs(lhs-rhs) < tolerance for Equal and its
+complement for NotEqual. Preflight rejects zero/negative tolerance, mismatched
+units or use with an ordered comparison; IO and cancellation stay faults/abort.
+Native v1 preserves optional equalityTolerance in both condition and if_else,
+rejects explicit null, and reads older documents with exact comparison.
+
+PPMS if_then_else/conditional/branch numeric mode lowers into a typed input
+assignment and IfElseStep. It accepts gt/lt/gte/lte/eq/neq and their symbolic
+forms; omitted op is gt. Equality uses the PPMS strict 1e-9 absolute tolerance
+in the operand's physical unit. Then is required, Else optional. Both branches
+preflight before resource admission. Missing/unavailable variables, malformed
+injections, unknown fields/operators and unsupported variable contracts reject.
+
+Supported snapshot axis names are field (T), temperature (K), angle (degrees),
+current (A), voltage/bias (V), scan_time (s) and scan_number (dimensionless).
+Migrated scans explicitly assign these names to ppms.axis.* variables each point;
+voltage publishes both voltage and bias. Assignments do not create data rows.
+Last values remain after the scan, including a nested scan's most recent value;
+the next outer point publishes its new value. Subtree isolation still applies.
+Preflight requires an actual definition on every path; names never invent a
+readback, hardware connection or fallback zero.
+
+PPMS for_each/iterate generates dimensionless points with the shared bounded
+point parser and executes ordinary authored children. Native ForEachStep has a
+validated IndexBase; existing API/docs default OneBased, this PPMS iterator uses
+ZeroBased. Row columns, labels and native indexBase preserve that choice.
+Both nested points and flat controls are supported; points_mode from the PPMS
+schema is normalized to mode and conflicting dual modes reject.
+
+Iterator injection applies only to direct children, matching the PPMS handler.
+Numeric conditions resolve value/iterator_value, index and total from the current
+iterator, unless their corresponding explicit iterator_value/index/total field
+wins. Omitted comparison value uses the injected current point. Nested iterators
+have distinct row axes/counters; this is serial owned execution, not a generated
+per-point DOM or parallel runner. An injected RHS point becomes a QuantityFromNumberValue with the axis's explicit
+unit. Compiler and executor require the source variable to be dimensionless; an
+already physical variable cannot be relabelled to another unit. Native v1
+quantityFromNumber preserves this contract with strict variable/unit fields.
+
+Tests cover operator symbols/defaults and epsilon boundary, old exact/one-based
+compatibility, tolerance/unit/availability validation, nesting/overrides/direct
+injection, scan aliases including voltage/bias, strict native index fields,
+no Else, pause/abort and owned TCP/timeout faults. The five-row
+ppms-numeric-conditions-import.json saves/loads native plans, reopens archives,
+exports CSV and reexecutes in a fresh service. Arbitrary/custom Bool/Text
+blackboard variables, pol_voltage/remaining unmigrated axes, dynamic command
+injection, advanced point modifiers, while, expressions/parallel, full UI and
+physical acceptance remain pending.

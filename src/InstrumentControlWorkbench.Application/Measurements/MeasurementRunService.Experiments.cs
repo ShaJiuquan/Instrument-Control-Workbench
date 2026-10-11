@@ -95,7 +95,7 @@ public sealed partial class MeasurementRunService
                         run.Token.ThrowIfCancellationRequested();
                         await PauseCheckpointAsync(run);
                         run.Variables[loop.Variable] = run.Axes[loop.Variable] = loop.Values.Values[i];
-                        run.Variables[index] = run.Axes[index] = new(i + 1, PhysicalUnit.Dimensionless);
+                        run.Variables[index] = run.Axes[index] = new(i + (int)loop.IndexBase, PhysicalUnit.Dimensionless);
                         run.Variables[total] = run.Axes[total] = new(loop.Values.Values.Count, PhysicalUnit.Dimensionless);
                         if ((outcome = await ExecuteStepAsync(loop.Body, run, started, ivPlot)) == StepOutcome.Failure) break;
                     }
@@ -187,6 +187,13 @@ public sealed partial class MeasurementRunService
     {
         var left = run.Variables[condition.Variable]; var right = Resolve(condition.Value, run);
         if (left.Unit != right.Unit) throw new InvalidOperationException("Comparison units changed during execution.");
+        if (condition.EqualityTolerance is { } tolerance)
+        {
+            if (tolerance.Value <= 0 || tolerance.Unit != left.Unit || condition.Operator is not (ComparisonOperator.Equal or ComparisonOperator.NotEqual))
+                throw new InvalidOperationException("Equality tolerance changed during execution.");
+            var equal = Math.Abs(left.Value - right.Value) < tolerance.Value;
+            return condition.Operator == ComparisonOperator.Equal ? equal : !equal;
+        }
         return Compare(left.Value, right.Value, condition.Operator);
     }
 
@@ -297,6 +304,7 @@ public sealed partial class MeasurementRunService
     {
         ConstantValue constant => constant.Value,
         VariableValue variable when run.Variables.TryGetValue(variable.Variable, out var resolved) => resolved,
+        QuantityFromNumberValue qualified when run.Variables.TryGetValue(qualified.Variable, out var input) && input.Unit == PhysicalUnit.Dimensionless => new(input.Value, qualified.Unit),
         _ => throw new InvalidOperationException("A plan variable has no value on this execution path."),
     };
 

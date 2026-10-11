@@ -34,6 +34,7 @@ public sealed partial class ControlFlowTests
     [InlineData("fallback")]
     [InlineData("retry")]
     [InlineData("branch_outcome")]
+    [InlineData("numeric_branch")]
     public async Task ExpiredScopeIsFaultNotWorkflowFailureAndControlsCannotSwallowOrRetryIt(string kind)
     {
         var b = new Bench(); using var events = b.Hub.Subscribe();

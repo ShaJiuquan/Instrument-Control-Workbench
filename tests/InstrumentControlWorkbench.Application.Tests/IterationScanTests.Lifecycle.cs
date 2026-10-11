@@ -45,7 +45,7 @@ public sealed partial class IterationScanTests
             await using var reopened = new FileRunArchive(Path.Combine(folder, "runs"));
             var saved = await reopened.LoadAsync(id, Token); Assert.Equal(5, saved.DataSet.Rows.Count);
             var root = Assert.IsType<SequenceStep>(saved.DataSet.Plan!.Root);
-            Assert.Equal(IterationTiming.DelayBeforePoint, Assert.IsType<ForEachStep>(Assert.IsType<SequenceStep>(Assert.IsType<ForEachStep>(root.Children[0]).Body).Children[0]).Timing);
+            Assert.Equal(IterationTiming.DelayBeforePoint, Assert.IsType<SequenceStep>(Assert.IsType<ForEachStep>(root.Children[0]).Body).Children.OfType<ForEachStep>().Single().Timing);
             var fresh = new Bench(); await fresh.Runs.StartPlanAsync(saved.DataSet.Plan, Token);
             Assert.Equal(5, fresh.Runs.LatestDataSet!.Rows.Count);
             var csv = Path.Combine(folder, "points.csv"); await reopened.ExportCsvAsync(id, csv, Token);

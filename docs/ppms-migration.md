@@ -618,3 +618,18 @@ five-row fixture/archive/CSV/fresh replay, grouped quality and vdP evidence are
 covered. Numeric PPMS mode, while, expressions, parallel controls and full UI/lab
 acceptance remain pending. See workflow-control.md. No new package or Rust/UI
 changes are part of this slice.
+
+### Numeric comparison and pure for_each import
+
+PPMS numeric if_then_else now imports supported physical/number/time axes and
+injected iterator value/index/total into typed IfElseStep. Scan aliases are
+explicit assignments, retain most recent values after nested scans and preserve
+units. Strict 1e-9 equality is opt-in on ValueCondition so existing native exact
+comparison remains unchanged. Pure for_each/iterate uses bounded dimensionless
+points, direct-child injection with explicit overrides and zero-based indices;
+native iterators still default one-based and preserve the authored base. Native
+codec, strict import/preflight, fixture/native save/archive/CSV/fresh replay,
+compatibility, operator/unit/availability cases and pause/abort/TCP/timeout faults
+are tested. Custom nonnumeric/other axes, dynamic commands, advanced point
+modifiers, while/expressions/parallel and UI/lab parity remain pending. See
+workflow-control.md. No new dependency or Rust/protected UI edit.

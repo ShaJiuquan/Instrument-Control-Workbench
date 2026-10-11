@@ -1,0 +1,27 @@
+{
+  "experiment_id": "PPMS numeric conditions and pure iterator",
+  "type": "sequence",
+  "children": [
+    {
+      "type": "for_each", "params": { "points": [-0.5, 0.0, 2.5] },
+      "children": [
+        {
+          "type": "if_then_else", "source_line": 7,
+          "params": { "variable": "value", "op": "eq" },
+          "children": [
+            { "type": "then", "children": [ { "type": "measurement", "name": "measure_field" } ] },
+            { "type": "else", "children": [ { "type": "measurement", "name": "measure_field" } ] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "scan", "name": "scan_number", "params": { "points": [2] },
+      "children": [ { "type": "measurement", "name": "measure_field" } ]
+    },
+    {
+      "type": "if_then_else", "params": { "variable": "scan_number", "op": "eq", "value": 2 },
+      "children": [ { "type": "then", "children": [ { "type": "measurement", "name": "measure_field" } ] } ]
+    }
+  ]
+}

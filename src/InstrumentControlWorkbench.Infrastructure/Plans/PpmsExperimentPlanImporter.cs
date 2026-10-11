@@ -46,6 +46,7 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
         public bool UsesSamples { get; set; }
         public bool UsesChannelProfiles { get; set; }
         public Stack<(InstrumentId Device, string Channel, Core.Parameters.ParameterId Axis)> SourceScans { get; } = new();
+        public Dictionary<string, ParameterId> IteratorChildren { get; } = new();
         public int Nodes { get; set; }
         public int Values { get; set; }
     }
@@ -70,7 +71,7 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
                 case "sequence":
                     Fields(p); return new SequenceStep(id, Children(node, path, c, depth));
                 case "if_then_else":
-                    if (p.ContainsKey("variable")) throw new NotSupportedException("Numeric/script conditions require a separately migrated comparison contract.");
+                    if (p.ContainsKey("variable")) return NumericBranch(p, node, path, c, depth);
                     Fields(p); var branchChildren = Children(node, path, c, depth);
                     if (branchChildren.Count is not (2 or 3)) throw new FormatException("if_then_else node mode requires a condition, Then and optional Else.");
                     return new BranchOnOutcomeStep(id, branchChildren[0], branchChildren[1], branchChildren.Count == 3 ? branchChildren[2] : null);
@@ -107,6 +108,8 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
                     Fields(p, "num_cycles"); var children = Children(node, path, c, depth);
                     if (children.Count != 1) throw new FormatException("repeat requires exactly one child.");
                     return new RepeatStep(id, Integer(p, "num_cycles", 3), children[0]);
+                case "for_each":
+                    return PureIterator(p, node, path, c, depth);
                 case "delay":
                     Fields(p, "delay_s"); return new SequenceStep(id, [new DelayStep(new(path + ".wait"), Duration(p, "delay_s", 1)), .. Children(node, path, c, depth, required: false)]);
                 case "command":
@@ -145,6 +148,7 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
         "with_timeout" => "timeout",
         "scope" or "isolated" => "subtree",
         "conditional" or "branch" => "if_then_else",
+        "iterate" => "for_each",
         "then" or "else" => "sequence",
         "scan_temp" => "scan_temperature",
         "time_s" => "scan_time",

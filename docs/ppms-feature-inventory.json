@@ -1091,9 +1091,9 @@
       ],
       "status": "partial",
       "evidence": {
-        "boundary": "Core BranchOnOutcomeStep; Application unit-aware full-tree preflight and serial execution; Infrastructure codecs",
-        "tests": "BranchOnOutcomeStepTests.cs; ControlFlowTests.OutcomeBranch*.cs and lifecycle/driver/timeout/archives; SampleResistanceExecutionTests.Analysis.cs",
-        "limits": "PPMS node mode only: condition once, selected Then/optional Else, missing Else Success; rows and state retained, errors/abort never become False. Strict native/PPMS aliases and Then/Else wrappers, source locations, all resource/data/document visitors, variable availability and budget, fixture/archive/CSV/fresh execution, grouped quality/vdP, failed stop/recovery. Numeric PPMS variable/op/value mode, while, expressions/parallel/UI/lab remain pending. See workflow-control.md."
+        "boundary": "Core ValueCondition/ForEachStep; Application unit-aware preflight and owned serial execution; Infrastructure PPMS lowering/native codecs",
+        "tests": "ControlFlowTests.Numeric*.cs, ControlFlowTests.cs/.Lifecycle/.Timeout, IterationIndexBaseTests.cs, IterationScanTests.Lifecycle.cs",
+        "limits": "Node-result branch plus numeric axis/iterator comparison: typed operands, strict1e-9 equality/defaultgt, direct value/index/total injection with explicit overrides, explicit dimensionless-to-quantity threshold qualification with physical-input rejection, physical/number/time last-value aliases and voltage/bias. Pure for_each/iterate zero-based counts and bounded points; native API exact equality/one-based remain defaults. Strict fields/availability/units, five-row fixture/native/archive/CSV/fresh replay, pause/abort and owned TCP/timeout faults. Custom/nonnumeric/pol_voltage variables, dynamic command injection, advanced point modifiers, while/expressions/parallel/UI/lab remain pending. See workflow-control.md."
       }
     },
     {
@@ -1104,7 +1104,7 @@
       "evidence": {
         "boundary": "Core BranchOnOutcomeStep; Application unit-aware full-tree preflight and serial execution; Infrastructure codecs",
         "tests": "BranchOnOutcomeStepTests.cs; ControlFlowTests.OutcomeBranch*.cs and lifecycle/driver/timeout/archives; SampleResistanceExecutionTests.Analysis.cs",
-        "limits": "PPMS node mode only: condition once, selected Then/optional Else, missing Else Success; rows and state retained, errors/abort never become False. Strict native/PPMS aliases and Then/Else wrappers, source locations, all resource/data/document visitors, variable availability and budget, fixture/archive/CSV/fresh execution, grouped quality/vdP, failed stop/recovery. Numeric PPMS variable/op/value mode, while, expressions/parallel/UI/lab remain pending. See workflow-control.md."
+        "limits": "PPMS node mode only: condition once, selected Then/optional Else, missing Else Success; rows and state retained, errors/abort never become False. Strict native/PPMS aliases and Then/Else wrappers, source locations, all resource/data/document visitors, variable availability and budget, fixture/archive/CSV/fresh execution, grouped quality/vdP, failed stop/recovery. Numeric mode is now implemented for supported axis/iterator contracts; remaining custom/non-numeric variables, while, expressions/parallel/UI/lab remain pending. See workflow-control.md."
       }
     },
     {
@@ -1115,7 +1115,7 @@
       "evidence": {
         "boundary": "Core BranchOnOutcomeStep; Application unit-aware full-tree preflight and serial execution; Infrastructure codecs",
         "tests": "BranchOnOutcomeStepTests.cs; ControlFlowTests.OutcomeBranch*.cs and lifecycle/driver/timeout/archives; SampleResistanceExecutionTests.Analysis.cs",
-        "limits": "PPMS node mode only: condition once, selected Then/optional Else, missing Else Success; rows and state retained, errors/abort never become False. Strict native/PPMS aliases and Then/Else wrappers, source locations, all resource/data/document visitors, variable availability and budget, fixture/archive/CSV/fresh execution, grouped quality/vdP, failed stop/recovery. Numeric PPMS variable/op/value mode, while, expressions/parallel/UI/lab remain pending. See workflow-control.md."
+        "limits": "PPMS node mode only: condition once, selected Then/optional Else, missing Else Success; rows and state retained, errors/abort never become False. Strict native/PPMS aliases and Then/Else wrappers, source locations, all resource/data/document visitors, variable availability and budget, fixture/archive/CSV/fresh execution, grouped quality/vdP, failed stop/recovery. Numeric mode is now implemented for supported axis/iterator contracts; remaining custom/non-numeric variables, while, expressions/parallel/UI/lab remain pending. See workflow-control.md."
       }
     },
     {
@@ -1195,9 +1195,9 @@
       ],
       "status": "partial",
       "evidence": {
-        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs",
-        "tests": "tests/InstrumentControlWorkbench.Application.Tests/ExperimentExecutionTests.cs",
-        "limits": "Typed plan API supports relevant scan/control/numeric wait subset; PPMS decoder and controller-specific semantics still pending"
+        "boundary": "Core ValueCondition/ForEachStep; Application unit-aware preflight and owned serial execution; Infrastructure PPMS lowering/native codecs",
+        "tests": "ControlFlowTests.Numeric*.cs, ControlFlowTests.cs/.Lifecycle/.Timeout, IterationIndexBaseTests.cs, IterationScanTests.Lifecycle.cs",
+        "limits": "Node-result branch plus numeric axis/iterator comparison: typed operands, strict1e-9 equality/defaultgt, direct value/index/total injection with explicit overrides, explicit dimensionless-to-quantity threshold qualification with physical-input rejection, physical/number/time last-value aliases and voltage/bias. Pure for_each/iterate zero-based counts and bounded points; native API exact equality/one-based remain defaults. Strict fields/availability/units, five-row fixture/native/archive/CSV/fresh replay, pause/abort and owned TCP/timeout faults. Custom/nonnumeric/pol_voltage variables, dynamic command injection, advanced point modifiers, while/expressions/parallel/UI/lab remain pending. See workflow-control.md."
       }
     },
     {
@@ -1246,9 +1246,9 @@
       "id": "if_then_else",
       "status": "partial",
       "evidence": {
-        "boundary": "Core BranchOnOutcomeStep; Application unit-aware full-tree preflight and serial execution; Infrastructure codecs",
-        "tests": "BranchOnOutcomeStepTests.cs; ControlFlowTests.OutcomeBranch*.cs and lifecycle/driver/timeout/archives; SampleResistanceExecutionTests.Analysis.cs",
-        "limits": "PPMS node mode only: condition once, selected Then/optional Else, missing Else Success; rows and state retained, errors/abort never become False. Strict native/PPMS aliases and Then/Else wrappers, source locations, all resource/data/document visitors, variable availability and budget, fixture/archive/CSV/fresh execution, grouped quality/vdP, failed stop/recovery. Numeric PPMS variable/op/value mode, while, expressions/parallel/UI/lab remain pending. See workflow-control.md."
+        "boundary": "Core ValueCondition/ForEachStep; Application unit-aware preflight and owned serial execution; Infrastructure PPMS lowering/native codecs",
+        "tests": "ControlFlowTests.Numeric*.cs, ControlFlowTests.cs/.Lifecycle/.Timeout, IterationIndexBaseTests.cs, IterationScanTests.Lifecycle.cs",
+        "limits": "Node-result branch plus numeric axis/iterator comparison: typed operands, strict1e-9 equality/defaultgt, direct value/index/total injection with explicit overrides, explicit dimensionless-to-quantity threshold qualification with physical-input rejection, physical/number/time last-value aliases and voltage/bias. Pure for_each/iterate zero-based counts and bounded points; native API exact equality/one-based remain defaults. Strict fields/availability/units, five-row fixture/native/archive/CSV/fresh replay, pause/abort and owned TCP/timeout faults. Custom/nonnumeric/pol_voltage variables, dynamic command injection, advanced point modifiers, while/expressions/parallel/UI/lab remain pending. See workflow-control.md."
       }
     },
     {
@@ -1268,9 +1268,9 @@
       "id": "for_each",
       "status": "partial",
       "evidence": {
-        "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs",
-        "tests": "tests/InstrumentControlWorkbench.Application.Tests/ExperimentExecutionTests.cs",
-        "limits": "Typed generic subset tested on simulation profiles; PPMS JSON/alias decoding, BT success/failure semantics and remaining device/measurement families pending"
+        "boundary": "Core ValueCondition/ForEachStep; Application unit-aware preflight and owned serial execution; Infrastructure PPMS lowering/native codecs",
+        "tests": "ControlFlowTests.Numeric*.cs, ControlFlowTests.cs/.Lifecycle/.Timeout, IterationIndexBaseTests.cs, IterationScanTests.Lifecycle.cs",
+        "limits": "Node-result branch plus numeric axis/iterator comparison: typed operands, strict1e-9 equality/defaultgt, direct value/index/total injection with explicit overrides, explicit dimensionless-to-quantity threshold qualification with physical-input rejection, physical/number/time last-value aliases and voltage/bias. Pure for_each/iterate zero-based counts and bounded points; native API exact equality/one-based remain defaults. Strict fields/availability/units, five-row fixture/native/archive/CSV/fresh replay, pause/abort and owned TCP/timeout faults. Custom/nonnumeric/pol_voltage variables, dynamic command injection, advanced point modifiers, while/expressions/parallel/UI/lab remain pending. See workflow-control.md."
       }
     },
     {
@@ -1573,6 +1573,12 @@
     "semantics": "PPMS node-result branching, not numeric/script-mode parity",
     "boundary": "Core BranchOnOutcomeStep; Application unit-aware full-tree preflight and serial execution; Infrastructure codecs",
     "tests": "BranchOnOutcomeStepTests.cs; ControlFlowTests.OutcomeBranch*.cs and lifecycle/driver/timeout/archives; SampleResistanceExecutionTests.Analysis.cs",
-    "limits": "PPMS node mode only: condition once, selected Then/optional Else, missing Else Success; rows and state retained, errors/abort never become False. Strict native/PPMS aliases and Then/Else wrappers, source locations, all resource/data/document visitors, variable availability and budget, fixture/archive/CSV/fresh execution, grouped quality/vdP, failed stop/recovery. Numeric PPMS variable/op/value mode, while, expressions/parallel/UI/lab remain pending. See workflow-control.md."
+    "limits": "PPMS node mode only: condition once, selected Then/optional Else, missing Else Success; rows and state retained, errors/abort never become False. Strict native/PPMS aliases and Then/Else wrappers, source locations, all resource/data/document visitors, variable availability and budget, fixture/archive/CSV/fresh execution, grouped quality/vdP, failed stop/recovery. Numeric mode now supports typed migrated axis/iterator contracts; custom/nonnumeric variables, while, expressions/parallel/UI/lab remain pending. See workflow-control.md."
+  },
+  "numericConditions": {
+    "status": "partial",
+    "boundary": "Core ValueCondition/ForEachStep; Application unit-aware preflight and owned serial execution; Infrastructure PPMS lowering/native codecs",
+    "tests": "ControlFlowTests.Numeric*.cs, ControlFlowTests.cs/.Lifecycle/.Timeout, IterationIndexBaseTests.cs, IterationScanTests.Lifecycle.cs",
+    "limits": "Node-result branch plus numeric axis/iterator comparison: typed operands, strict1e-9 equality/defaultgt, direct value/index/total injection with explicit overrides, explicit dimensionless-to-quantity threshold qualification with physical-input rejection, physical/number/time last-value aliases and voltage/bias. Pure for_each/iterate zero-based counts and bounded points; native API exact equality/one-based remain defaults. Strict fields/availability/units, five-row fixture/native/archive/CSV/fresh replay, pause/abort and owned TCP/timeout faults. Custom/nonnumeric/pol_voltage variables, dynamic command injection, advanced point modifiers, while/expressions/parallel/UI/lab remain pending. See workflow-control.md."
   }
 }
