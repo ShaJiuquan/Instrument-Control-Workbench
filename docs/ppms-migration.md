@@ -716,3 +716,15 @@ metadata scans remain; indexing, live dataset memory bounds, lazy plot/native
 history UI and physical acceptance remain unfinished. See history-pages.md.
 Original29 UI drafts/Rust/dependencies untouched; full migration active;
 GitHub only.
+
+
+### Paged XY history plot read model
+
+Application now projects validated archive pages into typed selected-axis
+samples without retaining source rows. Source order/indices/timestamps, units,
+missing-coordinate gaps, whole-row quality and provenance kind are preserved.
+Version stamps and source byte/row budgets are inherited from ReadPageAsync.
+Seven new cases plus two extended local TCP quality cases pass targeted checks.
+See history-plots.md. This is a backend use case: full-run decimation, index,
+cache, native history chart wiring and visual acceptance remain pending.
+Current desktop inspection is blocked by Mac lock; original29 UI drafts kept.

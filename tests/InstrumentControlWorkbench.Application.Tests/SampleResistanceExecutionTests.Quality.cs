@@ -40,6 +40,14 @@ public sealed partial class SampleResistanceExecutionTests
         Assert.Contains(wide.Quality, q => q.CapturedAt > wide.Timestamp); // Separate sequential acquisitions remain separate timestamps.
         await using var fresh = new FileRunArchive(folder.Path); var saved = await fresh.LoadAsync(runs.LatestDataSet.Id, Token);
         Assert.Equal(wide.Quality.ToArray(), saved.DataSet.Rows[^1].Quality.ToArray()); Assert.Equal(issue, saved.DataSet.Rows[^1].QualityIssues);
+        var plot = await new RunHistoryService(fresh).ReadPlotPageAsync(saved.DataSet.Id, new(), new("pair_V"), new("pair_I"), Token);
+        Assert.Equal(rows.Count, plot.Samples.Count);
+        Assert.All(plot.Samples, s => { Assert.Equal(issue, s.QualityIssues); Assert.Equal(ReadingQualityState.ObservedWithIssues, s.QualityState); });
+        Assert.Equal(HistoryPlotRowKind.RoutedReading, plot.Samples[0].Kind);
+        Assert.Equal(HistoryPlotRowKind.SampleAnalysis, plot.Samples[analyzed.Analysis.InputCount].Kind);
+        Assert.Equal(HistoryPlotRowKind.MeasurementGroup, plot.Samples[^1].Kind);
+        Assert.False(plot.Samples[0].HasCoordinates); Assert.True(plot.Samples[^1].HasCoordinates);
+        Assert.Equal(wide.ObservedQualityColumns, plot.Samples[^1].ObservedQualityColumns);
         Assert.False(peer.Output); Assert.Empty((await matrix.GetSnapshotAsync(Token)).Closed); Assert.False(runs.HasActiveRun); await source.DisconnectAsync(Token);
     }
     [Theory]

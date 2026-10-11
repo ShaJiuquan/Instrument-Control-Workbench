@@ -1132,3 +1132,22 @@ group mismatches verified. Full scans required per query/page; no index/seek
 latency claim, live dataset memory unchanged, native history/plot integration
 and visual acceptance remain pending. Original29 UI drafts preserved/excluded,
 Rust read-only, no new dependencies; GitHub only; full goal active.
+
+
+## Paged history plot projection (2026-10-11)
+
+Application RunHistoryService.ReadPlotPageAsync projects verified bounded row
+pages into ordered typed XY samples with original one-based indices/timestamps,
+schema axis descriptors, nullable missing coordinates, row provenance kind and
+whole-row quality state/issues/observed count. One sample per source record,
+including gaps; row-byte budget/version/incomplete-tail/next offset preserved.
+Unknown axes rejected; no sorting/interpolation/quality filtering/downsampling.
+No source rows/unselected values retained in result. Missing measurements,
+unobserved status and failed acquisitions remain distinct. Seven new cases plus
+two existing TCP sample-analysis/group quality cases verify sparse restart,
+byte budgets, version replacement, corruption outside page, empty/unfinalized,
+cancellation and recovered failed acquisition. Every query still whole-scans;
+no index/cache/full-run decimation or native chart integration claimed. Mac
+currently locked prevents native desktop inspection;29 original UI drafts
+untouched/excluded. No new dependencies, Rust changes or lab IO. Independent
+C# engine; GitHub only; full goal remains active.

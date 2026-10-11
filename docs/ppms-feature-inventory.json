@@ -1621,5 +1621,19 @@
     "boundary": "Core immutable catalog/row query, keyset cursor, read-version and summary/page; Application history use cases; Infrastructure full validated file scans with bounded result retention",
     "tests": "RunArchiveQueryTests.cs; RunArchiveTests.Pages/CatalogPages.cs; ControlFlowTests.HistoryPages.cs; MeasurementGroupExecutionTests.HistoryPages.cs; existing archive/quality/sample/CSV suites",
     "limits": "Lightweight timestamp+Guid catalog filtering and contiguous text-bounded prefix, bounded issue details with counts; source-byte-bounded row pages and full cross-page scientific/terminal validation, coherent header/data/final fingerprints including equal-size rewrites and partial tail; legacy/v2 variables. Restarted100005-row storage verified. Full scan per page/catalog remains, no index/constant-time seek or atomic multi-page catalog snapshot; live dataset memory and native lazy history/plots integration/visual/lab remain pending. See history-pages.md."
+  },
+  "pagedHistoryPlots": {
+    "status": "partial",
+    "implementation": [
+      "src/InstrumentControlWorkbench.Application/Measurements/RunHistoryService.cs",
+      "src/InstrumentControlWorkbench.Application/Measurements/HistoryPlotPage.cs"
+    ],
+    "tests": [
+      "tests/InstrumentControlWorkbench.Application.Tests/RunArchiveTests.Plots.cs",
+      "tests/InstrumentControlWorkbench.Application.Tests/Keithley6221ExecutionTests.HistoryPlots.cs",
+      "tests/InstrumentControlWorkbench.Application.Tests/SampleResistanceExecutionTests.Quality.cs"
+    ],
+    "verifiedScope": "Typed bounded selected-axis page projection; original row order/index/time, nullable gaps, row kind and whole-row quality; archive integrity/version/byte budget inherited.",
+    "remaining": "Full scans per page; no index/cache/full-run decimation/series partitioning/native history chart integration or visual acceptance."
   }
 }
