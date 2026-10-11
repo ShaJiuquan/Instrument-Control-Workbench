@@ -223,6 +223,7 @@ internal static class ExperimentPlanCompiler
             ScanStep scan => CanReportWorkflowFailure(scan.Body),
             ForEachStep loop => CanReportWorkflowFailure(loop.Body),
             IfElseStep conditional => CanReportWorkflowFailure(conditional.Then) || conditional.Else is { } other && CanReportWorkflowFailure(other),
+            ThresholdSwitchStep choice => choice.Children.Any(CanReportWorkflowFailure),
             _ => false, // Validated IO/acquisition leaves either succeed or throw; controls cannot swallow those errors.
         };
         void RetainCommonVariables(Dictionary<ParameterId, BlackboardValueType> known, IReadOnlyList<Dictionary<ParameterId, BlackboardValueType>> paths)
@@ -576,6 +577,23 @@ internal static class ExperimentPlanCompiler
                         throw new ArgumentException("Stability target, tolerance and readback units must match.");
                     if (wait.Target is ConstantValue target) readback.Validate(target.Value);
                     return 1;
+                case ThresholdSwitchStep choice:
+                    if (choice.Children.Count == 0) return 1;
+                    var selectorType = ValueType(new VariableValue(choice.Variable), known);
+                    if (selectorType.Kind != BlackboardValueKind.Quantity || choice.Thresholds.Any(q => q.Unit != selectorType.Unit))
+                        throw new ArgumentException("Switch requires an available numeric selector with matching threshold units.");
+                    Dictionary<ParameterId, BlackboardValueType>? switchCommon = null; long switchCost = 0;
+                    foreach (var child in choice.Children)
+                    {
+                        var pathKnown = new Dictionary<ParameterId, BlackboardValueType>(known);
+                        switchCost = Math.Max(switchCost, Visit(child, pathKnown, axes, depth + 1));
+                        // Retain the common state incrementally, rather than
+                        // holding one entire known-variable map per branch.
+                        if (switchCommon is null) switchCommon = pathKnown;
+                        else RetainCommonVariables(switchCommon, [switchCommon, pathKnown]);
+                    }
+                    RetainCommonVariables(known, [switchCommon!]);
+                    return checked(1 + switchCost);
                 case IfElseStep conditional:
                     CheckCondition(conditional.Condition, known);
                     var thenKnown = new Dictionary<ParameterId, BlackboardValueType>(known);

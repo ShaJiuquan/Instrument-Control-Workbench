@@ -129,6 +129,8 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
                     return new BranchOnOutcomeStep(id, branchChildren[0], branchChildren[1], branchChildren.Count == 3 ? branchChildren[2] : null);
                 case "fallback":
                     Fields(p); return new FallbackStep(id, Children(node, path, c, depth));
+                case "switch":
+                    return ThresholdSwitch(p, node, path, c, depth);
                 case "retry":
                     Fields(p, "max_attempts", "delay_ms");
                     var delay = Number(p, "delay_ms", 0);
@@ -202,6 +204,7 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
         "with_timeout" => "timeout",
         "scope" or "isolated" => "subtree",
         "conditional" or "branch" => "if_then_else",
+        "select_case" => "switch",
         "iterate" => "for_each",
         "then" or "else" => "sequence",
         "scan_temp" => "scan_temperature",

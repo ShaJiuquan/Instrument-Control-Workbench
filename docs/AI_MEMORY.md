@@ -1170,3 +1170,23 @@ rendering/series partitioning and visual acceptance remain pending because
 current CUA verified locked Mac; async unlock request pending. Existing29 UI
 drafts untouched/excluded. No dependency/Rust/lab changes; full goal active,
 independent C# engine, GitHub only. See history-desktop.md.
+
+
+## Typed PPMS threshold switch (2026-10-11)
+
+Core ThresholdSwitchStep: ordered numeric physical lower bounds, last >= match
+wins, last child also default, prefix bounds, duplicates/unsorted kept, empty
+no-op. Application compiler quantity/type/unit/definite-availability validation,
+incremental common path state and max-branch cost; interpreter delegates only
+selected child with existing resources/safe-stop/lifecycle. Expected failure
+and original leaf identity, TCP fault/no retry and abort cleanup preserved.
+Native threshold_switch codec includes depth/node/value bounds; all Core
+row/sample/blackboard walkers include children. PPMS switch/select_case imports
+contiguous case prefix and known axis/callback units; nested iterator contexts
+through containers supported. Malformed legacy unused fields rejected (strict
+import policy), valid ignored gapped/excess fields kept semantically inert.
+47 new cases (8Core39Application), plus existing regression cases; repository
+field fixture and nested iterator save/restart/replay/CSV/Hall evidence tested.
+Native visual editor/physical acceptance and other PPMS scope remain pending.
+Original29 UI drafts untouched/excluded; Rust read-only, no dependency/lab IO.
+Independent C# engine; GitHub only; full goal active. See threshold-switch.md.

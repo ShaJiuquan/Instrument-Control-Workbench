@@ -145,6 +145,12 @@ public sealed partial class JsonExperimentPlanDocument
                 o["kind"] = "wait_stable"; o["readback"] = EncodeAddress(s.Readback); o["target"] = EncodeValue(s.Target);
                 o["tolerance"] = EncodeQuantity(s.Tolerance); o["stableSeconds"] = s.StableFor.TotalSeconds;
                 o["pollSeconds"] = s.PollInterval.TotalSeconds; o["timeoutSeconds"] = s.Timeout.TotalSeconds; break;
+            case ThresholdSwitchStep s:
+                o["kind"] = "threshold_switch"; o["variable"] = s.Variable.Value;
+                o["thresholds"] = new JsonArray(s.Thresholds.Select(q => (JsonNode)EncodeQuantity(q)).ToArray());
+                var switchChildren = new JsonArray();
+                foreach (var child in s.Children) switchChildren.Add(EncodeStep(child, depth + 1, ref count));
+                o["children"] = switchChildren; break;
             case IfElseStep s:
                 o["kind"] = "if_else"; o["condition"] = new JsonObject
                 {
@@ -332,6 +338,14 @@ public sealed partial class JsonExperimentPlanDocument
                 Object(o, "id", "kind", "readback", "target", "tolerance", "stableSeconds", "pollSeconds", "timeoutSeconds");
                 return new WaitStableStep(id, DecodeAddress(o["readback"]), DecodeValue(o["target"]), DecodeQuantity(o["tolerance"]),
                     Duration(o, "stableSeconds"), Duration(o, "pollSeconds"), Duration(o, "timeoutSeconds"));
+            case "threshold_switch":
+                Object(o, "id", "kind", "variable", "thresholds", "children");
+                var switchThresholds = Array(Required(o, "thresholds"));
+                if (switchThresholds.Count > 10_000) throw new FormatException("Switch thresholds exceed their bound.");
+                var switchBranches = new List<ExperimentStep>();
+                foreach (var child in Array(Required(o, "children"))) switchBranches.Add(DecodeStep(child, depth + 1, ref count));
+                try { return new ThresholdSwitchStep(id, new(Text(o, "variable")), switchBranches, switchThresholds.Select(DecodeQuantity)); }
+                catch (ArgumentException error) { throw new FormatException($"{id}: invalid threshold switch definition.", error); }
             case "if_else":
                 Object(o, "id", "kind", "condition", "then", "else");
                 var condition = Object(o["condition"], "variable", "operator", "value", "equalityTolerance");

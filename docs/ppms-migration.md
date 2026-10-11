@@ -741,3 +741,16 @@ and controlled-lifetime App cases verify behavior. Desktop draft replacement,
 chart/series rendering and native minimum-window visual acceptance remain
 pending; current Mac lock is verified. Original29 drafts remain unchanged.
 See history-desktop.md; full PPMS migration remains active.
+
+
+### PPMS threshold switch
+
+Typed Core numeric ordered lower bounds with last-match/default-last semantics,
+Application compile/type/units/path/budget checks and selected-child interpreter
+now migrate switch/select_case. Native bounded codec and Core data/blackboard/
+sample traversal preserve scientific/final provenance in fresh archives.
+47 new cases plus existing regression cases cover selection/type/units, branch
+outputs/cost, leaf failure, TCP fault, abort cleanup, strict import and actual
+field fixture, nested iterator save/reload/CSV/re-execution and Hall analysis.
+See threshold-switch.md. Visual editor/physical/full PPMS acceptance remain
+pending; original29 UI drafts and Rust unchanged, independent engine/GitHub.

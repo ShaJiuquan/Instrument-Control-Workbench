@@ -125,6 +125,7 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanDocument
                 ConditionStep condition => ValueCost(condition.Condition.Value),
                 IfElseStep choice => ValueCost(choice.Condition.Value),
                 WhileStep loop => ValueCost(loop.Condition.Value),
+                ThresholdSwitchStep choice => choice.Thresholds.Count,
                 SoftwareTemperatureRampStep ramp => ValueCost(ramp.Target),
                 HardwareTemperatureSetpointStep ramp => ValueCost(ramp.Target),
                 WaitTemperatureStep wait => ValueCost(wait.Target),
@@ -136,6 +137,7 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanDocument
             {
                 case MeasurementGroupStep point: foreach (var member in point.Members) pending.Push((member.Body, entry.Depth + 1)); break;
                 case SampleAnalysisStep sample: foreach (var reading in sample.Readings) pending.Push((reading, entry.Depth + 1)); break;
+                case ThresholdSwitchStep choice: foreach (var child in choice.Children) pending.Push((child, entry.Depth + 1)); break;
                 case FallbackStep fallback: foreach (var child in fallback.Children) pending.Push((child, entry.Depth + 1)); break;
                 case RetryStep retry: pending.Push((retry.Body, entry.Depth + 1)); break;
                 case WhileStep loop: pending.Push((loop.Body, entry.Depth + 1)); break;

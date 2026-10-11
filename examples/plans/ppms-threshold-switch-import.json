@@ -1,0 +1,19 @@
+{
+  "experiment_id": "PPMS field threshold switch",
+  "type": "scan",
+  "name": "scan_field",
+  "source_line": 1,
+  "params": { "points": [-0.1, 0, 0.1], "wait_mode": "reached" },
+  "children": [
+    {
+      "type": "switch",
+      "source_line": 2,
+      "params": { "variable": "field", "case_1": -0.05, "case_2": 0.05 },
+      "children": [
+        { "type": "measurement", "name": "measure_field", "label": "Lower field case", "source_line": 3, "params": {} },
+        { "type": "measurement", "name": "measure_field", "label": "Upper field case", "source_line": 4, "params": {} },
+        { "type": "measurement", "name": "measure_field", "label": "Default case", "source_line": 5, "params": {} }
+      ]
+    }
+  ]
+}

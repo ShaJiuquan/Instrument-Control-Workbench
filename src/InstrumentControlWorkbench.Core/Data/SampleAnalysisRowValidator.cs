@@ -54,6 +54,7 @@ public sealed class SampleAnalysisRowValidator
                     foreach (var read in group.Readings) pending.Push((read, item.Depth + 1));
                     break;
                 case MeasurementGroupStep point: foreach (var member in point.Members) pending.Push((member.Body, item.Depth + 1)); break;
+                case ThresholdSwitchStep choice: foreach (var child in choice.Children) pending.Push((child, item.Depth + 1)); break;
                 case FallbackStep fallback: foreach (var child in fallback.Children) pending.Push((child, item.Depth + 1)); break;
                 case RetryStep retry: pending.Push((retry.Body, item.Depth + 1)); break;
                 case WhileStep loop: pending.Push((loop.Body, item.Depth + 1)); break;

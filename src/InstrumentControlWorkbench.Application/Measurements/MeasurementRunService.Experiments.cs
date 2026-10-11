@@ -202,6 +202,14 @@ public sealed partial class MeasurementRunService
             case WaitStableStep wait:
                 await WaitStableAsync(wait, run);
                 break;
+            case ThresholdSwitchStep choice:
+                if (choice.Children.Count != 0)
+                {
+                    if (ResolveValue(new VariableValue(choice.Variable), run) is not BlackboardQuantity selector)
+                        throw new InvalidOperationException("Switch selector is no longer numeric.");
+                    outcome = await ExecuteStepAsync(choice.Children[choice.SelectBranch(selector.Value)!.Value], run, started, ivPlot);
+                }
+                break;
             case IfElseStep conditional:
                 var selected = EvaluateCondition(conditional.Condition, run) ? conditional.Then : conditional.Else;
                 if (selected is not null) outcome = await ExecuteStepAsync(selected, run, started, ivPlot);

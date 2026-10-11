@@ -1124,7 +1124,12 @@
       "aliases": [
         "select_case"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "Core ThresholdSwitchStep; Application compiler/interpreter; Infrastructure native codec/PPMS importer; Core row/sample/blackboard traversal",
+        "tests": "ThresholdSwitchTests.cs; ControlFlowTests.ThresholdSwitch/ThresholdSwitchDocuments.cs; SampleResistanceExecutionTests.ThresholdSwitch.cs; extended failure/TCP control cases",
+        "limits": "Numeric ordered lower bounds, exact inclusive last match and last-child default; known units/axis/callback/nearest iterator scope; valid contiguous prefix parity, strict malformed fields. Visual branch editor, arbitrary dynamic/script axes, physical and whole PPMS acceptance pending. See threshold-switch.md."
+      }
     },
     {
       "id": "repeat",
@@ -1642,5 +1647,12 @@
     "tests": "tests/InstrumentControlWorkbench.App.Tests/PagedHistoryTests.cs",
     "scope": "Bounded catalog/page state, schema axes, typed XY/gaps/quality, one-based jump and pinned continuation, explicit reload, single tracked read, stale result/cancel/disposal guard; shared service ownership preserved.",
     "remaining": "Native history draft wiring, chart/series rendering and visual acceptance; full-scan index/cache/overview and other PPMS scope. Original29 drafts excluded."
+  },
+  "thresholdSwitch": {
+    "status": "partial",
+    "source": "PPMS35763295f63b node_execution/handlers/switch.rs + commands.json",
+    "contract": "Ordered last >= threshold match, last child default; numeric same-unit selector, bounded prefix, empty no-op; one selected child and existing lifecycle; shared definite-variable intersection and max branch budget; strict codec/archive/provenance",
+    "tests": "47 new cases:8Core39Application; fixture ppms-threshold-switch-import.json; existing control regression suite",
+    "remaining": "Native editor/physical acceptance, generic expressions/concurrency and remaining PPMS scope; strict legacy malformed inputs rejected"
   }
 }

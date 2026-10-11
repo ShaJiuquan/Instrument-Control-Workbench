@@ -63,6 +63,7 @@ public sealed partial class RunDataRowValidator
                     foreach (var column in group.Members.SelectMany(m => m.OutputColumns))
                         if (!schema.Columns.Any(c => c.Parameter.Id == column)) throw new ArgumentException("Measurement group requires its declared result columns.");
                     foreach (var member in group.Members) pending.Push((member.Body, item.Depth + 1)); break;
+                case ThresholdSwitchStep choice: foreach (var child in choice.Children) pending.Push((child, item.Depth + 1)); break;
                 case FallbackStep fallback: foreach (var child in fallback.Children) pending.Push((child, item.Depth + 1)); break;
                 case RetryStep retry: pending.Push((retry.Body, item.Depth + 1)); break;
                 case WhileStep loop: pending.Push((loop.Body, item.Depth + 1)); break;

@@ -53,6 +53,7 @@ public sealed partial class ControlFlowTests
     [InlineData("scan")]
     [InlineData("iterator")]
     [InlineData("branch")]
+    [InlineData("switch")]
     public async Task LogicalFailureStopsParentBodyAndStillRunsIndependentCleanup(string kind)
     {
         var b = new Bench(); var failed = new SequenceStep(new("body"), [Check("fail", false), b.ReadField("unreachable")]);
@@ -62,6 +63,7 @@ public sealed partial class ControlFlowTests
             "repeat" => new RepeatStep(new("parent"), 3, failed),
             "scan" => new ScanStep(new("parent"), new(b.Field.Definition.Device.Id, b.Field.Definition.Target.Id), new("field_axis"), new([new(0, PhysicalUnit.Tesla), new(0.01, PhysicalUnit.Tesla)]), TimeSpan.Zero, failed),
             "iterator" => new ForEachStep(new("parent"), new("number"), new([new(0, PhysicalUnit.Dimensionless), new(1, PhysicalUnit.Dimensionless)]), failed),
+            "switch" => new ThresholdSwitchStep(new("parent"), Flag, [failed, b.ReadField("other")], [Number(0)]),
             _ => new IfElseStep(new("parent"), new(Flag, ComparisonOperator.Equal, new ConstantValue(new(1, PhysicalUnit.Dimensionless))), failed, b.ReadField("other")),
         };
         Assert.Equal(new StepId("fail"), (await Assert.ThrowsAsync<PlanFailedException>(() => b.Runs.StartPlanAsync(b.Powered(Seed(parent)), Token))).Step);
@@ -121,6 +123,7 @@ public sealed partial class ControlFlowTests
     [InlineData("numeric_branch")]
     [InlineData("while")]
     [InlineData("outcome_mutation")]
+    [InlineData("threshold_switch")]
     public async Task NativeTcpAcquisitionErrorIsNotSwallowedOrRetriedByWorkflowControl(string kind)
     {
         await using var peer = new Keithley2450ScpiPeer(); var measurements = 0;
@@ -150,6 +153,7 @@ public sealed partial class ControlFlowTests
             new IfElseStep(new("numeric_branch"), new(new("wrapper.value"), ComparisonOperator.Equal, new ConstantValue(Number(0)), Number(1e-9)), body, alternative)]),
         "while" => new SequenceStep(new("wrapper"), [Local("loop_seed", "wrapper.count", Number(0)), new WhileStep(new("loop"), Below("wrapper.count", 1), body)]),
         "outcome_mutation" => new OutcomeMutationStep(new("wrapper"), body, Mutate("success_hook", "hook.value", VariableMutation.Set, 1), Mutate("failure_hook", "hook.value", VariableMutation.Set, 2)),
+        "threshold_switch" => new SequenceStep(new("wrapper"), [Local("predicate_seed", "wrapper.value", Number(0)), new ThresholdSwitchStep(new("choice"), new("wrapper.value"), [body, alternative], [Number(0)])]),
         _ => new ResultDecoratorStep(new("wrapper"), kind == "force_success" ? ResultEffect.ForceSuccess : kind == "force_failure" ? ResultEffect.ForceFailure : ResultEffect.Invert, body),
     };
     private static async Task Until(NotificationSubscription events, WorkbenchNotificationKind kind, StepId? step = null)
