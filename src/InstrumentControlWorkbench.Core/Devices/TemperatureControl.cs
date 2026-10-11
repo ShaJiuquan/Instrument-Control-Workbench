@@ -2,6 +2,17 @@ namespace InstrumentControlWorkbench.Core.Devices;
 
 public sealed record TemperatureControlConfiguration(bool HardwareRampEnabled, bool ControlEnabled);
 
+public enum TemperatureControlAction { RampOn, RampOff, ControlOn, ControlOff }
+
+// Optional independent configuration capability. Existing ramp-only ports do
+// not implicitly acquire support for enabling/disabling heater control.
+public interface ITemperatureConfigurationPort : ITemperatureControlPort
+{
+    // Apply the supplied freshly observed configuration without changing the
+    // target; null rate preserves the actual rate register.
+    Task ConfigureControlAsync(TemperatureControlConfiguration configuration, Parameters.Quantity? rate, CancellationToken token);
+}
+
 // Real temperature-control boundary: software setpoints require confirmed
 // hardware-ramp-off and control-on; protocol details stay in adapters.
 public interface ITemperatureControlPort : IAxisControllerPort

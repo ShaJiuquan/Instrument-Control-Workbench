@@ -23,6 +23,10 @@ public sealed class DeviceRegistry
     }
 
     public IReadOnlyList<DeviceDescriptor> Devices { get; }
+    public bool SupportsTemperatureConfiguration(InstrumentId id) => Get(id) is AxisControllerSession { SupportsTemperatureConfiguration: true };
+    public Task ConfigureTemperatureAsync(InstrumentId id, TemperatureControlAction action, Quantity? rate, CancellationToken token)
+        => GetManual(id) is AxisControllerSession axis ? axis.ConfigureTemperatureAsync(action, rate, token)
+            : throw new NotSupportedException($"{id} has no temperature-control profile.");
     public AxisControllerDefinition GetAxisDefinition(InstrumentId id) => Get(id) is AxisControllerSession axis ? axis.Definition
         : throw new NotSupportedException($"{id} has no axis-controller execution profile.");
     public MatrixSwitchDefinition GetMatrixDefinition(InstrumentId id) => Get(id) is MatrixSwitchSession matrix ? matrix.Definition

@@ -160,25 +160,45 @@
       "id": "temp_ramp_on",
       "nodeType": "command",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Core/Experiments/TemperatureControlStep.cs; src/InstrumentControlWorkbench.Application/Devices/AxisControllerSession.Temperature.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.Commands.cs",
+        "tests": "tests/InstrumentControlWorkbench.Core.Tests/TemperatureControlStepTests.cs; tests/InstrumentControlWorkbench.Application.Tests/TemperatureControlExecutionTests.cs; tests/InstrumentControlWorkbench.Application.Tests/TemperatureControlExecutionTests.Documents.cs",
+        "limits": "Independent flags with fresh target/rate/configuration confirmation; native and strict PPMS aliases/source lines; simulation, pause/rate drift/abort/retained failed hold and fresh archive/CSV replay. Actual optional port capability preflight. Physical adapter, temp_config/temp_set_config, PID/heater/cooling/background and native UI remain pending. See temperature-controls.md."
+      }
     },
     {
       "id": "temp_ramp_off",
       "nodeType": "command",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Core/Experiments/TemperatureControlStep.cs; src/InstrumentControlWorkbench.Application/Devices/AxisControllerSession.Temperature.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.Commands.cs",
+        "tests": "tests/InstrumentControlWorkbench.Core.Tests/TemperatureControlStepTests.cs; tests/InstrumentControlWorkbench.Application.Tests/TemperatureControlExecutionTests.cs; tests/InstrumentControlWorkbench.Application.Tests/TemperatureControlExecutionTests.Documents.cs",
+        "limits": "Independent flags with fresh target/rate/configuration confirmation; native and strict PPMS aliases/source lines; simulation, pause/rate drift/abort/retained failed hold and fresh archive/CSV replay. Actual optional port capability preflight. Physical adapter, temp_config/temp_set_config, PID/heater/cooling/background and native UI remain pending. See temperature-controls.md."
+      }
     },
     {
       "id": "temp_control_on",
       "nodeType": "command",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Core/Experiments/TemperatureControlStep.cs; src/InstrumentControlWorkbench.Application/Devices/AxisControllerSession.Temperature.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.Commands.cs",
+        "tests": "tests/InstrumentControlWorkbench.Core.Tests/TemperatureControlStepTests.cs; tests/InstrumentControlWorkbench.Application.Tests/TemperatureControlExecutionTests.cs; tests/InstrumentControlWorkbench.Application.Tests/TemperatureControlExecutionTests.Documents.cs",
+        "limits": "Independent flags with fresh target/rate/configuration confirmation; native and strict PPMS aliases/source lines; simulation, pause/rate drift/abort/retained failed hold and fresh archive/CSV replay. Actual optional port capability preflight. Physical adapter, temp_config/temp_set_config, PID/heater/cooling/background and native UI remain pending. See temperature-controls.md."
+      }
     },
     {
       "id": "temp_control_off",
       "nodeType": "command",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Core/Experiments/TemperatureControlStep.cs; src/InstrumentControlWorkbench.Application/Devices/AxisControllerSession.Temperature.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.Commands.cs",
+        "tests": "tests/InstrumentControlWorkbench.Core.Tests/TemperatureControlStepTests.cs; tests/InstrumentControlWorkbench.Application.Tests/TemperatureControlExecutionTests.cs; tests/InstrumentControlWorkbench.Application.Tests/TemperatureControlExecutionTests.Documents.cs",
+        "limits": "Independent flags with fresh target/rate/configuration confirmation; native and strict PPMS aliases/source lines; simulation, pause/rate drift/abort/retained failed hold and fresh archive/CSV replay. Actual optional port capability preflight. Physical adapter, temp_config/temp_set_config, PID/heater/cooling/background and native UI remain pending. See temperature-controls.md."
+      }
     },
     {
       "id": "temp_set_config",

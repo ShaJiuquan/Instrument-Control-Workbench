@@ -7,6 +7,42 @@ namespace InstrumentControlWorkbench.Application.Devices;
 
 public sealed partial class AxisControllerSession
 {
+    public bool SupportsTemperatureConfiguration => Definition.SupportsSoftwareTemperatureRamp && port is ITemperatureConfigurationPort;
+
+    internal async Task ConfigureTemperatureAsync(TemperatureControlAction action, Quantity? rate, CancellationToken token, RunId? owner = null)
+    {
+        // The same validated command contract is used for manual and plan calls.
+        _ = new TemperatureControlStep(new("temperature.configuration"), Descriptor.Id, action, rate);
+        if (rate is { } requested) Definition.Rate.ValidateWrite(requested);
+        await operations.EnterAsync(token, owner);
+        try
+        {
+            var temperature = SupportsTemperatureConfiguration ? (ITemperatureConfigurationPort)port
+                : throw new NotSupportedException("Controller has no independent temperature-configuration capability.");
+            var before = await port.GetSnapshotAsync(token);
+            if (!before.Connected) throw new InvalidOperationException("Temperature controller is disconnected.");
+            Definition.Target.Validate(before.Target); Definition.Rate.Validate(before.Rate);
+            var original = await temperature.ReadControlConfigurationAsync(token);
+            var expected = action switch
+            {
+                TemperatureControlAction.RampOn => original with { HardwareRampEnabled = true },
+                TemperatureControlAction.RampOff => original with { HardwareRampEnabled = false },
+                TemperatureControlAction.ControlOn => original with { ControlEnabled = true },
+                TemperatureControlAction.ControlOff => original with { ControlEnabled = false },
+                _ => throw new ArgumentOutOfRangeException(nameof(action)),
+            };
+            await temperature.ConfigureControlAsync(expected, rate, token);
+            var confirmed = await temperature.ReadControlConfigurationAsync(token);
+            var snapshot = await port.GetSnapshotAsync(token);
+            if (!snapshot.Connected || snapshot.Target != before.Target || snapshot.Rate != (rate ?? before.Rate) ||
+                confirmed != expected || await temperature.ReadControlConfigurationAsync(token) != expected)
+                throw new InvalidOperationException("Temperature command did not confirm its target, rate and independent control flags.");
+            await PublishAsync(snapshot, token);
+        }
+        catch { faulted = true; throw; }
+        finally { operations.Exit(); }
+    }
+
     internal async Task<Quantity> BeginSoftwareTemperatureRampAsync(Quantity target, RunId owner, CancellationToken token)
     {
         TemperatureRampPath.ValidateTemperature(target); Definition.Target.ValidateWrite(target);
@@ -54,16 +90,18 @@ public sealed partial class AxisControllerSession
         catch { faulted = true; throw; }
         finally { operations.Exit(); }
     }
-    internal async Task RestoreTemperatureTargetAsync(Quantity target, TemperatureControlConfiguration expected, RunId owner, CancellationToken token)
+    internal async Task RestoreTemperatureTargetAsync(Quantity target, TemperatureControlConfiguration expected, Quantity expectedRate, RunId owner, CancellationToken token)
     {
         Definition.Target.ValidateWrite(target); await operations.EnterAsync(token, owner);
         try
         {
             var temperature = TemperaturePort();
             if (await temperature.ReadControlConfigurationAsync(token) != expected) throw new InvalidOperationException("Temperature configuration changed while paused; resume refused.");
+            var before = await port.GetSnapshotAsync(token);
+            if (!before.Connected || before.Rate != expectedRate) throw new InvalidOperationException("Temperature rate changed while paused; resume refused.");
             await port.SetTargetAsync(target, token);
             var snapshot = await port.GetSnapshotAsync(token);
-            if (!snapshot.Connected || snapshot.Target != target || await temperature.ReadControlConfigurationAsync(token) != expected)
+            if (!snapshot.Connected || snapshot.Target != target || snapshot.Rate != expectedRate || await temperature.ReadControlConfigurationAsync(token) != expected)
                 throw new InvalidOperationException("Temperature configuration changed during restoration.");
             await PublishAsync(snapshot, token);
         }

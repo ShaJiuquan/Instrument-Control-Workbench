@@ -15,6 +15,9 @@ public sealed partial class JsonExperimentPlanDocument
         var o = new JsonObject { ["id"] = step.Id.Value };
         switch (step)
         {
+            case TemperatureControlStep command:
+                o["kind"] = "temperature_control"; o["device"] = command.Device.Value; o["action"] = command.Action.ToString();
+                if (command.Rate is { } commandRate) o["rate"] = EncodeQuantity(commandRate); break;
             case SoftwareTemperatureRampStep temperature:
                 o["kind"] = "software_temperature_ramp"; o["device"] = temperature.Device.Value; o["target"] = EncodeValue(temperature.Target);
                 if (temperature.Rate is { } rate) o["rate"] = EncodeQuantity(rate); break;
@@ -131,6 +134,9 @@ public sealed partial class JsonExperimentPlanDocument
         var kind = Text(o, "kind");
         switch (kind)
         {
+            case "temperature_control":
+                Object(o, "id", "kind", "device", "action", "rate");
+                return new TemperatureControlStep(id, new(Text(o, "device")), NamedEnum<TemperatureControlAction>(o, "action"), o.ContainsKey("rate") ? DecodeQuantity(o["rate"]) : null);
             case "software_temperature_ramp":
                 Object(o, "id", "kind", "device", "target", "rate");
                 return new SoftwareTemperatureRampStep(id, new(Text(o, "device")), DecodeValue(o["target"]), o.ContainsKey("rate") ? DecodeQuantity(o["rate"]) : null);

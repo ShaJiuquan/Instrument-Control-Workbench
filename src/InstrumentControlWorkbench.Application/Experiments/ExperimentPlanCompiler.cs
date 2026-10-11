@@ -306,6 +306,12 @@ internal static class ExperimentPlanCompiler
             if (!steps.Add(step.Id)) throw new ArgumentException($"Duplicate step ID {step.Id}.");
             switch (step)
             {
+                case TemperatureControlStep command:
+                    Device(command.Device);
+                    if (!registry.SupportsTemperatureConfiguration(command.Device))
+                        throw new NotSupportedException("Controller does not implement independent temperature configuration.");
+                    if (command.Rate is { } commandRate) registry.GetAxisDefinition(command.Device).Rate.ValidateWrite(commandRate);
+                    return 1;
                 case SoftwareTemperatureRampStep temperature:
                     Device(temperature.Device);
                     var controller = registry.GetAxisDefinition(temperature.Device);

@@ -100,9 +100,25 @@ public sealed partial class AxisControllerSession : IDeviceSession
         await operations.EnterAsync(token, owner);
         try
         {
-            await port.HoldAsync(token);
+            var temperature = Definition.SupportsSoftwareTemperatureRamp ? (ITemperatureControlPort)port : null;
+            TemperatureControlConfiguration? configuration = null;
+            Exception? observationError = null;
+            if (temperature is not null)
+            {
+                try { configuration = await temperature.ReadControlConfigurationAsync(token); }
+                catch (Exception error) { observationError = error; }
+            }
+            // An unreadable control flag cannot suppress the emergency hold.
+            // It still prevents safety confirmation and release afterwards.
+            try { await port.HoldAsync(token); }
+            catch (Exception holdError) when (observationError is not null)
+            { throw new AggregateException("Temperature flags could not be observed and hold failed.", observationError, holdError); }
+            if (observationError is not null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(observationError).Throw();
             var snapshot = await port.GetSnapshotAsync(token);
             if ((!snapshot.Connected && Descriptor.DriverKind == DriverKind.Hardware) || snapshot.Moving) throw new InvalidOperationException($"{Descriptor.Id} did not confirm its hold policy.");
+            if (temperature is not null && (snapshot.Target != snapshot.Readback ||
+                await temperature.ReadControlConfigurationAsync(token) != configuration))
+                throw new InvalidOperationException($"{Descriptor.Id}: temperature hold changed control flags or did not park at live readback.");
             faulted = false;
             var status = await PublishAsync(snapshot, token);
             await notifications.PublishAsync(new(WorkbenchNotificationKind.SafetyStateChanged,

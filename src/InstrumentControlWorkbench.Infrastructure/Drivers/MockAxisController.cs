@@ -3,7 +3,7 @@ using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Infrastructure.Drivers;
 
-public sealed class MockAxisController : ITemperatureControlPort
+public sealed class MockAxisController : ITemperatureConfigurationPort
 {
     private readonly object gate = new();
     private readonly TimeProvider clock;
@@ -81,6 +81,19 @@ public sealed class MockAxisController : ITemperatureControlPort
         token.ThrowIfCancellationRequested();
         lock (gate) { RequireTemperatureControl(); RequireConnected(); return Task.FromResult(temperatureControl); }
     }
+    public Task ConfigureControlAsync(TemperatureControlConfiguration configuration, Quantity? requestedRate, CancellationToken token)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+        if (requestedRate is { } value) Definition.Rate.ValidateWrite(value);
+        token.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            RequireTemperatureControl(); RequireConnected(); Advance();
+            if (requestedRate is { } newRate) rate = newRate.Value;
+            temperatureControl = configuration;
+        }
+        return Task.CompletedTask;
+    }
     private void RequireTemperatureControl()
     {
         if (!Definition.SupportsSoftwareTemperatureRamp) throw new NotSupportedException("This axis has no temperature-control profile.");
@@ -111,13 +124,15 @@ public sealed class MockAxisController : ITemperatureControlPort
         var delta = clock.GetElapsedTime(updatedAt, now).TotalSeconds;
         updatedAt = now;
         if (!connected) return;
+        if (Definition.SupportsSoftwareTemperatureRamp && !temperatureControl.ControlEnabled) return;
         var perSecond = Definition.Rate.Unit == PhysicalUnit.KelvinPerMinute ? rate / 60 : rate;
         var distance = perSecond * delta;
         readback = target > readback ? Math.Min(target, readback + distance) : Math.Max(target, readback - distance);
     }
 
     private AxisControllerSnapshot Snapshot() => new(connected, new(target, Definition.Target.Unit),
-        new(readback, Definition.Readback.Unit), new(rate, Definition.Rate.Unit), connected && target != readback, clock.GetUtcNow());
+        new(readback, Definition.Readback.Unit), new(rate, Definition.Rate.Unit), connected && target != readback &&
+        (!Definition.SupportsSoftwareTemperatureRamp || temperatureControl.ControlEnabled), clock.GetUtcNow());
     private void RequireConnected()
     {
         if (!connected) throw new InvalidOperationException($"{Definition.Device.Id} is disconnected.");

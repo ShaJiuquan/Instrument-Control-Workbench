@@ -13,6 +13,22 @@ public sealed partial class PpmsExperimentPlanImporter
     {
         switch (name)
         {
+            case "temp_ramp_on":
+            case "temp_ramp_off":
+            case "temp_control_on":
+            case "temp_control_off":
+                Fields(p, name == "temp_ramp_on" ? ["rate_k_per_min", "rate"] : []);
+                if (p.ContainsKey("rate") && p.ContainsKey("rate_k_per_min")) throw new FormatException("Use one temperature ramp-rate alias.");
+                var temperatureAxis = Axis("temperature", c);
+                var action = name switch
+                {
+                    "temp_ramp_on" => TemperatureControlAction.RampOn,
+                    "temp_ramp_off" => TemperatureControlAction.RampOff,
+                    "temp_control_on" => TemperatureControlAction.ControlOn,
+                    _ => TemperatureControlAction.ControlOff,
+                };
+                return new TemperatureControlStep(new(path), temperatureAxis.Device.Id, action,
+                    name == "temp_ramp_on" ? new Quantity(Number(p, p.ContainsKey("rate") ? "rate" : "rate_k_per_min"), PhysicalUnit.KelvinPerMinute) : null);
             case "k2182.set_nplc":
             case "k2182.set_range":
             case "k2182.set_filter":

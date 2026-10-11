@@ -6,7 +6,7 @@ using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Application.Devices;
 
-internal sealed record DeviceResumeState(InstrumentId Device, bool OutputEnabled, ParameterId? Target, Quantity? TargetValue, SourceMeterSnapshot? SourceState = null, TemperatureControlConfiguration? TemperatureState = null, Keithley2182Settings? MeterState = null, Core.Instruments.Ports.K6221CurrentSourceSnapshot? CurrentSourceState = null);
+internal sealed record DeviceResumeState(InstrumentId Device, bool OutputEnabled, ParameterId? Target, Quantity? TargetValue, SourceMeterSnapshot? SourceState = null, TemperatureControlConfiguration? TemperatureState = null, Keithley2182Settings? MeterState = null, Core.Instruments.Ports.K6221CurrentSourceSnapshot? CurrentSourceState = null, Quantity? TemperatureRate = null);
 
 public sealed record DeviceCleanupFailure(InstrumentId InstrumentId, Exception Error);
 
@@ -131,6 +131,18 @@ public sealed partial class DeviceRunResources
             var axis = Get(id) as AxisControllerSession ?? throw new NotSupportedException($"{id} is not an axis controller.");
             await PrepareMutationAsync(id); touched.Add(id);
             return await axis.BeginSoftwareTemperatureRampAsync(target, Owner, token);
+        }
+        finally { gate.Release(); }
+    }
+    internal async Task ConfigureTemperatureAsync(InstrumentId id, TemperatureControlAction action, Quantity? rate, CancellationToken token)
+    {
+        await gate.WaitAsync(token);
+        try
+        {
+            RequireActive();
+            var axis = Get(id) as AxisControllerSession ?? throw new NotSupportedException($"{id} is not an axis controller.");
+            await PrepareMutationAsync(id); token.ThrowIfCancellationRequested(); touched.Add(id);
+            await axis.ConfigureTemperatureAsync(action, rate, token, Owner);
         }
         finally { gate.Release(); }
     }
@@ -413,7 +425,8 @@ public sealed partial class DeviceRunResources
                 result.Add(new(session.Descriptor.Id, snapshot.OutputEnabled, null, null, CurrentSourceState: snapshot));
             }
             else if (session is AxisControllerSession axis)
-                result.Add(new(session.Descriptor.Id, false, axis.Definition.Target.Id, status.Values[axis.Definition.Target.Id], TemperatureState: axis.Definition.SupportsSoftwareTemperatureRamp ? await axis.CaptureTemperatureConfigurationAsync(Owner, token) : null));
+                result.Add(new(session.Descriptor.Id, false, axis.Definition.Target.Id, status.Values[axis.Definition.Target.Id], TemperatureState: axis.Definition.SupportsSoftwareTemperatureRamp ? await axis.CaptureTemperatureConfigurationAsync(Owner, token) : null,
+                    TemperatureRate: axis.Definition.SupportsSoftwareTemperatureRamp ? status.Values[axis.Definition.Rate.Id] : null));
             else if (session is not MatrixSwitchSession) throw new NotSupportedException($"Pause has no resume policy for {session.Descriptor.Id}.");
         }
         return result.AsReadOnly();
@@ -452,6 +465,10 @@ public sealed partial class DeviceRunResources
                 await PrepareMutationAsync(state.Device);
                 if (await ((AxisControllerSession)Get(state.Device)).CaptureTemperatureConfigurationAsync(Owner, token) != state.TemperatureState)
                     throw new InvalidOperationException($"{state.Device}: temperature control changed while paused; resume refused.");
+                var axis = (AxisControllerSession)Get(state.Device);
+                var status = await axis.GetDeviceStatusAsync(token, Owner);
+                if (!status.Connected || status.Values[axis.Definition.Rate.Id] != state.TemperatureRate)
+                    throw new InvalidOperationException($"{state.Device}: temperature rate changed while paused; resume refused.");
             }
             foreach (var matrix in sessions.Values.OfType<MatrixSwitchSession>())
             {
@@ -467,7 +484,7 @@ public sealed partial class DeviceRunResources
             if (state.TemperatureState is { } configuration)
             {
                 await gate.WaitAsync(token);
-                try { await PrepareMutationAsync(state.Device); touched.Add(state.Device); await ((AxisControllerSession)Get(state.Device)).RestoreTemperatureTargetAsync(state.TargetValue!.Value, configuration, Owner, token); }
+                try { await PrepareMutationAsync(state.Device); touched.Add(state.Device); await ((AxisControllerSession)Get(state.Device)).RestoreTemperatureTargetAsync(state.TargetValue!.Value, configuration, state.TemperatureRate!.Value, Owner, token); }
                 finally { gate.Release(); }
             }
             else await WriteAsync(state.Device, state.Target!, state.TargetValue!.Value, token);

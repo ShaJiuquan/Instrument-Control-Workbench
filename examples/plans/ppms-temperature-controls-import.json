@@ -1,0 +1,12 @@
+{
+  "experiment_id": "PPMS independent temperature controls",
+  "type": "sequence",
+  "children": [
+    { "type": "command", "name": "temp_control_off", "source_line": 1, "params": {} },
+    { "type": "command", "name": "temp_ramp_on", "source_line": 2, "params": { "rate_k_per_min": 3 } },
+    { "type": "measurement", "name": "measure_temp", "source_line": 3, "params": {} },
+    { "type": "command", "name": "temp_ramp_off", "source_line": 4, "params": {} },
+    { "type": "command", "name": "temp_control_on", "source_line": 5, "params": {} },
+    { "type": "measurement", "name": "measure_temp", "source_line": 6, "params": {} }
+  ]
+}

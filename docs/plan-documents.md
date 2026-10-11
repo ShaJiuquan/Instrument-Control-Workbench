@@ -145,3 +145,20 @@ re-execution verified. See [workflow-control.md](workflow-control.md) and the
 five-row `ppms-fallback-retry-import.json` example. Full exception recovery,
 script conditions, parallel/timeout/background/subtree/native UI/hardware remain
 incomplete. The full migration goal remains active.
+
+
+## Independent temperature controls (2026-10-11)
+
+Native temperature_control and PPMS temp_ramp_on/off, temp_control_on/off now
+use an explicit optional Core configuration port and existing executor/resources.
+Fresh target/rate/flag confirmation preserves the other flag; RampOn cannot
+implicitly enable disabled control. Mock disabled control retains its target but
+never fabricates movement. Hold preserves flags and parks at live readback; pause
+restoration rejects flag/rate drift before source output restoration. Refusal,
+cancellation, failed/control-enabling hold and retained whole-group recovery,
+strict aliases/source lines, native save/fresh archive/CSV/re-execution verified.
+50 new cases (8 Core42 Application). See [temperature-controls.md](temperature-controls.md)
+and the two-row ppms-temperature-controls-import.json fixture. No dependencies,
+Rust writes, physical IO or29 UI drafts changed. Stability configuration, PID/
+heater/cooling/background/physical controller/native UI remain pending; full
+PPMS migration remains active. GitHub only; independent C# executor.
