@@ -1,0 +1,85 @@
+{
+  "format": "instrument-workbench-plan",
+  "version": 1,
+  "name": "Standalone two-input voltage simulation",
+  "preparations": [],
+  "metadata": {},
+  "root": {
+    "id": "root",
+    "kind": "sequence",
+    "children": [
+      {
+        "id": "filter_count",
+        "kind": "set",
+        "address": {
+          "device": "nanovoltmeter",
+          "parameter": "k2182.filter_count"
+        },
+        "value": {
+          "constant": {
+            "value": 3,
+            "unit": "Dimensionless"
+          }
+        }
+      },
+      {
+        "id": "filter_mode",
+        "kind": "set",
+        "address": {
+          "device": "nanovoltmeter",
+          "parameter": "k2182.filter_mode"
+        },
+        "value": {
+          "constant": {
+            "value": 1,
+            "unit": "Dimensionless"
+          }
+        }
+      },
+      {
+        "id": "filter_on",
+        "kind": "set",
+        "address": {
+          "device": "nanovoltmeter",
+          "parameter": "k2182.filter_enabled"
+        },
+        "value": {
+          "constant": {
+            "value": 1,
+            "unit": "Dimensionless"
+          }
+        }
+      },
+      {
+        "id": "inputs",
+        "kind": "scan",
+        "axis": {
+          "device": "nanovoltmeter",
+          "parameter": "k2182.channel"
+        },
+        "column": "input",
+        "values": {
+          "unit": "Dimensionless",
+          "values": [
+            1,
+            2
+          ]
+        },
+        "dwellSeconds": 0,
+        "body": {
+          "id": "read",
+          "kind": "read",
+          "channels": [
+            {
+              "column": "voltage",
+              "address": {
+                "device": "nanovoltmeter",
+                "parameter": "k2182.measured_voltage"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

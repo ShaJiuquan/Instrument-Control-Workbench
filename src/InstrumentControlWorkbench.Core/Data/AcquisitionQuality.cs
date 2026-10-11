@@ -10,11 +10,13 @@ public enum ReadingQualityState { Unobserved, PartiallyObserved, ObservedNormal,
 // preserve these input references; they do not invent new hardware status.
 public sealed record AcquisitionQuality
 {
-    public AcquisitionQuality(StepId step, InstrumentId device, ParameterId column, DateTimeOffset capturedAt, Keithley2450ReadingStatus? status, Keithley2450AcquisitionSettings? acquisitionConfiguration = null)
+    public AcquisitionQuality(StepId step, InstrumentId device, ParameterId column, DateTimeOffset capturedAt, Keithley2450ReadingStatus? status, Keithley2450AcquisitionSettings? acquisitionConfiguration = null, Keithley2182Settings? meterConfiguration = null)
     {
         ArgumentNullException.ThrowIfNull(step); ArgumentException.ThrowIfNullOrWhiteSpace(device.Value); ArgumentNullException.ThrowIfNull(column);
-        Step = step; Device = device; Column = column; CapturedAt = capturedAt; Status = status; AcquisitionConfiguration = acquisitionConfiguration;
+        if (meterConfiguration is not null && (status is not null || acquisitionConfiguration is not null)) throw new ArgumentException("Passive meter evidence cannot claim K2450 buffer status or settings.");
+        Step = step; Device = device; Column = column; CapturedAt = capturedAt; Status = status; AcquisitionConfiguration = acquisitionConfiguration; MeterConfiguration = meterConfiguration;
     }
+    public Keithley2182Settings? MeterConfiguration { get; }
     public StepId Step { get; }
     public InstrumentId Device { get; }
     public ParameterId Column { get; }

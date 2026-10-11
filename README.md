@@ -114,6 +114,13 @@ dotnet restore
 dotnet run --project src/InstrumentControlWorkbench.App
 ```
 
+Standalone voltage acquisition now supports an explicit K2182 simulator, meter-only
+plans and joint source/meter ownership, with confirmed per-row settings and guarded
+pause/cleanup. See [standalone-meter.md](docs/standalone-meter.md) and the runnable
+[meter configuration](examples/devices/standalone-meter-devices.json) /
+[two-input plan](examples/plans/standalone-meter.plan.json). Physical K2182 transports
+and current-source resistance modes remain pending.
+
 ## Build And Test
 
 ```bash

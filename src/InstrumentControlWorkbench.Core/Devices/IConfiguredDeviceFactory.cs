@@ -13,8 +13,10 @@ public sealed class ConfiguredDevicePorts
     public ConfiguredDevicePorts(ISourceMeterPort source) { ArgumentNullException.ThrowIfNull(source); SourceMeter = source; }
     public ConfiguredDevicePorts(IAxisControllerPort axis) { ArgumentNullException.ThrowIfNull(axis); Axis = axis; }
     public ConfiguredDevicePorts(IMatrixSwitchPort matrix) { ArgumentNullException.ThrowIfNull(matrix); Matrix = matrix; }
+    public ConfiguredDevicePorts(IK2182MeterPort meter) { ArgumentNullException.ThrowIfNull(meter); Meter = meter; }
+    public IK2182MeterPort? Meter { get; }
     public ISourceMeterPort? SourceMeter { get; }
     public IAxisControllerPort? Axis { get; }
     public IMatrixSwitchPort? Matrix { get; }
-    public DeviceDescriptor Descriptor => SourceMeter?.Descriptor ?? Axis?.Definition.Device ?? Matrix!.Definition.Device;
+    public DeviceDescriptor Descriptor => SourceMeter?.Descriptor ?? Meter?.Descriptor ?? Axis?.Definition.Device ?? Matrix!.Definition.Device;
 }

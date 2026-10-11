@@ -1,0 +1,20 @@
+{
+  "format": "instrument-workbench-devices",
+  "version": 1,
+  "primarySource": null,
+  "devices": [
+    {
+      "id": "nanovoltmeter",
+      "model": "K2182",
+      "displayName": "Standalone voltage simulator",
+      "category": "Meter",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      }
+    }
+  ],
+  "aliases": {
+    "k2182": "nanovoltmeter"
+  }
+}

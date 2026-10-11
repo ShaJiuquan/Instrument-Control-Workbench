@@ -6,7 +6,7 @@ using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Application.Devices;
 
-internal sealed record DeviceResumeState(InstrumentId Device, bool OutputEnabled, ParameterId? Target, Quantity? TargetValue, SourceMeterSnapshot? SourceState = null, TemperatureControlConfiguration? TemperatureState = null);
+internal sealed record DeviceResumeState(InstrumentId Device, bool OutputEnabled, ParameterId? Target, Quantity? TargetValue, SourceMeterSnapshot? SourceState = null, TemperatureControlConfiguration? TemperatureState = null, Keithley2182Settings? MeterState = null);
 
 public sealed record DeviceCleanupFailure(InstrumentId InstrumentId, Exception Error);
 
@@ -62,7 +62,10 @@ public sealed class DeviceRunResources
         try
         {
             RequireActive();
-            await RequireStoppedTaskFinishedAsync(id);
+            // A voltage acquisition can restart the meter trigger model. Its
+            // earlier idle confirmation cannot authorize release after this IO.
+            if (Get(id) is Keithley2182MeterSession && parameter == Keithley2182Parameters.Voltage.Id) await PrepareMutationAsync(id);
+            else await RequireStoppedTaskFinishedAsync(id);
             token.ThrowIfCancellationRequested();
             touched.Add(id);
             return await Get(id).ReadObservationAsync(parameter, token, Owner);
@@ -360,6 +363,7 @@ public sealed class DeviceRunResources
                 else
                 {
                     var status = await session.GetDeviceStatusAsync(token, Owner);
+                    if (session is Keithley2182MeterSession && !status.Connected) throw new InvalidOperationException($"{id}: disconnected meter cannot provide run settings.");
                     var configuration = new Dictionary<string, string>
                     {
                         ["display_name"] = session.Descriptor.DisplayName,
@@ -392,6 +396,8 @@ public sealed class DeviceRunResources
                 var snapshot = await manager.CaptureRunSourceStateAsync(Owner, token);
                 result.Add(new(session.Descriptor.Id, snapshot.Connected && snapshot.OutputEnabled, null, null, snapshot));
             }
+            else if (session is Keithley2182MeterSession meter)
+                result.Add(new(session.Descriptor.Id, false, null, null, MeterState: await meter.CaptureResumeSettingsAsync(Owner, token)));
             else if (session is AxisControllerSession axis)
                 result.Add(new(session.Descriptor.Id, false, axis.Definition.Target.Id, status.Values[axis.Definition.Target.Id], TemperatureState: axis.Definition.SupportsSoftwareTemperatureRamp ? await axis.CaptureTemperatureConfigurationAsync(Owner, token) : null));
             else if (session is not MatrixSwitchSession) throw new NotSupportedException($"Pause has no resume policy for {session.Descriptor.Id}.");
@@ -412,6 +418,12 @@ public sealed class DeviceRunResources
                 var expected = state.SourceState!;
                 if (!current.Connected || current.OutputEnabled || current.Source != expected.Source || current.Sense != expected.Sense || current.Terminals != expected.Terminals)
                     throw new InvalidOperationException($"{state.Device}: source state or configuration changed while paused; resume refused.");
+            }
+            foreach (var state in states.Where(s => s.MeterState is not null))
+            {
+                await PrepareMutationAsync(state.Device); touched.Add(state.Device);
+                if (await ((Keithley2182MeterSession)Get(state.Device)).CaptureResumeSettingsAsync(Owner, token) != state.MeterState)
+                    throw new InvalidOperationException($"{state.Device}: voltage meter configuration changed while paused; resume refused.");
             }
             foreach (var state in states.Where(s => s.TemperatureState is not null))
             {

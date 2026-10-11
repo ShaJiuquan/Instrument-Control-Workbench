@@ -77,3 +77,12 @@ follow-up work.
 Confirmed per-row five-field profiles are now retained alongside raw status; see
 [acquisition-settings.md](acquisition-settings.md) for snapshot-vs-buffer evidence
 and averaging-window limitations.
+
+## Standalone voltage meter stage (2026-10-11)
+
+A model-specific passive K2182 port/session and explicit simulation now share
+registry ownership, abort-acquisition cleanup, pause confirmation and archive
+boundaries with the source executor. Optional per-row meter settings never
+claim SMU buffer quality. Native two-input plans and direct PPMS input-1 voltage
+filtering are supported; physical transports, curr_dc resistance, routed meter
+reads and native UI acceptance remain pending. See [standalone-meter.md](standalone-meter.md).

@@ -15,6 +15,7 @@ public sealed class RunDataRowValidator
     private readonly Dictionary<ParameterId, IReadOnlyList<EnvironmentRead>> environmentPolicies = [];
     private readonly Dictionary<StepId, IReadOnlyDictionary<ParameterId, InstrumentId>> acquisitions = [];
     private readonly HashSet<(StepId Step, ParameterId Column)> nativeResistanceColumns = [];
+    private readonly HashSet<(StepId Step, ParameterId Column)> standaloneVoltageColumns = [];
     private readonly Queue<MeasurementDataRow> recent = new();
     private int count;
     public bool HasMeasurementGroups => groups.Count != 0;
@@ -30,6 +31,7 @@ public sealed class RunDataRowValidator
             switch (item.Step)
             {
                 case ReadStep read:
+                    foreach (var channel in read.Channels) if (channel.Address.Parameter == Keithley2182Parameters.Voltage.Id) standaloneVoltageColumns.Add((read.Id, channel.Column));
                     foreach (var channel in read.Channels) if (channel.Address.Parameter == Keithley2450Parameters.MeasuredResistance.Id) nativeResistanceColumns.Add((read.Id, channel.Column));
                     RegisterQuality(read.Id, read.Channels.Select(c => (c.Column, c.Address.Device))); RegisterEnvironment(read.Channels.Select(c => c.Column), read.EnvironmentReads); break;
                 case ReadSourceSenseStep read: RegisterQuality(read.Id, new[] { read.VoltageColumn, read.CurrentColumn }.Select(c => (c, read.Device))); RegisterEnvironment([read.VoltageColumn, read.CurrentColumn], read.EnvironmentReads); break;
@@ -78,8 +80,17 @@ public sealed class RunDataRowValidator
             var step = row.Quality[0].Step;
             if (!acquisitions.TryGetValue(step, out var columns) || row.Quality.Count != columns.Count ||
                 row.Quality.Select(q => q.Column).Distinct().Count() != columns.Count ||
-                row.Quality.Any(q => q.Step != step || !columns.TryGetValue(q.Column, out var device) || device != q.Device || !row.Values.ContainsKey(q.Column) || q.CapturedAt > row.Timestamp || q.AcquisitionConfiguration is { AutorangeRebound: true } && nativeResistanceColumns.Contains((q.Step, q.Column))))
+                row.Quality.Any(q => q.Step != step || !columns.TryGetValue(q.Column, out var device) || device != q.Device || !row.Values.ContainsKey(q.Column) || q.CapturedAt > row.Timestamp))
                 throw new ArgumentException("Acquisition quality must match the declared complete step, devices, columns and capture times.");
+            foreach (var quality in row.Quality)
+            {
+                var passiveVoltage = standaloneVoltageColumns.Contains((quality.Step, quality.Column));
+                if (passiveVoltage && (quality.Status is not null || quality.AcquisitionConfiguration is not null) ||
+                    quality.MeterConfiguration is { } meter && (!passiveVoltage || Math.Abs(row.Values[quality.Column].Value) > Keithley2182Settings.MaximumInputVoltage(meter.Channel)))
+                    throw new ArgumentException("Standalone meter evidence requires its voltage input and cannot claim SMU buffer status.");
+                if (quality.AcquisitionConfiguration is { AutorangeRebound: true } && nativeResistanceColumns.Contains((quality.Step, quality.Column)))
+                    throw new ArgumentException("Native resistance evidence cannot claim voltage/current autorange rebound.");
+            }
         }
         if (row.Routing is { } context)
             (plan?.Routing ?? throw new ArgumentException("Routed rows require the frozen plan catalog.")).ValidateContext(context);

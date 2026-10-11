@@ -653,3 +653,12 @@ status; analysis/archive/CSV inherit them. PPMS filtering imports runtime Repeat
 semantics and retains unused voltage window metadata. No dependency, Rust edits
 or lab IO; native UI and physical acceptance remain pending. See
 [acquisition-settings.md](acquisition-settings.md).
+
+## Standalone voltage meter stage (2026-10-11)
+
+A model-specific passive K2182 port/session and explicit simulation now share
+registry ownership, abort-acquisition cleanup, pause confirmation and archive
+boundaries with the source executor. Optional per-row meter settings never
+claim SMU buffer quality. Native two-input plans and direct PPMS input-1 voltage
+filtering are supported; physical transports, curr_dc resistance, routed meter
+reads and native UI acceptance remain pending. See [standalone-meter.md](standalone-meter.md).

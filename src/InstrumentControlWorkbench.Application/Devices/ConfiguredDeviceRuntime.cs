@@ -24,6 +24,7 @@ public sealed class ConfiguredDeviceRuntime
             var ports = factory.Create(device);
             if (ports.Descriptor.Id != device.Id || ports.Descriptor.DriverKind != device.DriverKind || ports.Descriptor.DisplayName != device.DisplayName ||
                 ports.SourceMeter is not null && device.Category != ConfiguredDeviceCategory.SourceMeter ||
+                ports.Meter is not null && device.Category != ConfiguredDeviceCategory.Meter ||
                 ports.Matrix is not null && device.Category != ConfiguredDeviceCategory.Matrix ||
                 ports.Axis is not null && device.Category is not (ConfiguredDeviceCategory.Temperature or ConfiguredDeviceCategory.Field or ConfiguredDeviceCategory.Rotation))
                 throw new ArgumentException($"{device.Id}: factory identity, driver kind or execution category does not match configuration.");
@@ -31,6 +32,7 @@ public sealed class ConfiguredDeviceRuntime
             {
                 var manager = new InstrumentManager(source, notifications); sources.Add(device.Id, manager); sessions.Add(manager);
             }
+            else if (ports.Meter is { } meter) sessions.Add(new Keithley2182MeterSession(meter, notifications));
             else if (ports.Axis is { } axis)
             {
                 var expectedUnit = device.Category switch { ConfiguredDeviceCategory.Temperature => PhysicalUnit.Kelvin, ConfiguredDeviceCategory.Field => PhysicalUnit.Tesla, _ => PhysicalUnit.Degree };
@@ -59,6 +61,6 @@ public sealed class ConfiguredDeviceRuntime
         var aliases = Configuration.Aliases.Where(p => registered.Contains(p.Value)).ToArray();
         var axes = aliases.Where(p => p.Key.Equals("temperature", StringComparison.OrdinalIgnoreCase) || p.Key.Equals("field", StringComparison.OrdinalIgnoreCase) || p.Key.Equals("angle", StringComparison.OrdinalIgnoreCase))
             .Select(p => KeyValuePair.Create(p.Key, Registry.GetAxisDefinition(p.Value)));
-        return new(aliases, axes, preparations);
+        return new(aliases, axes, preparations, standaloneVoltageMeters: Configuration.Devices.Where(d => d.Enabled && aliases.Any(a => a.Value == d.Id) && d.Category == ConfiguredDeviceCategory.Meter && d.Model.Equals("K2182", StringComparison.OrdinalIgnoreCase)).Select(d => d.Id));
     }
 }

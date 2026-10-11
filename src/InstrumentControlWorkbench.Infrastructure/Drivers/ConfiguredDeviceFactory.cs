@@ -19,6 +19,7 @@ public sealed class ConfiguredDeviceFactory(TimeProvider? clock = null) : IConfi
         var supported = (configuration.Category, configuration.Model.ToUpperInvariant()) switch
         {
             (ConfiguredDeviceCategory.SourceMeter, "K2450") => true,
+            (ConfiguredDeviceCategory.Meter, "K2182") => true,
             (ConfiguredDeviceCategory.Matrix, "K3706") => configuration.Matrix is not null,
             (ConfiguredDeviceCategory.Temperature, "SIM-TEMPERATURE") => true,
             (ConfiguredDeviceCategory.Field, "SIM-FIELD") => true,
@@ -35,6 +36,7 @@ public sealed class ConfiguredDeviceFactory(TimeProvider? clock = null) : IConfi
         return configuration.Category switch
         {
             ConfiguredDeviceCategory.SourceMeter => new(new MockKeithley2450SourceMeter(configuration.Id, configuration.DisplayName)),
+            ConfiguredDeviceCategory.Meter => new(new MockKeithley2182Meter(configuration.Id, configuration.DisplayName)),
             ConfiguredDeviceCategory.Temperature => new(MockEnvironmentCatalog.Temperature(clock, configuration.Id, configuration.DisplayName)),
             ConfiguredDeviceCategory.Field => new(MockEnvironmentCatalog.Field(clock, configuration.Id, configuration.DisplayName)),
             ConfiguredDeviceCategory.Rotation => new(MockEnvironmentCatalog.Angle(clock, configuration.Id, configuration.DisplayName)),

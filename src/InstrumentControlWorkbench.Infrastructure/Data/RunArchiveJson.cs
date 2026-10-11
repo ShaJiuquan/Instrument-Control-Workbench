@@ -97,14 +97,25 @@ internal static partial class RunArchiveJson
             row.Values.OrderBy(p => p.Key.Value, StringComparer.Ordinal).ToDictionary(p => p.Key.Value, p => QuantityDto.From(p.Value)), row.Routing is null ? null : SampleRouteDto.From(row.Routing), row.Analysis is null ? null : SampleAnalysisDto.From(row.Analysis), row.MeasurementGroup is null ? null : MeasurementGroupDto.From(row.MeasurementGroup), row.Environment.Count == 0 ? null : row.Environment.Select(EnvironmentObservationDto.From).ToArray(), row.Quality.Count == 0 ? null : row.Quality.Select(AcquisitionQualityDto.From).ToArray());
     }
     internal sealed record AcquisitionQualityDto(string Step, string Device, string Column, DateTimeOffset CapturedAt, ushort? SourceStatus, ushort? MeasurementStatus,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] AcquisitionSettingsDto? AcquisitionConfiguration = null)
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] AcquisitionSettingsDto? AcquisitionConfiguration = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] MeterSettingsDto? MeterConfiguration = null)
     {
         public AcquisitionQuality ToDomain()
         {
             if ((SourceStatus is null) != (MeasurementStatus is null)) throw new FormatException("Both buffer quality words must be present or absent.");
-            return new(new(Step), new(Device), new(Column), CapturedAt, SourceStatus is { } source ? new(source, MeasurementStatus!.Value) : null, AcquisitionConfiguration?.ToDomain());
+            return new(new(Step), new(Device), new(Column), CapturedAt, SourceStatus is { } source ? new(source, MeasurementStatus!.Value) : null, AcquisitionConfiguration?.ToDomain(), MeterConfiguration?.ToDomain());
         }
-        public static AcquisitionQualityDto From(AcquisitionQuality quality) => new(quality.Step.Value, quality.Device.Value, quality.Column.Value, quality.CapturedAt, quality.Status?.Source, quality.Status?.Measurement, quality.AcquisitionConfiguration is { } settings ? AcquisitionSettingsDto.From(settings) : null);
+        public static AcquisitionQualityDto From(AcquisitionQuality quality) => new(quality.Step.Value, quality.Device.Value, quality.Column.Value, quality.CapturedAt, quality.Status?.Source, quality.Status?.Measurement, quality.AcquisitionConfiguration is { } settings ? AcquisitionSettingsDto.From(settings) : null, quality.MeterConfiguration is { } meter ? MeterSettingsDto.From(meter) : null);
+    }
+    internal sealed record MeterSettingsDto([property: JsonRequired] int Channel,
+        [property: JsonRequired] QuantityDto? ManualRange, [property: JsonRequired] double Nplc,
+        [property: JsonRequired] bool FilterEnabled, [property: JsonRequired] int FilterCount,
+        [property: JsonRequired] string FilterMode, [property: JsonRequired] double FilterWindowPercent)
+    {
+        public Keithley2182Settings ToDomain() => new(Channel, ManualRange?.ToDomain(), Nplc, FilterEnabled, FilterCount,
+            FilterMode switch { "Repeat" => AveragingMode.Repeat, "Moving" => AveragingMode.Moving, _ => throw new FormatException("Unknown meter filter mode.") }, FilterWindowPercent);
+        public static MeterSettingsDto From(Keithley2182Settings settings) => new(settings.Channel,
+            settings.ManualRange is { } range ? QuantityDto.From(range) : null, settings.Nplc, settings.FilterEnabled, settings.FilterCount, settings.FilterMode.ToString(), settings.FilterWindowPercent);
     }
     internal sealed record AcquisitionSettingsDto(bool AutoZero, bool AutorangeRebound, bool AveragingEnabled, int AveragingCount, string AveragingMode)
     {

@@ -29,7 +29,7 @@ public sealed class ExperimentImportBindings
     public ExperimentImportBindings(IEnumerable<KeyValuePair<string, InstrumentId>> instruments,
         IEnumerable<KeyValuePair<string, AxisControllerDefinition>> axes,
         IEnumerable<SourcePreparation>? preparations = null,
-        IEnumerable<KeyValuePair<string, ImportChannelRoute>>? channels = null, ImportSampleRouting? samples = null, ImportChannelRouting? channelProfiles = null)
+        IEnumerable<KeyValuePair<string, ImportChannelRoute>>? channels = null, ImportSampleRouting? samples = null, ImportChannelRouting? channelProfiles = null, IEnumerable<InstrumentId>? standaloneVoltageMeters = null)
     {
         ArgumentNullException.ThrowIfNull(instruments); ArgumentNullException.ThrowIfNull(axes);
         Instruments = Freeze(instruments); Axes = Freeze(axes);
@@ -41,11 +41,16 @@ public sealed class ExperimentImportBindings
         if (items.Length > 64 || items.Any(p => p is null) || items.Select(p => p.Device).Distinct().Count() != items.Length)
             throw new ArgumentException("Import preparations must name at most 64 distinct sources.");
         Preparations = Array.AsReadOnly(items);
+        var meters = (standaloneVoltageMeters ?? []).ToArray();
+        if (meters.Length > 64 || meters.Distinct().Count() != meters.Length || meters.Any(m => !Instruments.Values.Contains(m) || items.Any(p => p.Device == m)))
+            throw new ArgumentException("Standalone meter bindings must reference distinct aliased devices without source preparations.");
+        StandaloneVoltageMeters = Array.AsReadOnly(meters);
     }
     public IReadOnlyDictionary<string, InstrumentId> Instruments { get; }
     public IReadOnlyDictionary<string, AxisControllerDefinition> Axes { get; }
     public IReadOnlyDictionary<string, ImportChannelRoute> Channels { get; }
     public IReadOnlyList<SourcePreparation> Preparations { get; }
+    public IReadOnlyList<InstrumentId> StandaloneVoltageMeters { get; }
     public ImportSampleRouting? Samples { get; }
     public ImportChannelRouting? ChannelProfiles { get; }
     internal static IReadOnlyDictionary<string, T> Freeze<T>(IEnumerable<KeyValuePair<string, T>> entries)

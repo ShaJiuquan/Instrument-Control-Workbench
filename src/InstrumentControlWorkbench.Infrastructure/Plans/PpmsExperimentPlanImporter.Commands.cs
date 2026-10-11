@@ -158,6 +158,15 @@ public sealed partial class PpmsExperimentPlanImporter
         }
         if (name is not ("measure_voltage" or "measure_current")) throw new NotSupportedException($"Measurement '{name}' is not migrated.");
         Fields(p, "meas_type", "name", "instrument", "channel", "sensing_mode", "nplc", "meter_range_v", "meter_range_a", "sense_channel", "filter_enabled", "filter_count", "filter_window_percent");
+        var defaultInstrument = name == "measure_voltage" ? "2182" : "k2450";
+        if (name == "measure_voltage" && c.Bindings.Instruments.TryGetValue("k2182", out var defaultMeter) && c.Bindings.StandaloneVoltageMeters.Contains(defaultMeter))
+            defaultInstrument = "k2182";
+        var instrument = Text(p, "instrument", defaultInstrument).Trim();
+        if (c.Bindings.Instruments.TryGetValue(instrument, out var standalone) && c.Bindings.StandaloneVoltageMeters.Contains(standalone))
+        {
+            if (name != "measure_voltage") throw new NotSupportedException("K2182 has no current measurement capability.");
+            return StandaloneVoltage(p, path, standalone, c);
+        }
         var senseFunction = name == "measure_voltage" ? SenseFunction.Voltage : SenseFunction.Current;
         var selector = RangeSelector(p, name == "measure_voltage" ? "meter_range_v" : "meter_range_a", senseFunction == SenseFunction.Voltage ? PhysicalUnit.Volt : PhysicalUnit.Ampere);
         Quantity? senseRange = selector is { } chosen ? Keithley2450SenseRanges.Resolve(senseFunction, chosen) : null;
