@@ -68,6 +68,7 @@ public sealed class RunDataSet
     private readonly RunDataRowValidator rowValidator;
     private MeasurementRunState state = MeasurementRunState.Running;
     private DateTimeOffset? finishedAt;
+    private RunBlackboardSnapshot? blackboard;
 
     public RunDataSet(RunId id, string name, DateTimeOffset startedAt, DataSetSchema schema,
         IReadOnlyDictionary<string, Quantity> recipe, IEnumerable<InstrumentParameterSnapshot> instruments,
@@ -91,7 +92,7 @@ public sealed class RunDataSet
         rowValidator = new(plan, schema);
     }
 
-    public const int FormatVersion = 1;
+    public const int FormatVersion = 2;
     public RunId Id { get; }
     public string Name { get; }
     public DateTimeOffset StartedAt { get; }
@@ -107,7 +108,7 @@ public sealed class RunDataSet
     public RunDataSetSnapshot Capture()
     {
         lock (gate)
-            return new(Id, Name, StartedAt, finishedAt, state, Schema, Recipe, Instruments, Array.AsReadOnly(rows.ToArray()), Plan, Metadata);
+            return new(Id, Name, StartedAt, finishedAt, state, Schema, Recipe, Instruments, Array.AsReadOnly(rows.ToArray()), Plan, Metadata, blackboard);
     }
 
     public void Append(MeasurementDataRow row)
@@ -123,16 +124,18 @@ public sealed class RunDataSet
         }
     }
 
-    public void Complete(MeasurementRunState result, DateTimeOffset timestamp)
+    public void Complete(MeasurementRunState result, DateTimeOffset timestamp, RunBlackboardSnapshot? blackboard = null)
     {
         if (result is not (MeasurementRunState.Completed or MeasurementRunState.Aborted or MeasurementRunState.Faulted))
             throw new ArgumentException("A data set requires a terminal run state.", nameof(result));
         if (timestamp < StartedAt) throw new ArgumentOutOfRangeException(nameof(timestamp));
+        if (blackboard is not null) rowValidator.ValidateBlackboard(Id, blackboard);
         lock (gate)
         {
             if (state != MeasurementRunState.Running) throw new InvalidOperationException("The data set is already finalized.");
             state = result;
             finishedAt = timestamp;
+            this.blackboard = blackboard;
         }
     }
 }
@@ -141,4 +144,4 @@ public sealed record RunDataSetSnapshot(
     RunId Id, string Name, DateTimeOffset StartedAt, DateTimeOffset? FinishedAt,
     MeasurementRunState State, DataSetSchema Schema, IReadOnlyDictionary<string, Quantity> Recipe,
     IReadOnlyList<InstrumentParameterSnapshot> Instruments, IReadOnlyList<MeasurementDataRow> Rows,
-    ExperimentPlan? Plan = null, RunMetadata? Metadata = null);
+    ExperimentPlan? Plan = null, RunMetadata? Metadata = null, RunBlackboardSnapshot? Blackboard = null);

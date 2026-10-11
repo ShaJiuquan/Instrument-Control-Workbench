@@ -44,6 +44,7 @@ public sealed partial class FileRunArchive
                 await WriteCsvAsync(writer, ["# instruments_json", JsonSerializer.Serialize(header.Instruments.Select(RunArchiveJson.InstrumentDto.From), RunArchiveJson.Options)], token);
                 await WriteCsvAsync(writer, ["# columns_json", JsonSerializer.Serialize(header.Schema.Columns.Select(RunArchiveJson.ColumnDto.From), RunArchiveJson.Options)], token);
                 await WriteCsvAsync(writer, ["# plan_json", header.Plan is null ? "" : new JsonExperimentPlanDocument().Serialize(header.Plan)], token);
+                await WriteCsvAsync(writer, ["# blackboard_json", header.Blackboard is null ? "" : JsonSerializer.Serialize(RunArchiveJson.BlackboardDto.From(header.Blackboard), RunArchiveJson.Options)], token);
                 await WriteCsvAsync(writer, ["row", "timestamp", .. header.Schema.Columns.Select(c => $"{c.Parameter.Id} [{c.Parameter.Unit}]"),
                     .. header.Plan?.Routing is null ? Array.Empty<string>() : new[] { "routing_json" },
                     .. hasAnalysis ? new[] { "analysis_json" } : Array.Empty<string>(),

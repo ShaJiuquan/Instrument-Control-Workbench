@@ -137,7 +137,7 @@ public sealed partial class Keithley6221ExecutionTests
             var snapshot = b.Runs.LatestDataSet!.Capture();
             await using (var writer = new FileRunArchive(Path.Combine(folder, "runs")))
             {
-                await writer.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = [] }, Token);
+                await writer.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = [], Blackboard = null }, Token);
                 foreach (var row in snapshot.Rows) await writer.OnRowAsync(snapshot.Id, row, Token);
             }
             var path = Path.Combine(folder, "runs", snapshot.Id.Value.ToString("N"), "rows.ndjson");

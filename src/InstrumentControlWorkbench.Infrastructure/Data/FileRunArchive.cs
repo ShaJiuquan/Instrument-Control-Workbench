@@ -23,7 +23,7 @@ public sealed partial class FileRunArchive : IRunArchive, IAsyncDisposable
     public async Task OnStartedAsync(RunDataSetSnapshot dataSet, CancellationToken token)
     {
         ArgumentNullException.ThrowIfNull(dataSet);
-        if (dataSet.State != MeasurementRunState.Running || dataSet.FinishedAt is not null || dataSet.Rows.Count != 0)
+        if (dataSet.State != MeasurementRunState.Running || dataSet.FinishedAt is not null || dataSet.Rows.Count != 0 || dataSet.Blackboard is not null)
             throw new ArgumentException("An archive starts with an empty acquiring data set.", nameof(dataSet));
         var bytes = RunArchiveJson.Encode(RunArchiveJson.HeaderDto.From(dataSet));
         var analysis = new RunDataRowValidator(dataSet.Plan, dataSet.Schema);
@@ -74,6 +74,7 @@ public sealed partial class FileRunArchive : IRunArchive, IAsyncDisposable
             if (dataSet.FinishedAt < dataSet.StartedAt || dataSet.Rows.Count < writer.Count ||
                 !RunArchiveJson.Encode(RunArchiveJson.HeaderDto.From(dataSet)).AsSpan().SequenceEqual(writer.Header))
                 throw new InvalidOperationException("Final snapshot provenance does not match the started archive.");
+            if (dataSet.Blackboard is { } blackboard) writer.Analysis.ValidateBlackboard(dataSet.Id, blackboard);
             // Compare the committed prefix without retaining another copy of rows.
             using var prefix = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
             for (var i = 0; i < writer.Count; i++) prefix.AppendData(Writer.RowBytes(i + 1, dataSet.Rows[i]));
@@ -90,8 +91,10 @@ public sealed partial class FileRunArchive : IRunArchive, IAsyncDisposable
             // undelivered. Safe-stop has already happened; persist missing rows now.
             foreach (var row in dataSet.Rows.Skip(writer.Count)) await writer.AppendAsync(row, token);
             await writer.Stream.FlushAsync(token);
+            var blackboardDto = dataSet.Blackboard is { } snapshot ? RunArchiveJson.BlackboardDto.From(snapshot) : null;
+            var blackboardHash = blackboardDto is null ? null : Convert.ToHexString(SHA256.HashData(RunArchiveJson.Encode(blackboardDto)));
             var final = new RunArchiveJson.FinalDto(RunArchiveJson.Format, RunArchiveJson.Version, dataSet.Id.Value,
-                dataSet.State, dataSet.FinishedAt.Value, writer.Count, writer.Bytes, Convert.ToHexString(writer.Hash.GetCurrentHash()));
+                dataSet.State, dataSet.FinishedAt.Value, writer.Count, writer.Bytes, Convert.ToHexString(writer.Hash.GetCurrentHash()), blackboardDto, blackboardHash, blackboardDto is null ? RunArchiveJson.BlackboardCaptureStatus.NotCaptured : RunArchiveJson.BlackboardCaptureStatus.Captured);
             await WriteAtomicAsync(Path.Combine(Folder(dataSet.Id), "final.json"), RunArchiveJson.Encode(final), token);
         }
         catch (Exception ex) { error = ex; }
@@ -163,6 +166,7 @@ public sealed partial class FileRunArchive : IRunArchive, IAsyncDisposable
 
     private sealed class Writer(FileStream stream, byte[] header, DataSetSchema schema, ExperimentPlan? plan, RunDataRowValidator analysis) : IAsyncDisposable
     {
+        public RunDataRowValidator Analysis { get; } = analysis;
         public FileStream Stream { get; } = stream;
         public byte[] Header { get; } = header;
         public DataSetSchema Schema { get; } = schema;
@@ -185,12 +189,12 @@ public sealed partial class FileRunArchive : IRunArchive, IAsyncDisposable
             Schema.ValidateRow(row);
             if (row.Routing is { } context)
                 (plan?.Routing ?? throw new ArgumentException("Routed archive rows require the frozen plan routing configuration.", nameof(row))).ValidateContext(context);
-            analysis.Validate(row);
+            Analysis.Validate(row);
             var bytes = RowBytes(Count + 1, row);
             UnconfirmedTail = true;
             await Stream.WriteAsync(bytes, token);
             await Stream.FlushAsync(token);
-            analysis.Append(row);
+            Analysis.Append(row);
             Hash.AppendData(bytes);
             Bytes += bytes.Length; Count++; UnconfirmedTail = false;
         }

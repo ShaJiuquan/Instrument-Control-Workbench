@@ -2,7 +2,7 @@ namespace InstrumentControlWorkbench.Core.Data;
 
 // Absence of a terminal record means unfinalized, never proof of active hardware
 // or successful cleanup. Storage observations do not issue device commands.
-public sealed record RunArchiveMetadata(RunDataSetSnapshot Header, int? RowCount, long? DataBytes)
+public sealed record RunArchiveMetadata(RunDataSetSnapshot Header, int? RowCount, long? DataBytes, string? FinalRecordSha256 = null)
 {
     public bool IsFinalized => Header.FinishedAt is not null;
 }

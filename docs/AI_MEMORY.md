@@ -1069,3 +1069,24 @@ migration remain pending. Independent engine;GitHub only;29 UI drafts untouched;
 no dependencies or Rust writes.
 
 Numeric outcome-hook admission now checks possible body bindings, not just definitely available variables after branch joins. Scoped private shadows are excluded; exported mappings count. Prefix checks are conservative across retry/fallback attempts; exact symbolic outcome-path analysis remains pending.
+
+
+## Terminal blackboard archive (2026-10-11)
+
+Core RunBlackboardSnapshot owner/UTC/elapsed/frozen bounded entries; source/key/
+type/unit/literal/count/scope-transfer checks through shared row provenance
+boundary. RunDataSet terminal snapshots include it; Application captures after
+safe-stop, errors fault/finalize without fabricated variables and existing
+release/recovery stays active. LatestBlackboardSnapshot carries RunId; entries
+convenience API preserved. In-memory history/final listeners share snapshot.
+Archive v2 required Captured/NotCaptured status, payload+SHA pair, matched
+header/final versions; reader accepts legacy v1 as unknown. Observed-empty is
+explicit. Typed canonical payload checksum and final raw-record checksum during
+streaming; fresh metadata/catalog/load/CSV preserve full final values/stamps.
+No per-write event log, replay proof, signature or live inspection UI claimed.
+8 MiB terminal payload failures retain rows/unfinalized archive and report
+post-safe-stop delivery fault rather than truncation. Existing corrupt-row test
+fixtures now explicitly clear terminal Blackboard when reconstructing acquiring
+headers. Paged/lazy catalog, live diagnostics, expressions/concurrency and other
+PPMS/native UI/lab scope remain pending. GitHub only; independent C# engine;
+original29 UI drafts untouched; no dependency/Rust/lab changes.

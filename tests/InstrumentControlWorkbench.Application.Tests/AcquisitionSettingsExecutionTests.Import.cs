@@ -83,7 +83,7 @@ public sealed partial class AcquisitionSettingsExecutionTests
             var snapshot = b.Runs.LatestDataSet!.Capture();
             await using (var archive = new FileRunArchive(Path.Combine(folder, "runs")))
             {
-                await archive.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = [] }, Token); await archive.OnRowAsync(snapshot.Id, snapshot.Rows[0], Token);
+                await archive.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = [], Blackboard = null }, Token); await archive.OnRowAsync(snapshot.Id, snapshot.Rows[0], Token);
             }
             var path = Path.Combine(folder, "runs", snapshot.Id.Value.ToString("N"), "rows.ndjson"); var row = JsonNode.Parse(await File.ReadAllTextAsync(path))!; var settings = row["quality"]![0]!["acquisitionConfiguration"]!;
             if (damage == "count") settings["averagingCount"] = 0; else if (damage == "mode") settings["averagingMode"] = "bad"; else if (damage == "rebound") settings["autorangeRebound"] = true; else settings["unexpected"] = true;

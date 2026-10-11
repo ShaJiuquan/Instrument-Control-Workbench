@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.Runtime.ExceptionServices;
 using InstrumentControlWorkbench.Application.Devices;
 using InstrumentControlWorkbench.Application.Experiments;
@@ -53,7 +52,8 @@ public sealed partial class MeasurementRunService
     public RunExecutionPhase Phase { get { lock (admissionGate) return active?.Phase ?? RunExecutionPhase.Idle; } }
     public RunDataSet? LatestDataSet { get; private set; }
     public RunOutcome? LatestOutcome { get; private set; }
-    public IReadOnlyDictionary<ParameterId, BlackboardEntry>? LatestBlackboard { get; private set; }
+    public RunBlackboardSnapshot? LatestBlackboardSnapshot { get; private set; }
+    public IReadOnlyDictionary<ParameterId, BlackboardEntry>? LatestBlackboard => LatestBlackboardSnapshot?.Entries;
     public InMemoryRunHistory History { get; }
 
     public Task StartIvSweepAsync(IvSweepRecipe recipe, CancellationToken cancellationToken, RunMetadata? metadata = null)
@@ -111,7 +111,7 @@ public sealed partial class MeasurementRunService
         }
         LatestDataSet = null;
         LatestOutcome = null;
-        LatestBlackboard = null;
+        LatestBlackboardSnapshot = null;
         var errors = new List<Exception>();
         var startedListeners = new List<IRunResultListener>();
         var result = MeasurementRunState.Completed;
@@ -159,9 +159,18 @@ public sealed partial class MeasurementRunService
             if (!errors.Contains(failure.Error)) errors.Add(failure.Error);
             result = MeasurementRunState.Faulted;
         }
+        RunBlackboardSnapshot? blackboard = null;
+        try { blackboard = new(run.Id, DateTimeOffset.UtcNow, run.Elapsed.Elapsed, run.Variables); }
+        catch (Exception error) { errors.Add(error); result = MeasurementRunState.Faulted; }
         if (run.DataSet is { } completed)
         {
-            completed.Complete(result, DateTimeOffset.UtcNow < run.StartedAt ? run.StartedAt : DateTimeOffset.UtcNow);
+            var finishedAt = DateTimeOffset.UtcNow < run.StartedAt ? run.StartedAt : DateTimeOffset.UtcNow;
+            try { completed.Complete(result, finishedAt, blackboard); }
+            catch (Exception error)
+            {
+                errors.Add(error); result = MeasurementRunState.Faulted; blackboard = null;
+                completed.Complete(result, finishedAt);
+            }
             var snapshot = completed.Capture();
             foreach (var listener in startedListeners)
             {
@@ -169,7 +178,7 @@ public sealed partial class MeasurementRunService
                 catch (Exception ex) { errors.Add(ex); result = MeasurementRunState.Faulted; }
             }
         }
-        LatestBlackboard = new ReadOnlyDictionary<ParameterId, BlackboardEntry>(new Dictionary<ParameterId, BlackboardEntry>(run.Variables));
+        LatestBlackboardSnapshot = blackboard;
         LatestOutcome = new(run.Id, result, Array.AsReadOnly(errors.ToArray()));
         await PublishAsync(run, result switch
         {

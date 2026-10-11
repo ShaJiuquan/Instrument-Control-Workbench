@@ -27,17 +27,36 @@ public sealed partial class FileRunArchive
     public async Task<RunArchiveMetadata> ReadMetadataAsync(RunId id, CancellationToken token)
     {
         var folder = Folder(id);
-        var header = RunArchiveJson.Decode<RunArchiveJson.HeaderDto>(await ReadBoundedAsync(Path.Combine(folder, "metadata.json"), token)).ToDomain();
+        var headerDto = RunArchiveJson.Decode<RunArchiveJson.HeaderDto>(await ReadBoundedAsync(Path.Combine(folder, "metadata.json"), token));
+        var header = headerDto.ToDomain();
         if (header.Id != id) throw new FormatException("Archive folder and header run IDs differ.");
         var finalPath = Path.Combine(folder, "final.json");
         if (!File.Exists(finalPath)) return new(header, null, null);
-        var final = RunArchiveJson.Decode<RunArchiveJson.FinalDto>(await ReadBoundedAsync(finalPath, token));
-        if (final.Format != RunArchiveJson.Format || final.Version != RunArchiveJson.Version || final.Id != id.Value ||
+        var finalBytes = await ReadBoundedAsync(finalPath, token);
+        var final = RunArchiveJson.Decode<RunArchiveJson.FinalDto>(finalBytes);
+        if (final.Format != RunArchiveJson.Format || final.Version != headerDto.Version || final.Id != id.Value ||
             final.State is not (MeasurementRunState.Completed or MeasurementRunState.Aborted or MeasurementRunState.Faulted) ||
             final.FinishedAt < header.StartedAt || final.RowCount < 0 || final.DataBytes < 0 ||
             final.Sha256 is null || final.Sha256.Length != 64 || final.Sha256.Any(c => !Uri.IsHexDigit(c)))
             throw new FormatException("Invalid terminal archive record.");
-        return new(header with { State = final.State, FinishedAt = final.FinishedAt }, final.RowCount, final.DataBytes);
+        if (final.Version == 1 && (final.BlackboardStatus is not null || final.Blackboard is not null || final.BlackboardSha256 is not null) ||
+            final.Version == 2 && (final.BlackboardStatus is null || (final.BlackboardStatus == RunArchiveJson.BlackboardCaptureStatus.Captured) != (final.Blackboard is not null)))
+            throw new FormatException("Terminal blackboard capture status differs from its archive version or payload.");
+        if ((final.Blackboard is null) != (final.BlackboardSha256 is null)) throw new FormatException("Blackboard snapshot and checksum must be present together.");
+        RunBlackboardSnapshot? blackboard = null;
+        if (final.Blackboard is { } dto)
+        {
+            if (!string.Equals(Convert.ToHexString(SHA256.HashData(RunArchiveJson.Encode(dto))), final.BlackboardSha256, StringComparison.OrdinalIgnoreCase))
+                throw new FormatException("Blackboard snapshot checksum is invalid.");
+            try
+            {
+                blackboard = dto.ToDomain();
+                new RunDataRowValidator(header.Plan, header.Schema).ValidateBlackboard(id, blackboard);
+            }
+            catch (Exception error) when (error is ArgumentException or InvalidOperationException)
+            { throw new FormatException("Blackboard snapshot provenance is invalid.", error); }
+        }
+        return new(header with { State = final.State, FinishedAt = final.FinishedAt, Blackboard = blackboard }, final.RowCount, final.DataBytes, Convert.ToHexString(SHA256.HashData(finalBytes)));
     }
 
     public async Task<ArchivedRun> LoadAsync(RunId id, CancellationToken token, int maximumRows = 100_000)
@@ -96,7 +115,10 @@ public sealed partial class FileRunArchive
         cursor.HasIncompleteTail = frame.Length > 0;
         if (metadata.IsFinalized)
         {
-            var final = RunArchiveJson.Decode<RunArchiveJson.FinalDto>(await ReadBoundedAsync(Path.Combine(folder, "final.json"), token));
+            var finalBytes = await ReadBoundedAsync(Path.Combine(folder, "final.json"), token);
+            if (metadata.FinalRecordSha256 is { } expectedFinal && Convert.ToHexString(SHA256.HashData(finalBytes)) != expectedFinal)
+                throw new FormatException("Terminal archive record changed while reading rows.");
+            var final = RunArchiveJson.Decode<RunArchiveJson.FinalDto>(finalBytes);
             if (cursor.HasIncompleteTail || count != metadata.RowCount ||
                 !string.Equals(Convert.ToHexString(hash.GetCurrentHash()), final.Sha256, StringComparison.OrdinalIgnoreCase))
                 throw new FormatException("Finalized archive row count or checksum is invalid.");

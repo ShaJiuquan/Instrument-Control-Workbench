@@ -151,7 +151,7 @@ public sealed partial class SampleResistanceExecutionTests
         var snapshot = b.Runs.LatestDataSet!.Capture();
         await using (var archive = new FileRunArchive(folder.Path))
         {
-            await archive.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = Array.Empty<MeasurementDataRow>() }, Token);
+            await archive.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = Array.Empty<MeasurementDataRow>(), Blackboard = null }, Token);
             foreach (var row in snapshot.Rows) await archive.OnRowAsync(snapshot.Id, row, Token);
         }
         var rowPath = Path.Combine(folder.Path, snapshot.Id.Value.ToString("N"), "rows.ndjson"); var lines = await File.ReadAllLinesAsync(rowPath);
@@ -219,7 +219,7 @@ public sealed partial class SampleResistanceExecutionTests
         foreach (var row in snapshot.Rows.Take(2)) data.Append(row);
         Assert.Throws<ArgumentException>(() => data.Append(bad)); Assert.Equal(2, data.Rows.Count);
         await using var archive = new FileRunArchive(folder.Path);
-        await archive.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = Array.Empty<MeasurementDataRow>() }, Token);
+        await archive.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = Array.Empty<MeasurementDataRow>(), Blackboard = null }, Token);
         foreach (var row in snapshot.Rows.Take(2)) await archive.OnRowAsync(snapshot.Id, row, Token);
         await Assert.ThrowsAsync<ArgumentException>(() => archive.OnRowAsync(snapshot.Id, bad, Token));
         data.Append(summary); await archive.OnRowAsync(snapshot.Id, summary, Token); await archive.OnFinalizedAsync(snapshot, Token);

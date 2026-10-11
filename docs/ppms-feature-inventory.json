@@ -1184,7 +1184,7 @@
       "implementation": {
         "boundary": "Core SubtreeStep/VariableBinding; Application unit-aware preflight and same owned execution; Infrastructure codecs",
         "tests": "SubtreeStepTests.cs; ControlFlowTests.Subtree*.cs and lifecycle/driver/archives; SampleResistanceExecutionTests.Analysis.cs",
-        "limits": "Inherited quantity/Boolean/Text variables; simultaneous input/output maps; local shadow, parent restore on failure/error/cancel and selected success exports with stable parent types/units. Native/PPMS subtree/scope/isolated; bounded strict maps, all resource/data/document visitors; scan fixture/archive/CSV/fresh replay plus vdP/wide-group evidence. Native Boolean/Text workflow values and completed entry provenance are implemented. Historical entry archive/live diagnostics, expressions/parallel/native UI/physical remain pending. See workflow-control.md."
+        "limits": "Inherited quantity/Boolean/Text variables; simultaneous input/output maps; local shadow, parent restore on failure/error/cancel and selected success exports with stable parent types/units. Native/PPMS subtree/scope/isolated; bounded strict maps, all resource/data/document visitors; scan fixture/archive/CSV/fresh replay plus vdP/wide-group evidence. Native Boolean/Text workflow values and completed entry provenance are implemented. Terminal entry archive v2 is implemented; live diagnostics/paged history, expressions/parallel/native UI/physical remain pending. See workflow-control.md."
       }
     },
     {
@@ -1211,7 +1211,7 @@
       "evidence": {
         "boundary": "Core WhileStep/MutateValueStep/OutcomeMutationStep and plan budget; Application owned serial execution/full preflight; Infrastructure native/PPMS lowering",
         "tests": "VariableControlStepTests.cs; ControlFlowTests.While*.cs and owned TCP/cancellation/timeout/grouped archive tests; SampleResistanceExecutionTests.Analysis.cs",
-        "limits": "Reevaluated typed while/defaultlt/strict equality, zero-iteration variable availability, iteration row axes; unit-stable set/add/sub/scalar-mul, callback-declared custom counters and physical aliases; priority failure/skip guards and success/ordinary failure hooks, never faults/abort callbacks. Whole-plan10m/default or authored lower runtime budget, typed fault and truthful dynamic cap. Strict contracts, four-row fixture/native/archive/CSV/fresh replay/grouped/vdP and unhappy safety/recovery. Native Boolean/Text assignment/conditions/scopes are implemented. Historical entry archive/live diagnostics, custom physical metadata, arbitrary expressions, generic parallel/background/native UI/lab remain pending. See workflow-control.md."
+        "limits": "Reevaluated typed while/defaultlt/strict equality, zero-iteration variable availability, iteration row axes; unit-stable set/add/sub/scalar-mul, callback-declared custom counters and physical aliases; priority failure/skip guards and success/ordinary failure hooks, never faults/abort callbacks. Whole-plan10m/default or authored lower runtime budget, typed fault and truthful dynamic cap. Strict contracts, four-row fixture/native/archive/CSV/fresh replay/grouped/vdP and unhappy safety/recovery. Native Boolean/Text assignment/conditions/scopes are implemented. Terminal entry archive v2 is implemented; live diagnostics/paged history, custom physical metadata, arbitrary expressions, generic parallel/background/native UI/lab remain pending. See workflow-control.md."
       }
     },
     {
@@ -1266,7 +1266,7 @@
       "implementation": {
         "boundary": "Core SubtreeStep/VariableBinding; Application unit-aware preflight and same owned execution; Infrastructure codecs",
         "tests": "SubtreeStepTests.cs; ControlFlowTests.Subtree*.cs and lifecycle/driver/archives; SampleResistanceExecutionTests.Analysis.cs",
-        "limits": "Inherited quantity/Boolean/Text variables; simultaneous input/output maps; local shadow, parent restore on failure/error/cancel and selected success exports with stable parent types/units. Native/PPMS subtree/scope/isolated; bounded strict maps, all resource/data/document visitors; scan fixture/archive/CSV/fresh replay plus vdP/wide-group evidence. Native Boolean/Text workflow values and completed entry provenance are implemented. Historical entry archive/live diagnostics, expressions/parallel/native UI/physical remain pending. See workflow-control.md."
+        "limits": "Inherited quantity/Boolean/Text variables; simultaneous input/output maps; local shadow, parent restore on failure/error/cancel and selected success exports with stable parent types/units. Native/PPMS subtree/scope/isolated; bounded strict maps, all resource/data/document visitors; scan fixture/archive/CSV/fresh replay plus vdP/wide-group evidence. Native Boolean/Text workflow values and completed entry provenance are implemented. Terminal entry archive v2 is implemented; live diagnostics/paged history, expressions/parallel/native UI/physical remain pending. See workflow-control.md."
       }
     },
     {
@@ -1327,7 +1327,7 @@
       "evidence": {
         "boundary": "Core WhileStep/MutateValueStep/OutcomeMutationStep and plan budget; Application owned serial execution/full preflight; Infrastructure native/PPMS lowering",
         "tests": "VariableControlStepTests.cs; ControlFlowTests.While*.cs and owned TCP/cancellation/timeout/grouped archive tests; SampleResistanceExecutionTests.Analysis.cs",
-        "limits": "Reevaluated typed while/defaultlt/strict equality, zero-iteration variable availability, iteration row axes; unit-stable set/add/sub/scalar-mul, callback-declared custom counters and physical aliases; priority failure/skip guards and success/ordinary failure hooks, never faults/abort callbacks. Whole-plan10m/default or authored lower runtime budget, typed fault and truthful dynamic cap. Strict contracts, four-row fixture/native/archive/CSV/fresh replay/grouped/vdP and unhappy safety/recovery. Native Boolean/Text assignment/conditions/scopes are implemented. Historical entry archive/live diagnostics, custom physical metadata, arbitrary expressions, generic parallel/background/native UI/lab remain pending. See workflow-control.md."
+        "limits": "Reevaluated typed while/defaultlt/strict equality, zero-iteration variable availability, iteration row axes; unit-stable set/add/sub/scalar-mul, callback-declared custom counters and physical aliases; priority failure/skip guards and success/ordinary failure hooks, never faults/abort callbacks. Whole-plan10m/default or authored lower runtime budget, typed fault and truthful dynamic cap. Strict contracts, four-row fixture/native/archive/CSV/fresh replay/grouped/vdP and unhappy safety/recovery. Native Boolean/Text assignment/conditions/scopes are implemented. Terminal entry archive v2 is implemented; live diagnostics/paged history, custom physical metadata, arbitrary expressions, generic parallel/background/native UI/lab remain pending. See workflow-control.md."
       }
     },
     {
@@ -1576,7 +1576,7 @@
     "reference": "nested_experiment_service/node_execution/handlers/subtree.rs and blackboard.rs at Rust35763295",
     "nativeKind": "subtree",
     "fixture": "examples/plans/ppms-subtree-import.json",
-    "limits": "Inherited quantity/Boolean/Text variables; simultaneous input/output maps; local shadow, parent restore on failure/error/cancel and selected success exports with stable parent types/units. Native/PPMS subtree/scope/isolated; bounded strict maps, all resource/data/document visitors; scan fixture/archive/CSV/fresh replay plus vdP/wide-group evidence. Native Boolean/Text workflow values and completed entry provenance are implemented. Historical entry archive/live diagnostics, expressions/parallel/native UI/physical remain pending. See workflow-control.md."
+    "limits": "Inherited quantity/Boolean/Text variables; simultaneous input/output maps; local shadow, parent restore on failure/error/cancel and selected success exports with stable parent types/units. Native/PPMS subtree/scope/isolated; bounded strict maps, all resource/data/document visitors; scan fixture/archive/CSV/fresh replay plus vdP/wide-group evidence. Native Boolean/Text workflow values and completed entry provenance are implemented. Terminal entry archive v2 is implemented; live diagnostics/paged history, expressions/parallel/native UI/physical remain pending. See workflow-control.md."
   },
   "outcomeBranches": {
     "status": "partial",
@@ -1595,13 +1595,19 @@
     "status": "partial",
     "boundary": "Core WhileStep/MutateValueStep/OutcomeMutationStep and plan budget; Application owned serial execution/full preflight; Infrastructure native/PPMS lowering",
     "tests": "VariableControlStepTests.cs; ControlFlowTests.While*.cs and owned TCP/cancellation/timeout/grouped archive tests; SampleResistanceExecutionTests.Analysis.cs",
-    "limits": "Reevaluated typed while/defaultlt/strict equality, zero-iteration variable availability, iteration row axes; unit-stable set/add/sub/scalar-mul, callback-declared custom counters and physical aliases; priority failure/skip guards and success/ordinary failure hooks, never faults/abort callbacks. Whole-plan10m/default or authored lower runtime budget, typed fault and truthful dynamic cap. Strict contracts, four-row fixture/native/archive/CSV/fresh replay/grouped/vdP and unhappy safety/recovery. Native Boolean/Text assignment/conditions/scopes are implemented. Historical entry archive/live diagnostics, custom physical metadata, arbitrary expressions, generic parallel/background/native UI/lab remain pending. See workflow-control.md."
+    "limits": "Reevaluated typed while/defaultlt/strict equality, zero-iteration variable availability, iteration row axes; unit-stable set/add/sub/scalar-mul, callback-declared custom counters and physical aliases; priority failure/skip guards and success/ordinary failure hooks, never faults/abort callbacks. Whole-plan10m/default or authored lower runtime budget, typed fault and truthful dynamic cap. Strict contracts, four-row fixture/native/archive/CSV/fresh replay/grouped/vdP and unhappy safety/recovery. Native Boolean/Text assignment/conditions/scopes are implemented. Terminal entry archive v2 is implemented; live diagnostics/paged history, custom physical metadata, arbitrary expressions, generic parallel/background/native UI/lab remain pending. See workflow-control.md."
   },
   "typedBlackboard": {
     "status": "partial",
     "reference": "Rust nested_experiment_service/blackboard.rs, context/mod.rs and subtree.rs at unchanged35763295",
     "boundary": "Core immutable typed values/entries; Application full type/unit preflight and owned execution/completed snapshot; Infrastructure additive native literals and allocation guards",
     "tests": "BlackboardValueTests.cs; ControlFlowTests.Blackboard*.cs; existing numeric lifecycle/sample/quality tests and typed-blackboard-native.json",
-    "limits": "Quantity/Boolean/Text assignment, exact ordinal equality and inequality, Boolean/text while/branch joins, simultaneous scoped maps with type shadow and selected exports; no bool/text numeric coercion; step/UTC/elapsed stamps for all numeric and typed writes, restored snapshots and completed immutable API. Native/archive/CSV preserve typed plan, fresh replay regenerates stamps. Runtime entry historical archive/live diagnostics, imported Bool/Text producer dialect, expressions/parallel/background/native editor/lab remain pending."
+    "limits": "Quantity/Boolean/Text assignment, exact ordinal equality and inequality, Boolean/text while/branch joins, simultaneous scoped maps with type shadow and selected exports; no bool/text numeric coercion; step/UTC/elapsed stamps for all numeric and typed writes, restored snapshots and completed immutable API. Native/archive/CSV preserve typed plan, fresh replay regenerates stamps. Terminal entry archive v2 is implemented; live diagnostics/paged history, imported Bool/Text producer dialect, expressions/parallel/background/native editor/lab remain pending."
+  },
+  "terminalBlackboardArchive": {
+    "status": "partial",
+    "boundary": "Core owned immutable terminal snapshot/shared workflow provenance; Application capture/finalization/resource lifecycle; Infrastructure version2 DTO/checksums/reader/export",
+    "tests": "RunBlackboardSnapshotTests.cs; ControlFlowTests.BlackboardArchive*.cs; existing archive/quality/derived/cancellation corruption fixtures",
+    "limits": "Final root-scope quantity/Boolean/Text values with owner/step/UTC/elapsed/transfer provenance; known emitter/key/unit/literal/count validation; v2 Captured/NotCaptured payload/checksum pair and matched versions; legacy v1 unknown differs from observed-empty; terminal replacement checks during rows; full fresh metadata/catalog/load/CSV. 8 MiB metadata faults report after safe-stop, retain committed unfinalized rows and never truncate. Not a signed record or complete symbolic/replay proof. Live/per-write diagnostics, paged/lazy catalog, expression/concurrent execution, native UI and remaining PPMS/lab scope pending."
   }
 }

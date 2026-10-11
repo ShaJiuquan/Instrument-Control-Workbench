@@ -146,7 +146,7 @@ public sealed class MeasurementGroupExecutionTests
         {
             var b = new Bench(); await b.Runs.StartPlanAsync(NativePlan(b), Token); var snapshot = b.Runs.LatestDataSet!.Capture();
             await using var archive = new FileRunArchive(folder);
-            await archive.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = [] }, Token);
+            await archive.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = [], Blackboard = null }, Token);
             for (var i = 0; i < snapshot.Rows.Count; i++)
             {
                 var row = snapshot.Rows[i];
@@ -169,7 +169,7 @@ public sealed class MeasurementGroupExecutionTests
         try
         {
             var b = new Bench(); await b.Runs.StartPlanAsync(NativePlan(b), Token); var snapshot = b.Runs.LatestDataSet!.Capture();
-            await using var archive = new FileRunArchive(folder); await archive.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = [] }, Token);
+            await using var archive = new FileRunArchive(folder); await archive.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = [], Blackboard = null }, Token);
             await archive.OnRowAsync(snapshot.Id, snapshot.Rows[0], Token); await archive.OnRowAsync(snapshot.Id, snapshot.Rows[1], Token);
             var point = snapshot.Rows[2]; var values = new Dictionary<ParameterId, Quantity>(point.Values) { [new("first.V")] = new(0.2, PhysicalUnit.Volt) };
             await Assert.ThrowsAsync<ArgumentException>(() => archive.OnRowAsync(snapshot.Id, new(point.Timestamp, values, measurementGroup: point.MeasurementGroup), Token));
@@ -191,7 +191,7 @@ public sealed class MeasurementGroupExecutionTests
             var b = new Bench(); await b.Runs.StartPlanAsync(NativePlan(b), Token); var snapshot = b.Runs.LatestDataSet!.Capture();
             await using (var writer = new FileRunArchive(folder))
             {
-                await writer.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = [] }, Token);
+                await writer.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = [], Blackboard = null }, Token);
                 foreach (var row in snapshot.Rows) await writer.OnRowAsync(snapshot.Id, row, Token);
             }
             var path = Path.Combine(folder, snapshot.Id.Value.ToString("N"), "rows.ndjson"); var lines = await File.ReadAllLinesAsync(path);

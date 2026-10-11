@@ -161,7 +161,7 @@ public sealed class EnvironmentAcquisitionTests
             var b = new Bench(); await b.Runs.StartPlanAsync(Plan(b), Token); var snapshot = b.Runs.LatestDataSet!.Capture();
             await using (var writer = new FileRunArchive(folder))
             {
-                await writer.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = [] }, Token);
+                await writer.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = [], Blackboard = null }, Token);
                 foreach (var row in snapshot.Rows) await writer.OnRowAsync(snapshot.Id, row, Token);
             }
             var path = Path.Combine(folder, snapshot.Id.Value.ToString("N"), "rows.ndjson"); var lines = await File.ReadAllLinesAsync(path); var point = JsonNode.Parse(lines[2])!;

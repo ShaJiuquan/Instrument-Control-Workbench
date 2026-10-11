@@ -119,7 +119,7 @@ public sealed partial class StandaloneMeterTests
             var b = new Bench(); await b.Runs.StartPlanAsync(b.Plan(b.Read()), Token); var snapshot = b.Runs.LatestDataSet!.Capture();
             await using (var archive = new FileRunArchive(folder))
             {
-                await archive.OnStartedAsync(snapshot with { State = Core.Measurements.MeasurementRunState.Running, FinishedAt = null, Rows = [] }, Token);
+                await archive.OnStartedAsync(snapshot with { State = Core.Measurements.MeasurementRunState.Running, FinishedAt = null, Rows = [], Blackboard = null }, Token);
                 await archive.OnRowAsync(snapshot.Id, snapshot.Rows[0], Token);
             }
             var path = Path.Combine(folder, b.Runs.LatestDataSet!.Id.Value.ToString("N"), "rows.ndjson"); var row = JsonNode.Parse(await File.ReadAllTextAsync(path))!.AsObject(); var quality = row["quality"]![0]!;

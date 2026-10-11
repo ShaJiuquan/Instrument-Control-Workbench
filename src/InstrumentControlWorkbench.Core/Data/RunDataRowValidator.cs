@@ -5,9 +5,10 @@ using InstrumentControlWorkbench.Core.Parameters;
 namespace InstrumentControlWorkbench.Core.Data;
 
 // One provenance boundary for live datasets, archive writers and streaming readers.
-public sealed class RunDataRowValidator
+public sealed partial class RunDataRowValidator
 {
     private readonly ExperimentPlan? plan;
+    private readonly Dictionary<StepId, ExperimentStep> steps = [];
     private readonly DataSetSchema schema;
     private readonly SampleAnalysisRowValidator analysis;
     private readonly Dictionary<StepId, MeasurementGroupStep> groups = [];
@@ -32,6 +33,7 @@ public sealed class RunDataRowValidator
         while (pending.TryPop(out var item))
         {
             if (++visited > 10_000 || item.Depth > 128) throw new ArgumentException("Measurement provenance plan exceeds bounds.");
+            if (!steps.TryAdd(item.Step.Id, item.Step)) throw new ArgumentException("Duplicate workflow provenance step ID.");
             switch (item.Step)
             {
                 case ReadStep read:
@@ -64,7 +66,10 @@ public sealed class RunDataRowValidator
                 case FallbackStep fallback: foreach (var child in fallback.Children) pending.Push((child, item.Depth + 1)); break;
                 case RetryStep retry: pending.Push((retry.Body, item.Depth + 1)); break;
                 case WhileStep loop: pending.Push((loop.Body, item.Depth + 1)); break;
-                case OutcomeMutationStep hook: pending.Push((hook.Body, item.Depth + 1)); break;
+                case OutcomeMutationStep hook:
+                    pending.Push((hook.Body, item.Depth + 1));
+                    if (hook.Success is { } success) pending.Push((success, item.Depth + 1));
+                    if (hook.Failure is { } failure) pending.Push((failure, item.Depth + 1)); break;
                 case TimeoutStep timeout: pending.Push((timeout.Body, item.Depth + 1)); break;
                 case SubtreeStep subtree: foreach (var child in subtree.Children) pending.Push((child, item.Depth + 1)); break;
                 case BranchOnOutcomeStep branch:

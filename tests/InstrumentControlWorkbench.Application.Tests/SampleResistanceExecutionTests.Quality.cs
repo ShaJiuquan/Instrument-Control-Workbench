@@ -49,7 +49,7 @@ public sealed partial class SampleResistanceExecutionTests
     {
         using var folder = new TemporaryFolder(); var b = new Bench(); await b.Runs.StartAnalyzedSampleResistanceAsync(Recipe(Configuration(SampleTopology.HallBar, Geometry)), Token);
         var snapshot = b.Runs.LatestDataSet!.Capture(); await using var archive = new FileRunArchive(folder.Path);
-        await archive.OnStartedAsync(snapshot with { State = InstrumentControlWorkbench.Core.Measurements.MeasurementRunState.Running, FinishedAt = null, Rows = [] }, Token);
+        await archive.OnStartedAsync(snapshot with { State = InstrumentControlWorkbench.Core.Measurements.MeasurementRunState.Running, FinishedAt = null, Rows = [], Blackboard = null }, Token);
         for (var i = 0; i < snapshot.Rows.Count; i++)
         {
             var row = snapshot.Rows[i];

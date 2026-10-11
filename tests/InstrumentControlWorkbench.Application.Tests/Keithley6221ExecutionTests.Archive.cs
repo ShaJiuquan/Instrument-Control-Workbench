@@ -48,7 +48,7 @@ public sealed partial class Keithley6221ExecutionTests
                 currentSourcePreparations: [new(b.Source.Descriptor.Id, new(new(1e-5, PhysicalUnit.Ampere), new(10, PhysicalUnit.Volt)))]);
             await b.Runs.StartPlanAsync(plan, Token); var snapshot = b.Runs.LatestDataSet!.Capture();
             await using (var writer = new FileRunArchive(Path.Combine(folder, "runs")))
-            { await writer.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = [] }, Token); await writer.OnRowAsync(snapshot.Id, snapshot.Rows[0], Token); }
+            { await writer.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = [], Blackboard = null }, Token); await writer.OnRowAsync(snapshot.Id, snapshot.Rows[0], Token); }
             var path = Path.Combine(folder, "runs", snapshot.Id.Value.ToString("N"), "rows.ndjson"); var row = JsonNode.Parse(await File.ReadAllTextAsync(path))!.AsObject();
             var e = row["independentResistance"]![0]!; var source = e["sourceConfiguration"]!.AsObject();
             switch (damage)
@@ -78,7 +78,7 @@ public sealed partial class Keithley6221ExecutionTests
             await runs.StartPlanAsync(new("Legacy model", new SequenceStep(new("root"), [new SourceOutputStep(new("on"), source.Id, true), read]),
                 [new(source.Id, SourceFunction.Current, new(1e-5, PhysicalUnit.Ampere), new(10, PhysicalUnit.Volt), new(SenseFunction.Voltage, SensingMode.TwoWire, 1, true))]), Token);
             var snapshot = runs.LatestDataSet!.Capture(); await using (var writer = new FileRunArchive(folder))
-            { await writer.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = [] }, Token); await writer.OnRowAsync(snapshot.Id, snapshot.Rows[0], Token); }
+            { await writer.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = [], Blackboard = null }, Token); await writer.OnRowAsync(snapshot.Id, snapshot.Rows[0], Token); }
             var path = Path.Combine(folder, snapshot.Id.Value.ToString("N"), "rows.ndjson"); var row = JsonNode.Parse(await File.ReadAllTextAsync(path))!; row["independentResistance"]![0]!["sourceConfiguration"]!.AsObject().Remove("model");
             await File.WriteAllTextAsync(path, row.ToJsonString() + "\n"); await using var fresh = new FileRunArchive(folder); var loaded = await fresh.LoadAsync(snapshot.Id, Token);
             Assert.Equal(CurrentSourceModel.Keithley2450, Assert.Single(Assert.Single(loaded.DataSet.Rows).IndependentResistance).SourceConfiguration.Model);

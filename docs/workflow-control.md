@@ -388,3 +388,50 @@ introduced. Generic expressions, parallel/background, native editor integration
 and real-device acceptance remain separate unfinished parts of the full goal.
 
 Outcome mutations also inspect possible writes in body branches, including variables omitted by definite-availability joins. Incompatible numeric hook targets are rejected before IO. Private subtree shadows are excluded; only selected exports contribute to the enclosing scope. The inspection is conservative over body prefix writes, including retry/fallback attempts, rather than a complete symbolic proof of each outcome path.
+
+
+## Terminal blackboard history and archive version 2
+
+RunBlackboardSnapshot binds a frozen last-value dictionary to RunId, UTC capture
+time and monotonic elapsed time. Each entry retains its typed value and write
+provenance. Capture has at most 100,000 unique non-null variables and no entry
+may have a later monotonic write time; wall clocks may jump, so UTC write/capture
+ordering is not inferred. Workflow validation checks run ownership, a known
+source step, source variable/units/literal payload, bounded iterator/control
+counts and declared scope-transfer destinations. This is structural provenance
+validation, not a reconstruction of all prior expressions or a signed record.
+
+The Application captures after device safe-stop, validates before atomically
+completing the data set, and sends the same snapshot to history and archive
+listeners. Capture/validation errors fault the run and finalize rows without
+claiming an observed variable snapshot; resource release/recovery still follows
+the existing safety path. LatestBlackboardSnapshot identifies the run;
+LatestBlackboard remains the read-only entries convenience API. Terminal data
+set snapshots and in-memory history carry this observation, including body
+fault/abort after subtree restoration. Local/private values remain isolated;
+this records terminal root-scope values, not a complete per-write event log.
+
+New archive headers and terminal records use version 2. Terminal capture status
+is mandatory: Captured requires the full blackboard payload plus its SHA-256;
+NotCaptured permits neither. Version 1 remains readable with unknown/missing
+blackboard history. Observed-empty has a real payload with an empty entries
+array, and is distinct from unknown. Header/terminal versions must match; missing
+version-2 status/payload/hash cannot silently downgrade to an old empty record.
+Payload hashes use the canonical typed DTO representation; a raw terminal record
+hash also detects its replacement during row streaming/load/export. Checksums
+provide corruption detection, not authentication against arbitrary file rewrites.
+
+Reader APIs, fresh-instance load and CSV metadata `# blackboard_json` expose the
+stored snapshot. CSV leaves that field empty when not captured and encodes the
+owner/time/empty array for an observed-empty state. Existing destination files
+remain intact on validation or cancellation failures. Snapshots retain native
+quantity units, booleans, Unicode/empty text, source StepIds and ticks exactly.
+Rows continue to have their independent checksum and acquisition quality.
+
+The existing 8 MiB frame limit applies to terminal data. Large runtime copies
+can exceed it even when the authored plan fits; the archive reports a delivery
+fault after safe-stop, closes its writer, retains committed rows as unfinalized,
+and does not truncate variables or invent a terminal outcome. Acquisition
+terminal state and a later result-listener delivery fault remain separate, as
+in the existing result pipeline. Catalog reads currently include full snapshots;
+paged/lazy historical diagnostics and a live variable feed remain pending.

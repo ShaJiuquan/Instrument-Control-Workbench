@@ -14,7 +14,7 @@ namespace InstrumentControlWorkbench.Infrastructure.Data;
 // Versioned storage DTOs never become mutable domain or UI state.
 internal static partial class RunArchiveJson
 {
-    internal const int Version = 1;
+    internal const int Version = RunDataSet.FormatVersion;
     internal const int MaximumFrameBytes = 8 * 1024 * 1024;
     internal const string Format = "instrument-workbench-run";
     internal static readonly JsonSerializerOptions Options = new()
@@ -31,7 +31,10 @@ internal static partial class RunArchiveJson
             new JsonStringEnumConverter<SampleRouteSelection>(allowIntegerValues: false),
             new JsonStringEnumConverter<SampleAnalysisIssues>(allowIntegerValues: false),
             new JsonStringEnumConverter<RoutingRole>(allowIntegerValues: false),
-            new JsonStringEnumConverter<EnvironmentRole>(allowIntegerValues: false) },
+            new JsonStringEnumConverter<EnvironmentRole>(allowIntegerValues: false),
+            new JsonStringEnumConverter<BlackboardValueKind>(allowIntegerValues: false),
+            new JsonStringEnumConverter<BlackboardWriteKind>(allowIntegerValues: false),
+            new JsonStringEnumConverter<BlackboardCaptureStatus>(allowIntegerValues: false) },
     };
     private static readonly JsonExperimentPlanDocument Plans = new();
 
@@ -75,7 +78,7 @@ internal static partial class RunArchiveJson
     {
         public RunDataSetSnapshot ToDomain()
         {
-            if (Format != RunArchiveJson.Format || Version != RunArchiveJson.Version) throw new NotSupportedException("Unsupported run archive format/version.");
+            if (Format != RunArchiveJson.Format || Version is not (1 or RunArchiveJson.Version)) throw new NotSupportedException("Unsupported run archive format/version.");
             var recipe = Required(Recipe).ToDictionary(p => p.Key, p => Required(p.Value).ToDomain());
             var dataSet = new RunDataSet(new(Id), Name, StartedAt, new(Required(Columns).Select(c => c.ToDomain())), recipe,
                 Required(Instruments).Select(i => i.ToDomain()), Plan is null ? null : Plans.Parse(Plan), Required(Metadata).ToDomain());
@@ -147,7 +150,11 @@ internal static partial class RunArchiveJson
         public MeasurementGroupSummary ToDomain() => new(new(Step), Required(Inputs).Select(i => new MeasurementGroupInput(Required(i).Label, i.FirstInputRow, i.InputCount)));
         public static MeasurementGroupDto From(MeasurementGroupSummary group) => new(group.Step.Value, group.Inputs.Select(i => new MeasurementGroupInputDto(i.Label, i.FirstInputRow, i.InputCount)).ToArray());
     }
-    internal sealed record FinalDto(string Format, int Version, Guid Id, MeasurementRunState State, DateTimeOffset FinishedAt, int RowCount, long DataBytes, string Sha256);
+    internal sealed record FinalDto(string Format, int Version, Guid Id, MeasurementRunState State, DateTimeOffset FinishedAt, int RowCount, long DataBytes, string Sha256,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] BlackboardDto? Blackboard = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? BlackboardSha256 = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] BlackboardCaptureStatus? BlackboardStatus = null);
+    internal enum BlackboardCaptureStatus { NotCaptured, Captured }
 
     internal static byte[] Encode<T>(T value)
     {

@@ -70,7 +70,7 @@ public sealed partial class Keithley6221ExecutionTests
             await b.Runs.StartPlanAsync(plan, Token); var snapshot = b.Runs.LatestDataSet!.Capture();
             await using (var writer = new FileRunArchive(Path.Combine(folder, "runs")))
             {
-                await writer.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = [] }, Token);
+                await writer.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = [], Blackboard = null }, Token);
                 foreach (var row in snapshot.Rows) await writer.OnRowAsync(snapshot.Id, row, Token);
             }
             var file = Path.Combine(folder, "runs", snapshot.Id.Value.ToString("N"), "rows.ndjson"); var lines = (await File.ReadAllLinesAsync(file)).Select(l => JsonNode.Parse(l)!.AsObject()).ToArray(); var failure = lines[0]["acquisitionFailures"]![0]!.AsObject();

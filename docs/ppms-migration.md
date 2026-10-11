@@ -666,3 +666,18 @@ remain numeric. Their undocumented import syntax is not guessed. The completed
 run API exposes immutable blackboard snapshots; runtime entry historical archive
 and live diagnostics still need integration, alongside expressions, concurrent
 execution, remaining instruments/controllers, editor/device UI and lab acceptance.
+
+
+### Terminal variable history
+
+The run-owned typed blackboard now persists its final root scope through Core
+data snapshots, in-memory history and file archive version 2. New terminal
+records explicitly distinguish captured-empty from unknown and retain all
+quantity units, Boolean/Text values, source steps and time stamps. Shared
+workflow provenance checks and payload/terminal checksums reject malformed,
+foreign or changed snapshots; fresh metadata/load/catalog and CSV expose them.
+Version 1 remains readable with unknown variable history. Record-size failures
+report delivery errors after safe-stop and keep committed rows unfinalized,
+without silent truncation. Complete variable change history/live diagnostics,
+paged/lazy history, expression/concurrent execution, the editor/device UI and
+remaining physical PPMS feature acceptance are still unfinished.

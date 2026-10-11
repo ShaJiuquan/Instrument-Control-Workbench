@@ -197,7 +197,7 @@ public sealed partial class SampleResistanceExecutionTests
         var runPath = Path.Combine(folder.Path, "runs");
         await using (var archive = new FileRunArchive(runPath))
         {
-            var running = snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = Array.Empty<MeasurementDataRow>() };
+            var running = snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = Array.Empty<MeasurementDataRow>(), Blackboard = null };
             await archive.OnStartedAsync(running, Token); await archive.OnRowAsync(snapshot.Id, snapshot.Rows[0], Token);
         }
         var rowPath = Path.Combine(runPath, snapshot.Id.Value.ToString("N"), "rows.ndjson");
@@ -249,7 +249,7 @@ public sealed partial class SampleResistanceExecutionTests
         var changedContext = new ResolvedSampleRoute(route.Binding, "renamed", route.Topology, route.Matrix, route.SourceMeter, route.Roles);
         var changed = new MeasurementDataRow(original.Timestamp, original.Values, changedContext);
         await using var archive = new FileRunArchive(folder.Path);
-        await archive.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = Array.Empty<MeasurementDataRow>() }, Token);
+        await archive.OnStartedAsync(snapshot with { State = MeasurementRunState.Running, FinishedAt = null, Rows = Array.Empty<MeasurementDataRow>(), Blackboard = null }, Token);
         await Assert.ThrowsAsync<ArgumentException>(() => archive.OnRowAsync(snapshot.Id, changed, Token));
         await archive.OnRowAsync(snapshot.Id, original, Token);
         await Assert.ThrowsAsync<InvalidOperationException>(() => archive.OnFinalizedAsync(snapshot with { Rows = new[] { changed } }, Token));
