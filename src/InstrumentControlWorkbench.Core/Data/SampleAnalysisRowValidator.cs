@@ -77,6 +77,8 @@ public sealed class SampleAnalysisRowValidator
         var input = recent.TakeLast(summary.InputCount).ToArray();
         if (row.Quality.Count != 0 && input.Any(r => r.Quality.Count == 0)) throw new ArgumentException("Analysis cannot claim complete quality while an input has no evidence.");
         if (!row.Quality.SequenceEqual(input.SelectMany(r => r.Quality))) throw new ArgumentException("Sample analysis must preserve acquisition quality evidence.");
+        if (!row.IndependentResistance.SequenceEqual(input.SelectMany(r => r.IndependentResistance)))
+            throw new ArgumentException("Sample analysis must preserve every independent acquisition's evidence.");
         var derived = group.Columns.Select(c => schema.Columns.Single(s => s.Parameter.Id == c.Column)).ToArray();
         var elapsed = new ParameterId("elapsed");
         var axes = derived[0].DependsOn.Where(id => id != elapsed).ToArray();
@@ -97,6 +99,20 @@ public sealed class SampleAnalysisRowValidator
                 !raw.Values.TryGetValue(read.Acquisition.CurrentColumn, out var current) || current.Unit != PhysicalUnit.Ampere || Math.Abs(current.Value) <= read.Acquisition.MinimumCurrent.Value ||
                 !raw.Values.TryGetValue(read.Acquisition.ResistanceColumn, out var resistance) || resistance.Unit != PhysicalUnit.Ohm || resistance.Value != voltage.Value / current.Value)
                 throw new ArgumentException("Summary inputs need valid coherent V/I/R values.");
+            if (read.Acquisition is ReadCurrentResistanceStep independent)
+            {
+                if (raw.IndependentResistance.Count != 1) throw new ArgumentException("Independent sample input needs its acquisition evidence.");
+                var evidence = raw.IndependentResistance[0];
+                var meterQuality = raw.Quality.SingleOrDefault(q => q.Column == independent.VoltageColumn);
+                var firstMeterQuality = input[0].Quality.SingleOrDefault(q => q.Column == group.Readings[0].Acquisition.VoltageColumn);
+                if (meterQuality?.MeterConfiguration is null || meterQuality.MeterConfiguration != firstMeterQuality?.MeterConfiguration || meterQuality.MeterConfiguration.Channel != 1)
+                    throw new ArgumentException("Independent analysis requires the common observed meter configuration and wired input 1.");
+                if (evidence.Step != independent.Id || evidence.Source != independent.Source || evidence.Meter != independent.Meter || evidence.CurrentReference != independent.CurrentReference ||
+                    !Equals(evidence.Route, new MatrixRouteExpectation(expected.Matrix, expected.Closed)) || evidence.Voltage != voltage || evidence.Current != current || evidence.Resistance != resistance ||
+                    evidence.SourceConfiguration != input[0].IndependentResistance.Single().SourceConfiguration)
+                    throw new ArgumentException("Independent analysis inputs must match their declared acquisitions and common excitation configuration.");
+            }
+            else if (raw.IndependentResistance.Count != 0) throw new ArgumentException("Integrated sample input cannot claim independent source/meter evidence.");
             resistances.Add(resistance);
         }
         var sample = group.ValidateRouting(plan!.Routing!);

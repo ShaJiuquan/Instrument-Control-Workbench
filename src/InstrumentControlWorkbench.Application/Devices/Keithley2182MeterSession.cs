@@ -60,7 +60,9 @@ public sealed class Keithley2182MeterSession : IDeviceSession
     }
     public async Task<Quantity> ReadParameterAsync(ParameterId parameter, CancellationToken token, RunId? owner = null)
         => (await ReadObservationAsync(parameter, token, owner)).Value;
-    public async Task<ParameterObservation> ReadObservationAsync(ParameterId parameter, CancellationToken token, RunId? owner = null)
+    public Task<ParameterObservation> ReadObservationAsync(ParameterId parameter, CancellationToken token, RunId? owner = null)
+        => ReadObservationAsync(parameter, token, owner, null);
+    public async Task<ParameterObservation> ReadObservationAsync(ParameterId parameter, CancellationToken token, RunId? owner, int? requiredInput)
     {
         var descriptor = Descriptor.GetParameter(parameter);
         if (!descriptor.Access.HasFlag(ParameterAccess.Read)) throw new InvalidOperationException($"{parameter} is write-only.");
@@ -75,6 +77,7 @@ public sealed class Keithley2182MeterSession : IDeviceSession
                     throw new InvalidOperationException("Manual span is absent while autorange is enabled.");
                 return new(value, before.Timestamp);
             }
+            if (requiredInput is { } input && before.Settings!.Channel != input) throw new InvalidOperationException("Meter input differs from the frozen sample wiring.");
             var reading = await port.ReadAsync(token);
             token.ThrowIfCancellationRequested();
             var after = await port.GetSnapshotAsync(token);

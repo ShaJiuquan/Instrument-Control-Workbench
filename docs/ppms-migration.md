@@ -372,3 +372,21 @@ mode errors, drift, retained failed-stop claims and native/wide/archive/CSV.
 Independent sample/Hall/vdP, real drivers, retry semantics and UI/lab acceptance
 remain pending. App/App.Tests drafts remain excluded; the full goal stays active.
 See [independent-channel-routing.md](independent-channel-routing.md).
+
+## Independent current DC sample stage (2026-10-11)
+
+Two-/four-wire/Hall/eight-permutation vdP acquisition shares the existing sample
+executor and pure math through a metadata-only ResistanceAcquisitionStep boundary.
+Frozen wiring/context retains explicit independent meter identity; samples own
+cleanup and target observed input1. Native kind read_independent_sample_resistance
+wraps the ordinary current acquisition, with unchanged integrated encoding.
+Complete analysis preserves every independent record/quality, common observed
+source/meter configuration and environment; native/wide/archive/CSV validators
+reject mismatched/missing/reordered evidence. Owned PPMS sample aliases and four
+source/sample/meter/route fixtures run30 rows overtwofieldpoints, reload/re-execute/
+export from fresh archives.48 new cases cover11 Core+37 Application. The standalone
+meter's three-argument observation interface must stay implemented: extra sample
+input enforcement is a separate four-argument overload, avoiding loss of meter
+configuration evidence through the default interface implementation. Real ports,
+retry/invalid points, advanced modes and remaining UI/lab/PPMS remain unfinished.
+All App/App.Tests drafts remain excluded. See independent-sample-resistance.md.

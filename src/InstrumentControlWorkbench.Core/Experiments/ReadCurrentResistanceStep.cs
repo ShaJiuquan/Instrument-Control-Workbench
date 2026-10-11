@@ -24,7 +24,7 @@ public sealed class MatrixRouteExpectation : IEquatable<MatrixRouteExpectation>
 }
 
 // Acquisition only: setup, settling and owned/managed output stay ordinary steps.
-public sealed record ReadCurrentResistanceStep : ExperimentStep
+public sealed record ReadCurrentResistanceStep : ResistanceAcquisitionStep
 {
     public ReadCurrentResistanceStep(StepId id, InstrumentId source, InstrumentId meter, CurrentReference currentReference,
         ParameterId voltageColumn, ParameterId currentColumn, ParameterId resistanceColumn, Quantity minimumCurrent,
@@ -42,13 +42,15 @@ public sealed record ReadCurrentResistanceStep : ExperimentStep
         EnvironmentReads = EnvironmentRead.Freeze(environmentReads, [voltageColumn, currentColumn, resistanceColumn]);
     }
     public InstrumentId Source { get; }
+    public override InstrumentId Device => Source;
+    public override SourceFunction Function => SourceFunction.Current;
     public InstrumentId Meter { get; }
     public CurrentReference CurrentReference { get; }
-    public ParameterId VoltageColumn { get; }
-    public ParameterId CurrentColumn { get; }
-    public ParameterId ResistanceColumn { get; }
-    public Quantity MinimumCurrent { get; }
+    public override ParameterId VoltageColumn { get; }
+    public override ParameterId CurrentColumn { get; }
+    public override ParameterId ResistanceColumn { get; }
+    public override Quantity MinimumCurrent { get; }
     public PlanValue? ExpectedProgrammedCurrent { get; }
     public MatrixRouteExpectation? RequiredRoute { get; }
-    public IReadOnlyList<EnvironmentRead> EnvironmentReads { get; }
+    public override IReadOnlyList<EnvironmentRead> EnvironmentReads { get; }
 }

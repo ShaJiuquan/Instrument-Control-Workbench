@@ -1335,5 +1335,23 @@
       "UI and physical laboratory acceptance"
     ],
     "reference": "independent-channel-routing.md"
+  },
+  "independentSampleResistance": {
+    "status": "partial",
+    "implemented": [
+      "Frozen source/meter/matrix roles and sample electrode routes; input1, output/lease lifecycle",
+      "Two-/four-wire and complete Hall/vdP groups with shared Core math",
+      "Native version1 independent sample kind and optional meter wiring/context",
+      "PPMS owned sample aliases, strict mode/instrument/input/topology admission",
+      "Separate acquisition records/quality, common observed configurations, raw/analysis/wide/archive/re-execution/CSV",
+      "Authored four-topology two-field30-row fixture;48 new cases (11 Core37 Application)"
+    ],
+    "remaining": [
+      "Physical K6221/K2182 drivers and lab acceptance",
+      "Retry/recover invalid points",
+      "Delta/pulse/AC and corrected Hall",
+      "Advanced settings and full UI/PPMS parity"
+    ],
+    "reference": "independent-sample-resistance.md"
   }
 }

@@ -44,13 +44,13 @@ public sealed class RoutingConfiguration
             if (connection.Slot is { } slot && slot != port.Slot) throw new ArgumentException($"{channel.Id}.{connection.Key}: channel slot differs from the instrument port slot.");
             roles.Add(new(role, electrode.Label, channel.Id, connection.Key, new(port.Slot, port.Row, connection.Column.Value)));
         }
-        return new(new(sample.Id, wiring.Id, binding.Selection), sample.Name, sample.Topology, Matrix, wiring.SourceMeter, roles);
+        return new(new(sample.Id, wiring.Id, binding.Selection), sample.Name, sample.Topology, Matrix, wiring.SourceMeter, roles, wiring.VoltageMeter);
     }
     public void ValidateContext(ResolvedSampleRoute context)
     {
         ArgumentNullException.ThrowIfNull(context);
         var actual = Resolve(context.Binding);
-        if (actual.Matrix != context.Matrix || actual.SourceMeter != context.SourceMeter || actual.SampleName != context.SampleName ||
+        if (actual.Matrix != context.Matrix || actual.SourceMeter != context.SourceMeter || actual.VoltageMeter != context.VoltageMeter || actual.SampleName != context.SampleName ||
             actual.Topology != context.Topology || actual.Binding != context.Binding || !actual.Roles.SequenceEqual(context.Roles))
             throw new ArgumentException("Row routing provenance differs from the plan's frozen routing configuration.", nameof(context));
     }

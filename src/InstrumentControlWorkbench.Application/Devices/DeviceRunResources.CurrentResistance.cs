@@ -20,7 +20,7 @@ public sealed partial class DeviceRunResources
         finally { gate.Release(); }
     }
     public async Task<(IndependentResistanceEvidence Evidence, IReadOnlyList<AcquisitionQuality> Quality)> ReadCurrentResistanceAsync(
-        ReadCurrentResistanceStep step, Quantity? expectedProgrammedCurrent, CancellationToken token)
+        ReadCurrentResistanceStep step, Quantity? expectedProgrammedCurrent, CancellationToken token, int? requiredMeterInput = null)
     {
         ArgumentNullException.ThrowIfNull(step);
         if (expectedProgrammedCurrent is { } expected && (expected.Unit != PhysicalUnit.Ampere || Math.Abs(expected.Value) <= step.MinimumCurrent.Value))
@@ -53,7 +53,7 @@ public sealed partial class DeviceRunResources
                 sourceFrame = await manager!.ReadSourceSenseAsync(SourceFunction.Current, token, Owner, before!.Sense.Mode);
             var current = sourceFrame?.Source ?? new(configuration.Level, PhysicalUnit.Ampere);
             if (Math.Abs(current.Value) <= step.MinimumCurrent.Value) throw new InvalidOperationException("Current is zero or below the resistance threshold.");
-            var voltage = await meter.ReadObservationAsync(Keithley2182Parameters.Voltage.Id, token, Owner);
+            var voltage = await meter.ReadObservationAsync(Keithley2182Parameters.Voltage.Id, token, Owner, requiredMeterInput);
             token.ThrowIfCancellationRequested();
             if (manager is not null)
             {

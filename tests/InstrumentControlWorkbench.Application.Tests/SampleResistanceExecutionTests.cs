@@ -284,7 +284,7 @@ public sealed partial class SampleResistanceExecutionTests
     }
 
     private static ReadSampleResistanceStep Read(string id, SampleRoutingBinding binding, bool externallyManaged = false)
-        => new(new(new(id), new("k2450"), SourceFunction.Voltage, new("voltage"), new("current"), new("resistance"), new(1e-15, PhysicalUnit.Ampere)), binding, TimeSpan.Zero, externallyManaged);
+        => new(new ReadResistanceStep(new(id), new("k2450"), SourceFunction.Voltage, new("voltage"), new("current"), new("resistance"), new(1e-15, PhysicalUnit.Ampere)), binding, TimeSpan.Zero, externallyManaged);
     private static SourcePreparation Preparation(SensingMode mode, SourceFunction function = SourceFunction.Voltage)
         => new(new("k2450"), function, new(function == SourceFunction.Voltage ? 0.01 : 1e-6, function == SourceFunction.Voltage ? PhysicalUnit.Volt : PhysicalUnit.Ampere),
             new(function == SourceFunction.Voltage ? 0.001 : 20, function == SourceFunction.Voltage ? PhysicalUnit.Ampere : PhysicalUnit.Volt),

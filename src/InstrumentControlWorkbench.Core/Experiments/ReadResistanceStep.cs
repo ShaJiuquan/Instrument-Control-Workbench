@@ -3,7 +3,7 @@ using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Core.Experiments;
 
-public sealed record ReadResistanceStep : ExperimentStep
+public sealed record ReadResistanceStep : ResistanceAcquisitionStep
 {
     public ReadResistanceStep(StepId id, InstrumentId device, SourceFunction function,
         ParameterId voltageColumn, ParameterId currentColumn, ParameterId resistanceColumn, Quantity minimumCurrent, IEnumerable<EnvironmentRead>? environmentReads = null) : base(id)
@@ -19,11 +19,11 @@ public sealed record ReadResistanceStep : ExperimentStep
         ResistanceColumn = resistanceColumn; MinimumCurrent = minimumCurrent;
         EnvironmentReads = EnvironmentRead.Freeze(environmentReads, [voltageColumn, currentColumn, resistanceColumn]);
     }
-    public InstrumentId Device { get; }
-    public SourceFunction Function { get; }
-    public ParameterId VoltageColumn { get; }
-    public ParameterId CurrentColumn { get; }
-    public ParameterId ResistanceColumn { get; }
-    public Quantity MinimumCurrent { get; }
-    public IReadOnlyList<EnvironmentRead> EnvironmentReads { get; }
+    public override InstrumentId Device { get; }
+    public override SourceFunction Function { get; }
+    public override ParameterId VoltageColumn { get; }
+    public override ParameterId CurrentColumn { get; }
+    public override ParameterId ResistanceColumn { get; }
+    public override Quantity MinimumCurrent { get; }
+    public override IReadOnlyList<EnvironmentRead> EnvironmentReads { get; }
 }

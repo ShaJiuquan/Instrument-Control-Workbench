@@ -32,6 +32,16 @@ public sealed record SampleAnalysisStep : ExperimentStep
         foreach (var reading in Readings)
         {
             var route = routing.Resolve(reading.Binding);
+            if (reading.Acquisition is ReadCurrentResistanceStep independent)
+            {
+                if (route.VoltageMeter != independent.Meter || !Equals(independent.RequiredRoute, new MatrixRouteExpectation(route.Matrix, route.Closed)) ||
+                    Readings[0].Acquisition is not ReadCurrentResistanceStep firstIndependent || independent.CurrentReference != firstIndependent.CurrentReference ||
+                    independent.ExpectedProgrammedCurrent != firstIndependent.ExpectedProgrammedCurrent)
+                    throw new ArgumentException("Independent analysis requires matching meter/current policy and exact sample routes.");
+            }
+            else if (route.VoltageMeter is not null) throw new ArgumentException("Integrated sample acquisition cannot use independent meter wiring.");
+            if ((reading.Acquisition is ReadCurrentResistanceStep) != (Readings[0].Acquisition is ReadCurrentResistanceStep))
+                throw new ArgumentException("Analysis cannot mix integrated and independent acquisition families.");
             if (reading.RoutingManagedExternally || route.SourceMeter != reading.Acquisition.Device || route.Binding.Sample != first.Binding.Sample || route.Binding.Wiring != first.Binding.Wiring ||
                 reading.Acquisition.Device != Readings[0].Acquisition.Device || reading.Acquisition.Function != Readings[0].Acquisition.Function ||
                 !reading.Acquisition.EnvironmentReads.SequenceEqual(Readings[0].Acquisition.EnvironmentReads) ||

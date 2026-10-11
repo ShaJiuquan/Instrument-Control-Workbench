@@ -21,6 +21,7 @@ public sealed partial class JsonExperimentPlanDocument
                 ["sensePlus"] = EncodePort(w.SensePlus),
                 ["senseMinus"] = EncodePort(w.SenseMinus),
             };
+            if (w.VoltageMeter is { } meter) result["voltageMeter"] = meter.Value;
             OptionalText(result, "label", w.Label); return (JsonNode)result;
         }).ToArray()),
         ["samples"] = new JsonArray(config.Samples.Select(s => (JsonNode)EncodeSample(s)).ToArray()),
@@ -79,8 +80,8 @@ public sealed partial class JsonExperimentPlanDocument
         var channels = Array(Required(o, "channels")).Select(DecodeChannel);
         var wirings = Array(Required(o, "wirings")).Select(v =>
         {
-            var w = Object(v, "id", "sourceMeter", "sourcePlus", "sourceMinus", "sensePlus", "senseMinus", "label");
-            return new InstrumentWiringProfile(new(Text(w, "id")), new(Text(w, "sourceMeter")), DecodePort(w["sourcePlus"]), DecodePort(w["sourceMinus"]), DecodePort(w["sensePlus"]), DecodePort(w["senseMinus"]), ProfileText(w, "label"));
+            var w = Object(v, "id", "sourceMeter", "sourcePlus", "sourceMinus", "sensePlus", "senseMinus", "label", "voltageMeter");
+            return new InstrumentWiringProfile(new(Text(w, "id")), new(Text(w, "sourceMeter")), DecodePort(w["sourcePlus"]), DecodePort(w["sourceMinus"]), DecodePort(w["sensePlus"]), DecodePort(w["senseMinus"]), ProfileText(w, "label"), w.ContainsKey("voltageMeter") ? new Core.Instruments.InstrumentId(Text(w, "voltageMeter")) : null);
         });
         var samples = Array(Required(o, "samples")).Select(DecodeSample);
         return new(new(Text(o, "matrix")), channels, wirings, samples);

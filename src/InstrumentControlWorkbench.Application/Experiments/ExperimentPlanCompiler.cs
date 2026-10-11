@@ -216,6 +216,35 @@ internal static class ExperimentPlanCompiler
                 new(device, sourceDevice.GetParameter(Keithley2450Parameters.MeasuredCurrent.Id).Id), [.. axes, Elapsed.Id]);
             BindVariable(voltageColumn, PhysicalUnit.Volt, known); BindVariable(currentColumn, PhysicalUnit.Ampere, known);
         }
+        // Shared compiler boundary for direct and sample-independent acquisition.
+        void ValidateIndependentResistance(ReadCurrentResistanceStep independent, Dictionary<ParameterId, PhysicalUnit> known, IReadOnlyList<ParameterId> axes)
+        {
+            var excitation = Device(independent.Source); var pureCurrent = excitation.Model == "K6221";
+            if (excitation.StopPolicy != DeviceStopPolicy.OutputOff || pureCurrent && (!currentPreparations.ContainsKey(independent.Source) || independent.CurrentReference != CurrentReference.ProgrammedSetpoint) ||
+                !pureCurrent && (excitation.Model != "K2450" || !preparations.TryGetValue(independent.Source, out var currentPreparation) || currentPreparation.Function != SourceFunction.Current ||
+                independent.CurrentReference == CurrentReference.MeasuredSourceReadback && currentPreparation.Sense.Function != SenseFunction.Voltage))
+                throw new ArgumentException("Independent resistance requires current-source preparation and complementary sensing for measured source readback.");
+            var independentMeter = Device(independent.Meter);
+            if (independentMeter.Model != "K2182" || independentMeter.StopPolicy != DeviceStopPolicy.AbortAcquisition)
+                throw new NotSupportedException("Independent resistance requires the supported passive K2182 profile.");
+            var voltageInput = Parameter(new(independent.Meter, Keithley2182Parameters.Voltage.Id), ParameterAccess.Read);
+            var currentParameter = pureCurrent ? Keithley6221Parameters.Current : independent.CurrentReference == CurrentReference.ProgrammedSetpoint ? Keithley2450Parameters.SourceCurrent : Keithley2450Parameters.MeasuredCurrent;
+            excitation.GetParameter(currentParameter.Id);
+            if (independent.ExpectedProgrammedCurrent is { } expectedCurrent &&
+                (ValueUnit(expectedCurrent, known) != PhysicalUnit.Ampere || expectedCurrent is VariableValue expectedVariable && !axes.Contains(expectedVariable.Variable)))
+                throw new ArgumentException("Expected excitation must be Ampere and variables must be persisted active axes.");
+            if (independent.RequiredRoute is { } requiredRoute)
+            {
+                Device(requiredRoute.Device); var requiredMatrix = registry.GetMatrixDefinition(requiredRoute.Device); requiredMatrix.Validate(requiredRoute.Closed);
+                if (!requiredMatrix.GuardedSources.Contains(independent.Source)) throw new ArgumentException("Independent route must guard its excitation source.");
+                foreach (var guard in requiredMatrix.GuardedSources) if (Device(guard).StopPolicy != DeviceStopPolicy.OutputOff) throw new ArgumentException("Independent route guards require output-off policies.");
+            }
+            AddColumn(independent.VoltageColumn, voltageInput, new(independent.Meter, voltageInput.Id), [.. axes, Elapsed.Id]);
+            AddColumn(independent.CurrentColumn, new(independent.CurrentColumn, independent.CurrentReference == CurrentReference.ProgrammedSetpoint ? "Confirmed programmed current" : "Measured source current", PhysicalUnit.Ampere, ParameterAccess.Read), new(independent.Source, currentParameter.Id), [.. axes, Elapsed.Id]);
+            AddColumn(independent.ResistanceColumn, new(independent.ResistanceColumn, "Independent resistance (V/I)", PhysicalUnit.Ohm, ParameterAccess.Read), null, [.. axes, Elapsed.Id, independent.VoltageColumn, independent.CurrentColumn]);
+            BindVariable(independent.VoltageColumn, PhysicalUnit.Volt, known); BindVariable(independent.CurrentColumn, PhysicalUnit.Ampere, known); BindVariable(independent.ResistanceColumn, PhysicalUnit.Ohm, known);
+            ValidateEnvironmentPolicy([independent.VoltageColumn, independent.CurrentColumn, independent.ResistanceColumn], independent.EnvironmentReads); ValidateEnvironment(independent.EnvironmentReads, axes);
+        }
         void ValidateResistance(ReadResistanceStep resistance, Dictionary<ParameterId, PhysicalUnit> known, IReadOnlyList<ParameterId> axes)
         {
             ValidateSourceSense(resistance.Device, resistance.Function, resistance.VoltageColumn, resistance.CurrentColumn, known, axes);
@@ -365,31 +394,7 @@ internal static class ExperimentPlanCompiler
                     ValidateEnvironment(read.EnvironmentReads, axes);
                     return 1;
                 case ReadCurrentResistanceStep independent:
-                    var excitation = Device(independent.Source); var pureCurrent = excitation.Model == "K6221";
-                    if (excitation.StopPolicy != DeviceStopPolicy.OutputOff || pureCurrent && (!currentPreparations.ContainsKey(independent.Source) || independent.CurrentReference != CurrentReference.ProgrammedSetpoint) ||
-                        !pureCurrent && (excitation.Model != "K2450" || !preparations.TryGetValue(independent.Source, out var currentPreparation) || currentPreparation.Function != SourceFunction.Current ||
-                        independent.CurrentReference == CurrentReference.MeasuredSourceReadback && currentPreparation.Sense.Function != SenseFunction.Voltage))
-                        throw new ArgumentException("Independent resistance requires current-source preparation and complementary sensing for measured source readback.");
-                    var independentMeter = Device(independent.Meter);
-                    if (independentMeter.Model != "K2182" || independentMeter.StopPolicy != DeviceStopPolicy.AbortAcquisition)
-                        throw new NotSupportedException("Independent resistance requires the supported passive K2182 profile.");
-                    var voltageInput = Parameter(new(independent.Meter, Keithley2182Parameters.Voltage.Id), ParameterAccess.Read);
-                    var currentParameter = pureCurrent ? Keithley6221Parameters.Current : independent.CurrentReference == CurrentReference.ProgrammedSetpoint ? Keithley2450Parameters.SourceCurrent : Keithley2450Parameters.MeasuredCurrent;
-                    excitation.GetParameter(currentParameter.Id);
-                    if (independent.ExpectedProgrammedCurrent is { } expectedCurrent &&
-                        (ValueUnit(expectedCurrent, known) != PhysicalUnit.Ampere || expectedCurrent is VariableValue expectedVariable && !axes.Contains(expectedVariable.Variable)))
-                        throw new ArgumentException("Expected excitation must be Ampere and variables must be persisted active axes.");
-                    if (independent.RequiredRoute is { } requiredRoute)
-                    {
-                        Device(requiredRoute.Device); var requiredMatrix = registry.GetMatrixDefinition(requiredRoute.Device); requiredMatrix.Validate(requiredRoute.Closed);
-                        if (!requiredMatrix.GuardedSources.Contains(independent.Source)) throw new ArgumentException("Independent route must guard its excitation source.");
-                        foreach (var guard in requiredMatrix.GuardedSources) if (Device(guard).StopPolicy != DeviceStopPolicy.OutputOff) throw new ArgumentException("Independent route guards require output-off policies.");
-                    }
-                    AddColumn(independent.VoltageColumn, voltageInput, new(independent.Meter, voltageInput.Id), [.. axes, Elapsed.Id]);
-                    AddColumn(independent.CurrentColumn, new(independent.CurrentColumn, independent.CurrentReference == CurrentReference.ProgrammedSetpoint ? "Confirmed programmed current" : "Measured source current", PhysicalUnit.Ampere, ParameterAccess.Read), new(independent.Source, currentParameter.Id), [.. axes, Elapsed.Id]);
-                    AddColumn(independent.ResistanceColumn, new(independent.ResistanceColumn, "Independent resistance (V/I)", PhysicalUnit.Ohm, ParameterAccess.Read), null, [.. axes, Elapsed.Id, independent.VoltageColumn, independent.CurrentColumn]);
-                    BindVariable(independent.VoltageColumn, PhysicalUnit.Volt, known); BindVariable(independent.CurrentColumn, PhysicalUnit.Ampere, known); BindVariable(independent.ResistanceColumn, PhysicalUnit.Ohm, known);
-                    ValidateEnvironmentPolicy([independent.VoltageColumn, independent.CurrentColumn, independent.ResistanceColumn], independent.EnvironmentReads); ValidateEnvironment(independent.EnvironmentReads, axes);
+                    ValidateIndependentResistance(independent, known, axes);
                     return 1;
                 case ReadResistanceStep resistance:
                     ValidateResistance(resistance, known, axes);
@@ -397,9 +402,19 @@ internal static class ExperimentPlanCompiler
                 case ReadSampleResistanceStep sampleRead:
                     var context = (plan.Routing ?? throw new ArgumentException("Sample measurements require a frozen routing configuration.")).Resolve(sampleRead.Binding);
                     if (context.SourceMeter != sampleRead.Acquisition.Device) throw new ArgumentException("Sample wiring belongs to a different source meter.");
-                    ValidateResistance(sampleRead.Acquisition, known, axes);
-                    if (preparations[sampleRead.Acquisition.Device].Sense.Mode != context.SensingMode)
-                        throw new ArgumentException("Source preparation sensing mode does not match the selected sample topology.");
+                    if (sampleRead.Acquisition is ReadCurrentResistanceStep sampleIndependent)
+                    {
+                        if (context.VoltageMeter != sampleIndependent.Meter || !Equals(sampleIndependent.RequiredRoute, new MatrixRouteExpectation(context.Matrix, context.Closed)))
+                            throw new ArgumentException("Independent sample acquisition must match its frozen source/meter and complete electrode route.");
+                        ValidateIndependentResistance(sampleIndependent, known, axes);
+                    }
+                    else
+                    {
+                        if (context.VoltageMeter is not null) throw new ArgumentException("Integrated samples cannot use independent meter wiring.");
+                        ValidateResistance((ReadResistanceStep)sampleRead.Acquisition, known, axes);
+                        if (preparations[sampleRead.Acquisition.Device].Sense.Mode != context.SensingMode)
+                            throw new ArgumentException("Source preparation sensing mode does not match the selected sample topology.");
+                    }
                     Device(context.Matrix);
                     var sampleMatrix = registry.GetMatrixDefinition(context.Matrix);
                     sampleMatrix.Validate(context.Closed);

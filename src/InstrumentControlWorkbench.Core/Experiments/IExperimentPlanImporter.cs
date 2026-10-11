@@ -56,6 +56,11 @@ public sealed class ExperimentImportBindings
                 !currents.Any(p => p.Device == channelProfiles.Wiring.SourceMeter) &&
                 !items.Any(p => p.Device == channelProfiles.Wiring.SourceMeter && p.Function == SourceFunction.Current)))
             throw new ArgumentException("Independent catalog channels require an explicitly bound voltage meter and current-source preparation.");
+        foreach (var wiring in samples?.Routing.Wirings ?? [])
+            if (wiring.VoltageMeter is { } sampleMeter &&
+                (!meters.Contains(sampleMeter) || !Instruments.Values.Contains(wiring.SourceMeter) || !Instruments.Values.Contains(samples!.Routing.Matrix) ||
+                !currents.Any(p => p.Device == wiring.SourceMeter) && !items.Any(p => p.Device == wiring.SourceMeter && p.Function == SourceFunction.Current)))
+                throw new ArgumentException("Independent sample wiring requires explicit current-source and voltage-meter bindings.");
     }
     public IReadOnlyDictionary<string, InstrumentId> Instruments { get; }
     public IReadOnlyDictionary<string, AxisControllerDefinition> Axes { get; }

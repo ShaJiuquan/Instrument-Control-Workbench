@@ -107,8 +107,7 @@ TCP/VISA/serial K6221 configurations reject before constructing any catalog port
 No dependency, Rust edits, lab IO or native UI acceptance is included.
 
 Real K6221/K2182 drivers, observed automatic full-scale/current quality, source
-delay/output filtering/response and advanced modes, independent automatic sample
-wiring/Hall/van der Pauw analysis, retry-to-invalid-point semantics, delta/pulse/AC,
+delay/output filtering/response and advanced modes, retry-to-invalid-point semantics, delta/pulse/AC,
 native operator/editor/history/plot acceptance and packaging remain required.
 This stage is a tested DC subset; the full PPMS migration goal remains active.
 
@@ -116,3 +115,8 @@ Automatic channel routing from frozen catalogs now supports explicitly bound
 current sources and independent voltage meters. Owned acquisition and managed
 scans retain native/wide/archive/CSV evidence. Independent sample analysis remains
 pending. See [independent-channel-routing.md](independent-channel-routing.md).
+
+Independent current-DC sample acquisition and Hall/van der Pauw analysis now share
+the existing sample pipeline, preserve both source/meter roles and retain every
+input record through wide points, native documents, archives and CSV. See
+[independent-sample-resistance.md](independent-sample-resistance.md) for verified scope and remaining work.

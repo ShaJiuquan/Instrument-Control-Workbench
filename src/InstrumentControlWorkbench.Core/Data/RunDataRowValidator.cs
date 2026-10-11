@@ -17,6 +17,7 @@ public sealed class RunDataRowValidator
     private readonly HashSet<(StepId Step, ParameterId Column)> nativeResistanceColumns = [];
     private readonly HashSet<(StepId Step, ParameterId Column)> standaloneVoltageColumns = [];
     private readonly Dictionary<StepId, ReadCurrentResistanceStep> independentResistance = [];
+    private readonly Dictionary<StepId, Core.Routing.ResolvedSampleRoute> independentSamples = [];
     public bool HasIndependentResistance => independentResistance.Count != 0;
     private readonly Queue<MeasurementDataRow> recent = new();
     private int count;
@@ -43,7 +44,16 @@ public sealed class RunDataRowValidator
                     RegisterQuality(read.Id, [(read.CurrentColumn, read.Source), (read.VoltageColumn, read.Meter)]);
                     RegisterEnvironment([read.CurrentColumn, read.VoltageColumn, read.ResistanceColumn], read.EnvironmentReads); break;
                 case ReadResistanceStep read: RegisterQuality(read.Id, new[] { read.VoltageColumn, read.CurrentColumn, read.ResistanceColumn }.Select(c => (c, read.Device))); RegisterEnvironment([read.VoltageColumn, read.CurrentColumn, read.ResistanceColumn], read.EnvironmentReads); break;
-                case ReadSampleResistanceStep read: RegisterQuality(read.Acquisition.Id, new[] { read.Acquisition.VoltageColumn, read.Acquisition.CurrentColumn, read.Acquisition.ResistanceColumn }.Select(c => (c, read.Acquisition.Device))); RegisterEnvironment([read.Acquisition.VoltageColumn, read.Acquisition.CurrentColumn, read.Acquisition.ResistanceColumn], read.Acquisition.EnvironmentReads); break;
+                case ReadSampleResistanceStep read:
+                    if (read.Acquisition is ReadCurrentResistanceStep sampleCurrent)
+                    {
+                        independentResistance.Add(sampleCurrent.Id, sampleCurrent);
+                        independentSamples.Add(sampleCurrent.Id, (plan.Routing ?? throw new ArgumentException("Independent samples require frozen routing.")).Resolve(read.Binding));
+                        standaloneVoltageColumns.Add((sampleCurrent.Id, sampleCurrent.VoltageColumn));
+                        RegisterQuality(sampleCurrent.Id, [(sampleCurrent.CurrentColumn, sampleCurrent.Source), (sampleCurrent.VoltageColumn, sampleCurrent.Meter)]);
+                    }
+                    else RegisterQuality(read.Acquisition.Id, new[] { read.Acquisition.VoltageColumn, read.Acquisition.CurrentColumn, read.Acquisition.ResistanceColumn }.Select(c => (c, read.Acquisition.Device)));
+                    RegisterEnvironment([read.Acquisition.VoltageColumn, read.Acquisition.CurrentColumn, read.Acquisition.ResistanceColumn], read.Acquisition.EnvironmentReads); break;
                 case SampleAnalysisStep sample: foreach (var read in sample.Readings) pending.Push((read, item.Depth + 1)); break;
                 case MeasurementGroupStep group:
                     if (!groups.TryAdd(group.Id, group)) throw new ArgumentException("Duplicate measurement group ID.");
@@ -82,10 +92,10 @@ public sealed class RunDataRowValidator
     {
         schema.ValidateRow(row);
         ValidateEnvironment(row);
-        if (row.MeasurementGroup is null)
+        if (row.MeasurementGroup is null && row.Analysis is null)
         {
             var hasIndependentColumns = independentResistance.Values.Any(s => row.Values.ContainsKey(s.CurrentColumn) || row.Values.ContainsKey(s.VoltageColumn) || row.Values.ContainsKey(s.ResistanceColumn));
-            if (hasIndependentColumns != (row.IndependentResistance.Count == 1) || row.IndependentResistance.Count > 1 || row.Analysis is not null && row.IndependentResistance.Count != 0)
+            if (hasIndependentColumns != (row.IndependentResistance.Count == 1) || row.IndependentResistance.Count > 1)
                 throw new ArgumentException("Independent resistance rows require exactly their declared acquisition evidence.");
             foreach (var evidence in row.IndependentResistance)
             {
@@ -110,6 +120,9 @@ public sealed class RunDataRowValidator
                     step.CurrentReference == CurrentReference.ProgrammedSetpoint && (currentQuality.Status is not null || currentQuality.AcquisitionConfiguration is not null) ||
                     currentQuality.Status is { } status && (!status.SourceReadback || !status.OutputEnabled))
                     throw new ArgumentException("Independent resistance quality must preserve the actual source/meter observation kind and capture times.");
+                if (independentSamples.TryGetValue(evidence.Step, out var sampleContext) &&
+                    (row.Routing is null || row.Routing.Binding != sampleContext.Binding || row.Routing.VoltageMeter != step.Meter || voltageQuality.MeterConfiguration.Channel != 1))
+                    throw new ArgumentException("Independent sample must preserve its electrode selection, meter identity and wired input 1.");
             }
         }
         if (row.Analysis is null && row.MeasurementGroup is null && row.Quality.Count != 0)

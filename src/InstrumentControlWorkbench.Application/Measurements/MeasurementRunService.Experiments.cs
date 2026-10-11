@@ -109,11 +109,13 @@ public sealed partial class MeasurementRunService
                 {
                     await run.Resources!.RouteMatrixAsync(context.Matrix, context.Closed, run.Token);
                     await DwellAsync(run, sampleRead.Settle);
-                    await run.Resources.EnableSourceOutputAsync(context.SourceMeter, run.Token, context.SensingMode);
+                    await run.Resources.EnableSourceOutputAsync(context.SourceMeter, run.Token, sampleRead.Acquisition is ReadResistanceStep ? context.SensingMode : null);
                 }
                 await DwellAsync(run, sampleRead.AcquisitionSettle);
                 await run.Resources!.VerifyMatrixRouteAsync(context.Matrix, context.Closed, run.Token);
-                await AcquireResistanceRowAsync(sampleRead.Acquisition, run, started, context);
+                if (sampleRead.Acquisition is ReadCurrentResistanceStep sampleCurrent)
+                    await AcquireCurrentResistanceRowAsync(sampleCurrent, run, started, context);
+                else await AcquireResistanceRowAsync((ReadResistanceStep)sampleRead.Acquisition, run, started, context);
                 if (!sampleRead.RoutingManagedExternally) await run.Resources!.DisableSourceOutputAsync(context.SourceMeter, run.Token);
                 break;
             case ReadCurrentResistanceStep currentResistance:

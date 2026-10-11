@@ -12,7 +12,7 @@ public static class SampleResistancePlan
     {
         ArgumentNullException.ThrowIfNull(recipe);
         return new(recipe.Name, new SequenceStep(new("sample_measurement"), recipe.Selections.Select((selection, index) =>
-            new ReadSampleResistanceStep(new(new($"sample_read_{index + 1}"), recipe.Source.Device, recipe.Source.Function,
+            new ReadSampleResistanceStep(new ReadResistanceStep(new($"sample_read_{index + 1}"), recipe.Source.Device, recipe.Source.Function,
                 new("voltage"), new("current"), new("resistance"), recipe.MinimumCurrent), new(recipe.Sample, recipe.Wiring, selection), recipe.Settle))),
             [recipe.Source], new Dictionary<string, Quantity>
             {

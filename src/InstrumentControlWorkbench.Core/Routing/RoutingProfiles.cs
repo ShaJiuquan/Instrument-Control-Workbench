@@ -66,15 +66,19 @@ public sealed record ChannelProfile
 }
 public sealed record InstrumentWiringProfile
 {
-    public InstrumentWiringProfile(WiringProfileId id, InstrumentId sourceMeter, MatrixPort sourcePlus, MatrixPort sourceMinus, MatrixPort sensePlus, MatrixPort senseMinus, string label = "")
+    public InstrumentWiringProfile(WiringProfileId id, InstrumentId sourceMeter, MatrixPort sourcePlus, MatrixPort sourceMinus, MatrixPort sensePlus, MatrixPort senseMinus, string label = "", InstrumentId? voltageMeter = null)
     {
         ArgumentNullException.ThrowIfNull(id); ArgumentException.ThrowIfNullOrWhiteSpace(sourceMeter.Value);
         ArgumentNullException.ThrowIfNull(sourcePlus); ArgumentNullException.ThrowIfNull(sourceMinus);
         ArgumentNullException.ThrowIfNull(sensePlus); ArgumentNullException.ThrowIfNull(senseMinus);
+        if (voltageMeter is { } meter && (string.IsNullOrWhiteSpace(meter.Value) || meter == sourceMeter || new[] { sourcePlus, sourceMinus, sensePlus, senseMinus }.Distinct().Count() != 4))
+            throw new ArgumentException("Independent wiring requires a distinct meter and four physical instrument ports.");
+        VoltageMeter = voltageMeter;
         ProfileText.Validate(label); Label = label; Id = id; SourceMeter = sourceMeter; SourcePlus = sourcePlus; SourceMinus = sourceMinus; SensePlus = sensePlus; SenseMinus = senseMinus;
     }
     public WiringProfileId Id { get; }
     public InstrumentId SourceMeter { get; }
+    public InstrumentId? VoltageMeter { get; }
     public string Label { get; }
     public MatrixPort SourcePlus { get; }
     public MatrixPort SourceMinus { get; }

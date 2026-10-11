@@ -62,14 +62,18 @@ model physical coupling or certify real relay switching.
 
 ## Remaining work
 
-Independent sample topology acquisition and Hall/van der Pauw analysis remain
-pending: current sample execution requires integrated SMU acquisition and rejects
-independent sample import. The optional channel meter does not enable sample
-paths. Physical K6221/K2182 adapters, advanced modes, retry/recover-to-invalid-point
-behavior and UI/lab acceptance remain required. The full migration stays active.
+Independent current-DC sample acquisition and analysis are now implemented; see
+[independent-sample-resistance.md](independent-sample-resistance.md). Physical
+adapters, advanced modes, retry/recover semantics and UI/lab acceptance remain
+required. The full migration stays active.
 
 The read-only Rust reference remains commit
 `35763295f63b612f70af9dc55983644f437c18ea`, principally
 `service/experiment/channel/route_resolver.rs`,
 `measurement/channel_resistance/curr_dc.rs` and `measurement/sample_r/context.rs`.
 No dependencies, Rust edits, physical IO or UI drafts are included.
+
+Independent current-DC sample acquisition and Hall/van der Pauw analysis now share
+the existing sample pipeline, preserve both source/meter roles and retain every
+input record through wide points, native documents, archives and CSV. See
+[independent-sample-resistance.md](independent-sample-resistance.md) for verified scope and remaining work.

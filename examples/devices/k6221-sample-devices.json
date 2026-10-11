@@ -1,0 +1,65 @@
+{
+  "format": "instrument-workbench-devices",
+  "version": 1,
+  "primarySource": null,
+  "devices": [
+    {
+      "id": "current-source",
+      "model": "K6221",
+      "displayName": "Pure DC current simulator",
+      "category": "Source",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      }
+    },
+    {
+      "id": "nanovoltmeter",
+      "model": "K2182",
+      "displayName": "Independent voltage simulator",
+      "category": "Meter",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      }
+    },
+    {
+      "id": "matrix",
+      "model": "K3706",
+      "displayName": "Independent current channel matrix simulator",
+      "category": "Matrix",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      },
+      "matrix": {
+        "cards": [
+          {
+            "slot": 1,
+            "rows": 8,
+            "columns": 10
+          }
+        ],
+        "guardedSources": [
+          "current-source"
+        ]
+      }
+    },
+    {
+      "id": "field",
+      "model": "SIM-FIELD",
+      "displayName": "Sample scan field simulator",
+      "category": "Field",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      }
+    }
+  ],
+  "aliases": {
+    "k6221": "current-source",
+    "k2182": "nanovoltmeter",
+    "k3706": "matrix",
+    "field": "field"
+  }
+}

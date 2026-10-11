@@ -53,17 +53,26 @@ public sealed class RoutingProfileCatalog
     }
 
     public ExperimentImportBindings Bind(ExperimentImportBindings devices, InstrumentId matrix,
-        IEnumerable<KeyValuePair<WiringProfileId, InstrumentId>> wiringSources, WiringProfileId channelWiring, TimeSpan routeSettle = default, InstrumentId? channelVoltageMeter = null)
+        IEnumerable<KeyValuePair<WiringProfileId, InstrumentId>> wiringSources, WiringProfileId channelWiring, TimeSpan routeSettle = default, InstrumentId? channelVoltageMeter = null, IEnumerable<KeyValuePair<WiringProfileId, InstrumentId>>? wiringVoltageMeters = null)
     {
         ArgumentNullException.ThrowIfNull(devices); ArgumentNullException.ThrowIfNull(wiringSources); ArgumentNullException.ThrowIfNull(channelWiring);
         if (devices.Samples is not null || devices.ChannelProfiles is not null || devices.Channels.Count != 0)
             throw new ArgumentException("Profile binding needs device-only bindings; competing routing overrides are not accepted.");
         var sources = ExperimentImportBindings.Freeze(wiringSources.Select(p => KeyValuePair.Create(p.Key.Value, p.Value)));
+        var meterPairs = (wiringVoltageMeters ?? []).Select(p => KeyValuePair.Create(p.Key.Value, p.Value)).ToList();
+        if (channelVoltageMeter is { } channelMeter)
+        {
+            var existing = meterPairs.Where(p => StringComparer.OrdinalIgnoreCase.Equals(p.Key, channelWiring.Value)).ToArray();
+            if (existing.Any(p => p.Value != channelMeter)) throw new ArgumentException("Conflicting channel and sample meter binding.");
+            if (existing.Length == 0) meterPairs.Add(KeyValuePair.Create(channelWiring.Value, channelMeter));
+        }
+        var meters = ExperimentImportBindings.Freeze(meterPairs);
+        if (meters.Keys.Any(w => !sources.ContainsKey(w))) throw new ArgumentException("Every independent meter needs a bound wiring source.");
         var bound = sources.Select(p =>
         {
             var layout = Wirings.SingleOrDefault(w => StringComparer.OrdinalIgnoreCase.Equals(w.Id.Value, p.Key)) ?? throw new ArgumentException($"Unknown wiring {p.Key}.");
             if (!devices.Instruments.Values.Contains(p.Value)) throw new ArgumentException($"Wiring {p.Key} references an unbound source {p.Value}.");
-            return new InstrumentWiringProfile(layout.Id, p.Value, layout.SourcePlus, layout.SourceMinus, layout.SensePlus, layout.SenseMinus, layout.Label);
+            return new InstrumentWiringProfile(layout.Id, p.Value, layout.SourcePlus, layout.SourceMinus, layout.SensePlus, layout.SenseMinus, layout.Label, meters.TryGetValue(p.Key, out var meter) ? meter : null);
         }).ToArray();
         if (!devices.Instruments.Values.Contains(matrix)) throw new ArgumentException("Matrix must be explicitly bound to an instrument.");
         var routing = new RoutingConfiguration(matrix, Channels, bound, Samples);

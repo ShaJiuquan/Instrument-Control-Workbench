@@ -22,6 +22,8 @@ public sealed class ImportChannelRouting
         if (layout is null || layout.SourcePlus != Wiring.SourcePlus || layout.SourceMinus != Wiring.SourceMinus ||
             layout.SensePlus != Wiring.SensePlus || layout.SenseMinus != Wiring.SenseMinus)
             throw new ArgumentException("Bound channel ports differ from the authored wiring layout.");
+        if (voltageMeter is not null && Wiring.VoltageMeter is not null && voltageMeter != Wiring.VoltageMeter) throw new ArgumentException("Channel meter differs from its frozen wiring.");
+        voltageMeter ??= Wiring.VoltageMeter;
         if (Wiring.SourceMeter == routing.Matrix) throw new ArgumentException("Channel source and matrix must be distinct instruments.");
         if (voltageMeter is { } meter)
         {

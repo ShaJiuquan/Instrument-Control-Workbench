@@ -34,7 +34,7 @@ public sealed record ResolvedElectrodeRoute
 public sealed record ResolvedSampleRoute
 {
     public ResolvedSampleRoute(SampleRoutingBinding binding, string sampleName, SampleTopology topology, InstrumentId matrix,
-        InstrumentId sourceMeter, IEnumerable<ResolvedElectrodeRoute> roles)
+        InstrumentId sourceMeter, IEnumerable<ResolvedElectrodeRoute> roles, InstrumentId? voltageMeter = null)
     {
         ArgumentNullException.ThrowIfNull(binding); ArgumentException.ThrowIfNullOrWhiteSpace(sampleName);
         ArgumentException.ThrowIfNullOrWhiteSpace(matrix.Value); ArgumentException.ThrowIfNullOrWhiteSpace(sourceMeter.Value); ArgumentNullException.ThrowIfNull(roles);
@@ -54,6 +54,9 @@ public sealed record ResolvedSampleRoute
             throw new ArgumentException("Four-wire measurement requires four independent instrument ports and sample terminals.", nameof(roles));
         if (topology == SampleTopology.TwoWire && (terminals[0] != terminals[2] || terminals[1] != terminals[3] || terminals[0] == terminals[1]))
             throw new ArgumentException("Two-wire measurement must share each polarity's electrode, with distinct positive and negative terminals.", nameof(roles));
+        if (voltageMeter is { } meter && (string.IsNullOrWhiteSpace(meter.Value) || meter == sourceMeter || meter == matrix || ports.Distinct().Count() != 4))
+            throw new ArgumentException("Independent sample routing requires a distinct meter and four instrument ports.");
+        VoltageMeter = voltageMeter;
         Binding = binding; SampleName = sampleName; Topology = topology; Matrix = matrix; SourceMeter = sourceMeter;
         Roles = Array.AsReadOnly(items); Closed = Array.AsReadOnly(items.Select(r => r.Point).Distinct().ToArray());
     }
@@ -62,6 +65,7 @@ public sealed record ResolvedSampleRoute
     public SampleTopology Topology { get; }
     public InstrumentId Matrix { get; }
     public InstrumentId SourceMeter { get; }
+    public InstrumentId? VoltageMeter { get; }
     public IReadOnlyList<ResolvedElectrodeRoute> Roles { get; }
     public IReadOnlyList<MatrixCrossPoint> Closed { get; }
     public SensingMode SensingMode => Topology == SampleTopology.TwoWire ? SensingMode.TwoWire : SensingMode.FourWire;

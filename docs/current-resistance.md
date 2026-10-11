@@ -105,8 +105,7 @@ dependencies, lab IO or UI changes are included.
 ## Remaining work
 
 PPMS retry/recover-to-invalid-point behavior is not migrated: current errors stop
-the C# run after safe cleanup. Automatic sample wiring, Hall/van der Pauw analysis
-with an independent meter, real K6221/K2182 transports,
+the C# run after safe cleanup. Real K6221/K2182 transports,
 delta/pulse/AC, synchronized acquisition, physical safety/timing acceptance and
 native settings/editor/history/plot acceptance remain required. This is a tested
 subset, not full PPMS parity.
@@ -117,5 +116,9 @@ measured source readback. See [k6221-current-source.md](k6221-current-source.md)
 
 Automatic channel routing from frozen catalogs now supports explicitly bound
 current sources and independent voltage meters. Owned acquisition and managed
-scans retain native/wide/archive/CSV evidence. Independent sample analysis remains
-pending. See [independent-channel-routing.md](independent-channel-routing.md).
+scans retain native/wide/archive/CSV evidence. Independent current-DC sample analysis is now supported. See [independent-channel-routing.md](independent-channel-routing.md).
+
+Independent current-DC sample acquisition and Hall/van der Pauw analysis now share
+the existing sample pipeline, preserve both source/meter roles and retain every
+input record through wide points, native documents, archives and CSV. See
+[independent-sample-resistance.md](independent-sample-resistance.md) for verified scope and remaining work.

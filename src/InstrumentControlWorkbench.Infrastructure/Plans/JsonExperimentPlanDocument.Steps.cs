@@ -73,6 +73,14 @@ public sealed partial class JsonExperimentPlanDocument
                 break;
             case ReadSampleResistanceStep sample:
                 var acquisition = sample.Acquisition;
+                if (acquisition is ReadCurrentResistanceStep)
+                {
+                    o["kind"] = "read_independent_sample_resistance";
+                    o["acquisition"] = EncodeStep(acquisition, depth + 1, ref count);
+                    o["binding"] = EncodeBinding(sample.Binding); o["settleSeconds"] = sample.Settle.TotalSeconds;
+                    o["acquisitionSettleSeconds"] = sample.AcquisitionSettle.TotalSeconds;
+                    break;
+                }
                 o["kind"] = "read_sample_resistance"; o["device"] = acquisition.Device.Value; o["function"] = acquisition.Function.ToString();
                 o["voltageColumn"] = acquisition.VoltageColumn.Value; o["currentColumn"] = acquisition.CurrentColumn.Value;
                 o["resistanceColumn"] = acquisition.ResistanceColumn.Value; o["minimumCurrent"] = EncodeQuantity(acquisition.MinimumCurrent);
@@ -192,9 +200,14 @@ public sealed partial class JsonExperimentPlanDocument
                 return new ReadCurrentResistanceStep(id, new(Text(o, "source")), new(Text(o, "meter")), NamedEnum<CurrentReference>(o, "currentReference"),
                     new(Text(o, "voltageColumn")), new(Text(o, "currentColumn")), new(Text(o, "resistanceColumn")), DecodeQuantity(o["minimumCurrent"]),
                     o.ContainsKey("expectedProgrammedCurrent") ? DecodeValue(o["expectedProgrammedCurrent"]) : null, expectation, DecodeEnvironment(o));
+            case "read_independent_sample_resistance":
+                Object(o, "id", "kind", "acquisition", "binding", "settleSeconds", "acquisitionSettleSeconds");
+                var independentSample = DecodeStep(Required(o, "acquisition"), depth + 1, ref count) as ReadCurrentResistanceStep ?? throw new FormatException("Independent sample needs its current-source/meter acquisition.");
+                if (independentSample.Id != id) throw new FormatException("Sample and nested acquisition IDs must match.");
+                return new ReadSampleResistanceStep(independentSample, DecodeBinding(o["binding"]), Duration(o, "settleSeconds"), acquisitionSettle: Duration(o, "acquisitionSettleSeconds"));
             case "read_sample_resistance":
                 Object(o, "id", "kind", "device", "function", "voltageColumn", "currentColumn", "resistanceColumn", "minimumCurrent", "binding", "settleSeconds", "routingManagedExternally", "acquisitionSettleSeconds", "environmentReads");
-                return new ReadSampleResistanceStep(new(id, new(Text(o, "device")), NamedEnum<SourceFunction>(o, "function"),
+                return new ReadSampleResistanceStep(new ReadResistanceStep(id, new(Text(o, "device")), NamedEnum<SourceFunction>(o, "function"),
                     new(Text(o, "voltageColumn")), new(Text(o, "currentColumn")), new(Text(o, "resistanceColumn")), DecodeQuantity(o["minimumCurrent"]), DecodeEnvironment(o)),
                     DecodeBinding(o["binding"]), Duration(o, "settleSeconds"), Boolean(o, "routingManagedExternally"), o.ContainsKey("acquisitionSettleSeconds") ? Duration(o, "acquisitionSettleSeconds") : TimeSpan.Zero);
             case "read_resistance":

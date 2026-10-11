@@ -168,11 +168,11 @@ public sealed partial class Keithley6221ExecutionTests
         }
         Assert.False((await b.Source.GetSnapshotAsync(Token)).OutputEnabled); Assert.Equal(2, b.Source.StopCalls);
     }
-    private sealed class Bench(IRunResultListener? listener = null) : IAsyncDisposable
+    private sealed class Bench(IRunResultListener? listener = null, int columns = 4) : IAsyncDisposable
     {
         public NotificationHub Hub { get; } = new(); public InstrumentLeaseService Leases { get; } = new(TimeSpan.FromSeconds(5));
         public FaultSource Source { get; } = new(); public FaultMeter Meter { get; } = new();
-        public MockMatrixSwitch Matrix { get; } = new(new(new(new("matrix"), "K3706", "Explicit matrix simulation", DriverKind.Simulation, DeviceStopPolicy.OpenRunAddedConnections, []), [new(1, 4, 4)], [new("source")]));
+        public MockMatrixSwitch Matrix { get; } = new(new(new(new("matrix"), "K3706", "Explicit matrix simulation", DriverKind.Simulation, DeviceStopPolicy.OpenRunAddedConnections, []), [new(1, 4, columns)], [new("source")]));
         public MatrixRouteExpectation Route => new(Matrix.Definition.Device.Id, [new(1, 1, 1), new(1, 2, 2), new(1, 3, 1), new(1, 4, 2)]);
         private DeviceRegistry? registry; private MeasurementRunService? runs;
         public DeviceRegistry Registry => registry ??= new([new Keithley6221CurrentSourceSession(Source, Hub), new Keithley2182MeterSession(Meter, Hub), new MatrixSwitchSession(Matrix, Hub)], Leases);

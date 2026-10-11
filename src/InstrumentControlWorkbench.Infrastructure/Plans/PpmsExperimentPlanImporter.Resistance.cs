@@ -95,7 +95,7 @@ public sealed partial class PpmsExperimentPlanImporter
                 _ => SampleResistanceAnalysis.Selections(sample.Topology).ToArray(),
             };
             var reads = selections.Select((selection, index) => new ReadSampleResistanceStep(
-                new(new(path + ".read." + index), source.Device, SourceFunction.Voltage, new(path + ".V_V"), new(path + ".I_A"), new(path + ".R_ohms"), minimum, environmentReads),
+                new ReadResistanceStep(new(path + ".read." + index), source.Device, SourceFunction.Voltage, new(path + ".V_V"), new(path + ".I_A"), new(path + ".R_ohms"), minimum, environmentReads),
                 new(sample.Id, wiring, selection), binding.RouteSettle, acquisitionSettle: settle)).ToArray();
             if (sample.Topology is SampleTopology.HallBar or SampleTopology.VanDerPauw)
                 steps.Add(new SampleAnalysisStep(new(path + ".analysis"), reads,
