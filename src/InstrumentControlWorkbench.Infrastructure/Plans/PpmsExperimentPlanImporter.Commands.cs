@@ -254,18 +254,18 @@ public sealed partial class PpmsExperimentPlanImporter
         var mode = Text(p, "sensing_mode", "2wire").Trim().ToLowerInvariant();
         if (mode != (source.Sense.Mode == SensingMode.FourWire ? "4wire" : "2wire"))
             throw new NotSupportedException("Meter settings differ from the explicit source preparation.");
-        if (!Text(p, "channel", "").Trim().Equals("", StringComparison.Ordinal) && !Text(p, "channel").Trim().Equals("none", StringComparison.OrdinalIgnoreCase))
-            throw new NotSupportedException("Routed standalone meter reads are not migrated; source scan routes may be explicitly bound.");
+        var routing = MeterRouting(p, path, source.Device, c, independent: false);
         if (senseRange is not null && source.Sense.Function != senseFunction)
             throw new NotSupportedException("Manual meter range requires the requested sensing function in the frozen preparation.");
         var rangeParameter = senseRange is null ? Keithley2450Parameters.EnableSenseAutoRange : Keithley2450Parameters.ManualSenseRange(senseFunction);
         var settings = new List<ExperimentStep> { Write(path + ".sense_function", source.Device, Keithley2450Parameters.ActiveSenseFunction, (int)senseFunction), Write(path + ".filter_off", source.Device, Keithley2450Parameters.AveragingEnabled, 0) };
+        if (routing.Setup is { } setup) settings.Insert(0, setup);
         if (filterEnabled)
         {
             settings.Add(Write(path + ".filter_count", source.Device, Keithley2450Parameters.AveragingCount, filterCount));
             settings.Add(Write(path + ".filter_mode", source.Device, Keithley2450Parameters.AveragingMode, (int)AveragingMode.Repeat));
             settings.Add(Write(path + ".filter_on", source.Device, Keithley2450Parameters.AveragingEnabled, 1));
         }
-        return new SequenceStep(new(path), [.. settings, Write(path + ".sense_range", source.Device, rangeParameter, senseRange?.Value ?? 1), Write(path + ".nplc", source.Device, Keithley2450Parameters.Nplc, Number(p, "nplc", 1)), new ReadStep(new(path + ".read"), [new(new(path + ".value"), new(source.Device, name == "measure_voltage" ? Keithley2450Parameters.MeasuredVoltage.Id : Keithley2450Parameters.MeasuredCurrent.Id))], MeasurementEnvironment(path, c))]);
+        return new SequenceStep(new(path), [.. settings, Write(path + ".sense_range", source.Device, rangeParameter, senseRange?.Value ?? 1), Write(path + ".nplc", source.Device, Keithley2450Parameters.Nplc, Number(p, "nplc", 1)), new ReadStep(new(path + ".read"), [new(new(path + ".value"), new(source.Device, name == "measure_voltage" ? Keithley2450Parameters.MeasuredVoltage.Id : Keithley2450Parameters.MeasuredCurrent.Id))], MeasurementEnvironment(path, c), routing.RequiredRoute, routing.ExcitationSource)]);
     }
 }

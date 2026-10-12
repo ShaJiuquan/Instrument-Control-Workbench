@@ -1,0 +1,33 @@
+{
+  "type": "scan",
+  "name": "scan_voltage",
+  "label": "Simulated PPMS VI: programmed voltage and observed current",
+  "source_line": 1,
+  "params": {
+    "channel": "ch1",
+    "points": [
+      -0.1,
+      0,
+      0.1
+    ],
+    "voltage_mode": "source",
+    "source_range_v": 0.2,
+    "compliance_a": 0.001,
+    "settle_s": 0
+  },
+  "children": [
+    {
+      "type": "measurement",
+      "name": "measure_current",
+      "source_line": 2,
+      "params": {
+        "instrument": "k2450",
+        "sensing_mode": "4wire",
+        "meter_range_a": 0.001,
+        "nplc": 2,
+        "filter_enabled": true,
+        "filter_count": 4
+      }
+    }
+  ]
+}

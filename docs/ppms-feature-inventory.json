@@ -424,7 +424,12 @@
       "evidence": {
         "implementation": "src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Experiments.cs; src/InstrumentControlWorkbench.Application/Experiments/IvExperimentPlan.cs",
         "tests": "tests/InstrumentControlWorkbench.Application.Tests/SourceSenseExecutionTests.cs",
-        "limits": "K2450 coherent actual V/I frames in both source functions, generic nested scans and IV actual-value plot points with separate requested axis; plan/archive/CSV round-trip, acquisition configuration checks and pause restoration guards. Separate meters/ranges, full PPMS command decoding/aliases, compliance-quality flags and physical transport/acceptance remain pending."
+        "limits": "K2450 coherent actual V/I frames in both source functions, generic nested scans and IV actual-value plot points with separate requested axis; plan/archive/CSV round-trip, acquisition configuration checks and pause restoration guards. Separate meters/ranges, full PPMS command decoding/aliases, compliance-quality flags and physical transport/acceptance remain pending.",
+        "meterSweep": {
+          "implementation": "Core ReadStep.RequiredRoute; Application ExperimentPlanCompiler/MeasurementRunService.Experiments; Infrastructure PpmsExperimentPlanImporter.MeterRouting/Meters/Commands; native JsonExperimentPlanDocument codecs",
+          "tests": "GuardedReadTests.cs; MeterSweepImportTests.cs/.Documents.cs; Keithley6221ExecutionTests.MeterSweeps.cs",
+          "limits": "Actual PPMS scan_voltage/measure_current and scan_current/measure_voltage runtime trees. Frozen inherited/equivalent channel roles; read pre/post accepted-route confirmation and measured blackboard publication after complete read; shared atomic guards/lifecycle. Zero points, TCP quality, settings, nested scan data, native bounds, fixtures, wide groups, save/replay/archive/CSV, drift/abort/retained failed cleanup tested. No transient-contact guarantee or extra per-row scalar wiring evidence; native templates/editor/plot/physical acceptance pending. See meter-sweeps.md."
+        }
       }
     },
     {
@@ -434,7 +439,14 @@
         "vi",
         "measure_vi_sweep"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "meterSweep": {
+          "implementation": "Core ReadStep.RequiredRoute; Application ExperimentPlanCompiler/MeasurementRunService.Experiments; Infrastructure PpmsExperimentPlanImporter.MeterRouting/Meters/Commands; native JsonExperimentPlanDocument codecs",
+          "tests": "GuardedReadTests.cs; MeterSweepImportTests.cs/.Documents.cs; Keithley6221ExecutionTests.MeterSweeps.cs",
+          "limits": "Actual PPMS scan_voltage/measure_current and scan_current/measure_voltage runtime trees. Frozen inherited/equivalent channel roles; read pre/post accepted-route confirmation and measured blackboard publication after complete read; shared atomic guards/lifecycle. Zero points, TCP quality, settings, nested scan data, native bounds, fixtures, wide groups, save/replay/archive/CSV, drift/abort/retained failed cleanup tested. No transient-contact guarantee or extra per-row scalar wiring evidence; native templates/editor/plot/physical acceptance pending. See meter-sweeps.md."
+        }
+      }
     },
     {
       "id": "measure_dvdi",
@@ -1263,7 +1275,12 @@
     },
     {
       "id": "switch",
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "Core ThresholdSwitchStep; Application compiler/interpreter; Infrastructure native codec/PPMS importer; Core row/sample/blackboard traversal",
+        "tests": "ThresholdSwitchTests.cs; ControlFlowTests.ThresholdSwitch/ThresholdSwitchDocuments.cs; SampleResistanceExecutionTests.ThresholdSwitch.cs; extended failure/TCP control cases",
+        "limits": "Numeric ordered lower bounds, exact inclusive last match and last-child default; known units/axis/callback/nearest iterator scope; valid contiguous prefix parity, strict malformed fields. Visual branch editor, arbitrary dynamic/script axes, physical and whole PPMS acceptance pending. See threshold-switch.md."
+      }
     },
     {
       "id": "subtree",
@@ -1654,5 +1671,10 @@
     "contract": "Ordered last >= threshold match, last child default; numeric same-unit selector, bounded prefix, empty no-op; one selected child and existing lifecycle; shared definite-variable intersection and max branch budget; strict codec/archive/provenance",
     "tests": "47 new cases:8Core39Application; fixture ppms-threshold-switch-import.json; existing control regression suite",
     "remaining": "Native editor/physical acceptance, generic expressions/concurrency and remaining PPMS scope; strict legacy malformed inputs rejected"
+  },
+  "routedMeterSweeps": {
+    "implementation": "Core ReadStep.RequiredRoute; Application ExperimentPlanCompiler/MeasurementRunService.Experiments; Infrastructure PpmsExperimentPlanImporter.MeterRouting/Meters/Commands; native JsonExperimentPlanDocument codecs",
+    "tests": "GuardedReadTests.cs; MeterSweepImportTests.cs/.Documents.cs; Keithley6221ExecutionTests.MeterSweeps.cs",
+    "limits": "Actual PPMS scan_voltage/measure_current and scan_current/measure_voltage runtime trees. Frozen inherited/equivalent channel roles; read pre/post accepted-route confirmation and measured blackboard publication after complete read; shared atomic guards/lifecycle. Zero points, TCP quality, settings, nested scan data, native bounds, fixtures, wide groups, save/replay/archive/CSV, drift/abort/retained failed cleanup tested. No transient-contact guarantee or extra per-row scalar wiring evidence; native templates/editor/plot/physical acceptance pending. See meter-sweeps.md."
   }
 }

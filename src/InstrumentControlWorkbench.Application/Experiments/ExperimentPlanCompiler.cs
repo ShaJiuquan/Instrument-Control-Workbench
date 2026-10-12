@@ -529,6 +529,16 @@ internal static class ExperimentPlanCompiler
                     if (outputDevice.Model is not ("K2450" or "K6221") || outputDevice.StopPolicy != DeviceStopPolicy.OutputOff) throw new NotSupportedException("Device has no implemented output-source profile.");
                     return 1;
                 case ReadStep read:
+                    if (read.RequiredRoute is { } readRoute)
+                    {
+                        Device(readRoute.Device);
+                        var readMatrix = registry.GetMatrixDefinition(readRoute.Device);
+                        readMatrix.Validate(readRoute.Closed);
+                        if (read.ExcitationSource is { } excitationSource && !readMatrix.GuardedSources.Contains(excitationSource))
+                            throw new ArgumentException("Read route must guard its declared excitation source.");
+                        foreach (var guard in readMatrix.GuardedSources)
+                            if (Device(guard).StopPolicy != DeviceStopPolicy.OutputOff) throw new ArgumentException("Read route guards must use output-off policy.");
+                    }
                     ValidateEnvironmentPolicy(read.Channels.Select(c => c.Column), read.EnvironmentReads);
                     foreach (var channel in read.Channels)
                     {

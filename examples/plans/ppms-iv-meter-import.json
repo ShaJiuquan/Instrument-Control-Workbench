@@ -1,0 +1,32 @@
+{
+  "type": "scan",
+  "name": "scan_current",
+  "label": "Simulated PPMS IV: programmed current and independent observed voltage",
+  "source_line": 1,
+  "params": {
+    "channel": "ch1",
+    "points": [
+      -1e-05,
+      0,
+      1e-05
+    ],
+    "current_mode": "source",
+    "source_range_a": 2e-05,
+    "compliance_v": 100,
+    "settle_s": 0
+  },
+  "children": [
+    {
+      "type": "measurement",
+      "name": "measure_voltage",
+      "source_line": 2,
+      "params": {
+        "instrument": "k2182",
+        "meter_range_v": 0.1,
+        "nplc": 2,
+        "filter_enabled": true,
+        "filter_count": 4
+      }
+    }
+  ]
+}

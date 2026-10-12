@@ -170,16 +170,24 @@ public sealed record DelayStep : ExperimentStep
 
 public sealed record ReadStep : ExperimentStep
 {
-    public ReadStep(StepId id, IEnumerable<ReadChannel> channels, IEnumerable<EnvironmentRead>? environmentReads = null) : base(id)
+    public ReadStep(StepId id, IEnumerable<ReadChannel> channels, IEnumerable<EnvironmentRead>? environmentReads = null, MatrixRouteExpectation? requiredRoute = null, InstrumentId? excitationSource = null) : base(id)
     {
         ArgumentNullException.ThrowIfNull(channels);
         var items = channels.ToArray();
         if (items.Length == 0 || items.Any(c => c is null) || items.Select(c => c.Column).Distinct().Count() != items.Length)
             throw new ArgumentException("A measurement needs non-null channels with unique column IDs.", nameof(channels));
         Channels = Array.AsReadOnly(items);
+        if (requiredRoute is { } route && items.Any(c => c.Address.Device == route.Device))
+            throw new ArgumentException("A read route requires a separate matrix device.", nameof(requiredRoute));
+        RequiredRoute = requiredRoute;
+        if (excitationSource is { } source && (string.IsNullOrWhiteSpace(source.Value) || requiredRoute is null || source == requiredRoute.Device))
+            throw new ArgumentException("A guarded excitation source requires a separate matrix route.", nameof(excitationSource));
+        ExcitationSource = excitationSource;
         EnvironmentReads = EnvironmentRead.Freeze(environmentReads, items.Select(c => c.Column));
     }
     public IReadOnlyList<ReadChannel> Channels { get; }
+    public MatrixRouteExpectation? RequiredRoute { get; }
+    public InstrumentId? ExcitationSource { get; }
     public IReadOnlyList<EnvironmentRead> EnvironmentReads { get; }
 }
 

@@ -254,6 +254,8 @@ public sealed partial class MeasurementRunService
 
     private async Task AcquireRowAsync(ReadStep read, RunExecutionContext run, IReadOnlyList<IRunResultListener> started)
     {
+        if (read.RequiredRoute is { } before)
+            await run.Resources!.VerifyMatrixRouteAsync(before.Device, before.Closed, run.Token);
         var values = new Dictionary<ParameterId, Quantity>(run.Axes);
         var quality = new List<AcquisitionQuality>();
         foreach (var channel in read.Channels)
@@ -262,9 +264,11 @@ public sealed partial class MeasurementRunService
             var value = observation.Value;
             quality.Add(new(read.Id, channel.Address.Device, channel.Column, observation.CapturedAt, observation.Status, observation.AcquisitionConfiguration, observation.MeterConfiguration));
             values[channel.Column] = value;
-            run.SetVariable(channel.Column, value, read.Id);
         }
         var environment = await ReadEnvironmentAsync(read.EnvironmentReads, values, run);
+        if (read.RequiredRoute is { } after)
+            await run.Resources!.VerifyMatrixRouteAsync(after.Device, after.Closed, run.Token);
+        foreach (var channel in read.Channels) run.SetVariable(channel.Column, values[channel.Column], read.Id);
         var now = DateTimeOffset.UtcNow;
         values[ExperimentPlanCompiler.Elapsed.Id] = new(run.Elapsed.Elapsed.TotalSeconds, PhysicalUnit.Second);
         var row = new MeasurementDataRow(now, values, environment: environment, quality: quality);

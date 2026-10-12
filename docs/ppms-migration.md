@@ -754,3 +754,25 @@ outputs/cost, leaf failure, TCP fault, abort cleanup, strict import and actual
 field fixture, nested iterator save/reload/CSV/re-execution and Hall analysis.
 See threshold-switch.md. Visual editor/physical/full PPMS acceptance remain
 pending; original29 UI drafts and Rust unchanged, independent engine/GitHub.
+
+
+## Routed IV/VI meter sweeps (2026-10-12)
+
+PPMS authoring measure_iv/measure_vi lower to scan_current/measure_voltage and
+scan_voltage/measure_current. C# now inherits frozen source scan channel,
+checks meter/source identity and equivalent alias routes, rejects channel
+switch/bypass before IO, and supports independently routed passive voltage
+reads without applying unused source preparation. Core ReadStep optional
+immutable RequiredRoute and declared excitation source, Application exact-source matrix guard preflight and pre/post
+read confirmation, native strict codec/budget. All read channels publish
+measured blackboard values only after complete acquisition/environment/route
+confirmation. No partial rows or value leaks after drift/fault; original abort,
+pause/drain and retained failed stop/recovery lifetime preserved.44 new cases
+(4Core40Application); focused133Application+4Core. Owned TCP VI and pure-source
+IV, zero/negative points, actual fixtures, wide raw+summary groups, fresh saved
+plans/archives/CSV tested. Programmed sweep axes are not actual source readback;
+scalar rows have guarded plan + original quality, not extra per-row routing
+provenance. Native editor/physical/parallel/background/full PPMS remain pending.
+29 original UI drafts untouched/excluded; Mac lock verified this stage; no lab
+IO/dependencies/Rust writes. Independent C# engine; GitHub only; full goal active.
+See meter-sweeps.md.
