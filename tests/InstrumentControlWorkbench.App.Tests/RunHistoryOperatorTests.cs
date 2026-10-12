@@ -22,15 +22,16 @@ public sealed class RunHistoryOperatorTests
             data.Complete(MeasurementRunState.Completed, DateTimeOffset.UtcNow);
             await writer.OnFinalizedAsync(data.Capture(), CancellationToken.None);
         }
-        var vm = new RunHistoryViewModel(new(new FileRunArchive(Path.Combine(folder.Path, "runs"))), Path.Combine(folder.Path, "exports"));
+        await using var reader = new FileRunArchive(Path.Combine(folder.Path, "runs"));
+        var vm = new PagedRunHistoryViewModel(new(reader), Path.Combine(folder.Path, "exports"));
         await using var owner = vm;
         Assert.False(vm.OpenCommand.CanExecute(null));
         await vm.RefreshCommand.ExecuteAsync(null);
-        Assert.Equal(data.Id, vm.SelectedRun!.Metadata.Header.Id);
-        Assert.Equal("完成", vm.SelectedRun.Status);
+        Assert.Equal(data.Id, vm.SelectedRun!.Id);
+        Assert.True(vm.SelectedRun.IsFinalized); Assert.Equal(MeasurementRunState.Completed, vm.SelectedRun.State);
         await vm.OpenCommand.ExecuteAsync(null);
         Assert.Contains("样品甲", vm.Details);
-        Assert.Contains("Volt", Assert.Single(vm.Rows).Values);
+        Assert.Equal(PhysicalUnit.Volt, Assert.Single(vm.Rows).X!.Value.Unit);
         Assert.Contains("校验通过", vm.Message);
         await vm.ExportCommand.ExecuteAsync(null);
         Assert.Contains("样品甲", await File.ReadAllTextAsync(vm.ExportPath));
@@ -51,14 +52,15 @@ public sealed class RunHistoryOperatorTests
             await writer.OnRowAsync(data.Id, Row(), CancellationToken.None);
         }
         await File.AppendAllTextAsync(Path.Combine(folder.Path, "runs", data.Id.Value.ToString("N"), "rows.ndjson"), "{unfinished");
-        await using var vm = new RunHistoryViewModel(new(new FileRunArchive(Path.Combine(folder.Path, "runs"))), Path.Combine(folder.Path, "exports"));
+        await using var reader = new FileRunArchive(Path.Combine(folder.Path, "runs"));
+        await using var vm = new PagedRunHistoryViewModel(new(reader), Path.Combine(folder.Path, "exports"));
         await vm.RefreshCommand.ExecuteAsync(null);
-        Assert.Equal("未结束记录", vm.SelectedRun!.Status);
-        Assert.Contains("? 行", vm.SelectedRun.Summary);
+        Assert.False(vm.SelectedRun!.IsFinalized);
+        Assert.Null(vm.SelectedRun.RowCount);
         await vm.OpenCommand.ExecuteAsync(null);
         Assert.Single(vm.Rows);
-        Assert.Contains("不完整记录被排除", vm.Message);
-        Assert.Contains("设备当前状态未知", vm.Message);
+        Assert.Contains("不完整记录已排除", vm.Message);
+        Assert.Contains("设备当前状态未知", vm.RecordStatus);
     }
 
     [Fact]
@@ -73,10 +75,10 @@ public sealed class RunHistoryOperatorTests
         data.Complete(MeasurementRunState.Completed, DateTimeOffset.UtcNow);
         await archive.OnFinalizedAsync(data.Capture(), CancellationToken.None);
         await File.AppendAllTextAsync(Path.Combine(folder.Path, "runs", data.Id.Value.ToString("N"), "rows.ndjson"), "corrupt");
-        await using var vm = new RunHistoryViewModel(new(archive), Path.Combine(folder.Path, "exports"));
+        await using var vm = new PagedRunHistoryViewModel(new(archive), Path.Combine(folder.Path, "exports"));
         await vm.RefreshCommand.ExecuteAsync(null);
         await vm.OpenCommand.ExecuteAsync(null);
-        Assert.Contains("数据打开失败", vm.Message);
+        Assert.Contains("读取失败", vm.Message);
         Assert.Empty(vm.Rows);
         Directory.CreateDirectory(Path.GetDirectoryName(vm.ExportPath)!);
         await File.WriteAllTextAsync(vm.ExportPath, "previous export");
@@ -93,15 +95,15 @@ public sealed class RunHistoryOperatorTests
         var data = DataSet();
         await using var archive = new FileRunArchive(Path.Combine(folder.Path, "runs"));
         await archive.OnStartedAsync(data.Capture(), CancellationToken.None);
-        await using var vm = new RunHistoryViewModel(new(archive), Path.Combine(folder.Path, "exports"));
+        await using var vm = new PagedRunHistoryViewModel(new(archive), Path.Combine(folder.Path, "exports"));
         await vm.RefreshCommand.ExecuteAsync(null);
-        Assert.Equal("未结束记录", vm.SelectedRun!.Status);
+        Assert.False(vm.SelectedRun!.IsFinalized);
         data.Append(Row());
         await archive.OnRowAsync(data.Id, data.Rows[0], CancellationToken.None);
         data.Complete(MeasurementRunState.Completed, DateTimeOffset.UtcNow);
         await archive.OnFinalizedAsync(data.Capture(), CancellationToken.None);
         await vm.OpenCommand.ExecuteAsync(null);
-        Assert.Contains("校验通过 · 完成", vm.Message);
+        Assert.True(vm.Plot!.Metadata.IsFinalized); Assert.Equal(MeasurementRunState.Completed, vm.Plot.Metadata.Header.State);
         Assert.Single(vm.Rows);
     }
 

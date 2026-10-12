@@ -1,29 +1,42 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="using:InstrumentControlWorkbench.App.Controls"
              xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels"
-             x:Class="InstrumentControlWorkbench.App.Views.RunHistoryView" x:DataType="vm:RunHistoryViewModel">
-  <Grid RowDefinitions="*,Auto" ColumnDefinitions="270,16,*">
+             xmlns:core="using:InstrumentControlWorkbench.Core.Data"
+             xmlns:converters="using:InstrumentControlWorkbench.App.Converters"
+             xmlns:views="using:InstrumentControlWorkbench.App.Views"
+             x:Class="InstrumentControlWorkbench.App.Views.RunHistoryView" x:DataType="vm:PagedRunHistoryViewModel">
+  <UserControl.Resources><converters:HistorySummaryConverter x:Key="HistorySummary"/><converters:HistoryLocalTimeConverter x:Key="HistoryTime"/></UserControl.Resources>
+  <Grid RowDefinitions="*,Auto" ColumnDefinitions="240,16,*">
     <Border Classes="panel">
-      <Grid RowDefinitions="Auto,*,Auto">
+      <Grid RowDefinitions="Auto,Auto,*,Auto">
         <Grid ColumnDefinitions="*,Auto" Margin="16"><TextBlock Text="已保存运行" Classes="section"/><controls:OperatorButton Grid.Column="1" Content="刷新" Command="{Binding RefreshCommand}" AutomationProperties.Name="刷新历史"/></Grid>
-        <ListBox Grid.Row="1" ItemsSource="{Binding Runs}" SelectedItem="{Binding SelectedRun, Mode=TwoWay}" Margin="10,0,10,10" Background="Transparent" BorderThickness="0">
-          <ListBox.ItemTemplate><DataTemplate x:DataType="vm:RunHistoryItem"><StackPanel Spacing="5" Margin="0,7"><TextBlock Text="{Binding Name}" TextWrapping="Wrap"/><TextBlock Text="{Binding Time}" Classes="caption" FontSize="10"/><TextBlock Text="{Binding Summary}" Classes="caption" FontSize="10"/></StackPanel></DataTemplate></ListBox.ItemTemplate>
+        <TextBox Grid.Row="1" Text="{Binding SearchText, Mode=TwoWay}" Watermark="按运行名称搜索 · 刷新应用" Margin="16,0,16,10" AutomationProperties.Name="历史名称搜索"/>
+        <ListBox Grid.Row="2" ItemsSource="{Binding Runs}" SelectedItem="{Binding SelectedRun, Mode=TwoWay}" Margin="10,0,10,10" Background="Transparent" BorderThickness="0">
+          <ListBox.ItemTemplate><DataTemplate x:DataType="core:RunArchiveSummary"><StackPanel Spacing="5" Margin="0,7"><TextBlock Text="{Binding Name}" TextWrapping="Wrap"/><TextBlock Text="{Binding StartedAt, Converter={StaticResource HistoryTime}}" Classes="caption" FontSize="10"/><TextBlock Text="{Binding ., Converter={StaticResource HistorySummary}}" Classes="caption" FontSize="10"/></StackPanel></DataTemplate></ListBox.ItemTemplate>
         </ListBox>
-        <controls:OperatorButton Grid.Row="2" Margin="16" Content="打开数据" Command="{Binding OpenCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" AutomationProperties.Name="打开历史数据"/>
+        <StackPanel Grid.Row="3" Margin="16" Spacing="8">
+          <controls:OperatorButton Content="打开曲线与数据" Command="{Binding OpenCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" AutomationProperties.Name="打开历史数据"/>
+          <controls:OperatorButton Content="下一页运行目录" Command="{Binding NextCatalogCommand}" AutomationProperties.Name="下一页历史目录"/>
+        </StackPanel>
       </Grid>
     </Border>
     <Border Grid.Column="2" Classes="panel">
-      <Grid RowDefinitions="Auto,*,Auto">
+      <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+      <Grid RowDefinitions="Auto,Auto,Auto">
         <StackPanel Margin="16" Spacing="6"><TextBlock Text="{Binding LoadedName}" Classes="section"/><TextBlock Text="{Binding Details}" Classes="caption" TextWrapping="Wrap"/></StackPanel>
-        <ListBox Grid.Row="1" ItemsSource="{Binding Rows}" Margin="10,0,10,10" Background="Transparent" BorderThickness="0">
-          <ListBox.ItemTemplate><DataTemplate x:DataType="vm:PlanRowItem"><Grid ColumnDefinitions="40,88,*" Margin="0,5"><TextBlock Text="{Binding Index}" Classes="caption" FontSize="10"/><TextBlock Grid.Column="1" Text="{Binding Time}" Classes="caption" FontSize="10"/><TextBlock Grid.Column="2" Text="{Binding Values}" TextWrapping="Wrap" FontSize="10"/></Grid></DataTemplate></ListBox.ItemTemplate>
-        </ListBox>
-        <StackPanel Grid.Row="2" Margin="16" Spacing="8">
-          <TextBlock Text="CSV 导出路径" Classes="caption"/>
-          <TextBox Text="{Binding ExportPath, Mode=TwoWay}" IsEnabled="{Binding CanRefresh}" AutomationProperties.Name="CSV 导出路径"/>
-          <controls:OperatorButton Content="导出 CSV（覆盖路径文件）" Command="{Binding ExportCommand}" HorizontalAlignment="Left" AutomationProperties.Name="导出历史 CSV"/>
+        <views:HistoryDataView Grid.Row="1"/>
+        <Expander Grid.Row="2" Margin="16,8,16,16" Header="导出完整运行 CSV" HorizontalAlignment="Stretch" AutomationProperties.Name="展开 CSV 导出">
+        <StackPanel Spacing="8">
+          <TextBlock Text="完整运行 CSV · 重新校验归档 · 覆盖路径文件" Classes="caption" FontSize="10"/>
+          <TextBox Text="{Binding ExportPath, Mode=TwoWay}" IsEnabled="{Binding CanRead}" AutomationProperties.Name="CSV 导出路径"/>
+          <WrapPanel>
+            <controls:OperatorButton Content="导出完整 CSV" Command="{Binding ExportCommand}" Margin="0,0,8,0" AutomationProperties.Name="导出历史 CSV"/>
+            <controls:OperatorButton Content="取消读取或导出" Command="{Binding CancelCommand}" AutomationProperties.Name="取消历史操作"/>
+          </WrapPanel>
         </StackPanel>
+        </Expander>
       </Grid>
+      </ScrollViewer>
     </Border>
     <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Text="{Binding Message}" Classes="caption" TextWrapping="Wrap" Margin="0,12,0,0" MaxHeight="58" TextTrimming="CharacterEllipsis"/>
   </Grid>

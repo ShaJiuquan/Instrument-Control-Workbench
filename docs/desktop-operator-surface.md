@@ -39,6 +39,9 @@ flowchart LR
   presenting200 rows. The separately implemented paged/plot ViewModel still needs
   wiring into this surface; acquisition memory and graph editing remain work.
 
+The subsequent [paged history surface](history-surface.md) supersedes that
+full-load history path and wires the scientific page renderer into the shell.
+
 ## macOS accessibility correction
 
 Native acceptance reproduced an unhandled `ElementNotEnabledException` when a

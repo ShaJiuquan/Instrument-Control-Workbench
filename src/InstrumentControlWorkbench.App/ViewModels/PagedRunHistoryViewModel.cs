@@ -14,14 +14,14 @@ namespace InstrumentControlWorkbench.App.ViewModels;
 
 // UI-thread-owned page state. The composition root owns the shared history
 // service; disposing this screen cancels/drains its reads, not shared storage.
-public partial class PagedRunHistoryViewModel(RunHistoryService history) : ObservableObject, IAsyncDisposable
+public partial class PagedRunHistoryViewModel(RunHistoryService history, string? exportDirectory = null) : ObservableObject, IAsyncDisposable
 {
     private readonly RunHistoryService historyService = history ?? throw new ArgumentNullException(nameof(history));
     private CancellationTokenSource? activeRead;
     private Task pendingRead = Task.CompletedTask;
     private Task? disposal;
     private long revision;
-    private bool disposed, assigningAxes, needsReload;
+    private bool disposed, assigningAxes, assigningCatalog, needsReload;
     private string searchText = "", startRowText = "1", message = "刷新目录后选择运行。";
     private string? catalogSearch;
     private RunArchiveCatalogPage? catalog;
@@ -53,6 +53,9 @@ public partial class PagedRunHistoryViewModel(RunHistoryService history) : Obser
         get => selectedRun;
         set
         {
+            // ItemsSource replacement can synchronously clear a ListBox's
+            // selection. Reconcile it after publishing the new catalog page.
+            if (value is null && assigningCatalog) return;
             var oldId = selectedRun?.Id;
             if (!SetProperty(ref selectedRun, value)) return;
             if (oldId != value?.Id)
@@ -60,6 +63,7 @@ public partial class PagedRunHistoryViewModel(RunHistoryService history) : Obser
                 CancelPending(); axes = Array.Empty<ParameterDescriptor>(); OnPropertyChanged(nameof(Axes));
                 AssignAxes(null, null); PublishPlot(null); SetNeedsReload(false);
                 Message = value is null ? "选择运行以读取数据。" : "打开所选运行以读取首个数据页。";
+                ExportPath = value is null || exportDirectory is null ? "" : System.IO.Path.Combine(exportDirectory, $"{value.Id.Value:N}.csv");
             }
             NotifyCommands();
         }
@@ -78,7 +82,7 @@ public partial class PagedRunHistoryViewModel(RunHistoryService history) : Obser
         ? $"所选范围没有数据 · 已验证 {plot.ObservedRowCount} 个源记录"
         : $"源记录 {plot.Samples[0].RowIndex}–{plot.Samples[^1].RowIndex} / {plot.ObservedRowCount}";
     public string QualitySummary => plot is null ? "" :
-        $"缺测 {plot.Samples.Count(s => !s.HasCoordinates)} · 采集失败 {plot.Samples.Count(s => s.QualityState == ReadingQualityState.ContainsFailedAcquisitions)} · 告警 {plot.Samples.Count(s => s.QualityState == ReadingQualityState.ObservedWithIssues)} · 未观察质量 {plot.Samples.Count(s => s.QualityState == ReadingQualityState.Unobserved)}";
+        $"缺测 {plot.Samples.Count(s => !s.HasCoordinates)} · 采集失败 {plot.Samples.Count(s => s.QualityState == ReadingQualityState.ContainsFailedAcquisitions)} · 告警 {plot.Samples.Count(s => s.QualityState == ReadingQualityState.ObservedWithIssues)} · 部分质量 {plot.Samples.Count(s => s.QualityState == ReadingQualityState.PartiallyObserved)} · 未观察质量 {plot.Samples.Count(s => s.QualityState == ReadingQualityState.Unobserved)}";
     public string RecordStatus => plot is null ? "" : !plot.Metadata.IsFinalized
         ? "未结束记录，设备当前状态未知。" : "已结束的历史记录，设备当前状态未知。";
 
@@ -88,6 +92,7 @@ public partial class PagedRunHistoryViewModel(RunHistoryService history) : Obser
     private bool CanReadPlot() => CanPlot() && !needsReload;
     private bool CanNextCatalog() => CanRead && catalog?.HasMore == true && catalogSearch == SearchFilter();
     private bool CanNextPlot() => CanPlot() && !needsReload && plot?.NextOffset is not null;
+    private bool CanPreviousPlot() => CanPlot() && !needsReload && plot is { Offset: > 0 };
     private bool CanJump() => CanPlot() && !needsReload && TryGetOffset(out _);
     private bool CanCancel() => IsBusy && !disposed;
     private string? SearchFilter() => string.IsNullOrWhiteSpace(searchText) ? null : searchText.Trim();
@@ -108,6 +113,8 @@ public partial class PagedRunHistoryViewModel(RunHistoryService history) : Obser
     private Task ReadPlotAsync() => CanReadPlot() ? RunReadAsync((token, stamp) => ReadSelectedPlotAsync(0, plot?.Version, token, stamp)) : Task.CompletedTask;
     [RelayCommand(CanExecute = nameof(CanNextPlot))]
     private Task NextPlotAsync() => CanNextPlot() ? RunReadAsync((token, stamp) => ReadSelectedPlotAsync(plot!.NextOffset!.Value, plot.Version, token, stamp)) : Task.CompletedTask;
+    [RelayCommand(CanExecute = nameof(CanPreviousPlot))]
+    private Task PreviousPlotAsync() => CanPreviousPlot() ? RunReadAsync((token, stamp) => ReadSelectedPlotAsync(Math.Max(0, plot!.Offset - 500), plot.Version, token, stamp)) : Task.CompletedTask;
     [RelayCommand(CanExecute = nameof(CanJump))]
     private Task JumpAsync() => CanJump() && TryGetOffset(out var offset) ? RunReadAsync((token, stamp) => ReadSelectedPlotAsync(offset, plot?.Version, token, stamp)) : Task.CompletedTask;
     [RelayCommand(CanExecute = nameof(CanPlot))]
@@ -122,8 +129,17 @@ public partial class PagedRunHistoryViewModel(RunHistoryService history) : Obser
     {
         var filter = SearchFilter(); var page = await historyService.BrowseAsync(new(nameContains: filter, after: after), token);
         if (!IsCurrent(stamp, token)) return;
-        catalog = page; catalogSearch = filter; OnPropertyChanged(nameof(Catalog)); OnPropertyChanged(nameof(Runs));
-        SelectedRun = page.Runs.FirstOrDefault(r => r.Id == selectedRun?.Id) ?? page.Runs.FirstOrDefault();
+        var previousId = selectedRun?.Id;
+        assigningCatalog = true;
+        try
+        {
+            catalog = page; catalogSearch = filter; OnPropertyChanged(nameof(Catalog)); OnPropertyChanged(nameof(Runs));
+            if (!IsCurrent(stamp, token)) return;
+            assigningCatalog = false;
+            SelectedRun = page.Runs.FirstOrDefault(r => r.Id == previousId) ?? page.Runs.FirstOrDefault();
+            OnPropertyChanged(nameof(SelectedRun));
+        }
+        finally { assigningCatalog = false; }
         Message = $"本页 {page.Runs.Count} 个运行 · 另有 {page.MatchingRuns - page.Runs.Count} 个匹配 · 无法读取 {page.IssueCount} 个目录";
         if (page.HasOmittedIssues) Message += "（部分错误详情未展开）";
     }
@@ -187,11 +203,12 @@ public partial class PagedRunHistoryViewModel(RunHistoryService history) : Obser
     {
         plot = page; OnPropertyChanged(nameof(Plot)); OnPropertyChanged(nameof(PageSummary));
         OnPropertyChanged(nameof(QualitySummary)); OnPropertyChanged(nameof(RecordStatus));
+        OnPropertyChanged(nameof(LoadedName)); OnPropertyChanged(nameof(Details)); OnPropertyChanged(nameof(Rows));
     }
     private void SetNeedsReload(bool value) { if (SetProperty(ref needsReload, value, nameof(NeedsReload))) NotifyCommands(); }
     private bool IsCurrent(long stamp, CancellationToken token) => !disposed && stamp == revision && !token.IsCancellationRequested;
     private void CancelPending() { revision++; activeRead?.Cancel(); }
-    private Task RunReadAsync(Func<CancellationToken, long, Task> action)
+    private Task RunReadAsync(Func<CancellationToken, long, Task> action, string failurePrefix = "读取失败")
     {
         if (!CanRead) return Task.CompletedTask;
         var cancellation = new CancellationTokenSource(); activeRead = cancellation; var stamp = revision;
@@ -207,7 +224,7 @@ public partial class PagedRunHistoryViewModel(RunHistoryService history) : Obser
             await start.Task;
             try { cancellation.Token.ThrowIfCancellationRequested(); await action(cancellation.Token, stamp); }
             catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
-            catch (Exception error) { if (IsCurrent(stamp, cancellation.Token)) Message = $"读取失败：{error.Message}" + (needsReload ? "；请重新载入以验证当前归档。" : ""); }
+            catch (Exception error) { if (IsCurrent(stamp, cancellation.Token)) Message = $"{failurePrefix}：{error.Message}" + (needsReload ? "；请重新载入以验证当前归档。" : ""); }
             finally { activeRead = null; cancellation.Dispose(); NotifyCommands(); }
         }
     }
@@ -217,6 +234,7 @@ public partial class PagedRunHistoryViewModel(RunHistoryService history) : Obser
         RefreshCommand.NotifyCanExecuteChanged(); NextCatalogCommand.NotifyCanExecuteChanged(); OpenCommand.NotifyCanExecuteChanged();
         ReadPlotCommand.NotifyCanExecuteChanged(); NextPlotCommand.NotifyCanExecuteChanged(); JumpCommand.NotifyCanExecuteChanged();
         ReloadCommand.NotifyCanExecuteChanged(); CancelCommand.NotifyCanExecuteChanged();
+        PreviousPlotCommand.NotifyCanExecuteChanged(); ExportCommand.NotifyCanExecuteChanged();
     }
     public ValueTask DisposeAsync()
     {

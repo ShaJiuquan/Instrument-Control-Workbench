@@ -43,7 +43,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         this.runService = runService;
         this.notifications = notifications;
         InstrumentId = instrumentManager?.InstrumentId.Value ?? "未选择源表";
-        this.storage = storage; Settings = settings;
+        this.storage = storage ?? history; Settings = settings;
         if (registry is not null) Devices = new(registry, () => !closing && !IsBusy && !IsConnecting && !runService.HasActiveRun && Plans is not { IsDocumentBusy: true }, NotifyCommandState);
         if (instrumentManager is null) page = WorkbenchPage.Plans;
         if (history is not null && exportDirectory is not null) History = new(history, exportDirectory);
@@ -61,7 +61,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     public string PrimarySourceName => instrumentManager?.Descriptor.DisplayName ?? "未选择源表";
     public string PrimarySourceKind => instrumentManager?.Descriptor.DriverKind.ToString() ?? "计划按设备绑定执行";
     public string RuntimeKind => Devices is null ? "工作台" : $"{Devices.Devices.Count} 台已启用设备";
-    public RunHistoryViewModel? History { get; }
+    public PagedRunHistoryViewModel? History { get; }
     public bool HasHistory => History is not null;
     public bool IsHistoryPage => Page == WorkbenchPage.History;
     public string InstrumentId { get; }

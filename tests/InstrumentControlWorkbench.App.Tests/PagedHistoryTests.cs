@@ -8,7 +8,7 @@ using InstrumentControlWorkbench.Infrastructure.Data;
 
 namespace InstrumentControlWorkbench.App.Tests;
 
-public sealed class PagedHistoryTests
+public sealed partial class PagedHistoryTests
 {
     [Fact]
     public async Task DesktopUsesBoundedDirectoryAndPlotPagesWithSchemaAxesAndSourceGaps()
@@ -203,6 +203,9 @@ public sealed class PagedHistoryTests
     {
         public bool Block { get; set; }
         public bool BlockMetadata { get; set; }
+        public bool BlockExport { get; set; }
+        public RunId? LastExportId { get; private set; }
+        public string? LastExportPath { get; private set; }
         public int PageReadCalls, BrowseCalls, FullLoadCalls, FullCatalogCalls, DisposeCalls;
         public CancellationToken LastToken { get; private set; }
         public RunArchiveRowQuery? LastQuery { get; private set; }
@@ -224,7 +227,12 @@ public sealed class PagedHistoryTests
         }
         public Task<RunArchiveCatalog> ListAsync(CancellationToken token) { FullCatalogCalls++; throw new InvalidOperationException("Full catalog is not a paged UI operation."); }
         public Task<ArchivedRun> LoadAsync(RunId id, CancellationToken token, int maximumRows = 100000) { FullLoadCalls++; throw new InvalidOperationException("Full load is not a paged UI operation."); }
-        public Task ExportCsvAsync(RunId id, string path, CancellationToken token) => inner.ExportCsvAsync(id, path, token);
+        public async Task ExportCsvAsync(RunId id, string path, CancellationToken token)
+        {
+            LastExportId = id; LastExportPath = path; LastToken = token;
+            if (BlockExport) { Entered.TrySetResult(); await Release.Task; }
+            await inner.ExportCsvAsync(id, path, BlockExport ? CancellationToken.None : token);
+        }
         public Task OnStartedAsync(RunDataSetSnapshot dataSet, CancellationToken token) => inner.OnStartedAsync(dataSet, token);
         public Task OnRowAsync(RunId id, MeasurementDataRow row, CancellationToken token) => inner.OnRowAsync(id, row, token);
         public Task OnFinalizedAsync(RunDataSetSnapshot dataSet, CancellationToken token) => inner.OnFinalizedAsync(dataSet, token);

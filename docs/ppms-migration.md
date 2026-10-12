@@ -876,3 +876,25 @@ desktop relock; backend unsafe close/recovery tests do not substitute native pro
 History full load/live memory/graph/physical/full PPMS remain pending. No new
 dependencies or Rust edits; independent engine/GitHub only/full goal active. See
 desktop-operator-surface.md.
+
+
+## Paged history surface (2026-10-12)
+
+Shell now uses existing PagedRunHistoryViewModel; removed obsolete full-load VM.
+Bounded50 summary/500 sample pages, schema X/Y, records/curve tabs, source index
+jump, explicit version reload and current-source500-record backward movement.
+Scatter default, optional record-order lines preserve gaps/failure/kind/index
+breaks; original units/quality/times/provenance and zero/constant/extreme values
+retained. Expandable CSV + scrollable finite chart viewport fixes actual native
+1060x720 overlap. Native reinspection:21-point curves,换轴/re-read/lines/record
+values and full21 CSV; explicitly SYNTHETIC505 fixture verifies500/5 pages,
+jump500–505, missing/zero values and full505 CSV from displayed6 records.
+Export independently revalidates full archive, captures ID/path before callbacks,
+serializes/cancels/drains with reads; shell owns shared storage disposal once.
+Cancel does not promise undo of completed writes/noncooperative adapter effects.
+Catalog binding reset preserves same-run trusted plot/custom export path.14 new
+App cases; four prior history tests migrated;94 App pass. Native refreshed-catalog
+repair/current committed-package parity pending. Full-file per-page validation
+IO cost remains; live memory/indexing/multiseries/graph/physical/full goal active.
+No dependencies, Core/Infrastructure or Rust edits, no physical IO; GitHub only.
+See history-surface.md.

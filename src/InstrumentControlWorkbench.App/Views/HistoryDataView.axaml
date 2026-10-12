@@ -1,0 +1,47 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:controls="using:InstrumentControlWorkbench.App.Controls"
+             xmlns:parameters="using:InstrumentControlWorkbench.Core.Parameters" xmlns:measurements="using:InstrumentControlWorkbench.Application.Measurements"
+             xmlns:converters="using:InstrumentControlWorkbench.App.Converters"
+             x:Class="InstrumentControlWorkbench.App.Views.HistoryDataView" x:DataType="vm:PagedRunHistoryViewModel">
+  <UserControl.Resources><converters:HistoryValueConverter x:Key="HistoryValue"/><converters:HistorySampleConverter x:Key="HistorySample"/><converters:HistoryLocalTimeConverter x:Key="HistoryTime"/></UserControl.Resources>
+  <Grid RowDefinitions="Auto,*,Auto,Auto" Margin="16,0">
+    <Grid ColumnDefinitions="Auto,*,12,Auto,*" IsEnabled="{Binding CanRead}">
+      <TextBlock Text="X" VerticalAlignment="Center" Margin="0,0,8,0"/>
+      <ComboBox Grid.Column="1" ItemsSource="{Binding Axes}" SelectedItem="{Binding XAxis, Mode=TwoWay}" HorizontalAlignment="Stretch" AutomationProperties.Name="历史 X 轴">
+        <ComboBox.ItemTemplate><DataTemplate x:DataType="parameters:ParameterDescriptor"><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+      <TextBlock Grid.Column="3" Text="Y" VerticalAlignment="Center" Margin="0,0,8,0"/>
+      <ComboBox Grid.Column="4" ItemsSource="{Binding Axes}" SelectedItem="{Binding YAxis, Mode=TwoWay}" HorizontalAlignment="Stretch" AutomationProperties.Name="历史 Y 轴">
+        <ComboBox.ItemTemplate><DataTemplate x:DataType="parameters:ParameterDescriptor"><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+    </Grid>
+    <TabControl Grid.Row="1" Margin="0,8,0,8" Height="280" FontSize="12">
+      <TabItem Header="曲线" FontSize="12">
+        <Grid RowDefinitions="Auto,*,Auto">
+          <CheckBox Content="按记录顺序连线" IsChecked="{Binding ConnectRecords, Mode=TwoWay}" FontSize="11"/>
+          <controls:HistoryPlot Grid.Row="1" Page="{Binding Plot}" ConnectRecords="{Binding ConnectRecords}" MinHeight="170"/>
+          <TextBlock Grid.Row="2" Text="○ 读数 · ◇ 路由 · △ 分析 · □ 汇总 · 红× 失败 · 灰色质量未完整观察" Classes="caption" FontSize="9" TextWrapping="Wrap"/>
+        </Grid>
+      </TabItem>
+      <TabItem Header="本页记录" FontSize="12">
+        <ListBox ItemsSource="{Binding Rows}" Background="Transparent" BorderThickness="0">
+          <ListBox.ItemTemplate><DataTemplate x:DataType="measurements:HistoryPlotSample"><StackPanel Spacing="3" Margin="0,5">
+            <TextBlock Text="{Binding RowIndex, StringFormat=记录 {0}}" Classes="caption" FontSize="10"/>
+            <TextBlock Text="{Binding Timestamp, Converter={StaticResource HistoryTime}, ConverterParameter=clock}" Classes="caption" FontSize="10"/>
+            <StackPanel Orientation="Horizontal" Spacing="14"><TextBlock Text="{Binding X, Converter={StaticResource HistoryValue}}"/><TextBlock Text="{Binding Y, Converter={StaticResource HistoryValue}}"/></StackPanel>
+            <TextBlock Text="{Binding ., Converter={StaticResource HistorySample}}" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+          </StackPanel></DataTemplate></ListBox.ItemTemplate>
+        </ListBox>
+      </TabItem>
+    </TabControl>
+    <WrapPanel Grid.Row="2">
+      <controls:OperatorButton Content="读取曲线" Command="{Binding ReadPlotCommand}" Margin="0,0,6,6"/>
+      <controls:OperatorButton Content="向前 500 条" Command="{Binding PreviousPlotCommand}" Margin="0,0,6,6"/>
+      <controls:OperatorButton Content="下一页" Command="{Binding NextPlotCommand}" Margin="0,0,6,6"/>
+      <TextBox Text="{Binding StartRowText, Mode=TwoWay}" Width="72" Watermark="起始行" Margin="0,0,6,6" AutomationProperties.Name="历史起始记录"/>
+      <controls:OperatorButton Content="跳转" Command="{Binding JumpCommand}" Margin="0,0,6,6"/>
+      <controls:OperatorButton Content="重新载入" Command="{Binding ReloadCommand}" Margin="0,0,6,6"/>
+    </WrapPanel>
+    <StackPanel Grid.Row="3" Spacing="3"><TextBlock Text="{Binding QualitySummary}" Classes="caption" FontSize="10" TextWrapping="Wrap"/><TextBlock Text="{Binding RecordStatus}" Classes="caption" FontSize="10" TextWrapping="Wrap"/></StackPanel>
+  </Grid>
+</UserControl>
