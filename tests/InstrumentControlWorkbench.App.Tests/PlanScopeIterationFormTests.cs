@@ -24,8 +24,8 @@ public sealed class PlanScopeIterationFormTests
         var body = new DelayStep(new("body"), TimeSpan.Zero); var step = new ForEachStep(new("loop"), new("value"), new([new(.05, timing == IterationTiming.Immediate ? PhysicalUnit.Volt : PhysicalUnit.Second)]), body, timing, index);
         var calls = 0; var parent = new PlanStepFormViewModel(step, [], () => calls++); Assert.True(parent.IsSupported); Assert.False(parent.IsDirty); Assert.Equal(0, calls);
         var built = (ForEachStep)parent.Build(); Assert.Same(body, built.Body); Assert.Equal(step.Values.Values, built.Values.Values); Assert.Equal(timing, built.Timing); Assert.Equal(index, built.IndexBase);
-        parent.IterationForm!.ValuesText = "0.1, 0.2"; Assert.Equal(2, ((ForEachStep)parent.Build()).Values.Values.Count); Assert.True(parent.IsDirty);
-        parent.IterationForm.Timing = timing == IterationTiming.Immediate ? IterationTiming.DelayBeforePoint : IterationTiming.Immediate; Assert.Empty(parent.IterationForm.ValuesText);
+        parent.IterationForm!.ValuesForm.Definition.ValuesText = "0.1, 0.2"; Assert.Equal(2, ((ForEachStep)parent.Build()).Values.Values.Count); Assert.True(parent.IsDirty);
+        parent.IterationForm.Timing = timing == IterationTiming.Immediate ? IterationTiming.DelayBeforePoint : IterationTiming.Immediate; Assert.Empty(parent.IterationForm.ValuesForm.Definition.ValuesText);
         Assert.Throws<FormatException>(() => parent.Build());
     }
     [Theory]
@@ -38,7 +38,7 @@ public sealed class PlanScopeIterationFormTests
     [InlineData("4294968")]
     public void InvalidTimedIterationValuesRejectBeforeAnyExecution(string text)
     {
-        var form = new PlanIterationFormViewModel(new(new("loop"), new("delay"), new([new(0, PhysicalUnit.Second)]), new SequenceStep(new("body"), []), IterationTiming.DelayBeforePoint), () => { }) { ValuesText = text };
+        var form = new PlanIterationFormViewModel(new(new("loop"), new("delay"), new([new(0, PhysicalUnit.Second)]), new SequenceStep(new("body"), []), IterationTiming.DelayBeforePoint), () => { }); form.ValuesForm.Definition.ValuesText = text;
         Assert.ThrowsAny<Exception>(() => form.Build());
     }
     [Fact]
@@ -93,7 +93,7 @@ public sealed class PlanScopeIterationFormTests
     public async Task IterationValuesSaveFreshReloadAndProduceCorrectIndexAndTotal(IterationTiming timing, IterationIndexBase index)
     {
         var b = new Bench(iterator: true); await using var owner = b.Shell; var vm = owner.Plans!; vm.GraphNodes.Single(n => n.Id.Value == "iterator").SelectCommand.Execute(null); var form = vm.NodeForm!.IterationForm!;
-        form.Timing = timing; form.IndexBase = index; form.ValuesText = timing == IterationTiming.Immediate ? "1,2,3" : "0,0.001,0.002"; vm.ApplyNodeCommand.Execute(null); Assert.False(vm.HasError, vm.Message);
+        form.Timing = timing; form.IndexBase = index; form.ValuesForm.Definition.ValuesText = timing == IterationTiming.Immediate ? "1,2,3" : "0,0.001,0.002"; vm.ApplyNodeCommand.Execute(null); Assert.False(vm.HasError, vm.Message);
         var path = Path.Combine(Path.GetTempPath(), "iterator-form-" + Guid.NewGuid().ToString("N") + ".json");
         try
         {
@@ -121,7 +121,7 @@ public sealed class PlanScopeIterationFormTests
     public async Task PaletteCreatesUsableTypedContainers(string kind)
     {
         var b = new Bench(); await using var owner = b.Shell; var vm = owner.Plans!; vm.PaletteKind = kind; var before = vm.DocumentText;
-        if (kind == "数值迭代") { vm.AppendNodeCommand.Execute(null); Assert.True(vm.HasError); Assert.Equal(before, vm.DocumentText); vm.PaletteForm!.IterationForm!.Variable = "new_item"; vm.PaletteForm.IterationForm.ValuesText = "1,2"; }
+        if (kind == "数值迭代") { vm.AppendNodeCommand.Execute(null); Assert.True(vm.HasError); Assert.Equal(before, vm.DocumentText); vm.PaletteForm!.IterationForm!.Variable = "new_item"; vm.PaletteForm.IterationForm.ValuesForm.Definition.ValuesText = "1,2"; }
         vm.AppendNodeCommand.Execute(null); Assert.False(vm.HasError, vm.Message);
         if (kind == "子流程") { var added = ((SequenceStep)vm.ValidatedPlan!.Root).Children[^1]; vm.GraphNodes.Single(n => n.Id == added.Id).SelectCommand.Execute(null); Assert.True(vm.AppendNodeCommand.CanExecute(null)); }
         Assert.False((await b.Source.GetSnapshotAsync(CancellationToken.None)).Connected);

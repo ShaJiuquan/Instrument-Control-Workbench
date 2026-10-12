@@ -111,9 +111,9 @@ public sealed class PlanStepFormTests
         else if (kind == "retry") { form.Cycles = "3"; form.Seconds = "0.2"; var built = (RetryStep)form.Build(); Assert.Same(body, built.Body); Assert.Equal(3, built.MaxAttempts); Assert.Equal(TimeSpan.FromSeconds(.2), built.Delay); }
         else
         {
-            form.ValuesText = "0, 0.5, 1e-1"; form.Dwell = "0.3"; var built = (ScanStep)form.Build(); Assert.Same(body, built.Body);
+            form.ScanValuesForm!.Definition.ValuesText = "0, 0.5, 1e-1"; form.Dwell = "0.3"; var built = (ScanStep)form.Build(); Assert.Same(body, built.Body);
             Assert.Equal(new[] { 0, .5, .1 }, built.Values.Values.Select(q => q.Value)); Assert.Equal(PhysicalUnit.Volt, built.Values.Unit); Assert.Equal(TimeSpan.FromSeconds(.3), built.Dwell);
-            form.Address.SelectedParameter = form.Address.Parameters.Single(p => p.Descriptor.Id.Value == "amps"); Assert.Equal("", form.ValuesText); Assert.Throws<FormatException>(() => form.Build());
+            form.Address.SelectedParameter = form.Address.Parameters.Single(p => p.Descriptor.Id.Value == "amps"); Assert.Equal("", form.ScanValuesForm!.Definition.ValuesText); Assert.Throws<FormatException>(() => form.Build());
         }
     }
     [Fact]
@@ -172,7 +172,7 @@ public sealed class PlanStepFormTests
         var (shell, source) = Create(); await using var owner = shell; var vm = shell.Plans!; vm.PaletteKind = kind;
         var form = vm.PaletteForm!; form.Address.SelectedDevice = form.Address.Devices[0];
         if (kind != "源输出") form.Address.SelectedParameter = form.Address.Parameters.Single(p => p.Descriptor.Id.Value == "k2450.source_voltage");
-        if (form.ValueForm is { } valueForm) valueForm.NumberText = "0.01"; form.ValuesText = "0, 0.01"; form.Column = "new_axis"; form.OutputEnabled = false;
+        if (form.ValueForm is { } valueForm) valueForm.NumberText = "0.01"; if (form.ScanValuesForm is { } scanForm) scanForm.Definition.ValuesText = "0, 0.01"; form.Column = "new_axis"; form.OutputEnabled = false;
         vm.AppendNodeCommand.Execute(null); Assert.False(vm.HasError, vm.Message); Assert.Equal(2, ((SequenceStep)vm.ValidatedPlan!.Root).Children.Count); Assert.Single(vm.ValidatedPlan.Preparations);
         Assert.False((await source.GetSnapshotAsync(CancellationToken.None)).Connected);
         var added = ((SequenceStep)vm.ValidatedPlan.Root).Children[^1];

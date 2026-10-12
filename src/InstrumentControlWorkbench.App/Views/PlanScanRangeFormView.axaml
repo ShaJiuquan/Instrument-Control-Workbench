@@ -1,0 +1,21 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" x:Class="InstrumentControlWorkbench.App.Views.PlanScanRangeFormView" x:DataType="vm:PlanScanRangeFormViewModel">
+ <StackPanel Spacing="6">
+  <TextBlock Text="生成方式 / List 列表 · Linear 线性 · Stepped 步长 · Logarithmic 对数" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+  <ComboBox ItemsSource="{Binding Modes}" SelectedItem="{Binding Mode, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="扫描生成方式"/>
+  <StackPanel Spacing="6" IsVisible="{Binding IsList}">
+   <TextBlock Text="显式数值 / 逗号分隔，使用小数点" Classes="caption"/>
+   <TextBox Text="{Binding ValuesText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60" AutomationProperties.Name="扫描数值"/>
+  </StackPanel>
+  <StackPanel Spacing="6" IsVisible="{Binding HasEndpoints}">
+   <TextBlock Text="起点" Classes="caption"/><TextBox Text="{Binding StartText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="扫描起点"/>
+   <TextBlock Text="终点 / 包含终点" Classes="caption"/><TextBox Text="{Binding EndText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="扫描终点"/>
+  </StackPanel>
+  <StackPanel Spacing="6" IsVisible="{Binding HasPoints}">
+   <TextBlock Text="点数 / 包含两端" Classes="caption"/><TextBox Text="{Binding PointsText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="扫描点数"/>
+  </StackPanel>
+  <StackPanel Spacing="6" IsVisible="{Binding HasStep}">
+   <TextBlock Text="步长 / 正数；方向由起点和终点决定" Classes="caption" FontSize="10" TextWrapping="Wrap"/><TextBox Text="{Binding StepText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="扫描步长"/>
+  </StackPanel>
+ </StackPanel>
+</UserControl>

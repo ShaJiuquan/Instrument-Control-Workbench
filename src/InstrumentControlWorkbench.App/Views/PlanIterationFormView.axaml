@@ -1,5 +1,5 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
- xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels"
+ xmlns:views="using:InstrumentControlWorkbench.App.Views" xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels"
  x:Class="InstrumentControlWorkbench.App.Views.PlanIterationFormView" x:DataType="vm:PlanIterationFormViewModel">
  <StackPanel Spacing="8">
   <TextBlock Text="迭代变量 ID / 同时生成 .index 和 .total" Classes="caption" FontSize="10"/><TextBox Text="{Binding Variable, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="迭代变量"/>
@@ -7,7 +7,7 @@
   <TextBlock Text="索引起点" Classes="caption"/><ComboBox ItemsSource="{Binding IndexBases}" SelectedItem="{Binding IndexBase, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="迭代索引起点"/>
   <TextBlock Text="{Binding UnitLabel}" Classes="caption"/>
   <ComboBox ItemsSource="{Binding Units}" SelectedItem="{Binding Unit, Mode=TwoWay}" IsVisible="{Binding CanChooseUnit}" HorizontalAlignment="Stretch" AutomationProperties.Name="迭代值单位"/>
-  <TextBox Text="{Binding ValuesText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60" Watermark="逗号分隔有限数值" AutomationProperties.Name="迭代数值"/>
+  <views:PlanScanValuesFormView DataContext="{Binding ValuesForm}"/>
   <TextBlock Text="DelayBeforePoint 的每个值是内部步骤开始前的等待秒数，不是绝对时间或步骤之后的等待。更换时序或单位后须重新输入。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
  </StackPanel>
 </UserControl>

@@ -1503,3 +1503,21 @@ saved fresh iterators three rows/index/total/units/output-off/released runs.
 Native pending (no cua tools), no user window/new process; no dependencies/Core/
 interpreter/Rust/physical changes. Independent engine/GitHub only/full goal active.
 See scope-iteration-node-forms.md.
+
+## Shared scan generator forms (2026-10-13)
+
+Named shared value/range forms replace duplicated ScanStep/ForEach list parsing.
+Existing Core List/Linear/Stepped/Logarithmic/Segmented rules reused; explicit lists
+retain duplicates, segmented adjacent duplicates collapse. Actual registered
+parameter unit/ranges and timed iteration Second/timer bounds remain authoritative.
+Address/timing/unit changes clear visible and hidden range/segment inputs/preview.
+Explicit readonly-guarded preview gives count/first12, no IO/draft mutation; full
+compiler still protects resources/types/budgets. Save expands actual values; fresh
+forms List with exact values, generator formula provenance not persisted.
+New cases verify generators/descending/invalid/budget/range/locks/clearing/palettes;
+four generated scans saved/fresh simulated execution/readbacks/output-off/released;
+immediate/timed generated loops three rows/units/index/total/output-off/released.
+Native cua inventory now callable but Mac locked/unlock failed; optional async
+unlock request sent, no user window/process touched. No Core/interpreter/schema/
+dependencies/Rust/physical changes. Engine independent/GitHub only/full goal active.
+See scan-generator-node-forms.md.

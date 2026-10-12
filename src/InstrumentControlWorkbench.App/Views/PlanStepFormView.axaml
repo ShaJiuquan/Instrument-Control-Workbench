@@ -21,8 +21,7 @@
       </StackPanel>
       <StackPanel Spacing="6" IsVisible="{Binding IsScan}">
         <TextBlock Text="扫描列 ID" Classes="caption"/><TextBox Text="{Binding Column, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="扫描列 ID"/>
-        <TextBlock Text="扫描数值 / 逗号分隔，使用小数点和上方单位" Classes="caption" TextWrapping="Wrap"/>
-        <TextBox Text="{Binding ValuesText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60" AutomationProperties.Name="扫描数值"/>
+        <views:PlanScanValuesFormView DataContext="{Binding ScanValuesForm}"/>
         <TextBlock Text="每点停留 / 秒" Classes="caption"/><TextBox Text="{Binding Dwell, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="扫描停留秒"/>
       </StackPanel>
       <StackPanel IsVisible="{Binding IsOutput}" Spacing="6">

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
-using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using InstrumentControlWorkbench.Core.Devices;
@@ -49,12 +48,12 @@ public partial class PlanStepFormViewModel : ObservableObject
             case WaitStableStep s: seconds = Number(s.Timeout.TotalSeconds); tolerance = Number(s.Tolerance.Value); stableSeconds = Number(s.StableFor.TotalSeconds); pollSeconds = Number(s.PollInterval.TotalSeconds); break;
 
             case ScanStep s:
-                valuesText = template ? "" : string.Join(", ", s.Values.Values.Select(q => Number(q.Value)));
                 column = s.Column.Value; dwell = Number(s.Dwell.TotalSeconds); break;
             case ReadStep s:
                 foreach (var channel in s.Channels) Channels.Add(new(devices, template ? null : channel, MarkDirty)); break;
             case SourceOutputStep s: outputEnabled = s.Enabled; break;
         }
+        if (step is ScanStep scan) ScanValuesForm = new(scan.Values, () => Address.ResolveParameter().Unit, ValidateScanValues, MarkDirty, template);
         if (step is SubtreeStep subtree) ScopeForm = new(subtree, MarkDirty);
         if (step is ForEachStep iterator) IterationForm = new(iterator, MarkDirty, template);
         if (step is MutateValueStep mutation) MutationForm = new(mutation, MarkDirty, template);
@@ -99,6 +98,7 @@ public partial class PlanStepFormViewModel : ObservableObject
     public PlanOutcomeMutationFormViewModel? OutcomeForm { get; }
     public PlanConditionFormViewModel? ConditionForm { get; }
     public bool IsScan => original is ScanStep;
+    public PlanScanValuesFormViewModel? ScanValuesForm { get; }
     public bool IsRead => original is ReadStep;
     public bool IsOutput => original is SourceOutputStep;
     public bool HasSeconds => IsDelay || IsTimeout || IsRetry || IsWaitStable;
@@ -116,7 +116,6 @@ public partial class PlanStepFormViewModel : ObservableObject
     [ObservableProperty] private string seconds = "";
     [ObservableProperty] private string cycles = "";
     [ObservableProperty] private string variableName = "";
-    [ObservableProperty] private string valuesText = "";
     [ObservableProperty] private string column = "axis";
     [ObservableProperty] private string dwell = "0";
     [ObservableProperty] private bool outputEnabled;
@@ -128,7 +127,6 @@ public partial class PlanStepFormViewModel : ObservableObject
     partial void OnSecondsChanged(string value) => MarkDirty();
     partial void OnCyclesChanged(string value) => MarkDirty();
     partial void OnVariableNameChanged(string value) => MarkDirty();
-    partial void OnValuesTextChanged(string value) => MarkDirty();
     partial void OnColumnChanged(string value) => MarkDirty();
     partial void OnDwellChanged(string value) => MarkDirty();
     partial void OnOutputEnabledChanged(bool value) => MarkDirty();
@@ -137,7 +135,7 @@ public partial class PlanStepFormViewModel : ObservableObject
     partial void OnPollSecondsChanged(string value) => MarkDirty();
     partial void OnIsReadOnlyChanged(bool value)
     {
-        Address.IsReadOnly = value; if (ScopeForm is { } scope) scope.IsReadOnly = value; if (IterationForm is { } iteration) iteration.IsReadOnly = value; if (MutationForm is { } mutation) mutation.IsReadOnly = value; if (OutcomeForm is { } outcome) outcome.IsReadOnly = value; if (ValueForm is { } expression) expression.IsReadOnly = value; if (ConditionForm is { } condition) condition.IsReadOnly = value; if (Environment is { } environment) environment.IsReadOnly = value; if (Acquisition is { } acquisition) acquisition.IsReadOnly = value; foreach (var channel in Channels) channel.IsReadOnly = value;
+        if (ScanValuesForm is { } scanValues) scanValues.IsReadOnly = value; Address.IsReadOnly = value; if (ScopeForm is { } scope) scope.IsReadOnly = value; if (IterationForm is { } iteration) iteration.IsReadOnly = value; if (MutationForm is { } mutation) mutation.IsReadOnly = value; if (OutcomeForm is { } outcome) outcome.IsReadOnly = value; if (ValueForm is { } expression) expression.IsReadOnly = value; if (ConditionForm is { } condition) condition.IsReadOnly = value; if (Environment is { } environment) environment.IsReadOnly = value; if (Acquisition is { } acquisition) acquisition.IsReadOnly = value; foreach (var channel in Channels) channel.IsReadOnly = value;
         AddChannelCommand.NotifyCanExecuteChanged(); RemoveChannelCommand.NotifyCanExecuteChanged();
     }
     private void AddressChanged()
@@ -145,7 +143,7 @@ public partial class PlanStepFormViewModel : ObservableObject
         if (loading) return;
         // A numeric value must be entered again after the address changes. This
         // prevents silently carrying a voltage across to an angle/temperature.
-        ValueForm?.AddressChanged(); ValuesText = ""; Tolerance = ""; MarkDirty();
+        ValueForm?.AddressChanged(); ScanValuesForm?.ContextChanged(); Tolerance = ""; MarkDirty();
     }
     private void MarkDirty() { if (loading) return; IsDirty = true; changed(); }
     private bool CanAddChannel() => IsRead && !IsReadOnly;
@@ -181,7 +179,7 @@ public partial class PlanStepFormViewModel : ObservableObject
             ConditionStep s => new ConditionStep(s.Id, ConditionForm!.Build()),
             IfElseStep s => new IfElseStep(s.Id, ConditionForm!.Build(), s.Then, s.Else),
             WhileStep s => new WhileStep(s.Id, ConditionForm!.Build(), s.Body),
-            ScanStep s => new ScanStep(s.Id, Address.BuildAddress(), new(Column), ScanValues(), Duration(Dwell), s.Body),
+            ScanStep s => new ScanStep(s.Id, Address.BuildAddress(), new(Column), ScanValuesForm!.Build(), Duration(Dwell), s.Body),
             ReadStep s => new ReadStep(s.Id, Channels.Select(c => c.Build()), Environment!.Build(), s.RequiredRoute, s.ExcitationSource),
             SourceOutputStep s => new SourceOutputStep(s.Id, Address.ResolveDevice().Id, OutputEnabled),
             _ => throw new NotSupportedException("该节点使用高级 JSON 编辑。"),
@@ -193,17 +191,10 @@ public partial class PlanStepFormViewModel : ObservableObject
         if (value is ConstantValue constant) parameter.ValidateWrite(constant.Value);
         return value;
     }
-    private Quantity WriteValue(string text)
+    private void ValidateScanValues(ScanValues values)
     {
-        var parameter = Address.ResolveParameter(); var value = new Quantity(Scalar(text), parameter.Unit);
-        parameter.ValidateWrite(value); return value;
-    }
-    private ScanValues ScanValues()
-    {
-        if (Encoding.UTF8.GetByteCount(ValuesText) > 4 * 1024 * 1024) throw new FormatException("扫描数值超过计划字节预算。");
-        var parts = ValuesText.Split(',', StringSplitOptions.TrimEntries);
-        if (parts.Length > 1_000_000) throw new FormatException("扫描点数超过计划预算。");
-        return new(parts.Select(WriteValue));
+        var parameter = Address.ResolveParameter();
+        foreach (var value in values.Values) parameter.ValidateWrite(value);
     }
     private static double Scalar(string text) => double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) && double.IsFinite(value)
         ? value : throw new FormatException("请输入有限数值，使用小数点和可选科学计数法。");
