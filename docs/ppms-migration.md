@@ -898,3 +898,15 @@ repair/current committed-package parity pending. Full-file per-page validation
 IO cost remains; live memory/indexing/multiseries/graph/physical/full goal active.
 No dependencies, Core/Infrastructure or Rust edits, no physical IO; GitHub only.
 See history-surface.md.
+
+## Validated graph editing (2026-10-12)
+
+The desktop now edits the actual native plan tree through an optional document
+port and complete Application compiler validation. Selection/current-step links,
+JSON node fragments, delay/sequence/repeat/timeout palette and direct ordinary-
+sequence add/remove/reorder are available. Dirty fragments lock run/files/full
+JSON/selection; invalid candidates preserve the prior plan and original envelope.
+Native simulation edit/save/reload/pause/resume/data/output-off verified after
+minimum-window layout repair.28 Application and six App regression cases added.
+Typed parameter forms, device palette, drag/reparent UX, virtualization and full
+workflow/physical migration remain pending. See plan-graph-editing.md.

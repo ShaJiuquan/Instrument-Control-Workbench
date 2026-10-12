@@ -8,7 +8,7 @@ using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Infrastructure.Plans;
 
-public sealed partial class JsonExperimentPlanDocument : IExperimentPlanDocument
+public sealed partial class JsonExperimentPlanDocument : IExperimentPlanStructureDocument
 {
     public const int MaximumBytes = 4 * 1024 * 1024;
     private const string Format = "instrument-workbench-plan";

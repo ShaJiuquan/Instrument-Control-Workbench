@@ -1334,3 +1334,20 @@ repair/current committed-package parity pending. Full-file per-page validation
 IO cost remains; live memory/indexing/multiseries/graph/physical/full goal active.
 No dependencies, Core/Infrastructure or Rust edits, no physical IO; GitHub only.
 See history-surface.md.
+
+## Validated plan graph editing (2026-10-12)
+
+Actual native tree projection/parent links, selectable nodes/active step facts,
+four palette kinds, JSON node fragments and ordinary-sequence append/remove/
+reorder. Optional Core document extension; Infrastructure preserves complete
+envelope and native limits; Application full compiler preflight before replacing
+draft. Required slots/IDs/variable/budget/group constraints remain authoritative;
+editing never connects devices. Dirty fragments lock run/files/full JSON/selection;
+command bodies recheck admission, discard restores state and clears errors.
+Native1060 minimum layout repaired with expandable file/results controls; actual
+working simulation add/move/remove/reject/discard/apply/save/reload/pause/locks/
+resume/one row/output-off and idle close exit0 verified.28 Application+six App
+new cases; no dependency/Rust/lab IO. Clean-package proof recorded separately.
+Typed forms/device palette/wiring UX/virtualization/general expressions/parallel/
+physical/full PPMS remain pending; independent engine/GitHub only/goal active.
+See plan-graph-editing.md.

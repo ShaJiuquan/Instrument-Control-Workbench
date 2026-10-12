@@ -48,9 +48,9 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
     public ObservableCollection<PlanOutlineItem> Outline { get; } = new();
     public ObservableCollection<PlanRowItem> Rows { get; } = new();
     public bool CanEdit => !disposed && !IsDocumentBusy && parentCanEdit();
-    public bool IsReadOnly => !CanEdit;
-    public bool IsValidated => validated is not null;
-    public ExperimentPlan? ValidatedPlan => validated?.Plan;
+    public bool IsReadOnly => !CanEdit || NodeFragmentDirty;
+    public bool IsValidated => validated is not null && !NodeFragmentDirty;
+    public ExperimentPlan? ValidatedPlan => IsValidated ? validated?.Plan : null;
     public int AcquiredRows { get; private set; }
     public string RowCount => $"{AcquiredRows} 行 · 最近 200 行";
 
@@ -62,6 +62,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
         Message = "草稿已修改；验证通过后才能运行。";
         PlanSummary = "尚未验证";
         Outline.Clear();
+        ClearGraph();
         RefreshCommands();
         changed();
     }
@@ -72,13 +73,15 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
     {
         OnPropertyChanged(nameof(CanEdit)); OnPropertyChanged(nameof(IsReadOnly)); OnPropertyChanged(nameof(IsValidated));
         ValidateCommand.NotifyCanExecuteChanged(); LoadCommand.NotifyCanExecuteChanged(); SaveCommand.NotifyCanExecuteChanged();
+        RefreshGraphCommands();
     }
-    private bool CanValidate() => CanEdit;
-    private bool CanAccessFile() => CanEdit && !string.IsNullOrWhiteSpace(DocumentPath);
+    private bool CanValidate() => CanEdit && !NodeFragmentDirty;
+    private bool CanAccessFile() => CanValidate() && !string.IsNullOrWhiteSpace(DocumentPath);
 
     [RelayCommand(CanExecute = nameof(CanValidate))]
     private void Validate()
     {
+        if (!CanValidate()) return;
         try { Apply(workspace.Validate(DocumentText)); Message = "计划验证通过，可运行或保存。"; }
         catch (Exception ex) { validated = null; HasError = true; Message = ex.Message; RefreshCommands(); changed(); }
     }
@@ -86,6 +89,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
     [RelayCommand(CanExecute = nameof(CanAccessFile))]
     private async Task LoadAsync()
     {
+        if (!CanAccessFile()) return;
         IsDocumentBusy = true;
         try { Apply(await workspace.LoadAsync(DocumentPath, lifetime.Token)); IsDirty = false; Message = "已载入并验证计划。"; }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
@@ -96,6 +100,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
     [RelayCommand(CanExecute = nameof(CanAccessFile))]
     private async Task SaveAsync()
     {
+        if (!CanAccessFile()) return;
         IsDocumentBusy = true;
         try { Apply(await workspace.SaveAsync(DocumentPath, DocumentText, lifetime.Token)); IsDirty = false; Message = "计划已保存。"; }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
@@ -113,6 +118,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
         Message = "计划已验证，可运行或保存。";
         Outline.Clear();
         AddStep(document.Plan.Root, 0);
+        RebuildGraph(document.Plan);
         RefreshCommands(); changed();
     }
 
@@ -185,6 +191,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
                 AddStep(branch.Condition, depth + 1); AddStep(branch.Then, depth + 1);
                 if (branch.Else is { } alternative) AddStep(alternative, depth + 1); break;
             case MeasurementGroupStep point: foreach (var member in point.Members) AddStep(member.Body, depth + 1); break;
+            case SampleAnalysisStep analysis: foreach (var reading in analysis.Readings) AddStep(reading, depth + 1); break;
         }
     }
 
@@ -193,6 +200,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
         observedRunId = null; LastRunId = "—"; LastRunName = validated?.Plan.Name ?? "实验计划";
         Rows.Clear(); AcquiredRows = 0; OnPropertyChanged(nameof(RowCount)); CurrentStep = "准备设备";
         foreach (var node in Outline) node.IsActive = false;
+        foreach (var node in GraphNodes) node.IsActive = false;
     }
     public void ApplyFact(WorkbenchNotification fact)
     {
@@ -202,6 +210,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
         {
             CurrentStep = step.Value;
             foreach (var node in Outline) node.IsActive = node.Id == step;
+            foreach (var node in GraphNodes) node.IsActive = node.Id == step;
         }
         if (fact.Kind == WorkbenchNotificationKind.DataRowReceived && fact.Row is { } row)
         {
@@ -214,6 +223,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
         if (fact.Kind is WorkbenchNotificationKind.RunCompleted or WorkbenchNotificationKind.RunAborted or WorkbenchNotificationKind.RunFaulted)
         {
             foreach (var node in Outline) node.IsActive = false;
+            foreach (var node in GraphNodes) node.IsActive = false;
             CurrentStep = fact.Message;
         }
     }

@@ -35,23 +35,33 @@
         </Border>
       </Grid>
     </Border>
-    <Grid Grid.Column="2" RowDefinitions="*,12,190">
+    <Grid Grid.Column="2" RowDefinitions="*,8,Auto">
       <Border Classes="panel" DataContext="{Binding Plans}" x:DataType="vm:PlanWorkspaceViewModel">
-        <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+        <Grid RowDefinitions="Auto,Auto,*,Auto">
           <Grid ColumnDefinitions="*,Auto" Margin="16,16,16,10">
-            <StackPanel Spacing="5"><TextBlock Text="计划文档" Classes="section"/><TextBlock Text="JSON 编辑 · 修改后先验证" Classes="caption" FontSize="10"/></StackPanel>
+            <StackPanel Spacing="5"><TextBlock Text="流程编辑" Classes="section"/><TextBlock Text="节点修改须应用验证，设备仍由执行层管理" Classes="caption" FontSize="10"/></StackPanel>
             <controls:OperatorButton Grid.Column="1" Content="验证计划" Command="{Binding ValidateCommand}" AutomationProperties.Name="验证计划"/>
           </Grid>
-          <TextBox Grid.Row="1" Text="{Binding DocumentPath, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" Margin="16,0,16,8" Watermark="计划文件的完整路径" AutomationProperties.Name="计划文件路径"/>
-          <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Margin="16,0,16,10">
-            <controls:OperatorButton Content="载入" Command="{Binding LoadCommand}" AutomationProperties.Name="载入计划"/><controls:OperatorButton Content="保存" Command="{Binding SaveCommand}" AutomationProperties.Name="保存计划"/>
-            <TextBlock Text="有未保存修改" IsVisible="{Binding IsDirty}" Classes="caption" VerticalAlignment="Center" FontSize="10"/>
-          </StackPanel>
-          <TextBox Grid.Row="3" Text="{Binding DocumentText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AcceptsReturn="True" AcceptsTab="True" FontFamily="Menlo,Consolas,monospace" FontSize="11" TextWrapping="NoWrap" Margin="16,0,16,10" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" AutomationProperties.Name="计划内容"/>
-          <Border Grid.Row="4" Padding="16,0,16,12"><TextBlock Text="{Binding Message}" Classes="caption" Classes.error="{Binding HasError}" TextWrapping="Wrap" MaxHeight="58" TextTrimming="CharacterEllipsis"/></Border>
+          <Expander Grid.Row="1" Header="计划文件" Margin="16,0,16,8" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" FontSize="11">
+            <StackPanel Spacing="8" Margin="0,8,0,0">
+              <TextBox Text="{Binding DocumentPath, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" Watermark="计划文件的完整路径" AutomationProperties.Name="计划文件路径"/>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <controls:OperatorButton Content="载入" Command="{Binding LoadCommand}" AutomationProperties.Name="载入计划"/><controls:OperatorButton Content="保存" Command="{Binding SaveCommand}" AutomationProperties.Name="保存计划"/>
+                <TextBlock Text="有未保存修改" IsVisible="{Binding IsDirty}" Classes="caption" VerticalAlignment="Center" FontSize="10"/>
+              </StackPanel>
+            </StackPanel>
+          </Expander>
+          <TabControl Grid.Row="2" FontSize="12" Margin="8,0,8,8">
+            <TabItem Header="流程图" FontSize="12" IsVisible="{Binding SupportsGraph}"><views:PlanGraphView/></TabItem>
+            <TabItem Header="节点参数" FontSize="12" IsVisible="{Binding SupportsGraph}"><views:PlanNodeEditorView/></TabItem>
+            <TabItem Header="计划 JSON" FontSize="12"><TextBox Text="{Binding DocumentText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AcceptsReturn="True" AcceptsTab="True" FontFamily="Menlo,Consolas,monospace" FontSize="11" TextWrapping="NoWrap" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" AutomationProperties.Name="计划内容"/></TabItem>
+          </TabControl>
+          <Border Grid.Row="3" Padding="16,0,16,12"><TextBlock Text="{Binding Message}" Classes="caption" Classes.error="{Binding HasError}" TextWrapping="Wrap" MaxHeight="58" TextTrimming="CharacterEllipsis"/></Border>
         </Grid>
       </Border>
-      <views:PlanResultsView Grid.Row="2" DataContext="{Binding Plans}"/>
+      <Expander Grid.Row="2" Header="最近运行数据" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" FontSize="11">
+        <views:PlanResultsView Height="180" DataContext="{Binding Plans}"/>
+      </Expander>
     </Grid>
   </Grid>
   <UserControl.Styles>

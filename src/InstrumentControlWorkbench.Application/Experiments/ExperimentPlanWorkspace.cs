@@ -8,6 +8,18 @@ public sealed record ValidatedPlanDocument(ExperimentPlan Plan, string Text, Exp
 
 public sealed class ExperimentPlanWorkspace(IExperimentPlanDocument documents, MeasurementRunService runs, IExperimentPlanImporter? importer = null, IRoutingProfileImporter? routingProfiles = null)
 {
+    public bool SupportsStructureEditing => documents is IExperimentPlanStructureDocument;
+    public IReadOnlyList<PlanStructureNode> DescribeStructure(ExperimentPlan plan) => StructureDocuments.DescribeStructure(plan);
+    public string ReadFragment(ExperimentPlan plan, StepId selected) => StructureDocuments.ReadFragment(plan, selected);
+    public ValidatedPlanDocument EditStructure(ExperimentPlan plan, PlanStructureEdit edit)
+    {
+        // Full capability/variable/budget/resource validation before the caller
+        // replaces its draft. Editing performs no connection or device commands.
+        runs.PreviewPlan(plan);
+        return Inspect(StructureDocuments.EditStructure(plan, edit));
+    }
+    private IExperimentPlanStructureDocument StructureDocuments => documents as IExperimentPlanStructureDocument
+        ?? throw new NotSupportedException("This plan document adapter does not support structure editing.");
     public Task<RoutingProfileCatalog> LoadRoutingProfilesAsync(string channelsPath, string samplesPath, string instrumentPortsPath, CancellationToken token)
         => (routingProfiles ?? throw new InvalidOperationException("No routing profile importer is configured.")).LoadAsync(channelsPath, samplesPath, instrumentPortsPath, token);
     public ValidatedPlanDocument Import(string text, ExperimentImportBindings bindings)
