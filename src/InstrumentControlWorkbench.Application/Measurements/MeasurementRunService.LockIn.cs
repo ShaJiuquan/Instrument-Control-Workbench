@@ -9,7 +9,7 @@ public sealed partial class MeasurementRunService
 {
     private async Task AcquireSr830RowAsync(ReadSr830FrameStep step, RunExecutionContext run, IReadOnlyList<IRunResultListener> started)
     {
-        var observed = await run.Resources!.ReadSr830FrameAsync(step.Device, step.Input, run.Token);
+        var observed = await run.Resources!.ReadSr830FrameAsync(step.Device, step.Input, run.Token, step.IncludeReference);
         var acquired = step.CaptureValues(observed);
         var values = new Dictionary<ParameterId, Quantity>(run.Axes) { [ExperimentPlanCompiler.Elapsed.Id] = new(run.Elapsed.Elapsed.TotalSeconds, PhysicalUnit.Second) };
         foreach (var value in acquired) { values.Add(value.Key, value.Value); run.SetVariable(value.Key, value.Value, step.Id); }

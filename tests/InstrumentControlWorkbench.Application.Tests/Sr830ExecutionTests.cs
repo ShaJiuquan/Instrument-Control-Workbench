@@ -147,17 +147,23 @@ public sealed partial class Sr830ExecutionTests
     }
     private sealed class Bench
     {
-        public NotificationHub Hub { get; } = new(); public InstrumentLeaseService Leases { get; } = new(TimeSpan.FromSeconds(5)); public RecordingMeter Meter { get; } = new();
+        public NotificationHub Hub { get; } = new(); public InstrumentLeaseService Leases { get; } = new(TimeSpan.FromSeconds(5)); public RecordingMeter Meter { get; }
         public MockKeithley2450SourceMeter Source { get; } = new(); public DeviceRegistry Registry { get; }
         public MeasurementRunService Runs { get; }
-        public Bench(IRunResultListener? listener = null) { Registry = new([new Sr830MeterSession(Meter, Hub), new InstrumentManager(Source, Hub)], Leases); Runs = new(Registry, Hub, listener is null ? null : [listener]); }
+        public Bench(IRunResultListener? listener = null, bool reference = false) { Meter = new(reference); Registry = new([new Sr830MeterSession(Meter, Hub), new InstrumentManager(Source, Hub)], Leases); Runs = new(Registry, Hub, listener is null ? null : [listener]); }
         public SetParameterStep Write(string id, ParameterDescriptor p, double value) => new(new(id), new(Meter.Descriptor.Id, p.Id), new ConstantValue(new(value, p.Unit)));
         public ReadSr830FrameStep Frame(string id = "read", Sr830InputMode input = Sr830InputMode.VoltageAB) => new(new(id), Meter.Descriptor.Id, input, new(id));
         public ExperimentPlan Plan(params ExperimentStep[] steps) => new("Passive SR830", new SequenceStep(new("root"), steps));
     }
     private sealed class RecordingMeter : ISr830MeterPort
     {
-        public DeviceDescriptor Descriptor { get; } = new(new("lockin"), "SR830", "Lock-in simulator", DriverKind.Simulation, DeviceStopPolicy.AbortAcquisition, Sr830Parameters.All);
+        public RecordingMeter(bool reference = false)
+        {
+            Descriptor = new(new("lockin"), "SR830", "Lock-in simulator", DriverKind.Simulation, DeviceStopPolicy.AbortAcquisition, reference ? Sr830Parameters.WithReference : Sr830Parameters.All);
+            Reference = reference ? new(Sr830ReferenceSource.Internal, new(13.7, PhysicalUnit.Hertz), new(.004, PhysicalUnit.Volt), 1) : null;
+        }
+        public DeviceDescriptor Descriptor { get; }
+        public Sr830ReferenceReadback? Reference { get; set; }
         public Sr830InputSettings Settings { get; set; } = new(Sr830InputMode.VoltageAB, new(.01, PhysicalUnit.Volt), new(.1, PhysicalUnit.Second), 12);
         public int Reads { get; private set; }
         public int Stops { get; private set; }
@@ -168,7 +174,7 @@ public sealed partial class Sr830ExecutionTests
         public Func<CancellationToken, Task>? OnRead { get; set; }
         private bool connected; private bool acquiring;
         public Task<Sr830MeterSnapshot> ConnectAsync(CancellationToken token) { token.ThrowIfCancellationRequested(); connected = true; Connections++; return GetSnapshotAsync(token); }
-        public Task<Sr830MeterSnapshot> GetSnapshotAsync(CancellationToken token) { token.ThrowIfCancellationRequested(); return Task.FromResult(new Sr830MeterSnapshot(connected, acquiring, connected ? Settings : null, DateTimeOffset.UtcNow)); }
+        public Task<Sr830MeterSnapshot> GetSnapshotAsync(CancellationToken token) { token.ThrowIfCancellationRequested(); return Task.FromResult(new Sr830MeterSnapshot(connected, acquiring, connected ? Settings : null, DateTimeOffset.UtcNow, connected ? Reference : null)); }
         public Task ConfigureAsync(Sr830InputSettings settings, CancellationToken token) { token.ThrowIfCancellationRequested(); if (!IgnoreWrites) Settings = settings; return Task.CompletedTask; }
         public async Task<Sr830RawFrame> ReadFrameAsync(CancellationToken token) { Reads++; if (OnRead is not null) await OnRead(token); token.ThrowIfCancellationRequested(); return new(new(.001, PhysicalUnit.Volt), new(-.002, PhysicalUnit.Volt), new(.0023, PhysicalUnit.Volt), new(-63, PhysicalUnit.Degree), FrameTime ?? DateTimeOffset.UtcNow); }
         public Task AbortAcquisitionAsync(CancellationToken token) { token.ThrowIfCancellationRequested(); Stops++; acquiring = RefuseStop; return Task.CompletedTask; }

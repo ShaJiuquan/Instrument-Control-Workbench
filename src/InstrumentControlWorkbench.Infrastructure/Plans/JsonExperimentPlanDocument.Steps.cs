@@ -41,7 +41,7 @@ public sealed partial class JsonExperimentPlanDocument
                 if (temperature.Rate is { } rate) o["rate"] = EncodeQuantity(rate);
                 if (!temperature.EnableControl) o["enableControl"] = false; break;
             case ReadSr830FrameStep lockIn:
-                o["kind"] = "read_sr830_frame"; o["device"] = lockIn.Device.Value; o["input"] = lockIn.Input.ToString(); o["prefix"] = lockIn.Prefix.Value; break;
+                o["kind"] = "read_sr830_frame"; o["device"] = lockIn.Device.Value; o["input"] = lockIn.Input.ToString(); o["prefix"] = lockIn.Prefix.Value; if (lockIn.IncludeReference) o["includeReference"] = true; break;
             case ReadSourceSenseStep pair:
                 o["kind"] = "read_source_sense"; o["device"] = pair.Device.Value; o["function"] = pair.Function.ToString();
                 o["voltageColumn"] = pair.VoltageColumn.Value; o["currentColumn"] = pair.CurrentColumn.Value; EncodeEnvironment(o, pair.EnvironmentReads); break;
@@ -222,8 +222,8 @@ public sealed partial class JsonExperimentPlanDocument
                 Object(o, "id", "kind", "device", "target", "rate", "enableControl");
                 return new SoftwareTemperatureRampStep(id, new(Text(o, "device")), DecodeValue(o["target"]), o.ContainsKey("rate") ? DecodeQuantity(o["rate"]) : null, !o.ContainsKey("enableControl") || Boolean(o, "enableControl"));
             case "read_sr830_frame":
-                Object(o, "id", "kind", "device", "input", "prefix");
-                return new ReadSr830FrameStep(id, new(Text(o, "device")), NamedEnum<Sr830InputMode>(o, "input"), new(Text(o, "prefix")));
+                Object(o, "id", "kind", "device", "input", "prefix", "includeReference");
+                return new ReadSr830FrameStep(id, new(Text(o, "device")), NamedEnum<Sr830InputMode>(o, "input"), new(Text(o, "prefix")), o.ContainsKey("includeReference") && Boolean(o, "includeReference"));
             case "read_source_sense":
                 Object(o, "id", "kind", "device", "function", "voltageColumn", "currentColumn", "environmentReads");
                 return new ReadSourceSenseStep(id, new(Text(o, "device")), NamedEnum<SourceFunction>(o, "function"), new(Text(o, "voltageColumn")), new(Text(o, "currentColumn")), DecodeEnvironment(o));

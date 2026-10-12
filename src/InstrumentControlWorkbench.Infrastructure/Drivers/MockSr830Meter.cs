@@ -11,7 +11,8 @@ public sealed class MockSr830Meter : ISr830MeterPort
     private readonly SemaphoreSlim gate = new(1, 1);
     private bool connected;
     private Sr830InputSettings settings = new(Sr830InputMode.VoltageAB, new(.01, PhysicalUnit.Volt), new(.1, PhysicalUnit.Second), 12);
-    public MockSr830Meter(InstrumentId id, string displayName) => Descriptor = new(id, "SR830", displayName, DriverKind.Simulation, DeviceStopPolicy.AbortAcquisition, Sr830Parameters.All);
+    public MockSr830Meter(InstrumentId id, string displayName) => Descriptor = new(id, "SR830", displayName, DriverKind.Simulation, DeviceStopPolicy.AbortAcquisition, Sr830Parameters.WithReference);
+    private readonly Sr830ReferenceReadback reference = new(Sr830ReferenceSource.Internal, new(13.7, PhysicalUnit.Hertz), new(.004, PhysicalUnit.Volt), 1);
     public DeviceDescriptor Descriptor { get; }
     public async Task<Sr830MeterSnapshot> ConnectAsync(CancellationToken token)
     {
@@ -40,6 +41,6 @@ public sealed class MockSr830Meter : ISr830MeterPort
     {
         await gate.WaitAsync(token); try { connected = false; } finally { gate.Release(); }
     }
-    private Sr830MeterSnapshot Snapshot() => new(connected, false, connected ? settings : null, DateTimeOffset.UtcNow);
+    private Sr830MeterSnapshot Snapshot() => new(connected, false, connected ? settings : null, DateTimeOffset.UtcNow, connected ? reference : null);
     private void RequireConnected() { if (!connected) throw new InvalidOperationException($"{Descriptor.Id} is disconnected."); }
 }

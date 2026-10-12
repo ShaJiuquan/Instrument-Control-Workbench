@@ -6,7 +6,7 @@ using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Application.Devices;
 
-internal sealed record DeviceResumeState(InstrumentId Device, bool OutputEnabled, ParameterId? Target, Quantity? TargetValue, SourceMeterSnapshot? SourceState = null, TemperatureControlConfiguration? TemperatureState = null, Keithley2182Settings? MeterState = null, Core.Instruments.Ports.K6221CurrentSourceSnapshot? CurrentSourceState = null, Quantity? TemperatureRate = null, Quantity? TemperatureSoftwareTarget = null, Quantity? TemperatureSoftwareRate = null, Sr830InputSettings? LockInState = null);
+internal sealed record DeviceResumeState(InstrumentId Device, bool OutputEnabled, ParameterId? Target, Quantity? TargetValue, SourceMeterSnapshot? SourceState = null, TemperatureControlConfiguration? TemperatureState = null, Keithley2182Settings? MeterState = null, Core.Instruments.Ports.K6221CurrentSourceSnapshot? CurrentSourceState = null, Quantity? TemperatureRate = null, Quantity? TemperatureSoftwareTarget = null, Quantity? TemperatureSoftwareRate = null, Sr830ResumeConfiguration? LockInState = null);
 
 public sealed record DeviceCleanupFailure(InstrumentId InstrumentId, Exception Error);
 
@@ -73,7 +73,7 @@ public sealed partial class DeviceRunResources
         finally { gate.Release(); }
     }
 
-    public async Task<Core.Instruments.Ports.Sr830FrameObservation> ReadSr830FrameAsync(InstrumentId id, Sr830InputMode input, CancellationToken token)
+    public async Task<Core.Instruments.Ports.Sr830FrameObservation> ReadSr830FrameAsync(InstrumentId id, Sr830InputMode input, CancellationToken token, bool includeReference = false)
     {
         await gate.WaitAsync(token);
         try
@@ -81,7 +81,7 @@ public sealed partial class DeviceRunResources
             RequireActive();
             var session = Get(id) as Sr830MeterSession ?? throw new NotSupportedException($"{id} is not a passive SR830 meter.");
             await PrepareMutationAsync(id); token.ThrowIfCancellationRequested(); touched.Add(id);
-            return await session.ReadFrameAsync(input, token, Owner);
+            return await session.ReadFrameAsync(input, token, Owner, includeReference);
         }
         finally { gate.Release(); }
     }

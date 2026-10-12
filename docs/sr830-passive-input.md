@@ -91,3 +91,7 @@ unit validation, ignored settings, acquisition drift/timestamps/cancellation,
 column collisions, pause drift, stale stop proof and retained failed cleanup.
 Native forms and physical acceptance remain deferred; no desktop process/window
 is launched and no new package dependency is added.
+
+Read-only reference observations, normalized port units and nominal input-referred
+analysis are now documented in [sr830-reference-analysis.md](sr830-reference-analysis.md).
+The original eight-column default and passive stop policy remain valid.

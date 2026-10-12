@@ -1,0 +1,145 @@
+{
+  "format": "instrument-workbench-plan",
+  "version": 1,
+  "name": "SR830 nominal input and reference diagnostics",
+  "preparations": [],
+  "metadata": {},
+  "root": {
+    "kind": "sequence",
+    "id": "root",
+    "children": [
+      {
+        "kind": "set",
+        "id": "input",
+        "address": {
+          "device": "sr830",
+          "parameter": "sr830.input_mode"
+        },
+        "value": {
+          "constant": {
+            "value": 2,
+            "unit": "Dimensionless"
+          }
+        }
+      },
+      {
+        "kind": "for_each",
+        "id": "points",
+        "variable": "iteration",
+        "values": {
+          "unit": "Dimensionless",
+          "values": [
+            1,
+            2,
+            3
+          ]
+        },
+        "body": {
+          "kind": "calculated_measurement",
+          "id": "refer",
+          "body": {
+            "kind": "read_sr830_frame",
+            "id": "raw",
+            "device": "sr830",
+            "input": "Current1M",
+            "prefix": "raw",
+            "includeReference": true
+          },
+          "columns": [
+            {
+              "column": "signal.input_x",
+              "expression": {
+                "arithmetic": {
+                  "operator": "Divide",
+                  "left": {
+                    "variable": "raw.x_v"
+                  },
+                  "right": {
+                    "constant": {
+                      "value": 1000000.0,
+                      "unit": "Ohm"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "column": "signal.input_y",
+              "expression": {
+                "arithmetic": {
+                  "operator": "Divide",
+                  "left": {
+                    "variable": "raw.y_v"
+                  },
+                  "right": {
+                    "constant": {
+                      "value": 1000000.0,
+                      "unit": "Ohm"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "column": "signal.input_r",
+              "expression": {
+                "arithmetic": {
+                  "operator": "Divide",
+                  "left": {
+                    "variable": "raw.r_v"
+                  },
+                  "right": {
+                    "constant": {
+                      "value": 1000000.0,
+                      "unit": "Ohm"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "column": "signal.nominal_input_sensitivity",
+              "expression": {
+                "arithmetic": {
+                  "operator": "Divide",
+                  "left": {
+                    "variable": "raw.sensitivity_v"
+                  },
+                  "right": {
+                    "constant": {
+                      "value": 1000000.0,
+                      "unit": "Ohm"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "column": "signal.nominal_transimpedance_ohm",
+              "expression": {
+                "constant": {
+                  "value": 1000000.0,
+                  "unit": "Ohm"
+                }
+              }
+            },
+            {
+              "column": "instrument_current_over_sine",
+              "expression": {
+                "arithmetic": {
+                  "operator": "Divide",
+                  "left": {
+                    "variable": "signal.input_x"
+                  },
+                  "right": {
+                    "variable": "raw.sine_amplitude_v"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

@@ -20,6 +20,7 @@ public enum PhysicalUnit
     OhmPerSquare,
     OhmMeter,
     Watt,
+    Siemens,
 }
 
 public readonly record struct Quantity

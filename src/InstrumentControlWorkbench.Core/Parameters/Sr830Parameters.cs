@@ -13,6 +13,7 @@ public static class Sr830Parameters
     public static readonly ParameterDescriptor TimeConstant = new(new("sr830.time_constant"), "Time constant", PhysicalUnit.Second, ParameterAccess.ReadWrite, new(1e-5, PhysicalUnit.Second), new(30000, PhysicalUnit.Second));
     public static readonly ParameterDescriptor FilterSlope = new(new("sr830.filter_slope"), "Filter slope (dB/oct)", PhysicalUnit.Dimensionless, ParameterAccess.ReadWrite, new(6, PhysicalUnit.Dimensionless), new(24, PhysicalUnit.Dimensionless));
     public static IReadOnlyList<ParameterDescriptor> All { get; } = Array.AsReadOnly(new[] { X, Y, R, Theta, InputMode, Sensitivity, TimeConstant, FilterSlope });
+    public static IReadOnlyList<ParameterDescriptor> WithReference { get; } = Array.AsReadOnly(All.Concat(Sr830ReferenceParameters.All).ToArray());
     public static void ValidateWrite(ParameterId parameter, Quantity value)
     {
         var descriptor = All.SingleOrDefault(p => p.Id == parameter) ?? throw new NotSupportedException($"Unknown SR830 parameter {parameter}.");

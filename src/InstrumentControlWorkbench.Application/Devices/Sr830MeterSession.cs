@@ -8,6 +8,8 @@ using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Application.Devices;
 
+internal sealed record Sr830ResumeConfiguration(Sr830InputSettings Input, Sr830ReferenceReadback? Reference);
+
 public sealed class Sr830MeterSession : IDeviceSession
 {
     private readonly ISr830MeterPort port;
@@ -17,10 +19,11 @@ public sealed class Sr830MeterSession : IDeviceSession
     public Sr830MeterSession(ISr830MeterPort port, NotificationHub notifications)
     {
         ArgumentNullException.ThrowIfNull(port); ArgumentNullException.ThrowIfNull(notifications);
-        if (port.Descriptor.Model != "SR830" || port.Descriptor.StopPolicy != DeviceStopPolicy.AbortAcquisition || !port.Descriptor.Parameters.SequenceEqual(Sr830Parameters.All)) throw new ArgumentException("SR830 session requires its passive input profile.");
+        if (port.Descriptor.Model != "SR830" || port.Descriptor.StopPolicy != DeviceStopPolicy.AbortAcquisition || !(port.Descriptor.Parameters.SequenceEqual(Sr830Parameters.All) || port.Descriptor.Parameters.SequenceEqual(Sr830Parameters.WithReference))) throw new ArgumentException("SR830 session requires its passive input profile.");
         this.port = port; this.notifications = notifications; operations = new(port.Descriptor.Id);
     }
     public DeviceDescriptor Descriptor => port.Descriptor;
+    public bool SupportsReference => Descriptor.Parameters.SequenceEqual(Sr830Parameters.WithReference);
     public Task ClaimRunAsync(RunId owner, CancellationToken token) => operations.ClaimAsync(owner, token);
     public Task ReleaseRunAsync(RunId owner, CancellationToken token) => operations.ReleaseAsync(owner, token);
     public async Task<DeviceStatus> ConnectDeviceAsync(CancellationToken token, RunId? owner = null)
@@ -60,21 +63,29 @@ public sealed class Sr830MeterSession : IDeviceSession
             return new(parameter == Sr830Parameters.X.Id ? frame.X : parameter == Sr830Parameters.Y.Id ? frame.Y : parameter == Sr830Parameters.R.Id ? frame.R : frame.Theta, frame.CapturedAt);
         }
         await operations.EnterAsync(token, owner);
-        try { var state = await port.GetSnapshotAsync(token); RequireIdle(state); return new(state.Settings!.CaptureParameters()[parameter], state.Timestamp); }
+        try
+        {
+            var state = await port.GetSnapshotAsync(token); RequireIdle(state); var values = new Dictionary<ParameterId, Quantity>(state.Settings!.CaptureParameters());
+            if (state.Reference is { } reference && SupportsReference) foreach (var value in reference.CaptureParameters()) values.Add(value.Key, value.Value);
+            return new(values.TryGetValue(parameter, out var observed) ? observed : throw new InvalidOperationException("Reference readback is unavailable."), state.Timestamp);
+        }
         catch { faulted = true; throw; }
         finally { operations.Exit(); }
     }
-    public async Task<Sr830FrameObservation> ReadFrameAsync(Sr830InputMode? requiredInput, CancellationToken token, RunId? owner = null)
+    public async Task<Sr830FrameObservation> ReadFrameAsync(Sr830InputMode? requiredInput, CancellationToken token, RunId? owner = null, bool includeReference = false)
     {
+        if (includeReference && !SupportsReference) throw new NotSupportedException("SR830 profile does not declare reference readback.");
         await operations.EnterAsync(token, owner);
         try
         {
             var before = await port.GetSnapshotAsync(token); RequireIdle(before);
+            if (includeReference && before.Reference is null) throw new InvalidOperationException("Reference-enabled acquisition requires observed reference readback.");
             if (requiredInput is { } input && before.Settings!.Input != input) throw new InvalidOperationException("Observed lock-in input differs from the frozen acquisition mode.");
             var frame = await port.ReadFrameAsync(token); token.ThrowIfCancellationRequested();
             var after = await port.GetSnapshotAsync(token); RequireIdle(after);
+            if (includeReference && after.Reference != before.Reference) throw new InvalidOperationException("Reference readback changed during acquisition; discard the frame.");
             if (after.Settings != before.Settings || frame.CapturedAt < before.Timestamp || frame.CapturedAt > after.Timestamp) throw new InvalidOperationException("Lock-in input settings or frame timestamp changed outside the acquisition boundary; discard the frame.");
-            await PublishAsync(after, token); return new(frame, before.Settings!);
+            await PublishAsync(after, token); return new(frame, before.Settings!, includeReference ? before.Reference : null);
         }
         catch { faulted = true; throw; }
         finally { operations.Exit(); }
@@ -106,18 +117,20 @@ public sealed class Sr830MeterSession : IDeviceSession
         catch { faulted = true; throw; }
         finally { operations.Exit(); }
     }
-    internal async Task<Sr830InputSettings> CaptureResumeSettingsAsync(RunId owner, CancellationToken token)
+    internal async Task<Sr830ResumeConfiguration> CaptureResumeSettingsAsync(RunId owner, CancellationToken token)
     {
         await operations.EnterAsync(token, owner);
-        try { var state = await port.GetSnapshotAsync(token); RequireIdle(state); return state.Settings!; }
+        try { var state = await port.GetSnapshotAsync(token); RequireIdle(state); if (SupportsReference && state.Reference is null) throw new InvalidOperationException("Reference-capable profile did not observe reference state for resume."); return new(state.Settings!, SupportsReference ? state.Reference : null); }
         finally { operations.Exit(); }
     }
     private static void RequireIdle(Sr830MeterSnapshot state) { if (!state.Connected || state.Acquiring) throw new InvalidOperationException("Lock-in input must be connected and idle."); }
     private async Task<DeviceStatus> PublishAsync(Sr830MeterSnapshot snapshot, CancellationToken token)
     {
         var lifecycle = !snapshot.Connected ? InstrumentLifecycleState.Disconnected : faulted ? InstrumentLifecycleState.Faulted : snapshot.Acquiring ? InstrumentLifecycleState.Running : InstrumentLifecycleState.Idle;
+        var values = snapshot.Connected ? new Dictionary<ParameterId, Quantity>(snapshot.Settings!.CaptureParameters()) : new Dictionary<ParameterId, Quantity>();
+        if (snapshot.Connected && SupportsReference && snapshot.Reference is { } reference) foreach (var value in reference.CaptureParameters()) values.Add(value.Key, value.Value);
         var status = new DeviceStatus(Descriptor, lifecycle, snapshot.Connected, (snapshot.Connected || Descriptor.DriverKind == DriverKind.Simulation) && !snapshot.Acquiring,
-            snapshot.Timestamp, snapshot.Connected ? snapshot.Settings!.CaptureParameters() : new Dictionary<ParameterId, Quantity>());
+            snapshot.Timestamp, values);
         await notifications.PublishAsync(new(WorkbenchNotificationKind.DeviceStateChanged, $"{Descriptor.DisplayName}: {lifecycle}", Descriptor.Id, Device: status), token); return status;
     }
 }

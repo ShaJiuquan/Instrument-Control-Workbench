@@ -63,6 +63,7 @@ public static class HistoryPresentation
         PhysicalUnit.Degree => "°",
         PhysicalUnit.Second => "s",
         PhysicalUnit.Hertz => "Hz",
+        PhysicalUnit.Siemens => "S",
         PhysicalUnit.Coulomb => "C",
         PhysicalUnit.Pascal => "Pa",
         PhysicalUnit.KelvinPerMinute => "K/min",

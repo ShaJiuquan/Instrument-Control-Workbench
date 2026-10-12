@@ -10,6 +10,8 @@ public static class QuantityArithmetic
     [
         (PhysicalUnit.Ampere, PhysicalUnit.Ohm, PhysicalUnit.Volt, 1),
         (PhysicalUnit.Volt, PhysicalUnit.Ampere, PhysicalUnit.Watt, 1),
+        (PhysicalUnit.Siemens, PhysicalUnit.Volt, PhysicalUnit.Ampere, 1),
+        (PhysicalUnit.Siemens, PhysicalUnit.Ohm, PhysicalUnit.Dimensionless, 1),
         (PhysicalUnit.Ampere, PhysicalUnit.Second, PhysicalUnit.Coulomb, 1),
         (PhysicalUnit.Ohm, PhysicalUnit.Meter, PhysicalUnit.OhmMeter, 1),
         (PhysicalUnit.TeslaPerSecond, PhysicalUnit.Second, PhysicalUnit.Tesla, 1),

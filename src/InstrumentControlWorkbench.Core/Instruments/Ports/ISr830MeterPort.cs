@@ -16,16 +16,20 @@ public interface ISr830MeterPort
 }
 public sealed record Sr830MeterSnapshot
 {
-    public Sr830MeterSnapshot(bool connected, bool acquiring, Sr830InputSettings? settings, DateTimeOffset timestamp)
+    public Sr830MeterSnapshot(bool connected, bool acquiring, Sr830InputSettings? settings, DateTimeOffset timestamp, Sr830ReferenceReadback? reference = null)
     {
         if (connected && settings is null || acquiring && !connected) throw new ArgumentException("Connected lock-in requires observed input settings; acquisition requires connection.");
-        Connected = connected; Acquiring = acquiring; Settings = settings; Timestamp = timestamp;
+        Connected = connected; Acquiring = acquiring; Settings = settings; Timestamp = timestamp; Reference = reference;
     }
     public bool Connected { get; }
     public bool Acquiring { get; }
     public Sr830InputSettings? Settings { get; }
     public DateTimeOffset Timestamp { get; }
+    public Sr830ReferenceReadback? Reference { get; }
 }
+// Contract values are normalized voltage-equivalent values even for current
+// inputs. A hardware adapter must prove/normalize its wire representation;
+// input-referred ampere responses must not be divided by gain twice.
 // One SNAP response; X/Y and R/theta are pair-coherent, not mathematically
 // identical instants. Keep the reported magnitude/phase; never reconstruct them.
 public sealed record Sr830RawFrame
@@ -41,4 +45,4 @@ public sealed record Sr830RawFrame
     public Quantity Theta { get; }
     public DateTimeOffset CapturedAt { get; }
 }
-public sealed record Sr830FrameObservation(Sr830RawFrame Frame, Sr830InputSettings Settings);
+public sealed record Sr830FrameObservation(Sr830RawFrame Frame, Sr830InputSettings Settings, Sr830ReferenceReadback? Reference = null);

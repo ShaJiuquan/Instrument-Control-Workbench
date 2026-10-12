@@ -35,7 +35,7 @@ public sealed partial class RunDataRowValidator
                 MutateValueStep mutation => mutation.Variable == variable && (mutation.Action == VariableMutation.Multiply ? entry.Value is BlackboardQuantity :
                     IsQuantity(entry, mutation.Value.Unit) && (mutation.Action != VariableMutation.Set || ((BlackboardQuantity)entry.Value).Value == mutation.Value)),
                 ReadStep read => acquisitions[read.Id].ContainsKey(variable) && units.TryGetValue(variable, out var unit) && IsQuantity(entry, unit),
-                ReadSr830FrameStep read => read.Channels.Any(c => c.Column == variable && IsQuantity(entry, Sr830Parameters.All.Single(p => p.Id == c.Address.Parameter).Unit)),
+                ReadSr830FrameStep read => ValidLockInValue(read, variable, entry),
                 ReadSourceSenseStep read => variable == read.VoltageColumn ? IsQuantity(entry, PhysicalUnit.Volt) : variable == read.CurrentColumn && IsQuantity(entry, PhysicalUnit.Ampere),
                 ReadResistanceStep read => ValidResistance(read, variable, entry),
                 ReadCurrentResistanceStep read => ValidResistance(read, variable, entry),

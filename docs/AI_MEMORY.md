@@ -1844,3 +1844,23 @@ See sr830-passive-input.md and explicit CLI examples. No packages, Rust writes,
 physical IO or desktop actions; native forms/visual/physical acceptance deferred.
 Full PPMS measurement/controller/workflow/data/settings/remote ownership goal
 remains active; independent C# engine and GitHub only.
+
+## SR830 reference observations and nominal signal referral (2026-10-13)
+
+Explicit passive profiles advertise eight input params or twelve including reference
+source/frequency/SLVL/harmonic. Native includeReference is opt-in; metadata preflight,
+actual pre/post reference equality, missing values and pause drift reject. No default
+readback or oscillator/mute control. Existing normalized-voltage-equivalent port
+contract remains explicit: future actual amperes wire responses require verified
+adapter normalization, never blind/double division; Rust current role names/wrappers
+alone do not prove units. Pure helper builds ordinary typed calculated rows referring
+Current1M/100M by nominal Ohm transimpedance; preserves raw R/theta/input/reference
+and gain evidence. Not calibration or full differential/sample-terminal excitation.
+Siemens appended to units, typed conductance/reciprocal relations reuse finite numeric
+policy. Archive rows and frame-written footer fields validate settings, reference
+codes/bounds and lineage; fresh codec/archive/CSV and recomputed ratios tested.
+Six-row CLI diagnostic example; history S label only, no layout/window action.
+See sr830-reference-analysis.md. User mute/isolation wiring clarification pending;
+independent data work proceeds, native acceptance deferred, no deps/Rust/physical IO.
+Full differential/AC routing/controller/workflow/data/settings and remote ownership
+remain active; independent C# engine, GitHub only.

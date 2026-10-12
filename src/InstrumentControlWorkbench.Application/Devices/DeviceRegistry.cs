@@ -25,6 +25,7 @@ public sealed class DeviceRegistry
     }
 
     public bool SupportsSr830Frame(InstrumentId device) => Get(device) is Sr830MeterSession;
+    public bool SupportsSr830Reference(InstrumentId device) => Get(device) is Sr830MeterSession { SupportsReference: true };
     public IReadOnlyList<DeviceDescriptor> Devices { get; }
     public IReadOnlyList<AxisControllerDefinition> AxisDefinitions { get; }
     public IReadOnlyList<MatrixSwitchDefinition> MatrixDefinitions { get; }

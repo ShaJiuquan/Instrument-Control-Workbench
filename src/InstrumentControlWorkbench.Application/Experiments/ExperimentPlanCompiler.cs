@@ -415,6 +415,7 @@ internal static partial class ExperimentPlanCompiler
                 case ReadSr830FrameStep lockIn:
                     Device(lockIn.Device);
                     if (!registry.SupportsSr830Frame(lockIn.Device)) throw new NotSupportedException("Device has no passive SR830 frame capability.");
+                    if (lockIn.IncludeReference && !registry.SupportsSr830Reference(lockIn.Device)) throw new NotSupportedException("Device has no reference readback capability.");
                     foreach (var channel in lockIn.Channels)
                     {
                         if (columns.ContainsKey(channel.Column)) throw new ArgumentException("Lock-in frame columns require distinct acquisition identities.");
