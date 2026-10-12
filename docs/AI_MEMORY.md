@@ -1454,3 +1454,19 @@ columns5–8/current2/meter2 route execution/cleanup and unused sessions disconn
 Native pending due unresolved same-bundle window attribution; no user window action
 or rendering claim from compiled evidence. No deps/Rust/lab IO; independent engine/
 GitHub only/full goal active. See plan-context-binding-forms.md.
+
+## Typed values and workflow forms (2026-10-13)
+
+Shared typed value editor adapts existing Quantity/Variable/QuantityFromNumber/
+Bool/Text for set/wait/assign/condition; no expression string evaluation or new
+interpreter. Hardware unit comes from actual parameter, address changes clear
+numeric/reference input, full compiler retains type/unit/availability/range rules.
+Unedited PlanValue identity retained. Condition/check/IfElse/While fields preserve
+bodies/branches/IDs and optional tolerance semantics; four new palette kinds.
+Nested draft/readonly/stale/mixed/busy/preparation gates remain.29 new App cases,
+App236pass; numeric qualification/edited bool loop saved/fresh simulated reload,
+one0.02Volt row/flagfalse/exit/output-off/released run. Scalar-only binding/static
+target caption replaced, prior variable fallback test updated. Native pending:
+current tool inventory has no cua control; no user windows/new process touched.
+No deps/Rust/lab IO; independent engine/GitHub only/full goal active. See
+ typed-value-node-forms.md.

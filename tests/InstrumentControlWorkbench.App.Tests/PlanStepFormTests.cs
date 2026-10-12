@@ -80,15 +80,15 @@ public sealed class PlanStepFormTests
         var devices = Catalog(); var step = new SetParameterStep(new("set"), new(new("source"), new("volts")), new ConstantValue(new(.2, PhysicalUnit.Volt)));
         var form = new PlanStepFormViewModel(step, devices, () => { });
         Assert.DoesNotContain(form.Address.Parameters, p => p.Descriptor.Id.Value == "readback");
-        form.Address.SelectedParameter = form.Address.Parameters.Single(p => p.Descriptor.Id.Value == "amps"); Assert.Equal("", form.ValueText);
-        Assert.Throws<FormatException>(() => form.Build()); form.ValueText = "0.0001";
+        form.Address.SelectedParameter = form.Address.Parameters.Single(p => p.Descriptor.Id.Value == "amps"); Assert.Equal("", form.ValueForm!.NumberText);
+        Assert.Throws<FormatException>(() => form.Build()); form.ValueForm!.NumberText = "0.0001";
         Assert.Equal(PhysicalUnit.Ampere, ((ConstantValue)((SetParameterStep)form.Build()).Value).Value.Unit);
-        form.ValueText = "2"; Assert.Throws<ArgumentOutOfRangeException>(() => form.Build());
+        form.ValueForm!.NumberText = "2"; Assert.Throws<ArgumentOutOfRangeException>(() => form.Build());
         form.Address.SelectedParameter = new(new(new("readback"), "forged writable", PhysicalUnit.Volt, ParameterAccess.Write));
         Assert.Throws<InvalidOperationException>(() => form.Build());
         form.Address.SelectedParameter = new(new(new("volts"), "forged unit", PhysicalUnit.Ampere, ParameterAccess.Write));
-        form.ValueText = "0.2"; Assert.Contains("Volt", form.Address.Constraint); Assert.Equal(PhysicalUnit.Volt, ((ConstantValue)((SetParameterStep)form.Build()).Value).Value.Unit);
-        form.Address.SelectedDevice = form.Address.Devices.Single(d => d.Descriptor.Id.Value == "other"); Assert.Equal("", form.ValueText); Assert.Null(form.Address.SelectedParameter);
+        form.ValueForm!.NumberText = "0.2"; Assert.Contains("Volt", form.Address.Constraint); Assert.Equal(PhysicalUnit.Volt, ((ConstantValue)((SetParameterStep)form.Build()).Value).Value.Unit);
+        form.Address.SelectedDevice = form.Address.Devices.Single(d => d.Descriptor.Id.Value == "other"); Assert.Equal("", form.ValueForm!.NumberText); Assert.Null(form.Address.SelectedParameter);
     }
     [Theory]
     [InlineData("repeat")]
@@ -144,10 +144,10 @@ public sealed class PlanStepFormTests
         var document = vm.DocumentText; vm.AppendNodeCommand.Execute(null); Assert.Equal(document, vm.DocumentText); shell.IsBusy = false;
     }
     [Fact]
-    public void DynamicValueNodesKeepTheirExpressionInsteadOfOpeningAConstantForm()
+    public void DynamicValueNodesExposeReferencesAndPreserveTheirExpression()
     {
         var step = new SetParameterStep(new("set"), new(new("source"), new("volts")), new VariableValue(new("requested")));
-        var form = new PlanStepFormViewModel(step, Catalog(), () => { }); Assert.False(form.IsSupported); Assert.Throws<NotSupportedException>(() => form.Build());
+        var form = new PlanStepFormViewModel(step, Catalog(), () => { }); Assert.True(form.IsSupported); Assert.Equal(PlanValueInputKind.Variable, form.ValueForm!.Kind); Assert.Equal(step, form.Build());
     }
     [Theory]
     [InlineData("tolerance")]
@@ -172,7 +172,7 @@ public sealed class PlanStepFormTests
         var (shell, source) = Create(); await using var owner = shell; var vm = shell.Plans!; vm.PaletteKind = kind;
         var form = vm.PaletteForm!; form.Address.SelectedDevice = form.Address.Devices[0];
         if (kind != "源输出") form.Address.SelectedParameter = form.Address.Parameters.Single(p => p.Descriptor.Id.Value == "k2450.source_voltage");
-        form.ValueText = "0.01"; form.ValuesText = "0, 0.01"; form.Column = "new_axis"; form.OutputEnabled = false;
+        if (form.ValueForm is { } valueForm) valueForm.NumberText = "0.01"; form.ValuesText = "0, 0.01"; form.Column = "new_axis"; form.OutputEnabled = false;
         vm.AppendNodeCommand.Execute(null); Assert.False(vm.HasError, vm.Message); Assert.Equal(2, ((SequenceStep)vm.ValidatedPlan!.Root).Children.Count); Assert.Single(vm.ValidatedPlan.Preparations);
         Assert.False((await source.GetSnapshotAsync(CancellationToken.None)).Connected);
         var added = ((SequenceStep)vm.ValidatedPlan.Root).Children[^1];

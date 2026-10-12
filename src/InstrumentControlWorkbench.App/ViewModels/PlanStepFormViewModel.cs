@@ -47,7 +47,7 @@ public partial class PlanStepFormViewModel : ObservableObject
             case TimeoutStep s: seconds = Number(s.Timeout.TotalSeconds); break;
             case RetryStep s: seconds = Number(s.Delay.TotalSeconds); cycles = s.MaxAttempts.ToString(CultureInfo.InvariantCulture); break;
             case WaitStableStep s: seconds = Number(s.Timeout.TotalSeconds); tolerance = Number(s.Tolerance.Value); stableSeconds = Number(s.StableFor.TotalSeconds); pollSeconds = Number(s.PollInterval.TotalSeconds); break;
-            case SetParameterStep { Value: ConstantValue value }: valueText = template ? "" : Number(value.Value.Value); break;
+
             case ScanStep s:
                 valuesText = template ? "" : string.Join(", ", s.Values.Values.Select(q => Number(q.Value)));
                 column = s.Column.Value; dwell = Number(s.Dwell.TotalSeconds); break;
@@ -55,6 +55,18 @@ public partial class PlanStepFormViewModel : ObservableObject
                 foreach (var channel in s.Channels) Channels.Add(new(devices, template ? null : channel, MarkDirty)); break;
             case SourceOutputStep s: outputEnabled = s.Enabled; break;
         }
+        if (HasValue)
+        {
+            var value = step switch { SetParameterStep set => set.Value, WaitStableStep wait => wait.Target, AssignValueStep assign => assign.Value, _ => throw new InvalidOperationException("Missing value model.") };
+            ValueForm = new(value, MarkDirty, IsAssign ? null : () => Address.ResolveParameter().Unit, allowLogical: IsAssign);
+            if (template && IsSet) ValueForm.NumberText = "";
+        }
+        if (HasCondition)
+        {
+            var condition = step switch { ConditionStep check => check.Condition, IfElseStep branch => branch.Condition, WhileStep loop => loop.Condition, _ => throw new InvalidOperationException("Missing condition model.") };
+            ConditionForm = new(condition, MarkDirty);
+        }
+        if (step is AssignValueStep assignment) variableName = assignment.Variable.Value;
         if (HasEnvironment)
         {
             var reads = step switch { ReadStep s => s.EnvironmentReads, ReadSourceSenseStep s => s.EnvironmentReads, ResistanceAcquisitionStep s => s.EnvironmentReads, ReadSampleResistanceStep s => s.Acquisition.EnvironmentReads, _ => Array.Empty<EnvironmentRead>() };
@@ -68,7 +80,12 @@ public partial class PlanStepFormViewModel : ObservableObject
     public bool IsTimeout => original is TimeoutStep;
     public bool IsRetry => original is RetryStep;
     public bool IsWaitStable => original is WaitStableStep;
-    public bool IsSet => original is SetParameterStep { Value: ConstantValue };
+    public bool IsSet => original is SetParameterStep;
+    public bool IsAssign => original is AssignValueStep;
+    public bool HasValue => IsSet || IsWaitStable || IsAssign;
+    public PlanValueFormViewModel? ValueForm { get; }
+    public bool HasCondition => original is ConditionStep or IfElseStep or WhileStep;
+    public PlanConditionFormViewModel? ConditionForm { get; }
     public bool IsScan => original is ScanStep;
     public bool IsRead => original is ReadStep;
     public bool IsOutput => original is SourceOutputStep;
@@ -76,18 +93,17 @@ public partial class PlanStepFormViewModel : ObservableObject
     public bool HasCycles => IsRepeat || IsRetry;
     public string SecondsLabel => IsRetry ? "重试间隔 / 秒" : IsTimeout || IsWaitStable ? "超时 / 秒" : "等待时间 / 秒";
     public string CyclesLabel => IsRetry ? "最大尝试次数" : "重复次数";
-    public string StableTargetLabel => original is WaitStableStep s ? "目标保持原值：" + (s.Target switch { VariableValue v => "变量 " + v.Variable.Value, ConstantValue c => Number(c.Value.Value) + " " + c.Value.Unit, _ => "高级表达式" }) : "";
     public bool HasAddress => IsSet || IsScan || IsWaitStable;
     public bool HasAcquisition => original is ReadSourceSenseStep or ReadResistanceStep or ReadCurrentResistanceStep or ReadSampleResistanceStep;
     public PlanAcquisitionFormViewModel? Acquisition { get; }
     public bool HasEnvironment => IsRead || HasAcquisition;
     public PlanEnvironmentFormViewModel? Environment { get; }
-    public bool IsSupported => HasSeconds || IsRepeat || HasAddress || IsRead || IsOutput || HasAcquisition;
+    public bool IsSupported => HasSeconds || IsRepeat || HasAddress || IsRead || IsOutput || HasAcquisition || IsAssign || HasCondition;
     public PlanParameterSelectionViewModel Address { get; }
     public ObservableCollection<PlanReadChannelFormViewModel> Channels { get; } = new();
     [ObservableProperty] private string seconds = "";
     [ObservableProperty] private string cycles = "";
-    [ObservableProperty] private string valueText = "";
+    [ObservableProperty] private string variableName = "";
     [ObservableProperty] private string valuesText = "";
     [ObservableProperty] private string column = "axis";
     [ObservableProperty] private string dwell = "0";
@@ -99,7 +115,7 @@ public partial class PlanStepFormViewModel : ObservableObject
     [ObservableProperty] private bool isReadOnly;
     partial void OnSecondsChanged(string value) => MarkDirty();
     partial void OnCyclesChanged(string value) => MarkDirty();
-    partial void OnValueTextChanged(string value) => MarkDirty();
+    partial void OnVariableNameChanged(string value) => MarkDirty();
     partial void OnValuesTextChanged(string value) => MarkDirty();
     partial void OnColumnChanged(string value) => MarkDirty();
     partial void OnDwellChanged(string value) => MarkDirty();
@@ -109,7 +125,7 @@ public partial class PlanStepFormViewModel : ObservableObject
     partial void OnPollSecondsChanged(string value) => MarkDirty();
     partial void OnIsReadOnlyChanged(bool value)
     {
-        Address.IsReadOnly = value; if (Environment is { } environment) environment.IsReadOnly = value; if (Acquisition is { } acquisition) acquisition.IsReadOnly = value; foreach (var channel in Channels) channel.IsReadOnly = value;
+        Address.IsReadOnly = value; if (ValueForm is { } expression) expression.IsReadOnly = value; if (ConditionForm is { } condition) condition.IsReadOnly = value; if (Environment is { } environment) environment.IsReadOnly = value; if (Acquisition is { } acquisition) acquisition.IsReadOnly = value; foreach (var channel in Channels) channel.IsReadOnly = value;
         AddChannelCommand.NotifyCanExecuteChanged(); RemoveChannelCommand.NotifyCanExecuteChanged();
     }
     private void AddressChanged()
@@ -117,7 +133,7 @@ public partial class PlanStepFormViewModel : ObservableObject
         if (loading) return;
         // A numeric value must be entered again after the address changes. This
         // prevents silently carrying a voltage across to an angle/temperature.
-        ValueText = ""; ValuesText = ""; Tolerance = ""; MarkDirty();
+        ValueForm?.AddressChanged(); ValuesText = ""; Tolerance = ""; MarkDirty();
     }
     private void MarkDirty() { if (loading) return; IsDirty = true; changed(); }
     private bool CanAddChannel() => IsRead && !IsReadOnly;
@@ -143,13 +159,23 @@ public partial class PlanStepFormViewModel : ObservableObject
             RepeatStep s => new RepeatStep(s.Id, Integer(Cycles), s.Body),
             TimeoutStep s => new TimeoutStep(s.Id, Duration(Seconds), s.Body),
             RetryStep s => new RetryStep(s.Id, Integer(Cycles), Duration(Seconds), s.Body),
-            WaitStableStep s => new WaitStableStep(s.Id, Address.BuildAddress(), s.Target, new(Scalar(Tolerance), Address.ResolveParameter().Unit), Duration(StableSeconds), Duration(PollSeconds), Duration(Seconds)),
-            SetParameterStep { Value: ConstantValue } s => new SetParameterStep(s.Id, Address.BuildAddress(), new ConstantValue(WriteValue(ValueText))),
+            WaitStableStep s => new WaitStableStep(s.Id, Address.BuildAddress(), ValueForm!.Build(), new(Scalar(Tolerance), Address.ResolveParameter().Unit), Duration(StableSeconds), Duration(PollSeconds), Duration(Seconds)),
+            SetParameterStep s => new SetParameterStep(s.Id, Address.BuildAddress(), BuildWriteValue()),
+            AssignValueStep s => new AssignValueStep(s.Id, new(VariableName), ValueForm!.Build()),
+            ConditionStep s => new ConditionStep(s.Id, ConditionForm!.Build()),
+            IfElseStep s => new IfElseStep(s.Id, ConditionForm!.Build(), s.Then, s.Else),
+            WhileStep s => new WhileStep(s.Id, ConditionForm!.Build(), s.Body),
             ScanStep s => new ScanStep(s.Id, Address.BuildAddress(), new(Column), ScanValues(), Duration(Dwell), s.Body),
             ReadStep s => new ReadStep(s.Id, Channels.Select(c => c.Build()), Environment!.Build(), s.RequiredRoute, s.ExcitationSource),
             SourceOutputStep s => new SourceOutputStep(s.Id, Address.ResolveDevice().Id, OutputEnabled),
             _ => throw new NotSupportedException("该节点使用高级 JSON 编辑。"),
         };
+    }
+    private PlanValue BuildWriteValue()
+    {
+        var parameter = Address.ResolveParameter(); var value = ValueForm!.Build();
+        if (value is ConstantValue constant) parameter.ValidateWrite(constant.Value);
+        return value;
     }
     private Quantity WriteValue(string text)
     {

@@ -6,9 +6,11 @@
       <StackPanel Spacing="6" IsVisible="{Binding HasSeconds}"><TextBlock Text="{Binding SecondsLabel}" Classes="caption"/><TextBox Text="{Binding Seconds, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="节点时间秒"/></StackPanel>
       <StackPanel Spacing="6" IsVisible="{Binding HasCycles}"><TextBlock Text="{Binding CyclesLabel}" Classes="caption"/><TextBox Text="{Binding Cycles, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="节点重复次数"/></StackPanel>
       <Grid IsVisible="{Binding HasAddress}"><views:PlanParameterSelectionView DataContext="{Binding Address}"/></Grid>
-      <StackPanel Spacing="6" IsVisible="{Binding IsSet}"><TextBlock Text="设定值 / 使用上方参数单位" Classes="caption"/><TextBox Text="{Binding ValueText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="节点设定值"/></StackPanel>
+      <StackPanel Spacing="6" IsVisible="{Binding IsAssign}"><TextBlock Text="赋值目标变量 ID" Classes="caption"/><TextBox Text="{Binding VariableName, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="赋值变量"/></StackPanel>
+      <Grid IsVisible="{Binding HasValue}"><views:PlanValueFormView DataContext="{Binding ValueForm}"/></Grid>
+      <Grid IsVisible="{Binding HasCondition}"><views:PlanConditionFormView DataContext="{Binding ConditionForm}"/></Grid>
       <StackPanel Spacing="6" IsVisible="{Binding IsWaitStable}">
-        <TextBlock Text="{Binding StableTargetLabel}" Classes="caption" TextWrapping="Wrap"/>
+        <TextBlock Text="目标由上方值表单设置；时间和容差如下。" Classes="caption" TextWrapping="Wrap"/>
         <TextBlock Text="容差 / 使用上方参数单位" Classes="caption"/><TextBox Text="{Binding Tolerance, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="稳定容差"/>
         <TextBlock Text="稳定持续 / 秒" Classes="caption"/><TextBox Text="{Binding StableSeconds, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="稳定持续秒"/>
         <TextBlock Text="轮询间隔 / 秒" Classes="caption"/><TextBox Text="{Binding PollSeconds, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="稳定轮询秒"/>

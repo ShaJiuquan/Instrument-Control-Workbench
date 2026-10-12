@@ -22,7 +22,7 @@ public partial class PlanWorkspaceViewModel
     [ObservableProperty] private PlanStepFormViewModel? paletteForm;
     [ObservableProperty] private bool showAdvancedNode;
     public ObservableCollection<PlanGraphNodeViewModel> GraphNodes { get; } = new();
-    public string[] PaletteKinds { get; } = ["等待", "顺序", "重复", "超时保护", "重试", "读取仪器", "设置参数", "参数扫描", "源输出", "源与测量读数", "源表电阻", "独立源电阻"];
+    public string[] PaletteKinds { get; } = ["等待", "顺序", "重复", "超时保护", "重试", "读取仪器", "设置参数", "参数扫描", "源输出", "源与测量读数", "源表电阻", "独立源电阻", "变量赋值", "条件检查", "条件分支", "条件循环"];
     public bool SupportsNodeForm => NodeForm?.IsSupported == true;
     public bool HasPaletteForm => PaletteForm is not null;
     public bool IsNodeFormVisible => SupportsNodeForm && !ShowAdvancedNode;
@@ -153,7 +153,7 @@ public partial class PlanWorkspaceViewModel
     private void ResetPaletteForm()
     {
         PaletteForm = null;
-        if (PaletteKind is not ("读取仪器" or "设置参数" or "参数扫描" or "源输出" or "源与测量读数" or "源表电阻" or "独立源电阻")) return;
+        if (PaletteKind is not ("读取仪器" or "设置参数" or "参数扫描" or "源输出" or "源与测量读数" or "源表电阻" or "独立源电阻" or "变量赋值" or "条件检查" or "条件分支" or "条件循环")) return;
         PlanStepFormViewModel? form = null;
         form = new(CreatePaletteStep(PaletteKind), workspace.Devices, () => { if (ReferenceEquals(PaletteForm, form)) RefreshGraphCommands(); }, template: true, axes: workspace.AxisDefinitions, routing: validated?.Plan.Routing);
         PaletteForm = form;
@@ -176,6 +176,10 @@ public partial class PlanWorkspaceViewModel
             "源与测量读数" => new ReadSourceSenseStep(id, new("unselected-source"), SourceFunction.Voltage, new("voltage_read"), new("current_read")),
             "源表电阻" => new ReadResistanceStep(id, new("unselected-source"), SourceFunction.Voltage, new("voltage_read"), new("current_read"), new("resistance"), new(0, PhysicalUnit.Ampere)),
             "独立源电阻" => new ReadCurrentResistanceStep(id, new("unselected-source"), new("unselected-meter"), CurrentReference.ProgrammedSetpoint, new("voltage_read"), new("current_read"), new("resistance"), new(0, PhysicalUnit.Ampere)),
+            "变量赋值" => new AssignValueStep(id, new("requested"), new ConstantValue(new(0, PhysicalUnit.Dimensionless))),
+            "条件检查" => new ConditionStep(id, new(new("unselected_variable"), ComparisonOperator.Equal, new ConstantValue(new(0, PhysicalUnit.Dimensionless)))),
+            "条件分支" => new IfElseStep(id, new(new("unselected_variable"), ComparisonOperator.Equal, new ConstantValue(new(0, PhysicalUnit.Dimensionless))), new SequenceStep(new(id.Value + "-then"), [])),
+            "条件循环" => new WhileStep(id, new(new("unselected_variable"), ComparisonOperator.Equal, new ConstantValue(new(0, PhysicalUnit.Dimensionless))), new SequenceStep(new(id.Value + "-body"), [])),
             _ => throw new NotSupportedException("选择可用的步骤类型。"),
         };
     }
