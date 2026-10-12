@@ -24,6 +24,7 @@ public sealed class DeviceRegistry
         AxisDefinitions = Array.AsReadOnly(items.OfType<AxisControllerSession>().Select(axis => axis.Definition).ToArray());
     }
 
+    public bool SupportsSr830Frame(InstrumentId device) => Get(device) is Sr830MeterSession;
     public IReadOnlyList<DeviceDescriptor> Devices { get; }
     public IReadOnlyList<AxisControllerDefinition> AxisDefinitions { get; }
     public IReadOnlyList<MatrixSwitchDefinition> MatrixDefinitions { get; }

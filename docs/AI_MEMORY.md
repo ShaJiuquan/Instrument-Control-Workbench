@@ -1825,3 +1825,22 @@ No dependency, Core data format, Rust write, physical IO or desktop change. Nati
 acceptance remains deferred per user; differential/polarization/controller/hardware/
 workflow/data/settings and broader PPMS goal remain active; independent C# engine,
 GitHub only.
+
+## SR830 passive input prerequisite (2026-10-13)
+
+Rust dI/dV and dV/dI require SR830 AC roles, not numeric DC differences. Added
+Core passive input port/settings/raw frame and native read_sr830_frame; Application
+owned session, resource admission/read/stop/pause/resume policies; explicit configured
+SR830 simulation and PPMS four passive-setting commands with exclusive aliases.
+One frame returns raw X/Y/R volts and theta plus observed four-register subset;
+Current input is not presented as calibrated amps. Preserve reported magnitude,
+manual SNAP pair timing does not justify reconstructing R/theta. Exact tables,
+input/sensitivity gain-change guard, pre/post settings and timestamp checks,
+column ownership, full-frame/archive/blackboard validators tested. No source
+capability on this passive profile: acquisition idle != oscillator off; reference
+and differential/composite AC routing remain pending. Existing grouped data,
+archive/CSV/budgets/notifications and retained failed-stop recovery reused.
+See sr830-passive-input.md and explicit CLI examples. No packages, Rust writes,
+physical IO or desktop actions; native forms/visual/physical acceptance deferred.
+Full PPMS measurement/controller/workflow/data/settings/remote ownership goal
+remains active; independent C# engine and GitHub only.

@@ -13,6 +13,11 @@ public sealed partial class PpmsExperimentPlanImporter
     {
         switch (name)
         {
+            case "sr830.set_sensitivity":
+            case "sr830.set_time_constant":
+            case "sr830.set_filter_slope":
+            case "sr830.set_input_config":
+                return Sr830Command(name, p, path, c);
             case "temp_set_config":
                 Fields(p, "tolerance_k", "tolerance", "settling_threshold_k", "settling_threshold", "stable_duration_s", "stable_duration");
                 var stabilityAxis = Axis("temperature", c);

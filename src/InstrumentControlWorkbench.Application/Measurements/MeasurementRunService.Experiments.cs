@@ -25,7 +25,7 @@ public sealed partial class MeasurementRunService
         await notifications.PublishAsync(new(WorkbenchNotificationKind.StepStarted, $"Executing {step.Id}.",
             RunId: run.Id.ToString(), Step: step.Id), run.Token);
         var outcome = StepOutcome.Success;
-        if (step is ReadStep or ReadSourceSenseStep or ResistanceAcquisitionStep or ReadSampleResistanceStep) run.DataSet!.RequireCapacityForNextRow();
+        if (step is ReadStep or ReadSr830FrameStep or ReadSourceSenseStep or ResistanceAcquisitionStep or ReadSampleResistanceStep) run.DataSet!.RequireCapacityForNextRow();
         switch (step)
         {
             case ConditionStep condition:
@@ -181,6 +181,9 @@ public sealed partial class MeasurementRunService
                 break;
             case ReadStep read:
                 await AcquireRowAsync(read, run, started);
+                break;
+            case ReadSr830FrameStep lockIn:
+                await AcquireSr830RowAsync(lockIn, run, started);
                 break;
             case ReadSourceSenseStep pair:
                 await AcquireSourceSenseRowAsync(pair, run, started, ivPlot);

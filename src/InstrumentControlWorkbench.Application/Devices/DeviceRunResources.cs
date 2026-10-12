@@ -6,7 +6,7 @@ using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Application.Devices;
 
-internal sealed record DeviceResumeState(InstrumentId Device, bool OutputEnabled, ParameterId? Target, Quantity? TargetValue, SourceMeterSnapshot? SourceState = null, TemperatureControlConfiguration? TemperatureState = null, Keithley2182Settings? MeterState = null, Core.Instruments.Ports.K6221CurrentSourceSnapshot? CurrentSourceState = null, Quantity? TemperatureRate = null, Quantity? TemperatureSoftwareTarget = null, Quantity? TemperatureSoftwareRate = null);
+internal sealed record DeviceResumeState(InstrumentId Device, bool OutputEnabled, ParameterId? Target, Quantity? TargetValue, SourceMeterSnapshot? SourceState = null, TemperatureControlConfiguration? TemperatureState = null, Keithley2182Settings? MeterState = null, Core.Instruments.Ports.K6221CurrentSourceSnapshot? CurrentSourceState = null, Quantity? TemperatureRate = null, Quantity? TemperatureSoftwareTarget = null, Quantity? TemperatureSoftwareRate = null, Sr830InputSettings? LockInState = null);
 
 public sealed record DeviceCleanupFailure(InstrumentId InstrumentId, Exception Error);
 
@@ -69,6 +69,19 @@ public sealed partial class DeviceRunResources
             token.ThrowIfCancellationRequested();
             touched.Add(id);
             return await Get(id).ReadObservationAsync(parameter, token, Owner);
+        }
+        finally { gate.Release(); }
+    }
+
+    public async Task<Core.Instruments.Ports.Sr830FrameObservation> ReadSr830FrameAsync(InstrumentId id, Sr830InputMode input, CancellationToken token)
+    {
+        await gate.WaitAsync(token);
+        try
+        {
+            RequireActive();
+            var session = Get(id) as Sr830MeterSession ?? throw new NotSupportedException($"{id} is not a passive SR830 meter.");
+            await PrepareMutationAsync(id); token.ThrowIfCancellationRequested(); touched.Add(id);
+            return await session.ReadFrameAsync(input, token, Owner);
         }
         finally { gate.Release(); }
     }
@@ -478,6 +491,8 @@ public sealed partial class DeviceRunResources
             }
             else if (session is Keithley2182MeterSession meter)
                 result.Add(new(session.Descriptor.Id, false, null, null, MeterState: await meter.CaptureResumeSettingsAsync(Owner, token)));
+            else if (session is Sr830MeterSession lockIn)
+                result.Add(new(session.Descriptor.Id, false, null, null, LockInState: await lockIn.CaptureResumeSettingsAsync(Owner, token)));
             else if (session is Keithley6221CurrentSourceSession current)
             {
                 var snapshot = await current.CaptureSourceStateAsync(Owner, token);
@@ -505,6 +520,12 @@ public sealed partial class DeviceRunResources
                 var expected = state.SourceState!;
                 if (!current.Connected || current.OutputEnabled || current.Source != expected.Source || current.Sense != expected.Sense || current.Terminals != expected.Terminals)
                     throw new InvalidOperationException($"{state.Device}: source state or configuration changed while paused; resume refused.");
+            }
+            foreach (var state in states.Where(s => s.LockInState is not null))
+            {
+                await PrepareMutationAsync(state.Device); touched.Add(state.Device);
+                if (await ((Sr830MeterSession)Get(state.Device)).CaptureResumeSettingsAsync(Owner, token) != state.LockInState)
+                    throw new InvalidOperationException($"{state.Device}: lock-in input configuration changed while paused; resume refused.");
             }
             foreach (var state in states.Where(s => s.MeterState is not null))
             {

@@ -908,13 +908,23 @@
       "id": "sr830.set_sensitivity",
       "nodeType": "command",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.LockIn.cs; src/InstrumentControlWorkbench.Application/Devices/Sr830MeterSession.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/Sr830ExecutionTests.Import.cs",
+        "limits": "Explicit SR830 passive input simulation, exact nominal settings and exclusive PPMS aliases, confirmed owned writes, shared native resources/pause/abort/recovery and raw frame/archive/CSV path. No oscillator output, calibrated current/differential roles, composite AC routing or hardware adapter. See sr830-passive-input.md."
+      }
     },
     {
       "id": "sr830.set_time_constant",
       "nodeType": "command",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.LockIn.cs; src/InstrumentControlWorkbench.Application/Devices/Sr830MeterSession.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/Sr830ExecutionTests.Import.cs",
+        "limits": "Explicit SR830 passive input simulation, exact nominal settings and exclusive PPMS aliases, confirmed owned writes, shared native resources/pause/abort/recovery and raw frame/archive/CSV path. No oscillator output, calibrated current/differential roles, composite AC routing or hardware adapter. See sr830-passive-input.md."
+      }
     },
     {
       "id": "sr830.configure_ref",

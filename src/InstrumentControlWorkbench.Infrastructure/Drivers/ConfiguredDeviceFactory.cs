@@ -21,6 +21,7 @@ public sealed class ConfiguredDeviceFactory(TimeProvider? clock = null) : IConfi
             (ConfiguredDeviceCategory.SourceMeter, "K2450") => true,
             (ConfiguredDeviceCategory.Source, "K6221") => true,
             (ConfiguredDeviceCategory.Meter, "K2182") => true,
+            (ConfiguredDeviceCategory.LockIn, "SR830") => true,
             (ConfiguredDeviceCategory.Matrix, "K3706") => configuration.Matrix is not null,
             (ConfiguredDeviceCategory.Temperature, "SIM-TEMPERATURE") => true,
             (ConfiguredDeviceCategory.Field, "SIM-FIELD") => true,
@@ -38,6 +39,7 @@ public sealed class ConfiguredDeviceFactory(TimeProvider? clock = null) : IConfi
         {
             ConfiguredDeviceCategory.SourceMeter => new(new MockKeithley2450SourceMeter(configuration.Id, configuration.DisplayName)),
             ConfiguredDeviceCategory.Source => new(new MockKeithley6221CurrentSource(configuration.Id, configuration.DisplayName)),
+            ConfiguredDeviceCategory.LockIn => new(new MockSr830Meter(configuration.Id, configuration.DisplayName)),
             ConfiguredDeviceCategory.Meter => new(new MockKeithley2182Meter(configuration.Id, configuration.DisplayName)),
             ConfiguredDeviceCategory.Temperature => new(MockEnvironmentCatalog.Temperature(clock, configuration.Id, configuration.DisplayName)),
             ConfiguredDeviceCategory.Field => new(MockEnvironmentCatalog.Field(clock, configuration.Id, configuration.DisplayName)),

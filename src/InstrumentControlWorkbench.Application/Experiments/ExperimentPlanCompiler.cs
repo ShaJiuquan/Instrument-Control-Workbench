@@ -32,6 +32,7 @@ internal static partial class ExperimentPlanCompiler
         var trackDefinitions = inspectStep is not null || calculationProbe is not null;
         var devices = registry.Devices.ToDictionary(d => d.Id);
         var needed = new HashSet<InstrumentId>();
+        var lockInColumnOwners = new Dictionary<ParameterId, StepId>();
         var columns = new Dictionary<ParameterId, DataColumn> { [Elapsed.Id] = new(Elapsed) };
         var environmentColumns = new HashSet<ParameterId>();
         var environmentPolicies = new Dictionary<ParameterId, IReadOnlyList<EnvironmentRead>>();
@@ -82,6 +83,8 @@ internal static partial class ExperimentPlanCompiler
                     !changedAddresses.Any(a => a.Device == write.Address.Device && (a.Parameter == Keithley6221Parameters.ManualRange.Id || a.Parameter == Keithley6221Parameters.EnableAutoRange.Id)) && write.Address.Parameter == Keithley6221Parameters.Current.Id)
                     foreach (var value in currentValues) _ = new Keithley6221Settings(value, preparedCurrent.Settings.Compliance, preparedCurrent.Settings.ManualRange);
             }
+            if (Device(write.Address.Device).Model == "SR830" && write.Values is { } lockInValues)
+                foreach (var value in lockInValues) Sr830Parameters.ValidateWrite(write.Address.Parameter, value);
             if (write.Values is { } meterValues && Keithley2182Parameters.IsParameter(write.Address.Parameter))
                 foreach (var value in meterValues) Keithley2182Parameters.ValidateWrite(write.Address.Parameter, value);
             if (write.Values is { } functionValues && write.Address.Parameter == Keithley2450Parameters.ActiveSenseFunction.Id && functionValues.Any(v => v.Value != Math.Truncate(v.Value))) throw new ArgumentException("Sense function requires an integral enum code.");
@@ -203,6 +206,7 @@ internal static partial class ExperimentPlanCompiler
             => BindVariable(id, BlackboardValueType.Quantity(unit), known);
         void AddColumn(ParameterId id, ParameterDescriptor parameter, ParameterAddress? source, IReadOnlyList<ParameterId> dependencies, bool environment = false)
         {
+            if (lockInColumnOwners.TryGetValue(id, out var frameOwner) && frameOwner != visiting.Peek()) throw new ArgumentException("Lock-in frame columns cannot be reused by another acquisition.");
             if (id == Elapsed.Id) throw new ArgumentException("The elapsed column is reserved.");
             var descriptor = new ParameterDescriptor(id, parameter.Label, parameter.Unit, ParameterAccess.Read, parameter.Minimum, parameter.Maximum);
             if (columns.TryGetValue(id, out var previous))
@@ -408,6 +412,17 @@ internal static partial class ExperimentPlanCompiler
                     // Live readback is not available at preflight: bound the path
                     // using the complete declared controller range.
                     return temperature.Rate is { } temperatureRate ? checked(1 + Math.Max(1, new TemperatureRampPath(controller.Target.Minimum!.Value, controller.Target.Maximum!.Value, temperatureRate).UpdateCount)) : 2;
+                case ReadSr830FrameStep lockIn:
+                    Device(lockIn.Device);
+                    if (!registry.SupportsSr830Frame(lockIn.Device)) throw new NotSupportedException("Device has no passive SR830 frame capability.");
+                    foreach (var channel in lockIn.Channels)
+                    {
+                        if (columns.ContainsKey(channel.Column)) throw new ArgumentException("Lock-in frame columns require distinct acquisition identities.");
+                        lockInColumnOwners.Add(channel.Column, lockIn.Id);
+                        var measured = Parameter(channel.Address, ParameterAccess.Read);
+                        AddColumn(channel.Column, measured, channel.Address, [.. axes, Elapsed.Id]); BindQuantity(channel.Column, measured.Unit, known);
+                    }
+                    return 1;
                 case ReadSourceSenseStep pair:
                     ValidateSourceSense(pair.Device, pair.Function, pair.VoltageColumn, pair.CurrentColumn, known, axes);
                     ValidateEnvironmentPolicy([pair.VoltageColumn, pair.CurrentColumn], pair.EnvironmentReads);

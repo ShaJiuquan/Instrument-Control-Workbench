@@ -1,0 +1,33 @@
+{
+  "type": "sequence",
+  "children": [
+    {
+      "type": "command",
+      "name": "sr830.set_input_config",
+      "params": {
+        "config": "a-b"
+      }
+    },
+    {
+      "type": "command",
+      "name": "sr830.set_sensitivity",
+      "params": {
+        "sensitivity": 0.005
+      }
+    },
+    {
+      "type": "command",
+      "name": "sr830.set_time_constant",
+      "params": {
+        "time_constant": 0.3
+      }
+    },
+    {
+      "type": "command",
+      "name": "sr830.set_filter_slope",
+      "params": {
+        "filter_slope": 18
+      }
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "format": "instrument-workbench-devices",
+  "version": 1,
+  "primarySource": null,
+  "devices": [
+    {
+      "id": "sr830",
+      "model": "SR830",
+      "displayName": "Passive lock-in input simulator",
+      "category": "LockIn",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      }
+    }
+  ],
+  "aliases": {
+    "sr830": "sr830"
+  }
+}

@@ -26,6 +26,7 @@ public sealed class ConfiguredDeviceRuntime
                 ports.SourceMeter is not null && device.Category != ConfiguredDeviceCategory.SourceMeter ||
                 ports.CurrentSource is not null && device.Category != ConfiguredDeviceCategory.Source ||
                 ports.Meter is not null && device.Category != ConfiguredDeviceCategory.Meter ||
+                ports.LockIn is not null && device.Category != ConfiguredDeviceCategory.LockIn ||
                 ports.Matrix is not null && device.Category != ConfiguredDeviceCategory.Matrix ||
                 ports.Axis is not null && device.Category is not (ConfiguredDeviceCategory.Temperature or ConfiguredDeviceCategory.Field or ConfiguredDeviceCategory.Rotation))
                 throw new ArgumentException($"{device.Id}: factory identity, driver kind or execution category does not match configuration.");
@@ -34,6 +35,7 @@ public sealed class ConfiguredDeviceRuntime
                 var manager = new InstrumentManager(source, notifications); sources.Add(device.Id, manager); sessions.Add(manager);
             }
             else if (ports.Meter is { } meter) sessions.Add(new Keithley2182MeterSession(meter, notifications));
+            else if (ports.LockIn is { } lockIn) sessions.Add(new Sr830MeterSession(lockIn, notifications));
             else if (ports.CurrentSource is { } current) sessions.Add(new Keithley6221CurrentSourceSession(current, notifications));
             else if (ports.Axis is { } axis)
             {

@@ -8,6 +8,7 @@ namespace InstrumentControlWorkbench.Core.Data;
 public sealed partial class RunDataRowValidator
 {
     private readonly ExperimentPlan? plan;
+    private readonly List<ReadSr830FrameStep> lockInFrames = [];
     private readonly Dictionary<StepId, CalculatedMeasurementStep> calculations = [];
     private MeasurementDataRow? previousRow;
     private readonly HashSet<ParameterId> calculatedColumns = [];
@@ -46,6 +47,7 @@ public sealed partial class RunDataRowValidator
                     foreach (var channel in read.Channels) if (channel.Address.Parameter == Keithley2182Parameters.Voltage.Id) standaloneVoltageColumns.Add((read.Id, channel.Column));
                     foreach (var channel in read.Channels) if (channel.Address.Parameter == Keithley2450Parameters.MeasuredResistance.Id) nativeResistanceColumns.Add((read.Id, channel.Column));
                     RegisterQuality(read.Id, read.Channels.Select(c => (c.Column, c.Address.Device))); RegisterEnvironment(read.Channels.Select(c => c.Column), read.EnvironmentReads); break;
+                case ReadSr830FrameStep read: lockInFrames.Add(read); RegisterQuality(read.Id, read.Channels.Take(4).Select(c => (c.Column, read.Device))); break;
                 case ReadSourceSenseStep read: RegisterQuality(read.Id, new[] { read.VoltageColumn, read.CurrentColumn }.Select(c => (c, read.Device))); RegisterEnvironment([read.VoltageColumn, read.CurrentColumn], read.EnvironmentReads); break;
                 case ReadCurrentResistanceStep read:
                     independentResistance.Add(read.Id, read);
@@ -121,6 +123,7 @@ public sealed partial class RunDataRowValidator
     public void Validate(MeasurementDataRow row)
     {
         schema.ValidateRow(row);
+        ValidateLockInFrame(row);
         if (row.Calculation is not null) { ValidateCalculation(row); return; }
         if (row.Values.Keys.Any(calculatedColumns.Contains)) throw new ArgumentException("Calculated quantities require their input-row evidence.");
         ValidateEnvironment(row);
