@@ -37,6 +37,7 @@ public sealed class PlanGraphEditorTests
     [InlineData("sequence")]
     [InlineData("repeat")]
     [InlineData("timeout")]
+    [InlineData("retry")]
     public async Task PaletteAppendAndSequenceReorderRemoveUseValidatedPlanStructure(string kind)
     {
         var (shell, _) = Create(); await using var owner = shell; var vm = shell.Plans!; vm.PaletteKind = kind; vm.AppendNodeCommand.Execute(null);

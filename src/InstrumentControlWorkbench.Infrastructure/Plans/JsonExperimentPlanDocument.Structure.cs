@@ -21,6 +21,18 @@ public sealed partial class JsonExperimentPlanDocument
     }
     public string ReadFragment(ExperimentPlan plan, StepId selected)
         => FindStructure(StructureRoot(plan), selected).Node.ToJsonString(JsonOptions);
+    public ExperimentStep ReadStep(ExperimentPlan plan, StepId selected)
+    {
+        var count = 0;
+        return DecodeStep(FindStructure(StructureRoot(plan), selected).Node, 0, ref count);
+    }
+    public ExperimentPlan EditStep(ExperimentPlan plan, PlanStructureEditKind kind, StepId selected, ExperimentStep step)
+    {
+        ArgumentNullException.ThrowIfNull(step);
+        if (kind is not (PlanStructureEditKind.Replace or PlanStructureEditKind.Append)) throw new ArgumentOutOfRangeException(nameof(kind));
+        var count = 0;
+        return EditStructure(plan, new(kind, selected, EncodeStep(step, 0, ref count).ToJsonString(JsonOptions)));
+    }
     public ExperimentPlan EditStructure(ExperimentPlan plan, PlanStructureEdit edit)
     {
         ArgumentNullException.ThrowIfNull(edit); ArgumentNullException.ThrowIfNull(edit.Selected);

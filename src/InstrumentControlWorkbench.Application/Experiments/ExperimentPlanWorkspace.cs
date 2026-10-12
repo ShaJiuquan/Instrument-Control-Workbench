@@ -1,4 +1,5 @@
 using InstrumentControlWorkbench.Application.Measurements;
+using InstrumentControlWorkbench.Core.Devices;
 using InstrumentControlWorkbench.Core.Experiments;
 using InstrumentControlWorkbench.Core.Routing;
 
@@ -9,6 +10,13 @@ public sealed record ValidatedPlanDocument(ExperimentPlan Plan, string Text, Exp
 public sealed class ExperimentPlanWorkspace(IExperimentPlanDocument documents, MeasurementRunService runs, IExperimentPlanImporter? importer = null, IRoutingProfileImporter? routingProfiles = null)
 {
     public bool SupportsStructureEditing => documents is IExperimentPlanStructureDocument;
+    public IReadOnlyList<DeviceDescriptor> Devices => runs.DeviceDescriptors;
+    public ExperimentStep ReadStep(ExperimentPlan plan, StepId selected) => StructureDocuments.ReadStep(plan, selected);
+    public ValidatedPlanDocument EditStep(ExperimentPlan plan, PlanStructureEditKind kind, StepId selected, ExperimentStep step)
+    {
+        runs.PreviewPlan(plan);
+        return Inspect(StructureDocuments.EditStep(plan, kind, selected, step));
+    }
     public IReadOnlyList<PlanStructureNode> DescribeStructure(ExperimentPlan plan) => StructureDocuments.DescribeStructure(plan);
     public string ReadFragment(ExperimentPlan plan, StepId selected) => StructureDocuments.ReadFragment(plan, selected);
     public ValidatedPlanDocument EditStructure(ExperimentPlan plan, PlanStructureEdit edit)

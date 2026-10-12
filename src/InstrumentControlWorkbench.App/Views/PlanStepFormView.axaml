@@ -1,0 +1,46 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:views="using:InstrumentControlWorkbench.App.Views" xmlns:controls="using:InstrumentControlWorkbench.App.Controls"
+             x:Class="InstrumentControlWorkbench.App.Views.PlanStepFormView" x:Name="FormRoot" x:DataType="vm:PlanStepFormViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Spacing="10" Margin="0,0,8,8">
+      <StackPanel Spacing="6" IsVisible="{Binding HasSeconds}"><TextBlock Text="{Binding SecondsLabel}" Classes="caption"/><TextBox Text="{Binding Seconds, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="节点时间秒"/></StackPanel>
+      <StackPanel Spacing="6" IsVisible="{Binding HasCycles}"><TextBlock Text="{Binding CyclesLabel}" Classes="caption"/><TextBox Text="{Binding Cycles, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="节点重复次数"/></StackPanel>
+      <Grid IsVisible="{Binding HasAddress}"><views:PlanParameterSelectionView DataContext="{Binding Address}"/></Grid>
+      <StackPanel Spacing="6" IsVisible="{Binding IsSet}"><TextBlock Text="设定值 / 使用上方参数单位" Classes="caption"/><TextBox Text="{Binding ValueText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="节点设定值"/></StackPanel>
+      <StackPanel Spacing="6" IsVisible="{Binding IsWaitStable}">
+        <TextBlock Text="{Binding StableTargetLabel}" Classes="caption" TextWrapping="Wrap"/>
+        <TextBlock Text="容差 / 使用上方参数单位" Classes="caption"/><TextBox Text="{Binding Tolerance, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="稳定容差"/>
+        <TextBlock Text="稳定持续 / 秒" Classes="caption"/><TextBox Text="{Binding StableSeconds, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="稳定持续秒"/>
+        <TextBlock Text="轮询间隔 / 秒" Classes="caption"/><TextBox Text="{Binding PollSeconds, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="稳定轮询秒"/>
+      </StackPanel>
+      <StackPanel Spacing="6" IsVisible="{Binding IsScan}">
+        <TextBlock Text="扫描列 ID" Classes="caption"/><TextBox Text="{Binding Column, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="扫描列 ID"/>
+        <TextBlock Text="扫描数值 / 逗号分隔，使用小数点和上方单位" Classes="caption" TextWrapping="Wrap"/>
+        <TextBox Text="{Binding ValuesText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60" AutomationProperties.Name="扫描数值"/>
+        <TextBlock Text="每点停留 / 秒" Classes="caption"/><TextBox Text="{Binding Dwell, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="扫描停留秒"/>
+      </StackPanel>
+      <StackPanel IsVisible="{Binding IsOutput}" Spacing="6">
+        <TextBlock Text="输出设备" Classes="caption"/>
+        <ComboBox ItemsSource="{Binding Address.Devices}" SelectedItem="{Binding Address.SelectedDevice, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="输出设备">
+          <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanDeviceChoice"><TextBlock Text="{Binding Label}" FontSize="11" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
+        </ComboBox>
+        <CheckBox Content="启用源输出" IsChecked="{Binding OutputEnabled, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" AutomationProperties.Name="启用源输出"/>
+      </StackPanel>
+      <StackPanel IsVisible="{Binding IsRead}" Spacing="8">
+        <ItemsControl ItemsSource="{Binding Channels}">
+          <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:PlanReadChannelFormViewModel">
+            <Border BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,0,0,8">
+              <StackPanel Spacing="6">
+                <TextBlock Text="结果列 ID" Classes="caption"/><TextBox Text="{Binding Column, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="读取列 ID"/>
+                <views:PlanParameterSelectionView DataContext="{Binding Address}"/>
+                <controls:OperatorButton Content="删除通道" Command="{Binding #FormRoot.((vm:PlanStepFormViewModel)DataContext).RemoveChannelCommand}" CommandParameter="{Binding}" HorizontalAlignment="Left"/>
+              </StackPanel>
+            </Border>
+          </DataTemplate></ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <controls:OperatorButton Content="添加读取通道" Command="{Binding AddChannelCommand}" HorizontalAlignment="Left" AutomationProperties.Name="添加读取通道"/>
+      </StackPanel>
+      <TextBlock Text="修改不会发送设备命令；应用时验证完整计划。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

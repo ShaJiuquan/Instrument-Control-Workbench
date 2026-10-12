@@ -1,15 +1,18 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:controls="using:InstrumentControlWorkbench.App.Controls"
+             xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:controls="using:InstrumentControlWorkbench.App.Controls" xmlns:views="using:InstrumentControlWorkbench.App.Views"
              x:Class="InstrumentControlWorkbench.App.Views.PlanGraphView" x:DataType="vm:PlanWorkspaceViewModel">
-  <Grid RowDefinitions="Auto,*,Auto" Margin="8">
+  <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="8">
     <WrapPanel Margin="0,0,0,8">
-      <ComboBox ItemsSource="{Binding PaletteKinds}" SelectedItem="{Binding PaletteKind, Mode=TwoWay}" Width="100" Margin="0,0,6,6" IsEnabled="{Binding CanEditNode}" AutomationProperties.Name="新增步骤类型"/>
+      <ComboBox ItemsSource="{Binding PaletteKinds}" SelectedItem="{Binding PaletteKind, Mode=TwoWay}" Width="110" Margin="0,0,6,6" IsEnabled="{Binding CanEditNode}" AutomationProperties.Name="新增步骤类型"/>
       <controls:OperatorButton Content="添加到顺序" Command="{Binding AppendNodeCommand}" Margin="0,0,6,6" AutomationProperties.Name="添加流程步骤"/>
       <controls:OperatorButton Content="删除" Command="{Binding RemoveNodeCommand}" Margin="0,0,6,6" AutomationProperties.Name="删除流程步骤"/>
       <controls:OperatorButton Content="前移" Command="{Binding MoveEarlierCommand}" Margin="0,0,6,6" AutomationProperties.Name="流程步骤前移"/>
       <controls:OperatorButton Content="后移" Command="{Binding MoveLaterCommand}" Margin="0,0,6,6" AutomationProperties.Name="流程步骤后移"/>
     </WrapPanel>
-    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+    <Expander Grid.Row="1" Header="新增步骤参数 / 添加后才纳入计划" IsVisible="{Binding HasPaletteForm}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" FontSize="11" Margin="0,0,0,6">
+      <views:PlanStepFormView Height="190" DataContext="{Binding PaletteForm}"/>
+    </Expander>
+    <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
       <Grid Width="{Binding GraphWidth}" Height="{Binding GraphHeight}">
         <controls:PlanFlowEdges Nodes="{Binding GraphNodes}" IsHitTestVisible="False"/>
         <ItemsControl ItemsSource="{Binding GraphNodes}">
@@ -23,7 +26,7 @@
         </ItemsControl>
       </Grid>
     </ScrollViewer>
-    <TextBlock Grid.Row="2" Text="连线表示计划层级；同一顺序中的步骤按编号执行。选择节点后在节点参数页编辑。" Classes="caption" FontSize="10" TextWrapping="Wrap" Margin="0,8,0,0"/>
+    <TextBlock Grid.Row="3" Text="连线表示计划层级；同一顺序中的步骤按编号执行。选择节点后在节点参数页编辑。" Classes="caption" FontSize="10" TextWrapping="Wrap" Margin="0,8,0,0"/>
   </Grid>
   <UserControl.Styles>
     <Style Selector="Button.flowNode"><Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="{DynamicResource Line}"/><Setter Property="BorderThickness" Value="1"/></Style>

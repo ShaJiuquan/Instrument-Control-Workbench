@@ -10,5 +10,7 @@ public interface IExperimentPlanStructureDocument : IExperimentPlanDocument
 {
     IReadOnlyList<PlanStructureNode> DescribeStructure(ExperimentPlan plan);
     string ReadFragment(ExperimentPlan plan, StepId selected);
+    ExperimentStep ReadStep(ExperimentPlan plan, StepId selected);
+    ExperimentPlan EditStep(ExperimentPlan plan, PlanStructureEditKind kind, StepId selected, ExperimentStep step);
     ExperimentPlan EditStructure(ExperimentPlan plan, PlanStructureEdit edit);
 }

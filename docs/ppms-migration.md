@@ -910,3 +910,14 @@ Native simulation edit/save/reload/pause/resume/data/output-off verified after
 minimum-window layout repair.28 Application and six App regression cases added.
 Typed parameter forms, device palette, drag/reparent UX, virtualization and full
 workflow/physical migration remain pending. See plan-graph-editing.md.
+
+## Typed node editing (2026-10-12)
+
+Common timing/control/set/scan/output/multi-read/stability forms and registry-
+backed instrument palette use typed native steps and whole-plan preflight.
+Original nested bodies, target expressions, read guards/environment and plan
+envelope survive edits. Dirty/conflicting/stale edits and run locks are covered.
+24 App+nine Application cases include real save/fresh reload/execution/output-off.
+No dependencies or physical IO. Native form acceptance remains pending after
+locked desktop/pre-UI RenderTimer failure; no successful launch is claimed.
+Device-specific forms and full migration remain active. See plan-node-forms.md.

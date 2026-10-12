@@ -4,6 +4,7 @@ using InstrumentControlWorkbench.Application.Experiments;
 using InstrumentControlWorkbench.Application.Instruments;
 using InstrumentControlWorkbench.Application.Notifications;
 using InstrumentControlWorkbench.Core.Data;
+using InstrumentControlWorkbench.Core.Devices;
 using InstrumentControlWorkbench.Core.Experiments;
 using InstrumentControlWorkbench.Core.Instruments;
 using InstrumentControlWorkbench.Core.Measurements;
@@ -55,6 +56,7 @@ public sealed partial class MeasurementRunService
     public RunBlackboardSnapshot? LatestBlackboardSnapshot { get; private set; }
     public IReadOnlyDictionary<ParameterId, BlackboardEntry>? LatestBlackboard => LatestBlackboardSnapshot?.Entries;
     public InMemoryRunHistory History { get; }
+    public IReadOnlyList<DeviceDescriptor> DeviceDescriptors => devices.Devices;
 
     public Task StartIvSweepAsync(IvSweepRecipe recipe, CancellationToken cancellationToken, RunMetadata? metadata = null)
     {

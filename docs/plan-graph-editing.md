@@ -2,9 +2,10 @@
 
 The desktop flow view projects the actual native plan tree, with parent links,
 slot/sequence positions, selection and current execution highlighting. Display
-coordinates and links do not redefine execution. Node parameter editing currently
-uses an explicit JSON fragment; typed device forms and arbitrary wire editing
-remain pending. The initial palette provides delay, sequence, repeat and timeout.
+coordinates and links do not redefine execution. The initial node editor used
+JSON fragments with a delay/sequence/repeat/timeout palette. Common typed forms
+and instrument palette additions are described in [plan-node-forms.md](plan-node-forms.md).
+Arbitrary wire editing remains pending.
 
 Core's optional `IExperimentPlanStructureDocument` port describes structure and
 accepts explicit replace/append/remove/reorder operations. The JSON Infrastructure
@@ -39,7 +40,7 @@ publication audit; a package build alone does not establish native acceptance.
 semantic rejection, member acquisition constraints, deep native plans, command
 locks, draft apply/discard and run-specific highlighting. No new dependency.
 
-Remaining: palette device nodes and typed parameter forms, drag/reparent UX,
+Remaining: further device-specific forms, drag/reparent UX,
 viewport virtualization/collapsed subtrees, general expressions and unsupported
 parallel/race/background workflows. Graph projection remains bounded by the
 document limits but is not virtualized. This stage does not complete full PPMS

@@ -1351,3 +1351,19 @@ new cases; no dependency/Rust/lab IO. Clean-package proof recorded separately.
 Typed forms/device palette/wiring UX/virtualization/general expressions/parallel/
 physical/full PPMS remain pending; independent engine/GitHub only/goal active.
 See plan-graph-editing.md.
+
+## Typed node forms and instrument palette (2026-10-12)
+
+Common delay/repeat/timeout/retry/constant set/scan/output/multi-read/wait-stable
+forms and five control+four instrument palette kinds. Descriptor catalog is the
+compiler's registry via Application; actual access/unit/bounds resolution, address
+changes clear numeric input. Typed Core port/codec append+replace, full envelope
+and compiler preflight preserved. Bodies/targets/read environment/routes retained;
+expression sets keep JSON. Mixed draft sources rejected; run/files/selection locks,
+stale callbacks ignored and channel/command admission rechecked.24 App+nine
+Application new cases;124 App/focused nine pass, saved typed instrument edit
+fresh reload/one row/output-off verified. No dependency/Rust/physical IO. Native
+pending: Mac locked; working launch failed in pre-UI RenderTimer -6661; PID88403
+UEs, terminal exit unconfirmed, no restart on observation timeout. UI/clean-package
+parity/device-specific forms/expressions/full PPMS remain pending; independent
+engine/GitHub only/full goal active. See plan-node-forms.md.
