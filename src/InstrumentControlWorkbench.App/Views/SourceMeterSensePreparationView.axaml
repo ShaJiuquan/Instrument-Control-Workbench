@@ -1,0 +1,31 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels"
+ x:Class="InstrumentControlWorkbench.App.Views.SourceMeterSensePreparationView" x:DataType="vm:SourcePreparationFormViewModel">
+ <StackPanel Spacing="10">
+  <TextBlock Text="源表测量设置" Classes="section" Margin="0,4,0,0"/>
+  <Grid ColumnDefinitions="*,12,*">
+   <StackPanel Spacing="6"><TextBlock Text="测量功能" Classes="caption"/><ComboBox ItemsSource="{Binding SenseFunctions}" SelectedItem="{Binding SenseFunction, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="准备测量功能"/></StackPanel>
+   <StackPanel Grid.Column="2" Spacing="6"><TextBlock Text="接线方式" Classes="caption"/><ComboBox ItemsSource="{Binding SensingModes}" SelectedItem="{Binding SensingMode, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="准备接线方式"/></StackPanel>
+  </Grid>
+  <TextBlock Text="积分时间 / NPLC" Classes="caption"/><TextBox Text="{Binding Nplc, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="准备 NPLC"/>
+  <CheckBox Content="测量自动量程" IsChecked="{Binding SenseAutoRange, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" AutomationProperties.Name="准备测量自动量程"/>
+  <CheckBox Content="指定测量标称量程" IsChecked="{Binding UseSenseRange, Mode=TwoWay}" IsEnabled="{Binding CanChooseSenseRange}" AutomationProperties.Name="指定测量标称量程"/>
+  <TextBlock Text="关闭自动量程但未指定量程时，保留设备现有固定量程。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+  <ComboBox ItemsSource="{Binding SenseRanges}" SelectedItem="{Binding SenseRange, Mode=TwoWay}" IsEnabled="{Binding CanSetSenseRange}" HorizontalAlignment="Stretch" AutomationProperties.Name="准备测量标称量程">
+   <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PreparationRangeChoice"><TextBlock Text="{Binding Label}" FontSize="11"/></DataTemplate></ComboBox.ItemTemplate>
+  </ComboBox>
+  <Expander Header="采集控制" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" FontSize="11">
+   <StackPanel Spacing="8" Margin="0,8,0,0">
+    <CheckBox Content="指定采集控制" IsChecked="{Binding UseAcquisition, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" AutomationProperties.Name="指定采集控制"/>
+    <TextBlock Text="未指定时保留设备现有采集设置，均不表示关闭。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+    <StackPanel Spacing="6" IsEnabled="{Binding CanSetAcquisition}">
+     <CheckBox Content="Auto Zero" IsChecked="{Binding AutoZero, Mode=TwoWay}"/>
+     <CheckBox Content="Autorange Rebound" IsChecked="{Binding AutorangeRebound, Mode=TwoWay}"/>
+     <CheckBox Content="启用平均" IsChecked="{Binding AveragingEnabled, Mode=TwoWay}"/>
+     <TextBlock Text="平均次数 / 1–100" Classes="caption"/><TextBox Text="{Binding AveragingCount, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="准备平均次数"/>
+     <ComboBox ItemsSource="{Binding AveragingModes}" SelectedItem="{Binding AveragingMode, Mode=TwoWay}" HorizontalAlignment="Stretch" AutomationProperties.Name="准备平均方式"/>
+    </StackPanel>
+   </StackPanel>
+  </Expander>
+ </StackPanel>
+</UserControl>

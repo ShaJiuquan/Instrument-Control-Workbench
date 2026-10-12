@@ -119,13 +119,17 @@ public sealed class PpmsImportOperatorTests
         await job; if (disposal is not null) await disposal;
         Assert.Empty(vm.ImportWirings); Assert.False(vm.IsDocumentBusy); Assert.False(vm.HasError);
     }
-    [Fact]
-    public async Task DirtyNodeAndRunAdmissionBlockDirectImportAndProfileReadCommands()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DirtyEditorAndRunAdmissionBlockDirectImportAndProfileReadCommands(bool preparation)
     {
         var importer = new HeldImporter(); var bench = new Bench(importer); await using var owner = bench.Shell; var vm = owner.Plans!;
-        vm.PpmsPath = "chosen.json"; SetProfilePaths(vm); vm.GraphNodes.Single(n => n.Id.Value == "before").SelectCommand.Execute(null); vm.NodeForm!.Seconds = "2";
+        vm.PpmsPath = "chosen.json"; SetProfilePaths(vm); vm.GraphNodes.Single(n => n.Id.Value == "before").SelectCommand.Execute(null);
+        if (preparation) vm.PreparationForm!.LevelText = ".01"; else vm.NodeForm!.Seconds = "2";
         await vm.ImportPpmsCommand.ExecuteAsync(null); await vm.LoadImportProfilesCommand.ExecuteAsync(null); Assert.Equal(0, importer.Calls); Assert.Empty(vm.ImportWirings);
-        vm.DiscardNodeCommand.Execute(null); owner.IsBusy = true; vm.RefreshCommands(); await vm.ImportPpmsCommand.ExecuteAsync(null); Assert.Equal(0, importer.Calls); owner.IsBusy = false;
+        if (preparation) vm.DiscardPreparationCommand.Execute(null); else vm.DiscardNodeCommand.Execute(null);
+        owner.IsBusy = true; vm.RefreshCommands(); await vm.ImportPpmsCommand.ExecuteAsync(null); Assert.Equal(0, importer.Calls); owner.IsBusy = false;
     }
     [Fact]
     public async Task FailedProfileReloadKeepsThePlanButDoesNotSilentlyImportUsingAnOlderCatalog()
@@ -135,6 +139,20 @@ public sealed class PpmsImportOperatorTests
         Assert.True(vm.ImportPpmsCommand.CanExecute(null)); var before = vm.DocumentText;
         await vm.LoadImportProfilesCommand.ExecuteAsync(null); Assert.True(vm.HasError); Assert.NotEmpty(vm.ImportWirings);
         Assert.False(vm.ImportPpmsCommand.CanExecute(null)); await vm.ImportPpmsCommand.ExecuteAsync(null); Assert.Equal(before, vm.DocumentText); Assert.Contains("重新载入", vm.ProfileSummary);
+    }
+    [Fact]
+    public async Task LateImportCannotReplaceAPreparationDraftIntroducedDuringThePendingRead()
+    {
+        var importer = new HeldImporter(); var bench = new Bench(importer); await using var owner = bench.Shell;
+        var vm = owner.Plans!; vm.PpmsPath = "chosen.json"; var before = vm.DocumentText;
+        var job = vm.ImportPpmsCommand.ExecuteAsync(null); await importer.Started.Task;
+        Assert.True(vm.PreparationForm!.IsReadOnly);
+        // Programmatic changes must be checked independently of disabled UI bindings.
+        vm.PreparationForm.LevelText = ".02";
+        importer.Release.SetResult(new("late", new DelayStep(new("late"), TimeSpan.Zero))); await job;
+        Assert.Equal(before, vm.DocumentText); Assert.True(vm.PreparationDirty); Assert.Equal(".02", vm.PreparationForm.LevelText);
+        Assert.False(vm.RestoreImportCommand.CanExecute(null)); Assert.False(owner.StartPlanCommand.CanExecute(null));
+        Assert.Contains("变化", vm.Message); vm.DiscardPreparationCommand.Execute(null);
     }
     private static void SetProfilePaths(PlanWorkspaceViewModel vm)
     { vm.ChannelsPath = Fixture("profiles", "channel_profiles.json"); vm.SamplesPath = Fixture("profiles", "samples.json"); vm.InstrumentPortsPath = Fixture("profiles", "instrument_ports.json"); }

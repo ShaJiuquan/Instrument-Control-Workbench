@@ -22,6 +22,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
     private readonly CancellationTokenSource lifetime = new();
     private ValidatedPlanDocument? validated;
     private bool disposed;
+    private bool restoringDocument;
     private string? observedRunId;
 
     public PlanWorkspaceViewModel(ExperimentPlanWorkspace workspace, ExperimentPlan initialPlan, string path,
@@ -48,14 +49,23 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
     public ObservableCollection<PlanOutlineItem> Outline { get; } = new();
     public ObservableCollection<PlanRowItem> Rows { get; } = new();
     public bool CanEdit => !disposed && !IsDocumentBusy && parentCanEdit();
-    public bool IsReadOnly => !CanEdit || NodeFragmentDirty;
-    public bool IsValidated => validated is not null && !NodeFragmentDirty;
+    public bool IsReadOnly => !CanEdit || HasUnappliedEdits;
+    public bool IsValidated => validated is not null && !HasUnappliedEdits;
     public ExperimentPlan? ValidatedPlan => IsValidated ? validated?.Plan : null;
     public int AcquiredRows { get; private set; }
     public string RowCount => $"{AcquiredRows} 行 · 最近 200 行";
 
-    partial void OnDocumentTextChanged(string value)
+    partial void OnDocumentTextChanged(string? oldValue, string newValue)
     {
+        if (restoringDocument) return;
+        if (PreparationDirty)
+        {
+            restoringDocument = true;
+            try { DocumentText = oldValue ?? ""; }
+            finally { restoringDocument = false; }
+            HasError = true; Message = "设备准备仍有未应用修改，请先应用或撤销。";
+            return;
+        }
         validated = null;
         IsDirty = true;
         HasError = false;
@@ -63,6 +73,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
         PlanSummary = "尚未验证";
         Outline.Clear();
         ClearGraph();
+        ClearPreparationEditor();
         RefreshCommands();
         changed();
     }
@@ -75,8 +86,9 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
         ValidateCommand.NotifyCanExecuteChanged(); LoadCommand.NotifyCanExecuteChanged(); SaveCommand.NotifyCanExecuteChanged();
         RefreshGraphCommands();
         RefreshImportCommands();
+        RefreshPreparationCommands();
     }
-    private bool CanValidate() => CanEdit && !NodeFragmentDirty;
+    private bool CanValidate() => CanEdit && !HasUnappliedEdits;
     private bool CanAccessFile() => CanValidate() && !string.IsNullOrWhiteSpace(DocumentPath);
 
     [RelayCommand(CanExecute = nameof(CanValidate))]
@@ -111,6 +123,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
 
     private void Apply(ValidatedPlanDocument document)
     {
+        ClearPreparationEditor();
         DocumentText = document.Text;
         validated = document;
         HasError = false;
@@ -120,6 +133,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
         Outline.Clear();
         AddStep(document.Plan.Root, 0);
         RebuildGraph(document.Plan);
+        ReloadPreparationEditor();
         RefreshCommands(); changed();
     }
 

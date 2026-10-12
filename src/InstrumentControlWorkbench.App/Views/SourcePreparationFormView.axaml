@@ -1,0 +1,24 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:views="using:InstrumentControlWorkbench.App.Views"
+ x:Class="InstrumentControlWorkbench.App.Views.SourcePreparationFormView" x:DataType="vm:SourcePreparationFormViewModel">
+ <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+  <StackPanel Spacing="8" Margin="0,0,8,8">
+   <StackPanel Spacing="6" IsVisible="{Binding IsSourceMeter}"><TextBlock Text="源功能" Classes="caption"/><ComboBox ItemsSource="{Binding SourceFunctions}" SelectedItem="{Binding SourceFunction, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="准备源功能"/></StackPanel>
+   <Grid ColumnDefinitions="*,12,*">
+    <StackPanel Spacing="6"><StackPanel Orientation="Horizontal" Spacing="4"><TextBlock Text="源设定值 /" Classes="caption"/><TextBlock Text="{Binding LevelUnit}" Classes="caption"/></StackPanel><TextBox Text="{Binding LevelText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="准备源设定值"/></StackPanel>
+    <StackPanel Grid.Column="2" Spacing="6"><StackPanel Orientation="Horizontal" Spacing="4"><TextBlock Text="保护限值 /" Classes="caption"/><TextBlock Text="{Binding ComplianceUnit}" Classes="caption"/></StackPanel><TextBox Text="{Binding ComplianceText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="准备保护限值"/></StackPanel>
+   </Grid>
+   <CheckBox Content="源自动量程" IsChecked="{Binding SourceAutoRange, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" AutomationProperties.Name="准备源自动量程"/>
+   <ComboBox ItemsSource="{Binding SourceRanges}" SelectedItem="{Binding SourceRange, Mode=TwoWay}" IsEnabled="{Binding CanSetSourceRange}" HorizontalAlignment="Stretch" AutomationProperties.Name="准备源标称量程">
+    <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PreparationRangeChoice"><TextBlock Text="{Binding Label}" FontSize="11"/></DataTemplate></ComboBox.ItemTemplate>
+   </ComboBox>
+   <StackPanel Spacing="6" IsVisible="{Binding IsCurrentSource}">
+    <CheckBox Content="指定设备 Source Delay" IsChecked="{Binding UseSourceDelay, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" AutomationProperties.Name="指定源延迟"/>
+    <TextBox Text="{Binding SourceDelay, Mode=TwoWay}" IsReadOnly="{Binding !CanSetSourceDelay}" Watermark="秒，0.001–999999.999" AutomationProperties.Name="准备源延迟秒"/>
+    <TextBlock Text="未指定时保留设备现有延迟；这是设备参数，流程等待请使用等待节点。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+   </StackPanel>
+   <TextBlock Text="仅编辑计划；运行时由执行层配置设备。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+   <views:SourceMeterSensePreparationView IsVisible="{Binding IsSourceMeter}"/>
+  </StackPanel>
+ </ScrollViewer>
+</UserControl>

@@ -43,6 +43,27 @@ public sealed class ExperimentPlanWorkspace(IExperimentPlanDocument documents, M
     }
     public bool SupportsStructureEditing => documents is IExperimentPlanStructureDocument;
     public IReadOnlyList<DeviceDescriptor> Devices => runs.DeviceDescriptors;
+    public ValidatedPlanDocument UpdateSourcePreparation(ExperimentPlan plan, SourcePreparation preparation)
+    {
+        ArgumentNullException.ThrowIfNull(preparation); runs.PreviewPlan(plan);
+        var items = plan.Preparations.ToList(); var index = items.FindIndex(p => p.Device == preparation.Device);
+        if (index < 0) items.Add(preparation); else items[index] = preparation;
+        return Inspect(new(plan.Name, plan.Root, items, plan.Metadata, plan.Routing, plan.CurrentSourcePreparations, plan.MaximumStepExecutions));
+    }
+    public ValidatedPlanDocument UpdateCurrentSourcePreparation(ExperimentPlan plan, CurrentSourcePreparation preparation)
+    {
+        ArgumentNullException.ThrowIfNull(preparation); runs.PreviewPlan(plan);
+        var items = plan.CurrentSourcePreparations.ToList(); var index = items.FindIndex(p => p.Device == preparation.Device);
+        if (index < 0) items.Add(preparation); else items[index] = preparation;
+        return Inspect(new(plan.Name, plan.Root, plan.Preparations, plan.Metadata, plan.Routing, items, plan.MaximumStepExecutions));
+    }
+    public ValidatedPlanDocument RemovePreparation(ExperimentPlan plan, InstrumentId device)
+    {
+        runs.PreviewPlan(plan);
+        if (!plan.Preparations.Any(p => p.Device == device) && !plan.CurrentSourcePreparations.Any(p => p.Device == device)) throw new ArgumentException("This device has no plan preparation.", nameof(device));
+        return Inspect(new(plan.Name, plan.Root, plan.Preparations.Where(p => p.Device != device), plan.Metadata, plan.Routing,
+            plan.CurrentSourcePreparations.Where(p => p.Device != device), plan.MaximumStepExecutions));
+    }
     public ExperimentStep ReadStep(ExperimentPlan plan, StepId selected) => StructureDocuments.ReadStep(plan, selected);
     public ValidatedPlanDocument EditStep(ExperimentPlan plan, PlanStructureEditKind kind, StepId selected, ExperimentStep step)
     {

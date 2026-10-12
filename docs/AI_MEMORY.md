@@ -1399,3 +1399,21 @@ Three new App cases;141 App pass. Exact committed-package parity/configured nati
 workflow/palette/cancel/active close/source prep forms/full PPMS remain pending.
 No dependencies/driver/Core/Rust/physical IO; independent engine/GitHub only/goal
 active. See node-editor-native-acceptance.md.
+
+## Source preparation forms (2026-10-12)
+
+Registry-backed K2450 source/sense and K6221 DC preparations now have named native
+forms. Application upsert/remove previews the complete candidate, preserving root,
+metadata/routing/budget/other preparations; no driver IO from editing. Source-mode
+changes clear physical numerics/range, new levels/compliance blank; finite invariant
+parsing and nominal choices. Optional acquisition/Source Delay and legacy fixed
+sense without span preserve register request semantics. Separate preparation/node
+drafts lock run/files/import/graph; mixed drafts require discard, stale callbacks
+ignored, dirty device/full-document changes cannot silently discard. Command bodies
+recheck busy/disposal; pending import rejects new preparation drafts.26 additional
+cases(11 Application+15 App); actual fresh save/load/two-source one row and routed
+sample three rows/output-off/cleanup. Native working1060 NaN rejection/locks/discard
+observed; compact window left on user-selected instrument page. Successful native
+valid apply/run/K6221 dropdown/final committed-package parity remain unverified;
+final label/checkbox refinements only compiled/tested. No dependencies/Rust/lab IO;
+independent C# engine/GitHub only/full goal active. See source-preparation-forms.md.

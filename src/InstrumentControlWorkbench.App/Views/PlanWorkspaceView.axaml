@@ -54,6 +54,7 @@
           <TabControl Grid.Row="2" FontSize="12" Margin="8,0,8,8">
             <TabItem Header="流程图" FontSize="12" IsVisible="{Binding SupportsGraph}"><views:PlanGraphView/></TabItem>
             <TabItem Header="节点参数" FontSize="12" IsVisible="{Binding SupportsGraph}"><views:PlanNodeEditorView/></TabItem>
+            <TabItem Header="设备准备" FontSize="12"><views:PlanPreparationView/></TabItem>
             <TabItem Header="计划 JSON" FontSize="12"><TextBox Text="{Binding DocumentText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AcceptsReturn="True" AcceptsTab="True" FontFamily="Menlo,Consolas,monospace" FontSize="11" TextWrapping="NoWrap" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" AutomationProperties.Name="计划内容"/></TabItem>
             <TabItem Header="PPMS 导入" FontSize="12" IsVisible="{Binding SupportsPpmsImport}"><views:PpmsPlanImportView/></TabItem>
           </TabControl>

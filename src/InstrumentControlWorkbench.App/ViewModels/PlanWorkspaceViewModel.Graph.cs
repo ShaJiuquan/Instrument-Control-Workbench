@@ -31,10 +31,10 @@ public partial class PlanWorkspaceViewModel
     public double GraphWidth => GraphNodes.Count == 0 ? 340 : GraphNodes.Max(n => n.X) + 240;
     public double GraphHeight => Math.Max(220, GraphNodes.Count * 86 + 24);
     public string SelectedNodeTitle => SelectedNode is null ? "选择流程节点" : $"{SelectedNode.Title} · {SelectedNode.Id.Value}";
-    public bool CanEditNode => CanEdit && validated is not null && SelectedNode is not null;
+    public bool CanEditNode => CanEdit && validated is not null && SelectedNode is not null && !PreparationDirty;
     public bool IsNodeReadOnly => !CanEditNode || NodeForm?.IsDirty == true;
     private bool CanApplyNode() => CanEditNode && NodeFragmentDirty;
-    private bool CanDiscardNode() => CanEditNode && NodeFragmentDirty;
+    private bool CanDiscardNode() => CanEdit && validated is not null && NodeFragmentDirty;
     private bool CanAppendNode() => CanEditNode && !NodeFragmentDirty && SelectedNode!.Definition.CanAppend;
     private bool CanRemoveNode() => CanEditNode && !NodeFragmentDirty && SelectedNode!.Definition.CanRemove;
     private bool CanMoveEarlier() => CanEditNode && !NodeFragmentDirty && SelectedNode!.Definition.CanMoveEarlier;
@@ -97,14 +97,14 @@ public partial class PlanWorkspaceViewModel
             outlineById.TryGetValue(definition.Id, out var outline);
             GraphNodes.Add(new(definition, outline?.Title ?? "测量步骤", outline?.Detail ?? definition.Id.Value,
                 definition.Depth * 240 + 12, GraphNodes.Count * 86 + 12, SelectGraphNode,
-                () => !disposed && !IsDocumentBusy && !NodeFragmentDirty));
+                () => !disposed && !IsDocumentBusy && !HasUnappliedEdits));
         }
         SelectedNode = GraphNodes.FirstOrDefault(n => n.Id == old) ?? GraphNodes.FirstOrDefault();
         LoadSelectedFragment(); OnPropertyChanged(nameof(GraphWidth)); OnPropertyChanged(nameof(GraphHeight));
     }
     private void SelectGraphNode(PlanGraphNodeViewModel node)
     {
-        if (NodeFragmentDirty && node != SelectedNode || disposed || IsDocumentBusy || !GraphNodes.Contains(node)) return;
+        if (HasUnappliedEdits && node != SelectedNode || disposed || IsDocumentBusy || !GraphNodes.Contains(node)) return;
         SelectedNode = node;
     }
     private void LoadSelectedFragment()

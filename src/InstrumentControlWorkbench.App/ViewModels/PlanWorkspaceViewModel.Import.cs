@@ -102,7 +102,7 @@ public partial class PlanWorkspaceViewModel
             try
             {
                 var imported = await workspace.ImportAsync(path, bindings, operation.Token, previous.Plan.MaximumStepExecutions); operation.Token.ThrowIfCancellationRequested();
-                if (DocumentText != previousText || NodeFragmentDirty || importOptionsVersion != version)
+                if (DocumentText != previousText || HasUnappliedEdits || importOptionsVersion != version)
                 { Message = "导入期间草稿或绑定已变化，结果未替换当前计划。"; return; }
                 Apply(imported); importBackup = previous; importBackupDirty = previousDirty; IsDirty = true;
                 Message = "PPMS 计划已导入并通过完整验证；可保存、运行或恢复导入前计划。";

@@ -1,0 +1,16 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:views="using:InstrumentControlWorkbench.App.Views" xmlns:controls="using:InstrumentControlWorkbench.App.Controls"
+ x:Class="InstrumentControlWorkbench.App.Views.PlanPreparationView" x:DataType="vm:PlanWorkspaceViewModel">
+ <Grid RowDefinitions="Auto,*,Auto" Margin="8">
+  <ComboBox Margin="0,0,0,8" ItemsSource="{Binding PreparationDevices}" SelectedItem="{Binding SelectedPreparationDevice, Mode=TwoWay}" IsEnabled="{Binding CanSelectPreparation}" HorizontalAlignment="Stretch" AutomationProperties.Name="准备源设备">
+   <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PreparationDeviceChoice"><TextBlock Text="{Binding Label}" FontSize="11" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
+  </ComboBox>
+  <TextBlock Grid.Row="1" IsVisible="{Binding !HasPreparationForm}" Text="先验证计划；表单支持注册的 K2450、K6221，其余设置可使用计划 JSON。" Classes="caption" TextWrapping="Wrap"/>
+  <Grid Grid.Row="1" IsVisible="{Binding HasPreparationForm}"><views:SourcePreparationFormView DataContext="{Binding PreparationForm}"/></Grid>
+  <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Margin="0,10,0,0">
+   <controls:OperatorButton Content="应用准备" Command="{Binding ApplyPreparationCommand}" AutomationProperties.Name="应用设备准备"/>
+   <controls:OperatorButton Content="撤销修改" Command="{Binding DiscardPreparationCommand}" AutomationProperties.Name="撤销设备准备"/>
+   <controls:OperatorButton Content="移除准备" Command="{Binding RemovePreparationCommand}" AutomationProperties.Name="移除设备准备"/>
+  </StackPanel>
+ </Grid>
+</UserControl>
