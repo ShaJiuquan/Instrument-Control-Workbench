@@ -2,16 +2,18 @@
  xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels"
  x:Class="InstrumentControlWorkbench.App.Views.PlanIndependentAcquisitionView" x:DataType="vm:PlanAcquisitionFormViewModel">
  <StackPanel Spacing="8">
+  <StackPanel Spacing="6" IsVisible="{Binding !IsSample}">
   <TextBlock Text="独立电压表" Classes="caption"/>
   <ComboBox ItemsSource="{Binding Meters}" SelectedItem="{Binding SelectedMeter, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="测量独立电压表">
    <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanDeviceChoice"><TextBlock Text="{Binding Label}" FontSize="11" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
   </ComboBox>
+  </StackPanel>
   <TextBlock Text="电流参考 / K6221 仅支持确认的设定值" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
   <ComboBox ItemsSource="{Binding CurrentReferences}" SelectedItem="{Binding SelectedReference, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="测量电流参考"/>
   <TextBlock Text="{Binding ExpectedExpressionLabel}" IsVisible="{Binding HasExpectedExpression}" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
   <StackPanel Spacing="6" IsVisible="{Binding !HasExpectedExpression}">
    <CheckBox Content="校验预期设定电流" IsChecked="{Binding UseExpectedCurrent, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" AutomationProperties.Name="校验预期电流"/>
-   <TextBox Text="{Binding ExpectedCurrent, Mode=TwoWay}" IsReadOnly="{Binding !CanEditExpectedCurrent}" Watermark="Ampere，须高于最小绝对电流" AutomationProperties.Name="预期设定电流"/>
+   <TextBox Text="{Binding ExpectedCurrent, Mode=TwoWay}" IsReadOnly="{Binding !CanEditExpectedCurrent}" Watermark="Ampere，绝对值须高于阈值" AutomationProperties.Name="预期设定电流"/>
   </StackPanel>
   <Expander Header="电压读取失败处理" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" FontSize="11">
    <StackPanel Spacing="8" Margin="0,8,0,0">

@@ -57,6 +57,7 @@ public sealed partial class MeasurementRunService
     public IReadOnlyDictionary<ParameterId, BlackboardEntry>? LatestBlackboard => LatestBlackboardSnapshot?.Entries;
     public InMemoryRunHistory History { get; }
     public IReadOnlyList<DeviceDescriptor> DeviceDescriptors => devices.Devices;
+    public IReadOnlyList<AxisControllerDefinition> AxisDefinitions => devices.AxisDefinitions;
 
     public Task StartIvSweepAsync(IvSweepRecipe recipe, CancellationToken cancellationToken, RunMetadata? metadata = null)
     {

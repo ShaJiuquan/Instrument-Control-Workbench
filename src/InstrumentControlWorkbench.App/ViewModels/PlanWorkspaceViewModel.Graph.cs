@@ -118,7 +118,7 @@ public partial class PlanWorkspaceViewModel
             if (SelectedNode is not null && validated is not null)
             {
                 PlanStepFormViewModel? form = null;
-                form = new(workspace.ReadStep(validated.Plan, SelectedNode.Id), workspace.Devices, () => { if (ReferenceEquals(NodeForm, form)) FormChanged(); });
+                form = new(workspace.ReadStep(validated.Plan, SelectedNode.Id), workspace.Devices, () => { if (ReferenceEquals(NodeForm, form)) FormChanged(); }, axes: workspace.AxisDefinitions, routing: validated.Plan.Routing);
                 NodeForm = form;
             }
             NodeFragmentDirty = false;
@@ -155,7 +155,7 @@ public partial class PlanWorkspaceViewModel
         PaletteForm = null;
         if (PaletteKind is not ("读取仪器" or "设置参数" or "参数扫描" or "源输出" or "源与测量读数" or "源表电阻" or "独立源电阻")) return;
         PlanStepFormViewModel? form = null;
-        form = new(CreatePaletteStep(PaletteKind), workspace.Devices, () => { if (ReferenceEquals(PaletteForm, form)) RefreshGraphCommands(); }, template: true);
+        form = new(CreatePaletteStep(PaletteKind), workspace.Devices, () => { if (ReferenceEquals(PaletteForm, form)) RefreshGraphCommands(); }, template: true, axes: workspace.AxisDefinitions, routing: validated?.Plan.Routing);
         PaletteForm = form;
     }
     private static ExperimentStep CreatePaletteStep(string kind)

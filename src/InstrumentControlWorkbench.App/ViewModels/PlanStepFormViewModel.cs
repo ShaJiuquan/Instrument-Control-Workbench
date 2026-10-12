@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.Input;
 using InstrumentControlWorkbench.Core.Devices;
 using InstrumentControlWorkbench.Core.Experiments;
 using InstrumentControlWorkbench.Core.Parameters;
+using InstrumentControlWorkbench.Core.Routing;
 
 namespace InstrumentControlWorkbench.App.ViewModels;
 
@@ -34,7 +35,7 @@ public partial class PlanStepFormViewModel : ObservableObject
     private readonly IReadOnlyList<DeviceDescriptor> devices;
     private readonly Action changed;
     private bool loading = true;
-    public PlanStepFormViewModel(ExperimentStep step, IReadOnlyList<DeviceDescriptor> devices, Action changed, bool template = false)
+    public PlanStepFormViewModel(ExperimentStep step, IReadOnlyList<DeviceDescriptor> devices, Action changed, bool template = false, IReadOnlyList<AxisControllerDefinition>? axes = null, RoutingConfiguration? routing = null)
     {
         original = step; this.devices = devices; this.changed = changed;
         ParameterAddress? address = step switch { SetParameterStep s => s.Address, ScanStep s => s.Axis, WaitStableStep s => s.Readback, SourceOutputStep s => new(s.Device, new("output")), _ => null };
@@ -54,7 +55,12 @@ public partial class PlanStepFormViewModel : ObservableObject
                 foreach (var channel in s.Channels) Channels.Add(new(devices, template ? null : channel, MarkDirty)); break;
             case SourceOutputStep s: outputEnabled = s.Enabled; break;
         }
-        if (HasAcquisition) Acquisition = new(step, devices, MarkDirty, template);
+        if (HasEnvironment)
+        {
+            var reads = step switch { ReadStep s => s.EnvironmentReads, ReadSourceSenseStep s => s.EnvironmentReads, ResistanceAcquisitionStep s => s.EnvironmentReads, ReadSampleResistanceStep s => s.Acquisition.EnvironmentReads, _ => Array.Empty<EnvironmentRead>() };
+            Environment = new(reads, axes ?? Array.Empty<AxisControllerDefinition>(), MarkDirty);
+        }
+        if (HasAcquisition) Acquisition = new(step, devices, MarkDirty, template, Environment, routing);
         loading = false;
     }
     public bool IsDelay => original is DelayStep;
@@ -74,6 +80,8 @@ public partial class PlanStepFormViewModel : ObservableObject
     public bool HasAddress => IsSet || IsScan || IsWaitStable;
     public bool HasAcquisition => original is ReadSourceSenseStep or ReadResistanceStep or ReadCurrentResistanceStep or ReadSampleResistanceStep;
     public PlanAcquisitionFormViewModel? Acquisition { get; }
+    public bool HasEnvironment => IsRead || HasAcquisition;
+    public PlanEnvironmentFormViewModel? Environment { get; }
     public bool IsSupported => HasSeconds || IsRepeat || HasAddress || IsRead || IsOutput || HasAcquisition;
     public PlanParameterSelectionViewModel Address { get; }
     public ObservableCollection<PlanReadChannelFormViewModel> Channels { get; } = new();
@@ -101,7 +109,7 @@ public partial class PlanStepFormViewModel : ObservableObject
     partial void OnPollSecondsChanged(string value) => MarkDirty();
     partial void OnIsReadOnlyChanged(bool value)
     {
-        Address.IsReadOnly = value; if (Acquisition is { } acquisition) acquisition.IsReadOnly = value; foreach (var channel in Channels) channel.IsReadOnly = value;
+        Address.IsReadOnly = value; if (Environment is { } environment) environment.IsReadOnly = value; if (Acquisition is { } acquisition) acquisition.IsReadOnly = value; foreach (var channel in Channels) channel.IsReadOnly = value;
         AddChannelCommand.NotifyCanExecuteChanged(); RemoveChannelCommand.NotifyCanExecuteChanged();
     }
     private void AddressChanged()
@@ -138,7 +146,7 @@ public partial class PlanStepFormViewModel : ObservableObject
             WaitStableStep s => new WaitStableStep(s.Id, Address.BuildAddress(), s.Target, new(Scalar(Tolerance), Address.ResolveParameter().Unit), Duration(StableSeconds), Duration(PollSeconds), Duration(Seconds)),
             SetParameterStep { Value: ConstantValue } s => new SetParameterStep(s.Id, Address.BuildAddress(), new ConstantValue(WriteValue(ValueText))),
             ScanStep s => new ScanStep(s.Id, Address.BuildAddress(), new(Column), ScanValues(), Duration(Dwell), s.Body),
-            ReadStep s => new ReadStep(s.Id, Channels.Select(c => c.Build()), s.EnvironmentReads, s.RequiredRoute, s.ExcitationSource),
+            ReadStep s => new ReadStep(s.Id, Channels.Select(c => c.Build()), Environment!.Build(), s.RequiredRoute, s.ExcitationSource),
             SourceOutputStep s => new SourceOutputStep(s.Id, Address.ResolveDevice().Id, OutputEnabled),
             _ => throw new NotSupportedException("该节点使用高级 JSON 编辑。"),
         };

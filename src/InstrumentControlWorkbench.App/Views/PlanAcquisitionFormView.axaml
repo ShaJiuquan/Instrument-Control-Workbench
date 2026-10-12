@@ -2,10 +2,13 @@
  xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:views="using:InstrumentControlWorkbench.App.Views"
  x:Class="InstrumentControlWorkbench.App.Views.PlanAcquisitionFormView" x:DataType="vm:PlanAcquisitionFormViewModel">
  <StackPanel Spacing="8">
+  <StackPanel Spacing="6" IsVisible="{Binding !IsSample}">
   <TextBlock Text="源设备" Classes="caption"/>
   <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="测量源设备">
    <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanDeviceChoice"><TextBlock Text="{Binding Label}" FontSize="11" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
   </ComboBox>
+  </StackPanel>
+  <Grid IsVisible="{Binding IsSample}"><views:PlanSampleRoutingFormView DataContext="{Binding SampleRouting}"/></Grid>
   <StackPanel Spacing="6" IsVisible="{Binding HasSourceFunction}"><TextBlock Text="源功能 / 须与计划准备一致" Classes="caption"/><ComboBox ItemsSource="{Binding SourceFunctions}" SelectedItem="{Binding SourceFunction, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="测量源功能"/></StackPanel>
   <Grid ColumnDefinitions="*,8,*">
    <StackPanel Spacing="6"><TextBlock Text="电压结果列 / Volt" Classes="caption"/><TextBox Text="{Binding VoltageColumn, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="测量电压列"/></StackPanel>

@@ -1,0 +1,19 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels"
+ x:Class="InstrumentControlWorkbench.App.Views.PlanSampleRoutingFormView" x:DataType="vm:PlanSampleRoutingFormViewModel">
+ <Expander Header="样品与接线路由" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" FontSize="11">
+  <StackPanel Spacing="8" Margin="0,8,0,0">
+   <TextBlock Text="计划样品" Classes="caption"/>
+   <ComboBox ItemsSource="{Binding Samples}" SelectedItem="{Binding SelectedSample, Mode=TwoWay}" IsEnabled="{Binding CanRebind}" HorizontalAlignment="Stretch" AutomationProperties.Name="路由样品">
+    <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanSampleChoice"><TextBlock Text="{Binding Label}" FontSize="11" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
+   </ComboBox>
+   <TextBlock Text="计划接线 / 决定源与电压表" Classes="caption"/>
+   <ComboBox ItemsSource="{Binding Wirings}" SelectedItem="{Binding SelectedWiring, Mode=TwoWay}" IsEnabled="{Binding CanRebind}" HorizontalAlignment="Stretch" AutomationProperties.Name="路由接线">
+    <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanWiringChoice"><TextBlock Text="{Binding Label}" FontSize="11" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
+   </ComboBox>
+   <TextBlock Text="测量方向 / 更换样品后须重新选择" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+   <ComboBox ItemsSource="{Binding Measurements}" SelectedItem="{Binding SelectedMeasurement, Mode=TwoWay}" IsEnabled="{Binding CanRebind}" HorizontalAlignment="Stretch" AutomationProperties.Name="样品测量方向"/>
+   <TextBlock Text="{Binding Summary}" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+  </StackPanel>
+ </Expander>
+</UserControl>

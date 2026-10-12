@@ -1436,3 +1436,21 @@ save/reload/idle close0 and archive checksum/edited threshold verified. Independ
 sample/retry/palette native actions and clean committed-package parity pending.
 No dependencies/Rust/lab IO; independent engine/GitHub only/full goal active.
 See acquisition-node-forms.md.
+
+## Environment and sample routing forms (2026-10-12)
+
+Application exposes frozen actual AxisControllerSession definitions through the
+shared registry/run/workspace; App selects real readonly role/unit readbacks, not
+targets or model guesses. Shared three-role form supports ordinary/paired/R/
+independent/sample reads, column/inclusion and explicit unbound missing evidence;
+original order/bindings retained until explicit rebind. Frozen sample/wiring/
+topology controls preview all electrode crosspoints; sample wiring determines
+source/meter and newly derived exact independent route. Source changes clear
+reference/constant inputs; expressions/retry/timings/envelope/full compiler retained.
+Nested draft/readonly/stale/mixed/busy guards integrated.22 new App cases: three
+fresh environment save/reloads and actual/missing observations, catalog/no-IO,
+invalid/locks/topologies/forged metadata, integrated/independent new sample/wiring/
+columns5–8/current2/meter2 route execution/cleanup and unused sessions disconnected.
+Native pending due unresolved same-bundle window attribution; no user window action
+or rendering claim from compiled evidence. No deps/Rust/lab IO; independent engine/
+GitHub only/full goal active. See plan-context-binding-forms.md.
