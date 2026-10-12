@@ -44,6 +44,7 @@ public sealed partial class ExperimentPlanWorkspace(IExperimentPlanDocument docu
     public bool SupportsStructureEditing => documents is IExperimentPlanStructureDocument;
     public IReadOnlyList<DeviceDescriptor> Devices => runs.DeviceDescriptors;
     public IReadOnlyList<AxisControllerDefinition> AxisDefinitions => runs.AxisDefinitions;
+    public IReadOnlyList<MatrixSwitchDefinition> MatrixDefinitions => runs.MatrixDefinitions;
     public ValidatedPlanDocument UpdateSourcePreparation(ExperimentPlan plan, SourcePreparation preparation)
     {
         ArgumentNullException.ThrowIfNull(preparation); runs.PreviewPlan(plan);

@@ -1,0 +1,5 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" x:Class="InstrumentControlWorkbench.App.Views.PlanMatrixPortFormView" x:DataType="vm:PlanMatrixPortFormViewModel">
+ <StackPanel Spacing="6"><TextBlock Text="{Binding Label}" Classes="caption"/>
+  <Grid ColumnDefinitions="*,8,*"><TextBox Text="{Binding SlotText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" Watermark="卡槽" AutomationProperties.Name="接线卡槽"/><TextBox Grid.Column="2" Text="{Binding RowText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" Watermark="行" AutomationProperties.Name="接线行"/></Grid>
+ </StackPanel>
+</UserControl>

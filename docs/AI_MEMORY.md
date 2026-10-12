@@ -1594,3 +1594,22 @@ Batch invalid/order/envelope/required slots and checkbox stale/busy/invalid guar
 Native again Mac locked/unlock failed/prior optional request pending/no window or
 process actions. No interpreter/lifecycle/transport/deps/Rust/physical changes.
 Full goal active/engine independent/GitHub only; see coordinated-sample-guards.md.
+
+## Initial routing authoring (2026-10-13)
+
+No-catalog plan Samples editor now authors actual registered matrix/source/optional
+K2182, explicit blank port card/row addresses, channel/sample IDs/names/topology
+and connection card/columns plus shared metadata/geometry. Matrix definitions
+frozen in Registry/proxied through Application. Pure InitializeRouting rejects
+existing catalog, validates all physical port/connection bounds and sample×wiring directions against actual cards/
+guards/roles then whole compiler/codec, preserving root/envelope. K6221 requires
+meter in the form. Device/topology changes clear physical addresses; stale/busy/
+readonly/SampleDirty/file/import/node/prep admission inherited. Two sample-read
+palettes require sample/wiring/direction/threshold and independent reference;
+sample catalog apply resets palette snapshot.31App+10Application new cases,
+8saved/fresh sim reads including K2450-current+K2182; exact guards/provenance/
+cleanup, malformed/bounds/role/forged metadata and overwrite rejection. User
+answered prior unlock question “先继续代码检查”; native acceptance deferred per
+user, no new inventory/window/process actions. No Core/schema/lifecycle/deps/
+transport/Rust/physical changes. See initial-routing-authoring.md. General channel/
+wiring edit/multi-profile creation and full goal still pending; GitHub only.

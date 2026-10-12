@@ -1,0 +1,29 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:views="using:InstrumentControlWorkbench.App.Views" x:Class="InstrumentControlWorkbench.App.Views.PlanRoutingInitializationFormView" x:DataType="vm:PlanRoutingInitializationFormViewModel">
+ <StackPanel Spacing="10">
+  <TextBlock Text="首个路由目录 / 填写后一次验证并应用" Classes="caption"/>
+  <TextBlock Text="矩阵" Classes="caption"/>
+  <ComboBox ItemsSource="{Binding Matrices}" SelectedItem="{Binding SelectedMatrix, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="初始路由矩阵"><ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanMatrixChoice"><TextBlock Text="{Binding Label}" FontSize="11" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+  <TextBlock Text="{Binding MatrixSummary}" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+  <TextBlock Text="源" Classes="caption"/>
+  <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="初始路由源"><ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanDeviceChoice"><TextBlock Text="{Binding Label}" FontSize="11" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+  <CheckBox Content="独立 K2182 电压表" IsChecked="{Binding UseIndependentMeter, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}"/>
+  <ComboBox ItemsSource="{Binding Meters}" SelectedItem="{Binding SelectedMeter, Mode=TwoWay}" IsEnabled="{Binding CanChooseMeter}" IsVisible="{Binding UseIndependentMeter}" HorizontalAlignment="Stretch" AutomationProperties.Name="初始路由电压表"><ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanDeviceChoice"><TextBlock Text="{Binding Label}" FontSize="11" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+  <TextBlock Text="接线 ID" Classes="caption"/><TextBox Text="{Binding WiringIdText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="初始接线 ID"/>
+  <TextBlock Text="接线说明" Classes="caption"/><TextBox Text="{Binding WiringLabel, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}"/>
+  <ItemsControl ItemsSource="{Binding Ports}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:PlanMatrixPortFormViewModel"><views:PlanMatrixPortFormView Margin="0,0,0,8"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+  <TextBlock Text="通道 ID" Classes="caption"/><TextBox Text="{Binding ChannelIdText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="初始通道 ID"/>
+  <TextBlock Text="通道名称" Classes="caption"/><TextBox Text="{Binding ChannelName, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}"/>
+  <TextBlock Text="样品 ID" Classes="caption"/><TextBox Text="{Binding SampleIdText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="首个样品 ID"/>
+  <TextBlock Text="样品拓扑 / 切换后重填连接点" Classes="caption"/>
+  <ComboBox ItemsSource="{Binding Topologies}" SelectedItem="{Binding Topology, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="首个样品拓扑"/>
+  <views:PlanSampleDetailsFormView DataContext="{Binding Details}"/>
+  <ItemsControl ItemsSource="{Binding Connections}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:PlanInitialConnectionFormViewModel">
+   <Border BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,0,0,8"><StackPanel Spacing="6">
+    <TextBlock Text="{Binding Electrode.Value}" Classes="caption"/>
+    <TextBox Text="{Binding KeyText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" Watermark="连接点 ID" AutomationProperties.Name="初始连接点 ID"/>
+    <Grid ColumnDefinitions="*,8,*"><TextBox Text="{Binding SlotText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" Watermark="卡槽" AutomationProperties.Name="初始连接点卡槽"/><TextBox Grid.Column="2" Text="{Binding ColumnText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" Watermark="列" AutomationProperties.Name="初始连接点列"/></Grid>
+   </StackPanel></Border>
+  </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+  <TextBlock Text="不发送设备命令。应用时检查全部方向、实际矩阵范围和保护源；源准备仍在设备准备中设置。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+ </StackPanel>
+</UserControl>

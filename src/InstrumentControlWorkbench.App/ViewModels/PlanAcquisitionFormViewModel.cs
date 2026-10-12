@@ -52,6 +52,7 @@ public partial class PlanAcquisitionFormViewModel : ObservableObject
         {
             SampleSettle = Number(routed.Settle.TotalSeconds); AcquisitionSettle = Number(routed.AcquisitionSettle.TotalSeconds);
             RoutingManagedExternally = routed.RoutingManagedExternally;
+            if (template) MinimumCurrent = "";
         }
         Environment = environment ?? new(EnvironmentReads, Array.Empty<AxisControllerDefinition>(), changed);
         if (step is ReadSampleResistanceStep sampleStep)

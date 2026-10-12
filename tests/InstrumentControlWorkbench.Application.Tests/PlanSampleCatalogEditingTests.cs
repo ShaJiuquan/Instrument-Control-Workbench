@@ -13,7 +13,7 @@ using InstrumentControlWorkbench.Infrastructure.Plans;
 
 namespace InstrumentControlWorkbench.Application.Tests;
 
-public sealed class PlanSampleCatalogEditingTests
+public sealed partial class PlanSampleCatalogEditingTests
 {
     [Theory]
     [InlineData("unknownWiring")]

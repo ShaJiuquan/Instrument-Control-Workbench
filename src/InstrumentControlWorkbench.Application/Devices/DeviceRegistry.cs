@@ -20,11 +20,13 @@ public sealed class DeviceRegistry
         this.sessions = items.ToDictionary(d => d.Descriptor.Id);
         this.leases = leases;
         Devices = Array.AsReadOnly(items.Select(d => d.Descriptor).ToArray());
+        MatrixDefinitions = Array.AsReadOnly(items.OfType<MatrixSwitchSession>().Select(matrix => matrix.Definition).ToArray());
         AxisDefinitions = Array.AsReadOnly(items.OfType<AxisControllerSession>().Select(axis => axis.Definition).ToArray());
     }
 
     public IReadOnlyList<DeviceDescriptor> Devices { get; }
     public IReadOnlyList<AxisControllerDefinition> AxisDefinitions { get; }
+    public IReadOnlyList<MatrixSwitchDefinition> MatrixDefinitions { get; }
     public Task<TemperatureStabilitySettings> ConfigureTemperatureStabilityAsync(InstrumentId id, TemperatureStabilityChange change, CancellationToken token)
         => GetManual(id) is AxisControllerSession axis ? axis.ConfigureTemperatureStabilityAsync(change, token)
             : throw new NotSupportedException($"{id} has no temperature-control profile.");
