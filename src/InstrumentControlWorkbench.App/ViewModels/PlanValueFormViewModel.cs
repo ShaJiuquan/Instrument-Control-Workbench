@@ -7,7 +7,7 @@ using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.App.ViewModels;
 
-public enum PlanValueInputKind { Quantity, Variable, QualifiedNumber, Boolean, Text }
+public enum PlanValueInputKind { Quantity, Variable, QualifiedNumber, Boolean, Text, Arithmetic }
 
 public partial class PlanValueFormViewModel : ObservableObject
 {
@@ -16,12 +16,15 @@ public partial class PlanValueFormViewModel : ObservableObject
     private readonly Action changed;
     private bool loading = true;
     private bool edited;
-    public PlanValueFormViewModel(PlanValue value, Action changed, Func<PhysicalUnit>? boundUnit = null, bool allowLogical = false)
+    private readonly int depth;
+    public PlanValueFormViewModel(PlanValue value, Action changed, Func<PhysicalUnit>? boundUnit = null, bool allowLogical = false, int depth = 1)
     {
-        original = value; this.boundUnit = boundUnit; this.changed = changed;
-        Kinds = allowLogical ? Enum.GetValues<PlanValueInputKind>() : [PlanValueInputKind.Quantity, PlanValueInputKind.Variable, PlanValueInputKind.QualifiedNumber];
+        if (depth < 1 || depth > ArithmeticValue.MaximumDepth || value is ArithmeticValue arithmeticValue && arithmeticValue.Depth + depth - 1 > ArithmeticValue.MaximumDepth) throw new ArgumentException("表达式层级超过允许范围。");
+        this.depth = depth; original = value; this.boundUnit = boundUnit; this.changed = changed;
+        Kinds = (allowLogical ? Enum.GetValues<PlanValueInputKind>() : [PlanValueInputKind.Quantity, PlanValueInputKind.Variable, PlanValueInputKind.QualifiedNumber, PlanValueInputKind.Arithmetic]).Where(kind => kind != PlanValueInputKind.Arithmetic || depth < ArithmeticValue.MaximumDepth).ToArray();
         switch (value)
         {
+            case ArithmeticValue arithmetic: Kind = PlanValueInputKind.Arithmetic; SelectedOperator = arithmetic.Operation; CreateOperands(arithmetic.Left, arithmetic.Right, false); break;
             case ConstantValue constant: Kind = PlanValueInputKind.Quantity; NumberText = constant.Value.Value.ToString("R", CultureInfo.InvariantCulture); Unit = constant.Value.Unit; break;
             case VariableValue variable: Kind = PlanValueInputKind.Variable; Variable = variable.Variable.Value; break;
             case QuantityFromNumberValue qualified: Kind = PlanValueInputKind.QualifiedNumber; Variable = qualified.Variable.Value; Unit = qualified.Unit; break;
@@ -33,6 +36,12 @@ public partial class PlanValueFormViewModel : ObservableObject
     }
     public PlanValueInputKind[] Kinds { get; }
     public PhysicalUnit[] Units { get; } = Enum.GetValues<PhysicalUnit>();
+    public bool HasArithmetic => Kind == PlanValueInputKind.Arithmetic;
+    public ArithmeticOperator[] Operators { get; } = Enum.GetValues<ArithmeticOperator>();
+    [ObservableProperty] private ArithmeticOperator? selectedOperator;
+    [ObservableProperty] private PlanValueFormViewModel? left;
+    [ObservableProperty] private PlanValueFormViewModel? right;
+    partial void OnSelectedOperatorChanged(ArithmeticOperator? value) => Changed();
     public bool HasNumber => Kind == PlanValueInputKind.Quantity;
     public bool HasVariable => Kind is PlanValueInputKind.Variable or PlanValueInputKind.QualifiedNumber;
     public bool HasBoolean => Kind == PlanValueInputKind.Boolean;
@@ -58,18 +67,33 @@ public partial class PlanValueFormViewModel : ObservableObject
     [ObservableProperty] private bool isReadOnly;
     partial void OnKindChanged(PlanValueInputKind value)
     {
-        OnPropertyChanged(nameof(HasNumber)); OnPropertyChanged(nameof(HasVariable)); OnPropertyChanged(nameof(HasBoolean)); OnPropertyChanged(nameof(HasText)); OnPropertyChanged(nameof(HasUnit)); Changed();
+        if (!loading)
+        {
+            SelectedOperator = null; Left = null; Right = null;
+            if (value == PlanValueInputKind.Arithmetic && depth < ArithmeticValue.MaximumDepth) CreateOperands(new ConstantValue(new(0, PhysicalUnit.Dimensionless)), new ConstantValue(new(0, PhysicalUnit.Dimensionless)), true);
+        }
+        OnPropertyChanged(nameof(HasArithmetic)); OnPropertyChanged(nameof(HasNumber)); OnPropertyChanged(nameof(HasVariable)); OnPropertyChanged(nameof(HasBoolean)); OnPropertyChanged(nameof(HasText)); OnPropertyChanged(nameof(HasUnit)); Changed();
     }
     partial void OnNumberTextChanged(string value) => Changed();
     partial void OnVariableChanged(string value) => Changed();
     partial void OnUnitChanged(PhysicalUnit value) => Changed();
     partial void OnBooleanChanged(bool value) => Changed();
     partial void OnTextChanged(string value) => Changed();
-    partial void OnIsReadOnlyChanged(bool value) => OnPropertyChanged(nameof(CanChooseUnit));
+    partial void OnIsReadOnlyChanged(bool value) { if (Left is { } leftOperand) leftOperand.IsReadOnly = value; if (Right is { } rightOperand) rightOperand.IsReadOnly = value; OnPropertyChanged(nameof(CanChooseUnit)); }
     private void Changed() { OnPropertyChanged(nameof(UnitLabel)); if (!loading) { edited = true; changed(); } }
     public void AddressChanged()
     {
-        edited = true; NumberText = ""; Variable = ""; OnPropertyChanged(nameof(UnitLabel));
+        edited = true; NumberText = ""; Variable = "";
+        if (HasArithmetic) { SelectedOperator = null; CreateOperands(new ConstantValue(new(0, PhysicalUnit.Dimensionless)), new ConstantValue(new(0, PhysicalUnit.Dimensionless)), true); }
+        OnPropertyChanged(nameof(UnitLabel));
+    }
+    private void CreateOperands(PlanValue leftValue, PlanValue rightValue, bool clear)
+    {
+        PlanValueFormViewModel? leftOperand = null; PlanValueFormViewModel? rightOperand = null;
+        leftOperand = new(leftValue, () => { if (ReferenceEquals(Left, leftOperand)) Changed(); }, depth: depth + 1);
+        rightOperand = new(rightValue, () => { if (ReferenceEquals(Right, rightOperand)) Changed(); }, depth: depth + 1);
+        if (clear) { leftOperand.AddressChanged(); rightOperand.AddressChanged(); }
+        leftOperand.IsReadOnly = IsReadOnly; rightOperand.IsReadOnly = IsReadOnly; Left = leftOperand; Right = rightOperand;
     }
     public PlanValue Build()
     {
@@ -77,6 +101,7 @@ public partial class PlanValueFormViewModel : ObservableObject
         if (!edited) return original;
         return Kind switch
         {
+            PlanValueInputKind.Arithmetic => new ArithmeticValue(SelectedOperator ?? throw new InvalidOperationException("请选择算术运算。"), Left?.Build() ?? throw new InvalidOperationException("填写左操作数。"), Right?.Build() ?? throw new InvalidOperationException("填写右操作数。")),
             PlanValueInputKind.Quantity => new ConstantValue(new(Scalar(NumberText), boundUnit?.Invoke() ?? Unit)),
             PlanValueInputKind.Variable => new VariableValue(new(Variable)),
             PlanValueInputKind.QualifiedNumber => new QuantityFromNumberValue(new(Variable), boundUnit?.Invoke() ?? Unit),

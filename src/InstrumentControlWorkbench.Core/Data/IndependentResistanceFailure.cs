@@ -71,13 +71,7 @@ public sealed record IndependentResistanceFailure
             row.Values.ContainsKey(VoltageColumn) || row.Values.ContainsKey(CurrentColumn) || row.Values.ContainsKey(ResistanceColumn) || row.Quality.Any(q => q.Step == Step) || row.IndependentResistance.Any(e => e.Step == Step))
             throw new ArgumentException("Failed resistance identity/policy/proof differs from plan or claims successful electrical values/quality.");
         Retry?.Validate(policy, SourceConfirmedBefore);
-        var expected = step.ExpectedProgrammedCurrent switch
-        {
-            null => (Quantity?)null,
-            ConstantValue value => value.Value,
-            VariableValue variable when row.Values.TryGetValue(variable.Variable, out var value) => value,
-            _ => throw new ArgumentException("Failed acquisition requires its declared persisted excitation axis."),
-        };
+        var expected = step.ExpectedProgrammedCurrent is { } expectedValue ? NumericPlanValue.Evaluate(expectedValue, variable => row.Values.TryGetValue(variable, out var value) ? value : throw new ArgumentException("Failed acquisition requires its persisted excitation axes.")) : (Quantity?)null;
         if (expected is { } requested && (requested.Unit != PhysicalUnit.Ampere || requested.Value != SourceConfiguration.Level)) throw new ArgumentException("Invalid point cannot substitute another excitation.");
     }
 }

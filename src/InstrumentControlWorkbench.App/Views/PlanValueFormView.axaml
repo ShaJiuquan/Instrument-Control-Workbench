@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
- xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels"
+ xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:views="using:InstrumentControlWorkbench.App.Views"
  x:Class="InstrumentControlWorkbench.App.Views.PlanValueFormView" x:DataType="vm:PlanValueFormViewModel">
+ <UserControl.DataTemplates><DataTemplate DataType="vm:PlanValueFormViewModel" x:DataType="vm:PlanValueFormViewModel"><views:PlanValueFormView/></DataTemplate></UserControl.DataTemplates>
  <StackPanel Spacing="6">
   <TextBlock Text="值类型" Classes="caption"/>
   <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="计划值类型"/>
@@ -11,6 +12,13 @@
   <StackPanel Spacing="6" IsVisible="{Binding HasUnit}">
    <TextBlock Text="{Binding UnitLabel}" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
    <ComboBox ItemsSource="{Binding Units}" SelectedItem="{Binding Unit, Mode=TwoWay}" IsVisible="{Binding CanChooseUnit}" HorizontalAlignment="Stretch" AutomationProperties.Name="计划值单位"/>
+  </StackPanel>
+  <StackPanel Spacing="6" IsVisible="{Binding HasArithmetic}">
+   <TextBlock Text="运算 / 结果单位由操作数推导" Classes="caption" TextWrapping="Wrap"/>
+   <ComboBox ItemsSource="{Binding Operators}" SelectedItem="{Binding SelectedOperator, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="计划算术运算"/>
+   <Expander Header="左操作数" IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"><ContentControl Content="{Binding Left}"/></Expander>
+   <Expander Header="右操作数" IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"><ContentControl Content="{Binding Right}"/></Expander>
+   <TextBlock Text="加减要求同单位；乘除按单位关系推导。最多 16 层、255 项，除零与非有限结果会被拒绝。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
   </StackPanel>
   <TextBlock Text="Variable 保留类型与单位；QualifiedNumber 仅给无量纲数值显式声明单位，不能转换已有物理量。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
  </StackPanel>

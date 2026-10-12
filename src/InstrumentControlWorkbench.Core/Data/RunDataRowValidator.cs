@@ -138,13 +138,7 @@ public sealed partial class RunDataRowValidator
                     !row.Values.TryGetValue(step.ResistanceColumn, out var resistance) || resistance != evidence.Resistance)
                     throw new ArgumentException("Independent resistance identity, configuration, times or V/I differs from its plan and values.");
                 evidence.Retry?.Validate(step.Retry, evidence.SourceConfirmedBefore);
-                var expectedExcitation = step.ExpectedProgrammedCurrent switch
-                {
-                    null => (Quantity?)null,
-                    ConstantValue constant => constant.Value,
-                    VariableValue variable when row.Values.TryGetValue(variable.Variable, out var axisValue) => axisValue,
-                    _ => throw new ArgumentException("Expected programmed current requires its persisted axis value."),
-                };
+                var expectedExcitation = step.ExpectedProgrammedCurrent is { } expectedValue ? NumericPlanValue.Evaluate(expectedValue, variable => row.Values.TryGetValue(variable, out var value) ? value : throw new ArgumentException("Expected programmed current requires its persisted axis values.")) : (Quantity?)null;
                 if (expectedExcitation is { } requested && (requested.Unit != PhysicalUnit.Ampere || requested.Value != evidence.SourceConfiguration.Level)) throw new ArgumentException("Programmed current differs from its declared constant/axis.");
                 var currentQuality = row.Quality.SingleOrDefault(q => q.Column == step.CurrentColumn);
                 var voltageQuality = row.Quality.SingleOrDefault(q => q.Column == step.VoltageColumn);

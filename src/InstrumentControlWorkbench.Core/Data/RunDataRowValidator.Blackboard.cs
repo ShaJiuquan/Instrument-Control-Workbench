@@ -24,6 +24,7 @@ public sealed partial class RunDataRowValidator
                 AssignValueStep assign => assign.Variable == variable && (assign.Value switch
                 {
                     ConstantValue constant => entry.Value is BlackboardQuantity quantity && quantity.Value == constant.Value,
+                    ArithmeticValue arithmetic => entry.Value is BlackboardQuantity result && result.Value.Unit == NumericPlanValue.InferUnit(arithmetic, input => snapshot.Entries.TryGetValue(input, out var value) && value.Value is BlackboardQuantity number ? number.Value.Unit : throw new ArgumentException("Arithmetic snapshot needs numeric input types.")) && (!NumericPlanValue.TryConstant(arithmetic, out var literal) || result.Value == literal),
                     BooleanValue boolean => entry.Value is BlackboardBoolean value && value.Value == boolean.Value,
                     TextValue text => entry.Value is BlackboardText value && value.Value == text.Value,
                     QuantityFromNumberValue qualified => IsQuantity(entry, qualified.Unit),

@@ -368,6 +368,7 @@ public sealed partial class MeasurementRunService
     private static BlackboardValue ResolveValue(PlanValue value, RunExecutionContext run) => value switch
     {
         ConstantValue constant => new BlackboardQuantity(constant.Value),
+        ArithmeticValue arithmetic => new BlackboardQuantity(NumericPlanValue.Evaluate(arithmetic, id => run.Variables.TryGetValue(id, out var input) && input.Value is BlackboardQuantity number ? number.Value : throw new InvalidOperationException("Arithmetic input has no numeric value on this path."))),
         BooleanValue boolean => new BlackboardBoolean(boolean.Value),
         TextValue text => new BlackboardText(text.Value),
         VariableValue variable when run.Variables.TryGetValue(variable.Variable, out var entry) => entry.Value,

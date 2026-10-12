@@ -173,6 +173,7 @@ internal static class ExperimentPlanCompiler
             return value switch
             {
                 ConstantValue constant => BlackboardValueType.Quantity(constant.Value.Unit),
+                ArithmeticValue arithmetic => BlackboardValueType.Quantity(NumericPlanValue.InferUnit(arithmetic, id => ValueUnit(new VariableValue(id), known))),
                 BooleanValue => BlackboardValueType.Boolean,
                 TextValue => BlackboardValueType.Text,
                 VariableValue variable when variable.Variable is not null && known.TryGetValue(variable.Variable, out var type) => type,
@@ -272,8 +273,10 @@ internal static class ExperimentPlanCompiler
             var currentParameter = pureCurrent ? Keithley6221Parameters.Current : independent.CurrentReference == CurrentReference.ProgrammedSetpoint ? Keithley2450Parameters.SourceCurrent : Keithley2450Parameters.MeasuredCurrent;
             excitation.GetParameter(currentParameter.Id);
             if (independent.ExpectedProgrammedCurrent is { } expectedCurrent &&
-                (ValueUnit(expectedCurrent, known) != PhysicalUnit.Ampere || expectedCurrent is VariableValue expectedVariable && !axes.Contains(expectedVariable.Variable)))
+                (ValueUnit(expectedCurrent, known) != PhysicalUnit.Ampere || NumericPlanValue.Variables(expectedCurrent).Any(variable => !axes.Contains(variable))))
                 throw new ArgumentException("Expected excitation must be Ampere and variables must be persisted active axes.");
+            if (independent.ExpectedProgrammedCurrent is { } staticExpected && NumericPlanValue.TryConstant(staticExpected, out var expectedLiteral) && Math.Abs(expectedLiteral.Value) <= independent.MinimumCurrent.Value)
+                throw new ArgumentException("Expected excitation must exceed the minimum-current threshold.");
             if (independent.RequiredRoute is { } requiredRoute)
             {
                 Device(requiredRoute.Device); var requiredMatrix = registry.GetMatrixDefinition(requiredRoute.Device); requiredMatrix.Validate(requiredRoute.Closed);
@@ -346,7 +349,7 @@ internal static class ExperimentPlanCompiler
                     if (angleWait.Target is { } angleTarget)
                     {
                         if (ValueUnit(angleTarget, known) != PhysicalUnit.Degree) throw new ArgumentException("Angle target requires Degree.");
-                        if (angleTarget is ConstantValue constantAngle) angleDefinition.Target.Validate(constantAngle.Value);
+                        if (NumericPlanValue.TryConstant(angleTarget, out var constantAngle)) angleDefinition.Target.Validate(constantAngle);
                     }
                     return 1;
                 case WaitTemperatureStep temperatureWait:
@@ -354,7 +357,7 @@ internal static class ExperimentPlanCompiler
                     var temperatureDefinition = registry.GetAxisDefinition(temperatureWait.Device);
                     if (!temperatureDefinition.SupportsSoftwareTemperatureRamp || ValueUnit(temperatureWait.Target, known) != PhysicalUnit.Kelvin)
                         throw new ArgumentException("Temperature waits require a temperature-control profile and Kelvin target.");
-                    if (temperatureWait.Target is ConstantValue waitTarget) temperatureDefinition.Target.Validate(waitTarget.Value);
+                    if (NumericPlanValue.TryConstant(temperatureWait.Target, out var waitTarget)) temperatureDefinition.Target.Validate(waitTarget);
                     return 1;
                 case TemperatureControlStep command:
                     Device(command.Device);
@@ -368,7 +371,7 @@ internal static class ExperimentPlanCompiler
                     if (!hardwareController.SupportsSoftwareTemperatureRamp || !hardwareTemperature.EnableControl && !registry.SupportsTemperatureConfiguration(hardwareTemperature.Device))
                         throw new NotSupportedException("Controller does not implement requested hardware temperature setpoint capability.");
                     if (ValueUnit(hardwareTemperature.Target, known) != PhysicalUnit.Kelvin) throw new ArgumentException("Temperature targets require Kelvin.");
-                    if (hardwareTemperature.Target is ConstantValue hardwareTarget) hardwareController.Target.ValidateWrite(hardwareTarget.Value);
+                    if (NumericPlanValue.TryConstant(hardwareTemperature.Target, out var hardwareTarget)) hardwareController.Target.ValidateWrite(hardwareTarget);
                     hardwareController.Rate.ValidateWrite(hardwareTemperature.Rate);
                     return 1;
                 case SoftwareTemperatureRampStep temperature:
@@ -377,10 +380,10 @@ internal static class ExperimentPlanCompiler
                     if (!controller.SupportsSoftwareTemperatureRamp || !temperature.EnableControl && !registry.SupportsTemperatureConfiguration(temperature.Device))
                         throw new NotSupportedException("Controller does not implement requested software temperature ramp capability.");
                     if (ValueUnit(temperature.Target, known) != PhysicalUnit.Kelvin) throw new ArgumentException("Temperature targets require Kelvin.");
-                    if (temperature.Target is ConstantValue temperatureTarget)
+                    if (NumericPlanValue.TryConstant(temperature.Target, out var temperatureTarget))
                     {
-                        controller.Target.ValidateWrite(temperatureTarget.Value);
-                        if (temperature.Rate is not null) controller.Target.ValidateWrite(new(TemperatureRampPath.MilliKelvin(temperatureTarget.Value) / 1000.0, PhysicalUnit.Kelvin));
+                        controller.Target.ValidateWrite(temperatureTarget);
+                        if (temperature.Rate is not null) controller.Target.ValidateWrite(new(TemperatureRampPath.MilliKelvin(temperatureTarget) / 1000.0, PhysicalUnit.Kelvin));
                     }
                     // Live readback is not available at preflight: bound the path
                     // using the complete declared controller range.
@@ -519,8 +522,8 @@ internal static class ExperimentPlanCompiler
                 case SetParameterStep set:
                     var parameter = Parameter(set.Address, ParameterAccess.Write);
                     if (parameter.Unit != ValueUnit(set.Value, known)) throw new ArgumentException($"{set.Address.Parameter} value has the wrong unit.");
-                    if (set.Value is ConstantValue literal)
-                    { parameter.ValidateWrite(literal.Value); writes.Add((set.Address, [literal.Value])); }
+                    if (NumericPlanValue.TryConstant(set.Value, out var literal))
+                    { parameter.ValidateWrite(literal); writes.Add((set.Address, [literal])); }
                     else writes.Add((set.Address, null));
                     return 1;
                 case AssignValueStep assign:
@@ -602,7 +605,7 @@ internal static class ExperimentPlanCompiler
                     var readback = Parameter(wait.Readback, ParameterAccess.Read);
                     if (readback.Unit != wait.Tolerance.Unit || readback.Unit != ValueUnit(wait.Target, known))
                         throw new ArgumentException("Stability target, tolerance and readback units must match.");
-                    if (wait.Target is ConstantValue target) readback.Validate(target.Value);
+                    if (NumericPlanValue.TryConstant(wait.Target, out var target)) readback.Validate(target);
                     return 1;
                 case ThresholdSwitchStep choice:
                     if (choice.Children.Count == 0) return 1;

@@ -1204,7 +1204,7 @@ read confirmation, native strict codec/budget. All read channels publish
 measured blackboard values only after complete acquisition/environment/route
 confirmation. No partial rows or value leaks after drift/fault; original abort,
 pause/drain and retained failed stop/recovery lifetime preserved.44 new cases
-(4Core40Application); focused133Application+4Core. Owned TCP VI and pure-source
+(4Core40Application); focused135Application+4Core. Owned TCP VI and pure-source
 IV, zero/negative points, actual fixtures, wide raw+summary groups, fresh saved
 plans/archives/CSV tested. Programmed sweep axes are not actual source readback;
 scalar rows have guarded plan + original quality, not extra per-row routing
@@ -1633,3 +1633,24 @@ per user's “先继续代码检查”; no new inventory/window/process actions.
 routing-catalog-editor.md. Matrix identity fixed; whole PPMS migration still active,
 including further workflow/expression/data-memory/indexing/controller/real hardware.
 GitHub only per user, independent C# engine.
+
+## Typed arithmetic values (2026-10-13)
+
+Immutable 16-level/255-node Add/Subtract/Multiply/Divide AST; shared pure numeric
+inference/evaluation/static folding/variable discovery. Same-unit +/-; declared
+scaling/electrical/rate/charge/resistivity/frequency relations and explicit minute
+factor; appended Watt. Logical/unknown/mismatch/unsupported/zero/overflow/nonzero
+underflow reject. Compiler every-path types + folded literal device/coupled/target
+limits; runtime uses existing fault/cleanup, not ordinary workflow Failure. Strict
+v1 optional expression codec/recursive pre-DOM cost; all expected-current references
+must be persisted axes and successful/failed row evidence reevaluates expressions.
+Blackboard checks dynamic units/type, constant exact values (not historical dynamic
+inputs). Recursive form blanks new operands/operator, preserves originals, explicit
+units/depth/readonly/stale/address locks; typed lazy templates avoid null recursion.
+32Core+35Application+12App new cases:12wrapped division faults +2overflow/underflow,
+real3point example and saved/fresh scan R/P/archivedexport, current success/failure
+axis evidence and no-axis rejection, static forgery/noIO/codec/budgets; managed
+control construction and3saved/fresh form source reads. No script engine/deps/Rust/
+physical IO; native still deferred per user. See typed-arithmetic.md. Assign math
+results are terminal blackboards; generic per-row math columns, variable discovery,
+PPMS scripts and broader workflow/data/controller/hardware remain goal work.

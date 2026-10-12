@@ -19,6 +19,7 @@ public enum PhysicalUnit
     Meter,
     OhmPerSquare,
     OhmMeter,
+    Watt,
 }
 
 public readonly record struct Quantity

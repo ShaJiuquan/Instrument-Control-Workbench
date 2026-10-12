@@ -12,7 +12,7 @@ using InstrumentControlWorkbench.Infrastructure.Plans;
 
 namespace InstrumentControlWorkbench.App.Tests;
 
-public sealed class PlanValueFormTests
+public sealed partial class PlanValueFormTests
 {
     [Theory]
     [InlineData("quantity")]
