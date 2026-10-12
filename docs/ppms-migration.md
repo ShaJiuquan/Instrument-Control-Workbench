@@ -798,3 +798,20 @@ Holding/persistence, physical/background/parallel/native UI/full PPMS remain
 pending.29 original UI drafts untouched/excluded. No dependencies/Rust writes/
 physical IO; independent C# engine, GitHub only, full goal active. See
 controller-waits.md.
+
+
+## Native minimum window inspection (2026-10-12)
+
+Desktop unlocked: current be8d4ca working source including29 unchanged UI drafts
+packaged and actually opened.1440 default and1060x720 client native rendering
+observed (Retina2120x1496 includes28 logical titlebar). Navigation/readings/chart/
+controls visible; parameter panel scroll and actual name/interval edits verified.
+Native drag still noWindowsAvailable and AX setValue unsupported. New optional
+StartupWindowSize/Program hook and package --window-size/validated launcher make
+layout checks repeatable without changing original29 drafts.14 new App tests
+and7 invalid package executions. Native start attempt not proven: tool reported
+app change, fresh state showed instrument page, coordination question pending;
+Mac subsequently locked. No new run/pause/fault/close proof or published draft UI
+parity claimed. Full native/physical/full PPMS scope remains pending. No new
+dependencies/Rust/lab IO; independent engine/GitHub only/full goal active. See
+native-window-sizing.md.

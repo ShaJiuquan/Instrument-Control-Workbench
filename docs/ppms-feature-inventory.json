@@ -1697,5 +1697,10 @@
     "implementation": "Core ControllerWaitSteps.cs; Application AxisControllerSession/DeviceRunResources snapshot path, compiler and MeasurementRunService.ControllerWaits; Infrastructure PPMS ControllerWaits and native codecs",
     "tests": "ControllerWaitStepTests.cs; ControllerWaitExecutionTests.cs/.Documents/.Fixture.cs; TemperatureControlExecutionTests.StateWaits/StateWaitDocuments.cs",
     "limits": "Live temperature session Reached/Stable, fresh angle target or comparison-only explicit threshold, defaults/aliases, zero no deadline and positive TimeoutStep with wall-clock/pause/drain/abort semantics. Preflight capability/units and strict parameter diagnostics, 68 new cases, repository fixture/native/archive/CSV/fresh replay. C# strictly rejects malformed legacy clamps and expiry cannot accept a late observation. Field Holding/vendor states, physical adapters/lab, background/parallel/native UI remain pending. See controller-waits.md."
+  },
+  "nativeWindowSizing": {
+    "implementation": "App StartupWindowSize.cs and Program.cs MainWindow-only opened hook; scripts/package-macos.sh optional validated launch geometry",
+    "tests": "StartupWindowSizeTests.cs(14 cases);7 invalid package executions;actual local draft-inclusive1060x720 native rendering/scroll/text edit",
+    "limits": "Default geometry unchanged; view minimums retained; no device/workflow changes. Local bundle includes29 unpublished UI drafts, which remain untouched/excluded. Desktop unlocked then locked; current run/fault/close/full native and published UI parity remain unproven. See native-window-sizing.md."
   }
 }
