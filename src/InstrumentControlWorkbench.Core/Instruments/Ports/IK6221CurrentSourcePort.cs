@@ -16,11 +16,13 @@ public interface IK6221CurrentSourcePort
 }
 public sealed record K6221CurrentSourceSnapshot
 {
-    public K6221CurrentSourceSnapshot(bool connected, bool outputEnabled, Keithley6221Settings? settings, DateTimeOffset timestamp)
+    public K6221CurrentSourceSnapshot(bool connected, bool outputEnabled, Keithley6221Settings? settings, DateTimeOffset timestamp, Keithley6221ModeObservation? mode = null)
     {
         if (connected && settings is null || outputEnabled && !connected) throw new ArgumentException("Connected current source requires observed settings; enabled output requires connection.");
-        Connected = connected; OutputEnabled = outputEnabled; Settings = settings; Timestamp = timestamp;
+        if (mode is not null && (!connected || mode.CapturedAt != timestamp)) throw new ArgumentException("Mode evidence must belong to the same connected snapshot observation.");
+        Connected = connected; OutputEnabled = outputEnabled; Settings = settings; Timestamp = timestamp; Mode = mode;
     }
+    public Keithley6221ModeObservation? Mode { get; }
     public bool Connected { get; }
     public bool OutputEnabled { get; }
     public Keithley6221Settings? Settings { get; }

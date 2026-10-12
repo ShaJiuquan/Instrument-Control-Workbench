@@ -194,7 +194,10 @@ public sealed partial class Keithley6221ExecutionTests
     private sealed class FaultSource : IK6221CurrentSourcePort
     {
         private readonly MockKeithley6221CurrentSource inner = new(new("source"), "Pure current simulation");
-        public DeviceDescriptor Descriptor => inner.Descriptor; public bool RefuseStop { get; set; }
+        public DriverKind Kind { get; set; } = DriverKind.Simulation;
+        public DeviceDescriptor Descriptor => new(inner.Descriptor.Id, "K6221", "Current source test double", Kind, DeviceStopPolicy.OutputOff, Keithley6221Parameters.All);
+        public Func<K6221CurrentSourceSnapshot, K6221CurrentSourceSnapshot>? Observe { get; set; }
+        public bool RefuseStop { get; set; }
         public bool RefuseSettings { get; set; }
         public Func<Keithley6221Settings, Task>? OnConfigured { get; set; }
         public Func<CancellationToken, Task>? OnStop { get; set; }
@@ -203,9 +206,11 @@ public sealed partial class Keithley6221ExecutionTests
         public bool LastStopTokenLive { get; private set; }
         public int Connections { get; private set; }
         public int Enables { get; private set; }
-        public Task<K6221CurrentSourceSnapshot> ConnectAsync(CancellationToken token) { Connections++; return inner.ConnectAsync(token); }
-        public Task<K6221CurrentSourceSnapshot> GetSnapshotAsync(CancellationToken token) => inner.GetSnapshotAsync(token);
-        public async Task ConfigureAsync(Keithley6221Settings settings, CancellationToken token) { token.ThrowIfCancellationRequested(); if (!RefuseSettings) await inner.ConfigureAsync(settings, token); if (OnConfigured is { } action) await action(settings); }
+        public int Configurations { get; private set; }
+        public int Disconnections { get; private set; }
+        public async Task<K6221CurrentSourceSnapshot> ConnectAsync(CancellationToken token) { Connections++; var state = await inner.ConnectAsync(token); return Observe?.Invoke(state) ?? state; }
+        public async Task<K6221CurrentSourceSnapshot> GetSnapshotAsync(CancellationToken token) { var state = await inner.GetSnapshotAsync(token); return Observe?.Invoke(state) ?? state; }
+        public async Task ConfigureAsync(Keithley6221Settings settings, CancellationToken token) { token.ThrowIfCancellationRequested(); Configurations++; if (!RefuseSettings) await inner.ConfigureAsync(settings, token); if (OnConfigured is { } action) await action(settings); }
         public Task SetOutputAsync(bool enabled, CancellationToken token) { if (enabled) Enables++; return inner.SetOutputAsync(enabled, token); }
         public async Task SafeStopAsync(CancellationToken token)
         {
@@ -213,7 +218,7 @@ public sealed partial class Keithley6221ExecutionTests
             try { if (OnStop is { } action) await action(token); if (RefuseStop) throw new IOException("Output-off refused."); await inner.SafeStopAsync(token); }
             finally { StopFinished?.TrySetResult(); }
         }
-        public Task DisconnectAsync(CancellationToken token) => inner.DisconnectAsync(token);
+        public Task DisconnectAsync(CancellationToken token) { Disconnections++; return inner.DisconnectAsync(token); }
     }
     private sealed class FaultMeter : IK2182MeterPort
     {

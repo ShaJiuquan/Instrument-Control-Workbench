@@ -15,11 +15,11 @@ public sealed class MockKeithley6221CurrentSource : IK6221CurrentSourcePort
     public DeviceDescriptor Descriptor { get; }
     public async Task<K6221CurrentSourceSnapshot> ConnectAsync(CancellationToken token)
     {
-        await gate.WaitAsync(token); try { connected = true; return new(connected, output, settings, DateTimeOffset.UtcNow); } finally { gate.Release(); }
+        await gate.WaitAsync(token); try { connected = true; return Snapshot(); } finally { gate.Release(); }
     }
     public async Task<K6221CurrentSourceSnapshot> GetSnapshotAsync(CancellationToken token)
     {
-        await gate.WaitAsync(token); try { return new(connected, output, connected ? settings : null, DateTimeOffset.UtcNow); } finally { gate.Release(); }
+        await gate.WaitAsync(token); try { return Snapshot(); } finally { gate.Release(); }
     }
     public async Task ConfigureAsync(Keithley6221Settings requested, CancellationToken token)
     {
@@ -29,6 +29,11 @@ public sealed class MockKeithley6221CurrentSource : IK6221CurrentSourcePort
     public async Task SetOutputAsync(bool enabled, CancellationToken token)
     {
         await gate.WaitAsync(token); try { if (!connected) throw new InvalidOperationException("K6221 simulator is disconnected."); output = enabled; } finally { gate.Release(); }
+    }
+    private K6221CurrentSourceSnapshot Snapshot()
+    {
+        var now = DateTimeOffset.UtcNow;
+        return new(connected, output, connected ? settings : null, now, connected ? new(false, false, false, false, false, 1024, now) : null);
     }
     public Task SafeStopAsync(CancellationToken token) => SetOutputAsync(false, token);
     public async Task DisconnectAsync(CancellationToken token)

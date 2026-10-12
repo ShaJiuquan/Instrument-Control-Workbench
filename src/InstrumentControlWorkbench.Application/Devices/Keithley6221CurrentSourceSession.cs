@@ -48,7 +48,7 @@ public sealed class Keithley6221CurrentSourceSession : IDeviceSession
         await operations.EnterAsync(token, owner);
         try
         {
-            await port.SafeStopAsync(token); var stopped = await port.GetSnapshotAsync(token);
+            await port.SafeStopAsync(token); var stopped = await port.GetSnapshotAsync(token); RequireDcReady(stopped);
             if (!stopped.Connected || stopped.OutputEnabled) throw new InvalidOperationException("K6221 output-off not confirmed before disconnect.");
             await port.DisconnectAsync(token); var after = await port.GetSnapshotAsync(token);
             if (after.Connected || after.OutputEnabled) throw new InvalidOperationException("K6221 disconnect not confirmed.");
@@ -66,6 +66,7 @@ public sealed class Keithley6221CurrentSourceSession : IDeviceSession
         try
         {
             var state = await port.GetSnapshotAsync(token); if (!state.Connected) throw new InvalidOperationException("K6221 is disconnected.");
+            if (parameter != Keithley6221Parameters.Output.Id) RequireDcReady(state);
             var values = state.Settings!.CaptureParameters();
             var value = parameter == Keithley6221Parameters.Output.Id ? new Quantity(state.OutputEnabled ? 1 : 0, PhysicalUnit.Dimensionless)
                 : values.TryGetValue(parameter, out var found) ? found : throw new InvalidOperationException("The requested register is unobserved; manual span is absent in autorange and old source delay may be unknown.");
@@ -80,10 +81,18 @@ public sealed class Keithley6221CurrentSourceSession : IDeviceSession
         try
         {
             var before = await port.GetSnapshotAsync(token); if (!before.Connected) throw new InvalidOperationException("K6221 is disconnected.");
+            if (parameter == Keithley6221Parameters.Output.Id && value.Value == 0)
+            {
+                // Output-off alone cannot cancel an armed autonomous mode.
+                await port.SafeStopAsync(token); var stopped = await port.GetSnapshotAsync(token); RequireDcReady(stopped);
+                if (stopped.OutputEnabled) throw new InvalidOperationException("K6221 emergency stop did not confirm output-off.");
+                faulted = false; await PublishAsync(stopped, token); return;
+            }
+            RequireDcReady(before);
             if (parameter == Keithley6221Parameters.Output.Id)
             {
                 if (value.Value == 1 && faulted) throw new InvalidOperationException("K6221 safety recovery is required before enabling output.");
-                await port.SetOutputAsync(value.Value == 1, token); var after = await port.GetSnapshotAsync(token);
+                await port.SetOutputAsync(value.Value == 1, token); var after = await port.GetSnapshotAsync(token); RequireDcReady(after);
                 if (!after.Connected || after.OutputEnabled != (value.Value == 1) || after.Settings != before.Settings) throw new InvalidOperationException("K6221 output/configuration did not confirm.");
                 await PublishAsync(after, token);
             }
@@ -91,7 +100,7 @@ public sealed class Keithley6221CurrentSourceSession : IDeviceSession
             {
                 var requested = before.Settings!.WithParameter(parameter, value);
                 if (requested != before.Settings) await port.ConfigureAsync(requested, token);
-                var after = await port.GetSnapshotAsync(token);
+                var after = await port.GetSnapshotAsync(token); RequireDcReady(after);
                 if (!after.Connected || before.OutputEnabled != after.OutputEnabled || after.Settings != requested) throw new InvalidOperationException("K6221 settings/output did not confirm.");
                 await PublishAsync(after, token);
             }
@@ -104,9 +113,9 @@ public sealed class Keithley6221CurrentSourceSession : IDeviceSession
         ArgumentNullException.ThrowIfNull(settings); await operations.EnterAsync(token, owner);
         try
         {
-            var before = await port.GetSnapshotAsync(token); if (!before.Connected || before.OutputEnabled) throw new InvalidOperationException("K6221 preparation requires connected output-off.");
+            var before = await port.GetSnapshotAsync(token); RequireDcReady(before); if (!before.Connected || before.OutputEnabled) throw new InvalidOperationException("K6221 preparation requires connected output-off.");
             settings = new(settings.Current, settings.Compliance, settings.ManualRange, settings.SourceDelay ?? before.Settings!.SourceDelay);
-            await port.ConfigureAsync(settings, token); var after = await port.GetSnapshotAsync(token);
+            await port.ConfigureAsync(settings, token); var after = await port.GetSnapshotAsync(token); RequireDcReady(after);
             if (!after.Connected || after.OutputEnabled || after.Settings != settings) throw new InvalidOperationException("K6221 prepared settings/output-off did not confirm.");
             await PublishAsync(after, token);
         }
@@ -118,8 +127,9 @@ public sealed class Keithley6221CurrentSourceSession : IDeviceSession
         await operations.EnterAsync(token, owner);
         try
         {
-            var state = await port.GetSnapshotAsync(token); if (!state.Connected) throw new InvalidOperationException("K6221 connected state is required."); return state;
+            var state = await port.GetSnapshotAsync(token); RequireDcReady(state); return state;
         }
+        catch { faulted = true; throw; }
         finally { operations.Exit(); }
     }
     internal async Task EnableOutputAsync(RunId owner, CancellationToken token, K6221CurrentSourceSnapshot? expected = null)
@@ -127,9 +137,9 @@ public sealed class Keithley6221CurrentSourceSession : IDeviceSession
         await operations.EnterAsync(token, owner);
         try
         {
-            var before = await port.GetSnapshotAsync(token);
+            var before = await port.GetSnapshotAsync(token); RequireDcReady(before);
             if (!before.Connected || faulted || expected is not null && (before.OutputEnabled || before.Settings != expected.Settings)) throw new InvalidOperationException("K6221 resume/output enable state differs from the confirmed settings.");
-            await port.SetOutputAsync(true, token); var after = await port.GetSnapshotAsync(token);
+            await port.SetOutputAsync(true, token); var after = await port.GetSnapshotAsync(token); RequireDcReady(after);
             if (!after.Connected || !after.OutputEnabled || after.Settings != before.Settings) throw new InvalidOperationException("K6221 enabled output/configuration did not confirm.");
             await PublishAsync(after, token);
         }
@@ -141,7 +151,7 @@ public sealed class Keithley6221CurrentSourceSession : IDeviceSession
         await operations.EnterAsync(token, owner);
         try
         {
-            await port.SafeStopAsync(token); var state = await port.GetSnapshotAsync(token);
+            await port.SafeStopAsync(token); var state = await port.GetSnapshotAsync(token); RequireDcReady(state);
             if (!state.Connected || state.OutputEnabled) throw new InvalidOperationException("K6221 output-off is unknown; ownership must be retained.");
             faulted = false; var status = await PublishAsync(state, token);
             await notifications.PublishAsync(new(WorkbenchNotificationKind.SafetyStateChanged, $"{Descriptor.DisplayName}: output-off confirmed.", Descriptor.Id), token); return status;
@@ -149,12 +159,18 @@ public sealed class Keithley6221CurrentSourceSession : IDeviceSession
         catch { faulted = true; throw; }
         finally { operations.Exit(); }
     }
+    private bool IsDcReady(K6221CurrentSourceSnapshot state) => state.Connected &&
+        (state.Mode?.IsDcReady ?? Descriptor.DriverKind == DriverKind.Simulation);
+    private void RequireDcReady(K6221CurrentSourceSnapshot state)
+    {
+        if (!IsDcReady(state)) throw new InvalidOperationException("K6221 DC mode is unverified or autonomous activity is armed/running; stop and confirm fresh mode evidence.");
+    }
     private async Task<DeviceStatus> PublishAsync(K6221CurrentSourceSnapshot state, CancellationToken token)
     {
-        var lifecycle = !state.Connected ? InstrumentLifecycleState.Disconnected : faulted ? InstrumentLifecycleState.Faulted : state.OutputEnabled ? InstrumentLifecycleState.Running : InstrumentLifecycleState.Idle;
+        var lifecycle = !state.Connected ? InstrumentLifecycleState.Disconnected : faulted || !IsDcReady(state) ? InstrumentLifecycleState.Faulted : state.OutputEnabled ? InstrumentLifecycleState.Running : InstrumentLifecycleState.Idle;
         var values = state.Connected ? new Dictionary<ParameterId, Quantity>(state.Settings!.CaptureParameters()) : [];
         if (state.Connected) values.Add(Keithley6221Parameters.Output.Id, new(state.OutputEnabled ? 1 : 0, PhysicalUnit.Dimensionless));
-        var status = new DeviceStatus(Descriptor, lifecycle, state.Connected, state.Connected && !state.OutputEnabled, state.Timestamp, values);
+        var status = new DeviceStatus(Descriptor, lifecycle, state.Connected, IsDcReady(state) && !state.OutputEnabled, state.Timestamp, values);
         await notifications.PublishAsync(new(WorkbenchNotificationKind.DeviceStateChanged, $"{Descriptor.DisplayName}: {lifecycle}", Descriptor.Id, Device: status), token); return status;
     }
 }

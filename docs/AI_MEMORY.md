@@ -1271,3 +1271,23 @@ fresh replay. Vendor switches/persistent/quench/physical/native UI/continuous/
 full PPMS remain pending; no magnetic safety certification claimed.29 original
 UI drafts unchanged/excluded; no dependencies/Rust/lab changes; independent
 C# engine/GitHub only/full goal active. See field-waits.md.
+
+
+## K6221 DC admission (2026-10-12)
+
+Core nullable Delta/Pulse Delta/differential/waveform/ordinary-sweep armed facts
+and operation condition evidence require all unarmed plus Idle, excluding active,
+error and undefined bits. Connected snapshot capture timestamp association is
+validated; adapter freshness/coherence is an obligation, not a proven physical
+transaction. Simulation supplies explicit facts; only legacy Simulation may omit
+them. Hardware unknown evidence blocks DC reads/config/preparation/capture/enable/
+resume; mutations verify afterward. Output diagnosis remains available. Manual
+output-off invokes SafeStop even when mode unknown, then verifies DC admission
+and output-off. Stop/disconnect refusal retains all run claims; acquisition drift
+never commits a row; verified explicit recovery releases claims.43 new cases
+(18Core25Application) plus existing K6221 regression coverage. No registered real
+K6221 transport: waveform/ordinary-sweep arm queries and abort/setpoint preservation
+remain unestablished. Hardware-descriptor test doubles are not physical adapters.
+29 original UI drafts untouched/excluded; no native inspection, lab IO, dependency
+or Rust writes. Independent C# engine/GitHub only/full goal active. See
+k6221-dc-admission.md.

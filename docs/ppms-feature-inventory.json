@@ -1481,7 +1481,14 @@
     "status": "partial",
     "implementation": "src/InstrumentControlWorkbench.Core/Instruments/Keithley6221Settings.cs; src/InstrumentControlWorkbench.Core/Instruments/Ports/IK6221CurrentSourcePort.cs; src/InstrumentControlWorkbench.Application/Devices/Keithley6221CurrentSourceSession.cs; src/InstrumentControlWorkbench.Infrastructure/Drivers/MockKeithley6221CurrentSource.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.CurrentSources.cs",
     "tests": "tests/InstrumentControlWorkbench.Core.Tests/Keithley6221ModelTests.cs; tests/InstrumentControlWorkbench.Application.Tests/Keithley6221ExecutionTests*.cs",
-    "limits": "Pure DC simulator with separate settings/port/profile/constraints; no SMU sense/measurement. Native current-source preparations, explicit configured source, current command/scans/curr_dc and basic K6221 command aliases, source-setting evidence and archived model identity, shared atomic leases/pause/stop/fault recovery including live timeout retention. Real transport, actual full-scale/quality, source delay/response/filtering/advanced modes, automatic independent sample wiring/analysis, retry-to-invalid-point and UI/lab acceptance pending. See k6221-current-source.md. Source-delay register and independent channel/sample/retry/invalid-point stages now implemented in simulation; previous remaining notes are historical. Physical transports and advanced modes remain incomplete. See independent-device-commands.md."
+    "limits": "Pure DC simulator with separate settings/port/profile/constraints; no SMU sense/measurement. Native current-source preparations, explicit configured source, current command/scans/curr_dc and basic K6221 command aliases, source-setting evidence and archived model identity, shared atomic leases/pause/stop/fault recovery including live timeout retention. Real transport, actual full-scale/quality, source delay/response/filtering/advanced modes, automatic independent sample wiring/analysis, retry-to-invalid-point and UI/lab acceptance pending. See k6221-current-source.md. Source-delay register and independent channel/sample/retry/invalid-point stages now implemented in simulation; previous remaining notes are historical. Physical transports and advanced modes remain incomplete. See independent-device-commands.md.",
+    "modeAdmission": {
+      "status": "partial",
+      "reference": "k6221-dc-admission.md",
+      "evidence": "43 new contract and lifecycle cases; explicit simulated facts, hardware-descriptor test doubles only",
+      "implemented": "Complete nullable armed/status observations; before/after DC checks; stop/read/output/resume policy; drift rejects rows; failed stop retains group claims until fresh recovery",
+      "remaining": "Real K6221 transport and firmware query semantics; physical acceptance; waveform/sweep armed evidence; safe-stop setpoint behavior"
+    }
   },
   "independentChannelRouting": {
     "status": "partial",

@@ -4,6 +4,10 @@ No K6221 hardware adapter is registered by this stage; configured hardware still
 fails validation without a simulated fallback. Existing pure-DC simulation and
 independent acquisition remain available.
 
+The subsequent [DC admission stage](k6221-dc-admission.md) adds typed nullable
+mode evidence and session/run checks. It does not supply the missing hardware
+queries or change registration status.
+
 Primary manufacturer sources checked on2026-10-11:
 
 - [622x driver release notes, section4.4.3](https://download.tek.com/software/supporting_files/622xB01.1DriverReleaseNotes_0.pdf)
