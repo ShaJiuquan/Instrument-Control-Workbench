@@ -11,16 +11,24 @@ public sealed partial class PpmsExperimentPlanImporter
         var p = (JsonObject)original.DeepClone();
         Alias(p, "timeout_s", "timeout");
         var angle = name == "wait_angle";
+        var field = name == "wait_field";
+        if (field) Alias(p, "duration_s", "stable_duration_s");
         if (angle) { Alias(p, "target_deg", "target", "angle"); Alias(p, "tolerance_deg", "tolerance"); }
         else Alias(p, "wait_for", "state");
-        Fields(p, angle ? ["target_deg", "tolerance_deg", "timeout_s", "poll_ms"] : ["wait_for", "timeout_s", "poll_ms"]);
+        Fields(p, angle ? ["target_deg", "tolerance_deg", "timeout_s", "poll_ms"] : field ? ["wait_for", "timeout_s", "poll_ms", "tolerance_t", "duration_s"] : ["wait_for", "timeout_s", "poll_ms"]);
         var timeout = Duration(p, "timeout_s", angle ? 30 : 3600);
         var poll = Number(p, "poll_ms", 500);
         if (poll < 1 || poll != Math.Truncate(poll) || poll > uint.MaxValue - 1) throw new FormatException("poll_ms requires a positive integer in the timer range.");
         var interval = TimeSpan.FromMilliseconds(Math.Max(100, poll)); // PPMS runtime minimum, including raw callers.
         var id = new StepId(timeout == TimeSpan.Zero ? path : path + ".wait");
         ExperimentStep wait;
-        if (angle)
+        if (field)
+        {
+            var axis = Axis("field", c);
+            Choice(p, "wait_for", "holding", "holding");
+            wait = new WaitFieldStep(id, axis.Device.Id, new(Number(p, "tolerance_t", 0.0005), PhysicalUnit.Tesla), Duration(p, "duration_s", 0), interval);
+        }
+        else if (angle)
         {
             var axis = Axis("angle", c);
             var target = p.ContainsKey("target_deg") ? new ConstantValue(new Quantity(Number(p, "target_deg"), PhysicalUnit.Degree)) : null;

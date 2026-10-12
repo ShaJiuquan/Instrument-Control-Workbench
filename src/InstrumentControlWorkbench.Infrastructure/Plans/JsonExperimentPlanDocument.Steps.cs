@@ -22,6 +22,8 @@ public sealed partial class JsonExperimentPlanDocument
                 if (settings.Change.StableFor is { } stableFor) o["stableSeconds"] = stableFor.TotalSeconds; break;
             case WaitTemperatureStateStep stateWait:
                 o["kind"] = "wait_temperature_state"; o["device"] = stateWait.Device.Value; o["mode"] = stateWait.Mode.ToString(); o["pollSeconds"] = stateWait.PollInterval.TotalSeconds; break;
+            case WaitFieldStep fieldWait:
+                o["kind"] = "wait_field"; o["device"] = fieldWait.Device.Value; o["tolerance"] = EncodeQuantity(fieldWait.Tolerance); o["stableSeconds"] = fieldWait.StableFor.TotalSeconds; o["pollSeconds"] = fieldWait.PollInterval.TotalSeconds; break;
             case WaitAngleStep angleWait:
                 o["kind"] = "wait_angle"; o["device"] = angleWait.Device.Value; o["tolerance"] = EncodeQuantity(angleWait.Tolerance); o["pollSeconds"] = angleWait.PollInterval.TotalSeconds;
                 if (angleWait.Target is { } angleTarget) o["target"] = EncodeValue(angleTarget); break;
@@ -195,6 +197,9 @@ public sealed partial class JsonExperimentPlanDocument
             case "wait_temperature_state":
                 Object(o, "id", "kind", "device", "mode", "pollSeconds");
                 return new WaitTemperatureStateStep(id, new(Text(o, "device")), NamedEnum<TemperatureWaitMode>(o, "mode"), Duration(o, "pollSeconds"));
+            case "wait_field":
+                Object(o, "id", "kind", "device", "tolerance", "stableSeconds", "pollSeconds");
+                return new WaitFieldStep(id, new(Text(o, "device")), DecodeQuantity(o["tolerance"]), Duration(o, "stableSeconds"), Duration(o, "pollSeconds"));
             case "wait_angle":
                 Object(o, "id", "kind", "device", "tolerance", "pollSeconds", "target");
                 return new WaitAngleStep(id, new(Text(o, "device")), DecodeQuantity(o["tolerance"]), Duration(o, "pollSeconds"), o.ContainsKey("target") ? DecodeValue(o["target"]) : null);

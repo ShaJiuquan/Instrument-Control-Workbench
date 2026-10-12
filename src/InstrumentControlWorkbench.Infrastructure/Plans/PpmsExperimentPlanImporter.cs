@@ -200,6 +200,7 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
         "current_set" => "set_current",
         "wait_temperature" or "wait_temp_state" or "wait_temp_stable" => "wait_temp",
         "wait_angle_state" => "wait_angle",
+        "wait_field_holding" or "wait_field_stable" => "wait_field",
         "sleep" => "wait",
         "wait_before" => "delay",
         "loop" or "repeat_n" => "repeat",

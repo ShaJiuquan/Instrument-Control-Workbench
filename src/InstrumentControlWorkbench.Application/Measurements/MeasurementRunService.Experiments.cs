@@ -145,6 +145,8 @@ public sealed partial class MeasurementRunService
                 break;
             case WaitTemperatureStateStep stateWait:
                 await WaitTemperatureStateAsync(stateWait, run); break;
+            case WaitFieldStep fieldWait:
+                await WaitFieldAsync(fieldWait, run); break;
             case WaitAngleStep angleWait:
                 await WaitAngleAsync(angleWait, run); break;
             case WaitTemperatureStep temperatureWait:

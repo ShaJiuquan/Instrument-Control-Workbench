@@ -51,10 +51,11 @@ public sealed partial class PpmsExperimentPlanImporter
             case "wait_temp":
             case "wait_temp_reached":
             case "wait_angle":
+            case "wait_field":
                 return ControllerWait(name, p, path, c);
             case "wait":
                 var waitKind = Canonical(Text(p, "wait_kind", "wait"));
-                if (waitKind is "wait_temp" or "wait_temp_reached" or "wait_angle")
+                if (waitKind is "wait_temp" or "wait_temp_reached" or "wait_angle" or "wait_field")
                 {
                     var stateParams = (JsonObject)p.DeepClone(); stateParams.Remove("wait_kind");
                     return ControllerWait(waitKind, stateParams, path, c);

@@ -32,6 +32,25 @@ public sealed partial class MeasurementRunService
             await DwellAsync(run, step.PollInterval);
         }
     }
+    private async Task WaitFieldAsync(WaitFieldStep step, RunExecutionContext run)
+    {
+        TimeSpan? stableSince = null; var pauseVersion = run.PauseVersion;
+        while (true)
+        {
+            run.Token.ThrowIfCancellationRequested(); await PauseCheckpointAsync(run);
+            if (pauseVersion != run.PauseVersion) { stableSince = null; pauseVersion = run.PauseVersion; }
+            var observed = await run.Resources!.ReadAxisSnapshotAsync(step.Device, run.Token);
+            run.Token.ThrowIfCancellationRequested();
+            if (observed.Target.Unit != PhysicalUnit.Tesla || observed.Readback.Unit != PhysicalUnit.Tesla) throw new InvalidOperationException($"{step.Id}: field wait requires Tesla observations.");
+            if (!observed.Moving && Math.Abs(observed.Readback.Value - observed.Target.Value) <= step.Tolerance.Value)
+            {
+                stableSince ??= run.ActiveElapsed;
+                if (run.ActiveElapsed - stableSince.Value >= step.StableFor) return;
+            }
+            else stableSince = null;
+            await DwellAsync(run, step.PollInterval);
+        }
+    }
     private async Task WaitAngleAsync(WaitAngleStep step, RunExecutionContext run)
     {
         var requested = step.Target is { } authored ? Resolve(authored, run) : (Quantity?)null;

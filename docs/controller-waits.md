@@ -89,8 +89,9 @@ Finite C# deadlines are strict: unlike Rust's poll-first loop, a late matching
 observation after expiry does not count as success. Snapshot coherence depends
 on the adapter contract; tests do not prove physical sensor timing or motion.
 
-Field Holding/persistent-magnet state waits, actual vendor adapters and lab
-acceptance, continuous/background scans, generic parallel/race, native wait
+Standalone field nonramping/numeric/duration waits are now implemented (see
+field-waits.md). Vendor magnet-switch/persistent state proof, actual adapters and
+lab acceptance, continuous/background scans, generic parallel/race, native wait
 editor and visual acceptance remain pending. Numeric field set/scan stability
 already implemented is not labeled equivalent to a vendor Holding state. The
 original29 UI drafts are preserved and excluded; no new dependencies, Rust

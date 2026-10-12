@@ -1251,3 +1251,23 @@ Mac subsequently locked. No new run/pause/fault/close proof or published draft U
 parity claimed. Full native/physical/full PPMS scope remains pending. No new
 dependencies/Rust/lab IO; independent engine/GitHub only/full goal active. See
 native-window-sizing.md.
+
+
+## PPMS nonramping field wait (2026-10-12)
+
+Rechecked Rust wait_field_state.rs: actual predicate is NOT ramping AND inclusive
+field-target tolerance, with optional duration; wait_for is display metadata,
+not exact Holding-state comparison. Earlier ledger wording describing vendor
+Holding as necessary for this node was too broad. Core WaitFieldStep explicitly
+models actual live Tesla target/readback/nonramping predicate; fresh coherent
+owned axis snapshots, compiler Tesla role gate and existing lifecycle. Matching
+value during ramp does not pass; unstable observations and pause reset evidence.
+Native strict wait_field codec; PPMS aliases/generic wait_kind/default3600s/
+0.0005T/0duration/500ms(default100ms floor), true zero indefinite or existing
+positive TimeoutStep. Actual task drain/root abort priority, exceptions never
+masked/retried; refused holds retain ownership.49 new cases(7Core42Application),
+focused84Application+7Core; actual0.01T fixture, native/archive/terminal BB/CSV/
+fresh replay. Vendor switches/persistent/quench/physical/native UI/continuous/
+full PPMS remain pending; no magnetic safety certification claimed.29 original
+UI drafts unchanged/excluded; no dependencies/Rust/lab changes; independent
+C# engine/GitHub only/full goal active. See field-waits.md.

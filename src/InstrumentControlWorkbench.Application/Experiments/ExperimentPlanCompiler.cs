@@ -336,6 +336,10 @@ internal static class ExperimentPlanCompiler
                     Device(stateWait.Device);
                     if (!registry.GetAxisDefinition(stateWait.Device).SupportsSoftwareTemperatureRamp) throw new NotSupportedException("Controller has no temperature-state profile.");
                     return 1;
+                case WaitFieldStep fieldWait:
+                    Device(fieldWait.Device);
+                    if (registry.GetAxisDefinition(fieldWait.Device).Target.Unit != PhysicalUnit.Tesla) throw new ArgumentException("Field waits require a Tesla controller.");
+                    return 1;
                 case WaitAngleStep angleWait:
                     Device(angleWait.Device); var angleDefinition = registry.GetAxisDefinition(angleWait.Device);
                     if (angleDefinition.Target.Unit != PhysicalUnit.Degree) throw new ArgumentException("Angle waits require a Degree controller.");

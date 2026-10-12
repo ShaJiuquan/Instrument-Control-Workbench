@@ -1,0 +1,33 @@
+{
+  "type": "sequence",
+  "label": "Simulated field move, nonramping dwell and measured field",
+  "children": [
+    {
+      "type": "command",
+      "name": "set_field",
+      "params": {
+        "target_t": 0.01,
+        "mode": "driven",
+        "wait_mode": "none"
+      },
+      "source_line": 1
+    },
+    {
+      "type": "command",
+      "name": "wait_field_holding",
+      "params": {
+        "tolerance_t": 0.0005,
+        "duration_s": 0.02,
+        "timeout_s": 1,
+        "poll_ms": 100
+      },
+      "source_line": 2
+    },
+    {
+      "type": "measurement",
+      "name": "measure_field",
+      "params": {},
+      "source_line": 3
+    }
+  ]
+}
