@@ -20,10 +20,10 @@ public partial class PlanWorkspaceViewModel
     [ObservableProperty] private bool preparationDirty;
     public IReadOnlyList<PreparationDeviceChoice> PreparationDevices => workspace.Devices
         .Where(d => d.Model is "K2450" or "K6221").Select(d => new PreparationDeviceChoice(d)).ToArray();
-    public bool HasUnappliedEdits => NodeFragmentDirty || PreparationDirty;
+    public bool HasUnappliedEdits => NodeFragmentDirty || PreparationDirty || SampleDirty;
     public bool HasPreparationForm => PreparationForm is not null;
     public bool CanSelectPreparation => CanEdit && validated is not null && !HasUnappliedEdits;
-    public bool CanEditPreparation => CanEdit && validated is not null && !NodeFragmentDirty;
+    public bool CanEditPreparation => CanEdit && validated is not null && !NodeFragmentDirty && !SampleDirty;
     private bool CanApplyPreparation() => CanEditPreparation && PreparationDirty && PreparationForm is not null;
     private bool CanDiscardPreparation() => CanEdit && validated is not null && PreparationDirty;
     private bool CanRemovePreparation() => CanEditPreparation && !PreparationDirty && PreparationForm?.HasExistingPreparation == true;

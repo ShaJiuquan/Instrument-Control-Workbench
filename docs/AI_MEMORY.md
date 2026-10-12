@@ -1539,3 +1539,21 @@ MissingGeometry/missing derived values. No Core/interpreter/schema/deps/Rust/phy
 changes. Native tool available but inventory again Mac locked/unlock unsuccessful;
 prior async unlock pending; no user window/new app launch. Full goal active/GitHub
 only/engine independent; see sample-analysis-node-forms.md.
+
+## Sample metadata and geometry editor (2026-10-13)
+
+Application UpdateSampleDetails resolves actual canonical sample ID and retains
+ID/topology/electrodes, routes/root/preparations/metadata/budget, full original/candidate
+compiler+codec; no device IO. Named Samples tab edits name/originalId/material/
+substrate/notes/optional width-length-thickness-spacing, explicit positive Meter or
+null. SampleDirty joins node/preparation/run/file/import/selection/JSON admission;
+stale/forged/busy/other-draft guards. Async load/save post-await checks text/path/
+unapplied drafts and cancellation, retaining late sample drafts; save reports old
+snapshot saved rather than clearing new local edits.8 Application+19 App cases:
+invalid/noIO/preservation/codec/optional/locks/controlled late files; saved/fresh
+edited Hall3bias9rows/new metadata/geometry-derived summaries/output-off/matrixempty/
+released. Real archive old/new/missing-thickness runs retain original geometry/results
+on fresh reopen; changed analysis uses actual geometry ratios, missing thickness
+retains raw/sheet and MissingGeometry/no rho. Native again locked/unlock failed/prior
+optional request pending, no window/process actions. No Core/schema/deps/Rust/physical
+changes. Full goal active/GitHub only/engine independent; see sample-details-editor.md.

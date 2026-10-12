@@ -1,0 +1,15 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:views="using:InstrumentControlWorkbench.App.Views" xmlns:controls="using:InstrumentControlWorkbench.App.Controls"
+ x:Class="InstrumentControlWorkbench.App.Views.PlanSamplesView" x:DataType="vm:PlanWorkspaceViewModel">
+ <Grid RowDefinitions="Auto,*,Auto" Margin="8">
+  <ComboBox Margin="0,0,0,8" ItemsSource="{Binding SampleChoices}" SelectedItem="{Binding SelectedSample, Mode=TwoWay}" IsEnabled="{Binding CanSelectSample}" HorizontalAlignment="Stretch" AutomationProperties.Name="计划样品">
+   <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanSampleChoice"><TextBlock Text="{Binding Label}" FontSize="11" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
+  </ComboBox>
+  <TextBlock Grid.Row="1" IsVisible="{Binding !HasSampleForm}" Text="先验证包含样品目录的计划，或导入路由配置。" Classes="caption" TextWrapping="Wrap"/>
+  <Grid Grid.Row="1" IsVisible="{Binding HasSampleForm}"><views:PlanSampleDetailsFormView DataContext="{Binding SampleForm}"/></Grid>
+  <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Margin="0,10,0,0">
+   <controls:OperatorButton Content="应用样品" Command="{Binding ApplySampleCommand}" AutomationProperties.Name="应用样品资料"/>
+   <controls:OperatorButton Content="撤销修改" Command="{Binding DiscardSampleCommand}" AutomationProperties.Name="撤销样品资料"/>
+  </StackPanel>
+ </Grid>
+</UserControl>

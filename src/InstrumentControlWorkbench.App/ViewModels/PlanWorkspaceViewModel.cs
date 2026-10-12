@@ -58,12 +58,12 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
     partial void OnDocumentTextChanged(string? oldValue, string newValue)
     {
         if (restoringDocument) return;
-        if (PreparationDirty)
+        if (PreparationDirty || SampleDirty)
         {
             restoringDocument = true;
             try { DocumentText = oldValue ?? ""; }
             finally { restoringDocument = false; }
-            HasError = true; Message = "设备准备仍有未应用修改，请先应用或撤销。";
+            HasError = true; Message = "设备准备或样品资料仍有未应用修改，请先应用或撤销。";
             return;
         }
         validated = null;
@@ -74,6 +74,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
         Outline.Clear();
         ClearGraph();
         ClearPreparationEditor();
+        ClearSampleEditor();
         RefreshCommands();
         changed();
     }
@@ -87,6 +88,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
         RefreshGraphCommands();
         RefreshImportCommands();
         RefreshPreparationCommands();
+        RefreshSampleCommands();
     }
     private bool CanValidate() => CanEdit && !HasUnappliedEdits;
     private bool CanAccessFile() => CanValidate() && !string.IsNullOrWhiteSpace(DocumentPath);
@@ -104,7 +106,14 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
     {
         if (!CanAccessFile()) return;
         IsDocumentBusy = true;
-        try { Apply(await workspace.LoadAsync(DocumentPath, lifetime.Token)); IsDirty = false; Message = "已载入并验证计划。"; }
+        var previousText = DocumentText; var previousPath = DocumentPath;
+        try
+        {
+            var document = await workspace.LoadAsync(previousPath, lifetime.Token); lifetime.Token.ThrowIfCancellationRequested();
+            if (DocumentText != previousText || DocumentPath != previousPath || HasUnappliedEdits)
+            { HasError = true; Message = "载入期间已有新修改；载入结果未应用，当前草稿保留。"; }
+            else { Apply(document); IsDirty = false; Message = "已载入并验证计划。"; }
+        }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
         catch (Exception ex) { HasError = true; Message = $"载入失败，草稿保留：{ex.Message}"; }
         finally { IsDocumentBusy = false; }
@@ -115,7 +124,14 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
     {
         if (!CanAccessFile()) return;
         IsDocumentBusy = true;
-        try { Apply(await workspace.SaveAsync(DocumentPath, DocumentText, lifetime.Token)); IsDirty = false; Message = "计划已保存。"; }
+        var previousText = DocumentText; var previousPath = DocumentPath;
+        try
+        {
+            var document = await workspace.SaveAsync(previousPath, previousText, lifetime.Token); lifetime.Token.ThrowIfCancellationRequested();
+            if (DocumentText != previousText || DocumentPath != previousPath || HasUnappliedEdits)
+            { HasError = true; Message = "文件已保存原计划快照；期间有新修改，当前草稿保留。"; }
+            else { Apply(document); IsDirty = false; Message = "计划已保存。"; }
+        }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
         catch (Exception ex) { HasError = true; Message = $"保存失败：{ex.Message}"; }
         finally { IsDocumentBusy = false; }
@@ -124,6 +140,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
     private void Apply(ValidatedPlanDocument document)
     {
         ClearPreparationEditor();
+        ClearSampleEditor();
         DocumentText = document.Text;
         validated = document;
         HasError = false;
@@ -134,6 +151,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
         AddStep(document.Plan.Root, 0);
         RebuildGraph(document.Plan);
         ReloadPreparationEditor();
+        ReloadSampleEditor();
         RefreshCommands(); changed();
     }
 

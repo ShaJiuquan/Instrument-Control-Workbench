@@ -34,7 +34,7 @@ public partial class PlanWorkspaceViewModel
     public double GraphWidth => GraphNodes.Count == 0 ? 340 : GraphNodes.Max(n => n.X) + 240;
     public double GraphHeight => Math.Max(220, GraphNodes.Count * 86 + 24);
     public string SelectedNodeTitle => SelectedNode is null ? "选择流程节点" : $"{SelectedNode.Title} · {SelectedNode.Id.Value}";
-    public bool CanEditNode => CanEdit && validated is not null && SelectedNode is not null && !PreparationDirty;
+    public bool CanEditNode => CanEdit && validated is not null && SelectedNode is not null && !PreparationDirty && !SampleDirty;
     public bool IsNodeReadOnly => !CanEditNode || NodeForm?.IsDirty == true;
     private bool CanApplyNode() => CanEditNode && NodeFragmentDirty;
     private bool CanDiscardNode() => CanEdit && validated is not null && NodeFragmentDirty;

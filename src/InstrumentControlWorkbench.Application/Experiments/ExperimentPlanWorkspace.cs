@@ -9,7 +9,7 @@ namespace InstrumentControlWorkbench.Application.Experiments;
 
 public sealed record ValidatedPlanDocument(ExperimentPlan Plan, string Text, ExperimentPlanPreview Preview);
 
-public sealed class ExperimentPlanWorkspace(IExperimentPlanDocument documents, MeasurementRunService runs, IExperimentPlanImporter? importer = null, IRoutingProfileImporter? routingProfiles = null, ConfiguredDeviceRuntime? runtime = null)
+public sealed partial class ExperimentPlanWorkspace(IExperimentPlanDocument documents, MeasurementRunService runs, IExperimentPlanImporter? importer = null, IRoutingProfileImporter? routingProfiles = null, ConfiguredDeviceRuntime? runtime = null)
 {
     public bool SupportsConfiguredImport => importer is not null && runtime is not null;
     public bool SupportsRoutingProfileImport => routingProfiles is not null;
