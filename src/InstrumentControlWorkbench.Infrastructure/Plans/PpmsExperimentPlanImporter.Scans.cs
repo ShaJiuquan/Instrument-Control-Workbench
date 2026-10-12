@@ -11,11 +11,13 @@ public sealed partial class PpmsExperimentPlanImporter
     private static ExperimentStep Scan(string name, JsonObject p, JsonObject node, string path, ImportContext c, int depth)
     {
         if (name is "scan_number" or "scan_time") return IterationScan(name, p, node, path, c, depth);
-        if (name is "scan_voltage" or "scan_current")
+        if (name is "scan_voltage" or "scan_current" or "scan_gate")
         {
-            var voltage = name == "scan_voltage";
-            Fields(p, "points", "start", "end", "step", "points_mode", "channel", "settle_s", voltage ? "compliance_a" : "compliance_v", voltage ? "source_range_v" : "source_range_a", voltage ? "voltage_mode" : "current_mode");
-            Choice(p, voltage ? "voltage_mode" : "current_mode", "source", voltage ? ["source"] : ["source", "bias"]);
+            var voltage = name != "scan_current";
+            var gate = name == "scan_gate";
+            if (voltage) p = VoltageScanParameters(p);
+            Fields(p, "instrument", "points", "start", "end", "step", "points_mode", "channel", "settle_s", voltage ? "compliance_a" : "compliance_v", voltage ? "source_range_v" : "source_range_a", voltage ? "voltage_mode" : "current_mode");
+            Choice(p, voltage ? "voltage_mode" : "current_mode", "source", "source", "bias");
             var function = voltage ? SourceFunction.Voltage : SourceFunction.Current;
             var smu = voltage ? Source(p, c, function) : null;
             var current = voltage ? null : CurrentSource(p, c, Text(p, "current_mode", "source").Trim().Equals("bias", StringComparison.OrdinalIgnoreCase) ? "k2450" : "k6221");
@@ -28,12 +30,15 @@ public sealed partial class PpmsExperimentPlanImporter
                 if (voltage) { if (range is { } fixedRange) Keithley2450Limits.Validate(new SourceSetpoint(function, point.Value, Number(p, "compliance_a", 1e-4), fixedRange)); }
                 else _ = new CurrentExcitationConfiguration(current!.Configuration.Model, point, new(Number(p, "compliance_v", 10), PhysicalUnit.Volt), range);
             List<ExperimentStep> sourceChildren;
-            c.SourceScans.Push((sourceDevice, Text(p, "channel", voltage ? "" : "ch1").Trim(), new ParameterId(path + ".axis")));
+            if (c.SourceScans.Any(scope => scope.Device == sourceDevice && (gate || scope.Gate)))
+                throw new NotSupportedException("Nested gate/source scans of the same source cannot restore the enclosing route and level.");
+            c.SourceScans.Push((sourceDevice, Text(p, "channel", gate || !voltage ? "ch1" : "").Trim(), new ParameterId(path + ".axis"), gate));
             try { sourceChildren = ScanChildren(node, path, c, depth); }
             finally { c.SourceScans.Pop(); }
-            var body = new SequenceStep(new(path + ".body"), [.. ScanAxisVariables(name, new(path + ".axis"), path), new DelayStep(new(path + ".settle"), Duration(p, "settle_s", 0.1)), .. sourceChildren]);
+            var route = gate ? GateRoute(p, path, c, smu!) : ChannelRoute(p, path, c, sourceDevice, voltage ? "" : "ch1");
+            var body = new SequenceStep(new(path + ".body"), [.. ScanAxisVariables(name, new(path + ".axis"), path), new DelayStep(new(path + ".settle"), Duration(p, "settle_s", gate ? 0 : 0.1)), .. sourceChildren]);
             var steps = new List<ExperimentStep> { new SourceOutputStep(new(path + ".off"), sourceDevice, false) };
-            if (ChannelRoute(p, path, c, sourceDevice, voltage ? "" : "ch1") is { } route) steps.Add(route);
+            if (route is not null) steps.Add(route);
             steps.Add(Write(path + ".zero", sourceDevice, parameter, 0));
             steps.Add(Write(path + ".compliance", sourceDevice, voltage ? Keithley2450Parameters.CurrentCompliance : current!.Compliance, Number(p, voltage ? "compliance_a" : "compliance_v", voltage ? 1e-4 : 10)));
             steps.Add(voltage ? SourceRangeStep(path, smu!, range) : SourceRangeStep(path, current!, range));

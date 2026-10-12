@@ -24,7 +24,13 @@ public sealed partial class PpmsExperimentPlanImporter
         ImportChannelRoute Resolve(string query)
         {
             ImportChannelRoute binding;
-            if (c.Bindings.Channels.TryGetValue(query, out var explicitBinding)) binding = explicitBinding;
+            if (managed && scope.Gate)
+            {
+                if (independent) throw new NotSupportedException("Gate scans require the explicitly bound integrated meter.");
+                var profiles = c.Bindings.ChannelProfiles ?? throw new NotSupportedException("Gate scans require frozen gate profiles.");
+                binding = profiles.ResolveGate(query); c.UsesChannelProfiles = true;
+            }
+            else if (c.Bindings.Channels.TryGetValue(query, out var explicitBinding)) binding = explicitBinding;
             else if (c.Bindings.ChannelProfiles is { } profiles)
             {
                 var source = c.Bindings.Preparations.SingleOrDefault(s => s.Device == profiles.Wiring.SourceMeter);

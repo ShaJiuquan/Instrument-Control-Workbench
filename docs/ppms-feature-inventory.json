@@ -662,9 +662,15 @@
       "nodeType": "scan",
       "aliases": [
         "scan_gate",
-        "gate"
+        "gate",
+        "bias"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.Scans.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.MeterRouting.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/PpmsRoutingProfileImportTests.GateScans.cs",
+        "limits": "Legacy scan_bias/bias and scan_gate/gate map to gate contacts. Explicit Voltage/TwoWire automatic route or external channel none, frozen source/profile/card/guard preflight, verified inherited scalar meter route, bounded points/ranges, owned pause/abort cleanup and native save/archive/CSV. Same-source nested gate scans and resistance reinterpretation reject. Physical acceptance, polarization/differential and broader parity pending. See gate-scan-import.md."
+      }
     },
     {
       "id": "cooling_down",

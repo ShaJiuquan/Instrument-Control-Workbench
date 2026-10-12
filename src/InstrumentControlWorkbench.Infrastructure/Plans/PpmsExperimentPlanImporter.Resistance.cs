@@ -43,6 +43,7 @@ public sealed partial class PpmsExperimentPlanImporter
         p["settle_s"] = ResistanceNumber(p, "settle_s", 0.1);
         var settle = Duration(p, "settle_s", 0.1); var sampleMeasurement = name != "meas_r";
         var scope = c.SourceScans.FirstOrDefault(s => s.Device == source.Device);
+        if (scope.Gate) throw new NotSupportedException("Resistance primitives cannot reinterpret gate excitation as source-drain excitation; use an explicit scalar meter child.");
         var managed = Boolean(p, "source_managed", false) || scope.Device == source.Device;
         if (!managed) Keithley2450Limits.ValidateConfiguration(new SourceSetpoint(SourceFunction.Voltage, voltage, compliance, range), source.Sense with { AutoRange = senseRange is null, ManualRange = senseRange });
         SampleProfile? sample = null;

@@ -145,20 +145,7 @@ public sealed partial class PpmsExperimentPlanImporter
         if (voltage) { if (range is { } fixedRange) Keithley2450Limits.Validate(new SourceSetpoint(function, target, Number(p, "compliance_a", 1e-4), fixedRange)); }
         else _ = new CurrentExcitationConfiguration(current!.Configuration.Model, new(target, PhysicalUnit.Ampere), new(Number(p, "compliance_v", 1), PhysicalUnit.Volt), range);
         var steps = new List<ExperimentStep> { new SourceOutputStep(new(path + ".off"), sourceDevice, false) };
-        if (gate)
-        {
-            var channel = Text(p, "channel", "ch1").Trim();
-            if (!channel.Equals("none", StringComparison.OrdinalIgnoreCase))
-            {
-                if (smu!.Sense.Mode != SensingMode.TwoWire) throw new NotSupportedException("Automatic two-contact gate routing requires an explicit TwoWire source preparation.");
-                var profiles = c.Bindings.ChannelProfiles ?? throw new NotSupportedException("Gate routing needs explicit channel profiles; generic current/sense routes cannot stand in for gate contacts.");
-                var resolved = profiles.ResolveGate(channel);
-                if (resolved.Source != sourceDevice) throw new ArgumentException("Gate wiring source differs from the explicitly selected source.");
-                c.UsesChannelProfiles = true;
-                steps.Add(new RouteMatrixStep(new(path + ".route"), resolved.Route.Device, resolved.Route.Closed, resolved.Route.Settle));
-            }
-        }
-        else if (ChannelRoute(p, path, c, sourceDevice, "ch1") is { } route) steps.Add(route);
+        if ((gate ? GateRoute(p, path, c, smu!) : ChannelRoute(p, path, c, sourceDevice, "ch1")) is { } route) steps.Add(route);
         // Park at zero before changing compliance so a previous high level cannot
         // invalidate an otherwise safe new level/compliance pair.
         steps.Add(Write(path + ".zero", sourceDevice, voltage ? Keithley2450Parameters.SourceVoltage : current!.Current, 0));
@@ -167,6 +154,17 @@ public sealed partial class PpmsExperimentPlanImporter
         steps.Add(Write(path + ".level", sourceDevice, voltage ? Keithley2450Parameters.SourceVoltage : current!.Current, target));
         steps.Add(new SourceOutputStep(new(path + ".on"), sourceDevice, true));
         return new SequenceStep(new(path), steps);
+    }
+    private static RouteMatrixStep? GateRoute(JsonObject p, string path, ImportContext c, SourcePreparation source)
+    {
+        var channel = Text(p, "channel", "ch1").Trim();
+        if (channel.Equals("none", StringComparison.OrdinalIgnoreCase)) return null;
+        if (source.Sense.Mode != SensingMode.TwoWire) throw new NotSupportedException("Automatic two-contact gate routing requires an explicit TwoWire source preparation.");
+        var profiles = c.Bindings.ChannelProfiles ?? throw new NotSupportedException("Gate routing needs explicit channel profiles; generic current/sense routes cannot stand in for gate contacts.");
+        var resolved = profiles.ResolveGate(channel);
+        if (resolved.Source != source.Device) throw new ArgumentException("Gate wiring source differs from the explicitly selected source.");
+        c.UsesChannelProfiles = true;
+        return new(new(path + ".route"), resolved.Route.Device, resolved.Route.Closed, resolved.Route.Settle);
     }
     private static RouteMatrixStep? ChannelRoute(JsonObject p, string path, ImportContext c, InstrumentId source, string fallback, string? measurementMode = null)
     {

@@ -1,0 +1,82 @@
+{
+  "experiment_id": "Explicit gate scans and source-drain bias",
+  "type": "sequence",
+  "children": [
+    {
+      "type": "scan",
+      "name": "scan_gate",
+      "params": {
+        "points": [
+          -0.02,
+          0,
+          0.02
+        ],
+        "channel": "ch1",
+        "settle_s": 0,
+        "compliance_a": 0.0001,
+        "source_range_v": "auto"
+      },
+      "children": [
+        {
+          "type": "measurement",
+          "name": "measure_current",
+          "params": {
+            "instrument": "k2450",
+            "sensing_mode": "2wire"
+          }
+        }
+      ]
+    },
+    {
+      "type": "scan",
+      "name": "scan_voltage",
+      "params": {
+        "points": [
+          -0.02,
+          0,
+          0.02
+        ],
+        "channel": "ch1",
+        "settle_s": 0,
+        "compliance_a": 0.0001,
+        "range_v": "auto",
+        "voltage_mode": "bias"
+      },
+      "children": [
+        {
+          "type": "measurement",
+          "name": "measure_current",
+          "params": {
+            "instrument": "k2450",
+            "sensing_mode": "2wire"
+          }
+        }
+      ]
+    },
+    {
+      "type": "scan",
+      "name": "scan_bias",
+      "params": {
+        "points": [
+          -0.02,
+          0,
+          0.02
+        ],
+        "channel": "ch1",
+        "settle_s": 0,
+        "compliance_a": 0.0001,
+        "voltage_range_v": "auto"
+      },
+      "children": [
+        {
+          "type": "measurement",
+          "name": "measure_current",
+          "params": {
+            "instrument": "k2450",
+            "sensing_mode": "2wire"
+          }
+        }
+      ]
+    }
+  ]
+}

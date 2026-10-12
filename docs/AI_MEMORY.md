@@ -1808,3 +1808,20 @@ saved/fresh archive/CSV; actualCLI3row gate/source/legacygate example. No Corefo
 deps/Rust/physical/desktop changes. See gate-voltage-routing.md. Sourcefunctionchanges,
 gate/differential/polarization scans, actualhardware and fullPPMS/user native acceptance
 remain active; independentC# engine/GitHubonly/native deferred.
+
+## Gate scan import and inherited meter routing (2026-10-13)
+
+Readonly Rust registry at 3576329 maps scan_gate/gate and legacy scan_bias/bias
+through build_gate; scan_voltage mode bias is source-drain, never gate. Native
+scan import reuses command GateRoute/ResolveGate, explicit Voltage/TwoWire or
+external none, exact source identity, bounded points and exclusive range aliases.
+Source scope carries gate routing authority; integrated scalar children inherit
+and verify gate pair without energized switching, bypass/different routes reject.
+Resistance reinterpretation and same-source nested gate scans reject. Standard
+iteration retains independent axes and scope releases before later source scan.
+Signed/zero points, pause off/held route/resume/abort baseline, drift no row,
+save/fresh native/archive/CSV tested. See gate-scan-import.md and nine-row fixture.
+No dependency, Core data format, Rust write, physical IO or desktop change. Native
+acceptance remains deferred per user; differential/polarization/controller/hardware/
+workflow/data/settings and broader PPMS goal remain active; independent C# engine,
+GitHub only.

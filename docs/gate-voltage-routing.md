@@ -79,6 +79,9 @@ and restores the matrix baseline. Native save/fresh load/run/archive reopening a
 CSV preserve the authored gate profile.
 
 Only deterministic simulation is exercised. Real hardware routing, source-function
-switching within an imported tree, differential/polarization/gate scans and fuller
+switching within an imported tree, differential/polarization scans and fuller
 measurement families remain migration work. No dependency, native data-format,
 Rust write, or desktop UI change is introduced.
+
+Gate/legacy bias step scans now have a separate migration record in
+[gate-scan-import.md](gate-scan-import.md); hardware acceptance remains pending.

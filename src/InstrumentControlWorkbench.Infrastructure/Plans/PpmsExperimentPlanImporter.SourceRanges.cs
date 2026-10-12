@@ -7,6 +7,15 @@ namespace InstrumentControlWorkbench.Infrastructure.Plans;
 
 public sealed partial class PpmsExperimentPlanImporter
 {
+    private static JsonObject VoltageScanParameters(JsonObject parameters)
+    {
+        var p = (JsonObject)parameters.DeepClone();
+        var aliases = new[] { "source_range_v", "range_v", "voltage_range_v" };
+        var present = aliases.Where(p.ContainsKey).ToArray();
+        if (present.Length > 1) throw new FormatException("Choose one voltage scan range alias.");
+        if (present.Length == 1 && present[0] != aliases[0]) { p[aliases[0]] = p[present[0]]?.DeepClone(); p.Remove(present[0]); }
+        return p;
+    }
     private static Quantity? SourceRange(JsonObject p, SourceFunction function)
     {
         var key = function == SourceFunction.Voltage ? "source_range_v" : "source_range_a";

@@ -69,7 +69,7 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
         public Dictionary<string, Quantity> Metadata { get; } = [];
         public bool UsesSamples { get; set; }
         public bool UsesChannelProfiles { get; set; }
-        public Stack<(InstrumentId Device, string Channel, Core.Parameters.ParameterId Axis)> SourceScans { get; } = new();
+        public Stack<(InstrumentId Device, string Channel, Core.Parameters.ParameterId Axis, bool Gate)> SourceScans { get; } = new();
         public Dictionary<string, ParameterId> IteratorChildren { get; } = new();
         public Dictionary<string, PhysicalUnit> NumericVariables { get; } = new();
         public int Nodes { get; set; }
@@ -212,6 +212,7 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
         "select_case" => "switch",
         "iterate" => "for_each",
         "then" or "else" => "sequence",
+        "gate" or "bias" or "scan_bias" => "scan_gate",
         "scan_temp" => "scan_temperature",
         "time_s" => "scan_time",
         "field" => "scan_field",
