@@ -43,8 +43,14 @@ public sealed partial class PpmsExperimentPlanImporter
                     if (label.Length == 0 && (p["sample_id"] ?? p["sample"]) is { } sample)
                         label = c.Bindings.Samples!.ResolveSample(sample.GetValue<string>()).Name;
                     if (label.Length == 0 && p["channel"] is { } channel)
-                        label = c.Bindings.ChannelProfiles is { } profiles && !channel.GetValue<string>().Equals("none", StringComparison.OrdinalIgnoreCase)
-                            ? profiles.Catalog.ResolveChannel(channel.GetValue<string>()).Name : channel.GetValue<string>();
+                    {
+                        var query = channel.GetValue<string>().Trim();
+                        // Empty channel on a meter can inherit the source scan's
+                        // verified route. It is not a catalog query or a label.
+                        if (query.Length != 0)
+                            label = c.Bindings.ChannelProfiles is { } profiles && !query.Equals("none", StringComparison.OrdinalIgnoreCase)
+                                ? profiles.Catalog.ResolveChannel(query).Name : query;
+                    }
                     if (label.Length == 0) label = Text(child, "name", Text(p, "name", "Measurement"));
                     pending.Add(new(label, body));
                     if (pending.Count > 64) throw new FormatException("Scan measurement group exceeds 64 members.");

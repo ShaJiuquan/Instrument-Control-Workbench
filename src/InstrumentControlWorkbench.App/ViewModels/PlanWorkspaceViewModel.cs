@@ -74,6 +74,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
         OnPropertyChanged(nameof(CanEdit)); OnPropertyChanged(nameof(IsReadOnly)); OnPropertyChanged(nameof(IsValidated));
         ValidateCommand.NotifyCanExecuteChanged(); LoadCommand.NotifyCanExecuteChanged(); SaveCommand.NotifyCanExecuteChanged();
         RefreshGraphCommands();
+        RefreshImportCommands();
     }
     private bool CanValidate() => CanEdit && !NodeFragmentDirty;
     private bool CanAccessFile() => CanValidate() && !string.IsNullOrWhiteSpace(DocumentPath);
@@ -234,6 +235,8 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
         lifetime.Cancel();
         if (LoadCommand.ExecutionTask is { } load) await load;
         if (SaveCommand.ExecutionTask is { } save) await save;
+        if (ImportPpmsCommand.ExecutionTask is { } importing) await importing;
+        if (LoadImportProfilesCommand.ExecutionTask is { } profiles) await profiles;
         lifetime.Dispose();
     }
 }

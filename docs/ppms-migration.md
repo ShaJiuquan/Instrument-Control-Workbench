@@ -921,3 +921,15 @@ envelope survive edits. Dirty/conflicting/stale edits and run locks are covered.
 No dependencies or physical IO. Native form acceptance remains pending after
 locked desktop/pre-UI RenderTimer failure; no successful launch is claimed.
 Device-specific forms and full migration remain active. See plan-node-forms.md.
+
+## Desktop PPMS runtime-tree import (2026-10-12)
+
+The operator can import through configured startup aliases/current preparations
+and retained execution budget, with optional three authored profile files and
+explicit matrix/source/meter/wiring bindings. Shared registry identity, full
+compiler preflight, input snapshot/version checks, cancel/actual drain and prior-
+plan restoration preserve the existing execution/resource boundary. Fixed empty
+inherited-channel group-label lookup; explicit routing bypass still rejected.
+14 App+14 Application cases include actual file save/six-row execution and pure
+current-source/two-row meter acquisition. No Rust edits/physical IO/dependencies.
+Native locked desktop and whole migration remain pending. See ppms-import-desktop.md.

@@ -1,0 +1,19 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:controls="using:InstrumentControlWorkbench.App.Controls"
+             x:Class="InstrumentControlWorkbench.App.Views.PpmsWiringImportView" x:DataType="vm:PpmsWiringImportViewModel">
+  <Border BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,0,0,8">
+    <StackPanel Spacing="6">
+      <CheckBox Content="{Binding Label}" IsChecked="{Binding IsIncluded, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}"/>
+      <TextBlock Text="{Binding Ports}" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+      <TextBlock Text="源设备" Classes="caption"/>
+      <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding Source, Mode=TwoWay}" IsEnabled="{Binding CanEditBinding}" HorizontalAlignment="Stretch" AutomationProperties.Name="PPMS 接线源">
+        <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanDeviceChoice"><TextBlock Text="{Binding Label}" FontSize="11" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+      <TextBlock Text="独立电压表 / 留空使用集成源表" Classes="caption" TextWrapping="Wrap"/>
+      <ComboBox ItemsSource="{Binding Meters}" SelectedItem="{Binding VoltageMeter, Mode=TwoWay}" IsEnabled="{Binding CanEditBinding}" HorizontalAlignment="Stretch" AutomationProperties.Name="PPMS 接线电压表">
+        <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanDeviceChoice"><TextBlock Text="{Binding Label}" FontSize="11" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+      <controls:OperatorButton Content="使用集成源表" Command="{Binding UseIntegratedMeterCommand}" HorizontalAlignment="Left"/>
+    </StackPanel>
+  </Border>
+</UserControl>

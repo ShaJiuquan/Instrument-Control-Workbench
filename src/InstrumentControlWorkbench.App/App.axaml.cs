@@ -74,7 +74,7 @@ public partial class App : Avalonia.Application
                 .StartAsync(devicePath, DemoDeviceConfiguration.Create(), startupCancellation.Token, [archive]);
             startupCancellation.Token.ThrowIfCancellationRequested();
             var runtime = started.Devices;
-            var workspace = new ExperimentPlanWorkspace(new JsonExperimentPlanDocument(), started.Runs, new PpmsExperimentPlanImporter());
+            var workspace = new ExperimentPlanWorkspace(new JsonExperimentPlanDocument(), started.Runs, new PpmsExperimentPlanImporter(), new PpmsRoutingProfileImporter(), runtime);
             var settings = new DeviceSettingsViewModel(new DeviceConfigurationWorkspace(deviceDocument, new PpmsDeviceConfigurationImporter()), started.Document, devicePath);
             owner = new MainWindowViewModel(runtime.Configuration.PrimarySource is null ? null : runtime.PrimarySource,
                 started.Runs, notifications, workspace, DemoExperimentPlans.Initial(runtime), Path.Combine(dataRoot, "plans", "experiment.plan.json"),

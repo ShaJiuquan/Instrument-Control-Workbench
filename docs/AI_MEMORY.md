@@ -1367,3 +1367,20 @@ pending: Mac locked; working launch failed in pre-UI RenderTimer -6661; PID88403
 UEs, terminal exit unconfirmed, no restart on observation timeout. UI/clean-package
 parity/device-specific forms/expressions/full PPMS remain pending; independent
 engine/GitHub only/full goal active. See plan-node-forms.md.
+
+## Desktop PPMS import (2026-10-12)
+
+Configured runtime aliases and current validated preparations/budget feed the
+existing importer/compiler; optional three-file profiles use explicit matrix/
+wiring/source/meter selection. Runtime registry identity (not metadata equality)
+and device roles validated offline; selection lists frozen. Captured pre-busy
+paths/bindings/version, cancellation/actual drain and late-result rejection;
+stale/reload-failed profile imports disabled. Restore retains prior validated
+plan/dirty flag; native save path unchanged, no automatic source writes.
+Actual inherited empty-channel meter label bug fixed without bypassing route
+checks; readonly Rust scan_children evidence at unchanged35763295.14 App+14
+Application new cases;138 App/focused14 pass, actual profile fixture save/six-row
+execution/output-off and pure K6221/K2182 two-row run verified. No dependencies/
+Rust/lab IO. Native still pending: desktop locked, old69858/88403 UEs remain
+nonterminal, no new launch on observation timeout. Full preparations UI/native/
+full PPMS goal active; independent engine/GitHub only. See ppms-import-desktop.md.

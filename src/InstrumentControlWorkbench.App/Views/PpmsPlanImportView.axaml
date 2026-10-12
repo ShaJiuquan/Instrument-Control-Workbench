@@ -1,0 +1,40 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:controls="using:InstrumentControlWorkbench.App.Controls" xmlns:views="using:InstrumentControlWorkbench.App.Views"
+             x:Class="InstrumentControlWorkbench.App.Views.PpmsPlanImportView" x:DataType="vm:PlanWorkspaceViewModel">
+  <Grid RowDefinitions="*,Auto" Margin="8">
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Spacing="8" Margin="0,0,8,8">
+        <TextBlock Text="PPMS 运行树 JSON / 不接受文本脚本或数据库导出外壳" Classes="caption" TextWrapping="Wrap"/>
+        <TextBox Text="{Binding PpmsPath, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" Watermark="PPMS 运行树文件的完整路径" AutomationProperties.Name="PPMS 计划路径"/>
+        <TextBlock Text="{Binding ImportPreparationSummary}" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+        <Expander Header="启动时设备别名 / 修改配置后需重启" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" FontSize="11">
+          <ItemsControl ItemsSource="{Binding ImportAliases}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" Classes="caption" FontSize="10" TextWrapping="Wrap"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+        </Expander>
+        <CheckBox Content="绑定矩阵、通道和样品档案" IsChecked="{Binding UseRoutingProfiles, Mode=TwoWay}" IsEnabled="{Binding CanEdit}" IsVisible="{Binding SupportsProfileImport}"/>
+        <StackPanel IsVisible="{Binding UseRoutingProfiles}" Spacing="8">
+          <TextBlock Text="通道档案" Classes="caption"/><TextBox Text="{Binding ChannelsPath, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" Watermark="channel_profiles.json 完整路径" AutomationProperties.Name="PPMS 通道档案路径"/>
+          <TextBlock Text="样品档案" Classes="caption"/><TextBox Text="{Binding SamplesPath, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" Watermark="samples.json 完整路径" AutomationProperties.Name="PPMS 样品档案路径"/>
+          <TextBlock Text="仪器端口档案" Classes="caption"/><TextBox Text="{Binding InstrumentPortsPath, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" Watermark="instrument_ports.json 完整路径" AutomationProperties.Name="PPMS 端口档案路径"/>
+          <controls:OperatorButton Content="载入路由档案" Command="{Binding LoadImportProfilesCommand}" HorizontalAlignment="Left" AutomationProperties.Name="载入 PPMS 路由档案"/>
+          <TextBlock Text="{Binding ProfileSummary}" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+          <TextBlock Text="矩阵设备" Classes="caption"/>
+          <ComboBox ItemsSource="{Binding ImportMatrices}" SelectedItem="{Binding ImportMatrix, Mode=TwoWay}" IsEnabled="{Binding CanEdit}" HorizontalAlignment="Stretch" AutomationProperties.Name="PPMS 导入矩阵">
+            <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanDeviceChoice"><TextBlock Text="{Binding Label}" FontSize="11" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
+          </ComboBox>
+          <ItemsControl ItemsSource="{Binding ImportWirings}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:PpmsWiringImportViewModel"><views:PpmsWiringImportView/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+          <TextBlock Text="通道使用的接线 / 从已勾选并绑定源的接线中选择" Classes="caption" TextWrapping="Wrap"/>
+          <ComboBox ItemsSource="{Binding ChannelWirings}" SelectedItem="{Binding ChannelWiring, Mode=TwoWay}" IsEnabled="{Binding CanEdit}" HorizontalAlignment="Stretch" AutomationProperties.Name="PPMS 通道接线">
+            <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PpmsWiringImportViewModel"><TextBlock Text="{Binding Label}" FontSize="11" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
+          </ComboBox>
+          <TextBlock Text="路由稳定 / 秒" Classes="caption"/><TextBox Text="{Binding RouteSettleSeconds, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="PPMS 路由稳定秒"/>
+        </StackPanel>
+        <TextBlock Text="导入仅转换和验证，不执行设备命令，也不改写原文件或自动保存。转换后请在计划文件页选择保存位置；恢复操作会替换目前草稿。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+      </StackPanel>
+    </ScrollViewer>
+    <WrapPanel Grid.Row="1" Margin="0,8,0,0">
+      <controls:OperatorButton Content="导入并替换计划" Command="{Binding ImportPpmsCommand}" Margin="0,0,8,6" AutomationProperties.Name="导入 PPMS 计划"/>
+      <controls:OperatorButton Content="取消读取" Command="{Binding CancelPpmsCommand}" Margin="0,0,8,6"/>
+      <controls:OperatorButton Content="恢复导入前计划" Command="{Binding RestoreImportCommand}" Margin="0,0,0,6"/>
+    </WrapPanel>
+  </Grid>
+</UserControl>

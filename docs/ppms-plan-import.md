@@ -9,6 +9,11 @@ not connect devices, claim leases or enable outputs. Execution remains in the
 existing run engine; there is no second PPMS interpreter or direct importer IO
 path to instruments.
 
+The desktop operator surface now supplies configured runtime aliases, existing
+validated preparations/budget, explicit profile role bindings, cancel and prior-
+plan restoration. See [ppms-import-desktop.md](ppms-import-desktop.md) for its
+admission, source preservation, task-drain and pending native acceptance scope.
+
 ```mermaid
 flowchart LR
   P[PPMS JSON tree] --> I[Infrastructure importer]
