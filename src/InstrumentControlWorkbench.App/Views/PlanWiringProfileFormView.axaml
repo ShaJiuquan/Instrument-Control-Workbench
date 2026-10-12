@@ -1,0 +1,11 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:views="using:InstrumentControlWorkbench.App.Views" xmlns:controls="using:InstrumentControlWorkbench.App.Controls" x:Class="InstrumentControlWorkbench.App.Views.PlanWiringProfileFormView" x:DataType="vm:PlanWiringProfileFormViewModel">
+ <StackPanel Spacing="8">
+  <TextBlock Text="接线 ID / 已有 ID 保持不变" Classes="caption"/><TextBox Text="{Binding IdText, Mode=TwoWay}" IsReadOnly="{Binding IsIdentityReadOnly}" AutomationProperties.Name="目录接线 ID"/>
+  <TextBlock Text="接线说明" Classes="caption"/><TextBox Text="{Binding Description, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}"/>
+  <TextBlock Text="源 / 变更后重填端口" Classes="caption"/>
+  <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="目录接线源"><ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanDeviceChoice"><TextBlock Text="{Binding Label}" FontSize="11" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+  <CheckBox Content="独立 K2182 电压表" IsChecked="{Binding UseIndependentMeter, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}"/>
+  <ComboBox ItemsSource="{Binding Meters}" SelectedItem="{Binding SelectedMeter, Mode=TwoWay}" IsEnabled="{Binding CanChooseMeter}" IsVisible="{Binding UseIndependentMeter}" HorizontalAlignment="Stretch" AutomationProperties.Name="目录接线电压表"><ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanDeviceChoice"><TextBlock Text="{Binding Label}" FontSize="11" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+  <ItemsControl ItemsSource="{Binding Ports}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:PlanMatrixPortFormViewModel"><views:PlanMatrixPortFormView Margin="0,0,0,8"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+ </StackPanel>
+</UserControl>

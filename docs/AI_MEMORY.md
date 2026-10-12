@@ -1613,3 +1613,23 @@ answered prior unlock question “先继续代码检查”; native acceptance de
 user, no new inventory/window/process actions. No Core/schema/lifecycle/deps/
 transport/Rust/physical changes. See initial-routing-authoring.md. General channel/
 wiring edit/multi-profile creation and full goal still pending; GitHub only.
+
+## Channel and wiring catalog editor (2026-10-13)
+
+Samples has scoped edit/create/remove channel/wiring draft, fixed existing IDs,
+explicit ports/connections/device choices, metadata preservation, 1–64 limits,
+SampleDirty/readonly/busy/retired callback gates. Typed Application UpdateRoutingCatalog
+admits changed physical connections and wiring roles/actual bounds/guards, all
+sample links (dormant too) and every direction of referenced sample/wiring pairs;
+requires structure adapter then whole compiler/codec; root/envelope retained.
+Default-off coordinate option batches affected internal independent guards across
+samples, proves old guard/unchanged source+meter, skips unchanged guards; standalone
+reads and matrix commands unchanged.31App+16Application new cases,8saved/fresh
+physical edits +7multi-profile saved/fresh dual reads +two-sample nested repeat4rows,
+exact roles/guards and cleanup. Imported raw/index/displayRow/group/original metadata
+retained, missing/bounds/role/clash/orphan/limit/source change and stale/busy rejection.
+No Core/schema/engine/lifecycle/deps/Rust/physical changes. Native remains deferred
+per user's “先继续代码检查”; no new inventory/window/process actions. See
+routing-catalog-editor.md. Matrix identity fixed; whole PPMS migration still active,
+including further workflow/expression/data-memory/indexing/controller/real hardware.
+GitHub only per user, independent C# engine.

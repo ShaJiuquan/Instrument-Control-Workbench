@@ -10,6 +10,8 @@ public partial class PlanWorkspaceViewModel
 {
     private bool loadingSample;
     private bool mappingEdited;
+    [ObservableProperty] private bool editingRoutingCatalog;
+    [ObservableProperty] private PlanRoutingCatalogFormViewModel? routingCatalogForm;
     [ObservableProperty] private bool initializingRouting;
     [ObservableProperty] private PlanRoutingInitializationFormViewModel? routingInitializationForm;
     [ObservableProperty] private bool creatingSample;
@@ -22,14 +24,16 @@ public partial class PlanWorkspaceViewModel
     public bool HasSampleForm => SampleForm is not null;
     public bool CanSelectSample => CanEdit && validated is not null && !HasUnappliedEdits;
     public bool CanEditSample => CanEdit && validated is not null && !NodeFragmentDirty && !PreparationDirty;
-    private bool CanApplySample() => CanEditSample && SampleDirty && (InitializingRouting ? RoutingInitializationForm is not null : CreatingSample ? CreationForm is not null : SampleForm is not null);
+    private bool CanApplySample() => CanEditSample && SampleDirty && (EditingRoutingCatalog ? RoutingCatalogForm is not null : InitializingRouting ? RoutingInitializationForm is not null : CreatingSample ? CreationForm is not null : SampleForm is not null);
     private bool CanDiscardSample() => CanEdit && validated is not null && SampleDirty;
     public bool CanCreateSample => CanSelectSample && validated?.Plan.Routing is { Samples.Count: < 64 };
     private bool CanRemoveSample() => CanSelectSample && SampleForm is not null && validated?.Plan.Routing is { Samples.Count: > 1 };
     partial void OnCreatingSampleChanged(bool value) => OnPropertyChanged(nameof(IsExistingSample));
-    public bool IsExistingSample => !CreatingSample && !InitializingRouting;
+    public bool IsExistingSample => !CreatingSample && !InitializingRouting && !EditingRoutingCatalog;
     public bool HasRoutingCatalog => validated?.Plan.Routing is not null;
     public bool CanInitializeRouting => CanSelectSample && validated?.Plan.Routing is null && workspace.MatrixDefinitions.Count > 0;
+    public bool CanEditRoutingCatalog => CanSelectSample && HasRoutingCatalog && workspace.SupportsStructureEditing;
+    partial void OnEditingRoutingCatalogChanged(bool value) => OnPropertyChanged(nameof(IsExistingSample));
     partial void OnInitializingRoutingChanged(bool value) => OnPropertyChanged(nameof(IsExistingSample));
     partial void OnSelectedSampleChanged(PlanSampleChoice? oldValue, PlanSampleChoice? newValue)
     {
@@ -46,17 +50,19 @@ public partial class PlanWorkspaceViewModel
     private void RefreshSampleCommands()
     {
         OnPropertyChanged(nameof(HasUnappliedEdits)); OnPropertyChanged(nameof(CanSelectSample)); OnPropertyChanged(nameof(CanEditSample));
+        OnPropertyChanged(nameof(CanEditRoutingCatalog)); EditRoutingCatalogCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(HasRoutingCatalog)); OnPropertyChanged(nameof(CanInitializeRouting)); InitializeRoutingCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(CanCreateSample)); CreateSampleCommand.NotifyCanExecuteChanged(); RemoveSampleCommand.NotifyCanExecuteChanged();
         ApplySampleCommand.NotifyCanExecuteChanged(); DiscardSampleCommand.NotifyCanExecuteChanged();
-        if (SampleForm is { } form) form.IsReadOnly = !CanEditSample || CreatingSample || InitializingRouting;
-        if (ElectrodeForm is { } mapping) mapping.IsReadOnly = !CanEditSample || CreatingSample || InitializingRouting;
+        if (SampleForm is { } form) form.IsReadOnly = !CanEditSample || CreatingSample || InitializingRouting || EditingRoutingCatalog;
+        if (ElectrodeForm is { } mapping) mapping.IsReadOnly = !CanEditSample || CreatingSample || InitializingRouting || EditingRoutingCatalog;
         if (CreationForm is { } creation) creation.IsReadOnly = !CanEditSample;
+        if (RoutingCatalogForm is { } catalog) catalog.IsReadOnly = !CanEditSample;
         if (RoutingInitializationForm is { } initial) initial.IsReadOnly = !CanEditSample;
     }
     private void ClearSampleEditor()
     {
-        loadingSample = true; try { RoutingInitializationForm = null; InitializingRouting = false; SampleForm = null; ElectrodeForm = null; CreationForm = null; CreatingSample = false; mappingEdited = false; SampleDirty = false; } finally { loadingSample = false; }
+        loadingSample = true; try { RoutingCatalogForm = null; EditingRoutingCatalog = false; RoutingInitializationForm = null; InitializingRouting = false; SampleForm = null; ElectrodeForm = null; CreationForm = null; CreatingSample = false; mappingEdited = false; SampleDirty = false; } finally { loadingSample = false; }
         OnPropertyChanged(nameof(SampleChoices));
     }
     private void ReloadSampleEditor()
@@ -64,14 +70,14 @@ public partial class PlanWorkspaceViewModel
         loadingSample = true;
         try
         {
-            RoutingInitializationForm = null; InitializingRouting = false; SampleForm = null; ElectrodeForm = null; CreationForm = null; CreatingSample = false; mappingEdited = false; SampleDirty = false; OnPropertyChanged(nameof(SampleChoices));
+            RoutingCatalogForm = null; EditingRoutingCatalog = false; RoutingInitializationForm = null; InitializingRouting = false; SampleForm = null; ElectrodeForm = null; CreationForm = null; CreatingSample = false; mappingEdited = false; SampleDirty = false; OnPropertyChanged(nameof(SampleChoices));
             if (validated is null) return;
             var selected = SampleChoices.FirstOrDefault(sample => sample.Profile.Id == SelectedSample?.Profile.Id) ?? SampleChoices.FirstOrDefault();
             SelectedSample = selected; if (selected is null) return;
             PlanSampleDetailsFormViewModel? form = null;
             form = new(selected.Profile, () =>
             {
-                if (loadingSample || CreatingSample || InitializingRouting || !ReferenceEquals(SampleForm, form)) return;
+                if (loadingSample || CreatingSample || InitializingRouting || EditingRoutingCatalog || !ReferenceEquals(SampleForm, form)) return;
                 SampleDirty = true; HasError = false; Message = "样品资料修改尚未应用；完整验证或撤销后才能运行。"; RefreshCommands(); changed();
             });
             SampleForm = form;
@@ -80,7 +86,7 @@ public partial class PlanWorkspaceViewModel
                 PlanSampleElectrodesFormViewModel? mapping = null;
                 mapping = new(routing, selected.Profile.Electrodes, selected.Profile.Topology, () =>
                 {
-                    if (loadingSample || CreatingSample || InitializingRouting || !ReferenceEquals(ElectrodeForm, mapping)) return;
+                    if (loadingSample || CreatingSample || InitializingRouting || EditingRoutingCatalog || !ReferenceEquals(ElectrodeForm, mapping)) return;
                     mappingEdited = true; SampleDirty = true; HasError = false; Message = "电极映射修改尚未应用；选择验证接线并校验整个计划。"; RefreshCommands(); changed();
                 }, allowGuardCoordination: workspace.SupportsStructureEditing); ElectrodeForm = mapping;
             }
@@ -93,7 +99,11 @@ public partial class PlanWorkspaceViewModel
         if (!CanApplySample()) return;
         try
         {
-            if (InitializingRouting) Apply(workspace.InitializeRouting(validated!.Plan, RoutingInitializationForm!.Build()));
+            if (EditingRoutingCatalog)
+            {
+                var draft = RoutingCatalogForm!.Build(); Apply(workspace.UpdateRoutingCatalog(validated!.Plan, draft.Channels, draft.Wirings, RoutingCatalogForm.CoordinateIndependentRoutes));
+            }
+            else if (InitializingRouting) Apply(workspace.InitializeRouting(validated!.Plan, RoutingInitializationForm!.Build()));
             else if (CreatingSample)
             {
                 var created = CreationForm!.Build(); var document = workspace.AddSample(validated!.Plan, created, CreationForm.Mapping!.BuildWiring());
@@ -105,7 +115,7 @@ public partial class PlanWorkspaceViewModel
                 Apply(document);
             }
             ResetPaletteForm();
-            IsDirty = true; Message = "样品已通过路由与完整计划验证。";
+            IsDirty = true; Message = "目录修改已通过路由与完整计划验证。";
         }
         catch (Exception error) { HasError = true; Message = $"样品资料未应用，原计划保留：{error.Message}"; }
         RefreshCommands(); changed();
@@ -140,6 +150,24 @@ public partial class PlanWorkspaceViewModel
         try { Apply(workspace.RemoveSample(validated!.Plan, SampleForm!.Id)); IsDirty = true; Message = "未使用样品已移除；原运行快照保持不变。"; }
         catch (Exception error) { HasError = true; Message = $"样品未移除，原计划保留：{error.Message}"; }
         RefreshCommands(); changed();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanEditRoutingCatalog))]
+    private void EditRoutingCatalog()
+    {
+        if (!CanEditRoutingCatalog) return;
+        loadingSample = true;
+        try
+        {
+            PlanRoutingCatalogFormViewModel? form = null;
+            form = new(validated!.Plan.Routing!, workspace.Devices, workspace.MatrixDefinitions, workspace.SupportsStructureEditing, () =>
+            {
+                if (loadingSample || !ReferenceEquals(RoutingCatalogForm, form)) return;
+                SampleDirty = true; HasError = false; Message = "通道与接线草稿尚未应用；修改后需校验整份计划。"; RefreshCommands(); changed();
+            }); RoutingCatalogForm = form; EditingRoutingCatalog = true; SampleDirty = true;
+        }
+        finally { loadingSample = false; }
+        Message = "通道与接线草稿尚未应用；修改后需校验整份计划。"; RefreshCommands(); changed();
     }
 
     [RelayCommand(CanExecute = nameof(CanInitializeRouting))]

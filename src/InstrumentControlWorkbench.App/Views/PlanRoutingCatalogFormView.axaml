@@ -1,0 +1,17 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:views="using:InstrumentControlWorkbench.App.Views" xmlns:controls="using:InstrumentControlWorkbench.App.Controls" x:Class="InstrumentControlWorkbench.App.Views.PlanRoutingCatalogFormView" x:DataType="vm:PlanRoutingCatalogFormViewModel">
+ <StackPanel Spacing="10">
+  <TextBlock Text="{Binding MatrixSummary}" Classes="caption" TextWrapping="Wrap"/>
+  <Expander Header="通道目录" IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"><StackPanel Spacing="8">
+   <ComboBox ItemsSource="{Binding Channels}" SelectedItem="{Binding SelectedChannel, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="目录通道"><ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanChannelProfileFormViewModel"><TextBlock Text="{Binding Label}" FontSize="11" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+   <StackPanel Orientation="Horizontal" Spacing="8"><controls:OperatorButton Content="新建通道" Command="{Binding AddChannelCommand}"/><controls:OperatorButton Content="移除通道" Command="{Binding RemoveChannelCommand}"/></StackPanel>
+   <views:PlanChannelProfileFormView DataContext="{Binding SelectedChannel}"/>
+  </StackPanel></Expander>
+  <Expander Header="接线目录" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"><StackPanel Spacing="8">
+   <ComboBox ItemsSource="{Binding Wirings}" SelectedItem="{Binding SelectedWiring, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="目录接线"><ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanWiringProfileFormViewModel"><TextBlock Text="{Binding Label}" FontSize="11" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+   <StackPanel Orientation="Horizontal" Spacing="8"><controls:OperatorButton Content="新建接线" Command="{Binding AddWiringCommand}"/><controls:OperatorButton Content="移除接线" Command="{Binding RemoveWiringCommand}"/></StackPanel>
+   <views:PlanWiringProfileFormView DataContext="{Binding SelectedWiring}"/>
+  </StackPanel></Expander>
+  <CheckBox IsChecked="{Binding CoordinateIndependentRoutes, Mode=TwoWay}" IsVisible="{Binding AllowGuardCoordination}" IsEnabled="{Binding CanCoordinateGuards}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"><TextBlock Text="协调更新独立源样品节点的矩阵保护" TextWrapping="Wrap"/></CheckBox>
+  <TextBlock Text="应用时校验引用和全部测量方向。已引用连接点不能删除；已有节点的源或电压表须通过新接线在节点中切换。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+ </StackPanel>
+</UserControl>

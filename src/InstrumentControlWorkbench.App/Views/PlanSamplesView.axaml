@@ -11,6 +11,8 @@
    <controls:OperatorButton Content="移除未使用样品" Command="{Binding RemoveSampleCommand}" IsVisible="{Binding HasRoutingCatalog}" AutomationProperties.Name="移除计划样品"/>
   </StackPanel>
   <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled"><StackPanel Spacing="10">
+   <controls:OperatorButton Content="编辑通道与接线" Command="{Binding EditRoutingCatalogCommand}" IsVisible="{Binding HasRoutingCatalog}" HorizontalAlignment="Left" AutomationProperties.Name="编辑通道与接线"/>
+   <Grid IsVisible="{Binding EditingRoutingCatalog}"><views:PlanRoutingCatalogFormView DataContext="{Binding RoutingCatalogForm}"/></Grid>
    <StackPanel IsVisible="{Binding IsExistingSample}" Spacing="10">
     <TextBlock IsVisible="{Binding !HasSampleForm}" Text="可配置初始目录或导入档案；需先在设备配置中注册矩阵与源。" Classes="caption" TextWrapping="Wrap"/>
     <Grid IsVisible="{Binding HasSampleForm}"><views:PlanSampleDetailsFormView DataContext="{Binding SampleForm}"/></Grid>
@@ -20,7 +22,7 @@
    <Grid IsVisible="{Binding CreatingSample}"><views:PlanSampleCreationFormView DataContext="{Binding CreationForm}"/></Grid>
   </StackPanel></ScrollViewer>
   <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8" Margin="0,10,0,0">
-   <controls:OperatorButton Content="应用样品" Command="{Binding ApplySampleCommand}" AutomationProperties.Name="应用样品资料"/>
+   <controls:OperatorButton Content="应用修改" Command="{Binding ApplySampleCommand}" AutomationProperties.Name="应用样品资料"/>
    <controls:OperatorButton Content="撤销修改" Command="{Binding DiscardSampleCommand}" AutomationProperties.Name="撤销样品资料"/>
   </StackPanel>
  </Grid>

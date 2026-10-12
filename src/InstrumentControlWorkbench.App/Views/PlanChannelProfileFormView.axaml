@@ -1,0 +1,19 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:views="using:InstrumentControlWorkbench.App.Views" xmlns:controls="using:InstrumentControlWorkbench.App.Controls" x:Name="ChannelRoot" x:Class="InstrumentControlWorkbench.App.Views.PlanChannelProfileFormView" x:DataType="vm:PlanChannelProfileFormViewModel">
+ <StackPanel Spacing="8">
+  <TextBlock Text="通道 ID / 已有 ID 保持不变" Classes="caption"/><TextBox Text="{Binding IdText, Mode=TwoWay}" IsReadOnly="{Binding IsIdentityReadOnly}" AutomationProperties.Name="目录通道 ID"/>
+  <TextBlock Text="通道名称" Classes="caption"/><TextBox Text="{Binding ChannelName, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}"/>
+  <TextBlock Text="别名" Classes="caption"/><TextBox Text="{Binding Alias, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}"/>
+  <TextBlock Text="通道备注" Classes="caption"/><TextBox Text="{Binding Notes, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="48"/>
+  <controls:OperatorButton Content="添加连接点" Command="{Binding AddConnectionCommand}" HorizontalAlignment="Left" AutomationProperties.Name="添加目录连接点"/>
+  <ItemsControl ItemsSource="{Binding Connections}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:PlanChannelConnectionFormViewModel">
+   <Border BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,0,0,8"><StackPanel Spacing="6">
+    <TextBlock Text="连接点 ID" Classes="caption"/><TextBox Text="{Binding KeyText, Mode=TwoWay}" IsReadOnly="{Binding IsIdentityReadOnly}" AutomationProperties.Name="目录连接点 ID"/>
+    <Grid ColumnDefinitions="*,8,*"><TextBox Text="{Binding SlotText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" Watermark="卡槽" AutomationProperties.Name="目录连接点卡槽"/><TextBox Grid.Column="2" Text="{Binding ColumnText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" Watermark="列" AutomationProperties.Name="目录连接点列"/></Grid>
+    <CheckBox Content="启用连接点" IsChecked="{Binding Enabled, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}"/>
+    <TextBlock Text="标签" Classes="caption"/><TextBox Text="{Binding Label, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}"/>
+    <TextBlock Text="连接点备注" Classes="caption"/><TextBox Text="{Binding Notes, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="40"/>
+    <controls:OperatorButton Content="移除连接点" Command="{Binding #ChannelRoot.((vm:PlanChannelProfileFormViewModel)DataContext).RemoveConnectionCommand}" CommandParameter="{Binding}" HorizontalAlignment="Left"/>
+   </StackPanel></Border>
+  </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+ </StackPanel>
+</UserControl>
