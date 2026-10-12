@@ -182,6 +182,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
             OutcomeMutationStep => ("结果回调", step.Id.Value),
             MutateValueStep s => ("变量修改", s.Variable.Value),
             ConditionStep s => ("条件检查", s.Condition.Variable.Value),
+            CalculatedMeasurementStep s => ("读取后计算", string.Join(", ", s.Columns.Select(column => column.Column))),
             MeasurementGroupStep s => ("联合测量点", string.Join("、", s.Labels)),
             ReadSourceSenseStep s => ("源与测量读数", s.Device.Value),
             ReadCurrentResistanceStep s => ("独立源电阻", $"{s.Source} / {s.Meter}"),
@@ -223,6 +224,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
             case BranchOnOutcomeStep branch:
                 AddStep(branch.Condition, depth + 1); AddStep(branch.Then, depth + 1);
                 if (branch.Else is { } alternative) AddStep(alternative, depth + 1); break;
+            case CalculatedMeasurementStep calculated: AddStep(calculated.Body, depth + 1); break;
             case MeasurementGroupStep point: foreach (var member in point.Members) AddStep(member.Body, depth + 1); break;
             case SampleAnalysisStep analysis: foreach (var reading in analysis.Readings) AddStep(reading, depth + 1); break;
         }

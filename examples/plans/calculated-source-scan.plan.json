@@ -1,0 +1,122 @@
+{
+  "format": "instrument-workbench-plan",
+  "version": 1,
+  "name": "Per-point calculated resistance and power",
+  "preparations": [
+    {
+      "device": "k2450",
+      "function": "Voltage",
+      "level": {
+        "value": 0.01,
+        "unit": "Volt"
+      },
+      "compliance": {
+        "value": 0.001,
+        "unit": "Ampere"
+      },
+      "sense": {
+        "function": "Current",
+        "mode": "TwoWire",
+        "nplc": 1,
+        "autoRange": true
+      }
+    }
+  ],
+  "metadata": {},
+  "root": {
+    "kind": "sequence",
+    "id": "root",
+    "children": [
+      {
+        "kind": "output",
+        "id": "on",
+        "device": "k2450",
+        "enabled": true
+      },
+      {
+        "kind": "for_each",
+        "id": "loop",
+        "variable": "requested",
+        "values": {
+          "unit": "Volt",
+          "values": [
+            0.01,
+            0.02,
+            0.03
+          ]
+        },
+        "body": {
+          "kind": "sequence",
+          "id": "point",
+          "children": [
+            {
+              "kind": "set",
+              "id": "set",
+              "address": {
+                "device": "k2450",
+                "parameter": "k2450.source_voltage"
+              },
+              "value": {
+                "arithmetic": {
+                  "operator": "Add",
+                  "left": {
+                    "variable": "requested"
+                  },
+                  "right": {
+                    "constant": {
+                      "value": 0.005,
+                      "unit": "Volt"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "calculated_measurement",
+              "id": "calculate",
+              "body": {
+                "kind": "read_source_sense",
+                "id": "paired",
+                "device": "k2450",
+                "function": "Voltage",
+                "voltageColumn": "V",
+                "currentColumn": "I"
+              },
+              "columns": [
+                {
+                  "column": "calculated_R",
+                  "expression": {
+                    "arithmetic": {
+                      "operator": "Divide",
+                      "left": {
+                        "variable": "V"
+                      },
+                      "right": {
+                        "variable": "I"
+                      }
+                    }
+                  }
+                },
+                {
+                  "column": "calculated_P",
+                  "expression": {
+                    "arithmetic": {
+                      "operator": "Multiply",
+                      "left": {
+                        "variable": "V"
+                      },
+                      "right": {
+                        "variable": "I"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "maximumStepExecutions": 100
+}

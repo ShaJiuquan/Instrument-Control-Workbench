@@ -1654,3 +1654,24 @@ control construction and3saved/fresh form source reads. No script engine/deps/Ru
 physical IO; native still deferred per user. See typed-arithmetic.md. Assign math
 results are terminal blackboards; generic per-row math columns, variable discovery,
 PPMS scripts and broader workflow/data/controller/hardware remain goal work.
+
+## Per-point calculated rows (2026-10-13)
+
+CalculatedMeasurementStep wraps bounded logical read/setup, sample analysis or joint
+point. Raw rows retained/delivered first, one calculated row copies actual last input
+values/time/provenance and adds ordered typed results; marker prior row/step/alg1/
+outcomes. Row-only inputs/axes/earlier results, no stale blackboard; optional derived
+schema/dependencies/global distinct IDs. Default unavailable stops after raw; explicit
+continue marks missing/div0/unrepresentable without zero fabrication. Clear result
+blackboard before next read; existing pause/abort/listener/cleanup authoritative.
+Shared validator one-row cache recomputes all values/outcomes/provenance and checks
+schema, indices, missing marker; analysis/group windows unchanged. Strict nativekind,
+optional archive2 marker/CSV calculation_json. Palette/named form body/result/recursive
+expression/policy edits, original body preserved, readonly/stale/lazy controls.
+9Core+25Application+14App new cases:6row saved/fresh scan/archive/CSV/example;7sample
+route+4Hall/vdP analysis fresh archives and wide joint-point archive; schema/value/
+marker/provenance rejection, zero/missing-env/nextclear/abort/listener failures,
+source-off/releases; managed form construction/save/reload/run. No physical/deps/
+Rust changes; native remains deferred per user. See calculated-measurements.md.
+No nesting/inside old joint members; wrap group itself. Further statistics/workflow/
+variable discovery/PPMS scripts/data memory-indexing/controllers/hardware still active.

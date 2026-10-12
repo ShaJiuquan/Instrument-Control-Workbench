@@ -82,6 +82,8 @@ public sealed partial class MeasurementRunService
                     _ => throw new NotSupportedException("Unknown result effect."),
                 };
                 break;
+            case CalculatedMeasurementStep calculated:
+                await ExecuteCalculatedMeasurementAsync(calculated, run, started, ivPlot); break;
             case MeasurementGroupStep point:
                 await ExecuteMeasurementGroupAsync(point, run, started, ivPlot); break;
             case SampleAnalysisStep analysis:

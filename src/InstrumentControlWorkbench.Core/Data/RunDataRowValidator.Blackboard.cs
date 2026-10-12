@@ -21,6 +21,7 @@ public sealed partial class RunDataRowValidator
             }
             else valid = source switch
             {
+                CalculatedMeasurementStep calculation => calculation.Columns.Any(column => column.Column == variable) && units.TryGetValue(variable, out var calculatedUnit) && IsQuantity(entry, calculatedUnit),
                 AssignValueStep assign => assign.Variable == variable && (assign.Value switch
                 {
                     ConstantValue constant => entry.Value is BlackboardQuantity quantity && quantity.Value == constant.Value,

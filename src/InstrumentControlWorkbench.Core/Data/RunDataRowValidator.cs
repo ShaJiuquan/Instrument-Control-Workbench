@@ -8,6 +8,9 @@ namespace InstrumentControlWorkbench.Core.Data;
 public sealed partial class RunDataRowValidator
 {
     private readonly ExperimentPlan? plan;
+    private readonly Dictionary<StepId, CalculatedMeasurementStep> calculations = [];
+    private MeasurementDataRow? previousRow;
+    private readonly HashSet<ParameterId> calculatedColumns = [];
     private readonly Dictionary<StepId, ExperimentStep> steps = [];
     private readonly DataSetSchema schema;
     private readonly SampleAnalysisRowValidator analysis;
@@ -23,6 +26,7 @@ public sealed partial class RunDataRowValidator
     public bool HasIndependentResistance => independentResistance.Count != 0;
     private readonly Queue<MeasurementDataRow> recent = new();
     private int count;
+    public bool HasCalculations => calculations.Count != 0;
     public bool HasMeasurementGroups => groups.Count != 0;
     public bool HasEnvironment => environment.Count != 0;
     public RunDataRowValidator(ExperimentPlan? plan, DataSetSchema schema)
@@ -36,6 +40,8 @@ public sealed partial class RunDataRowValidator
             if (!steps.TryAdd(item.Step.Id, item.Step)) throw new ArgumentException("Duplicate workflow provenance step ID.");
             switch (item.Step)
             {
+                case CalculatedMeasurementStep calculation:
+                    calculations.Add(calculation.Id, calculation); foreach (var column in calculation.Columns) if (!calculatedColumns.Add(column.Column)) throw new ArgumentException("Calculated schema columns require distinct identities."); pending.Push((calculation.Body, item.Depth + 1)); break;
                 case ReadStep read:
                     foreach (var channel in read.Channels) if (channel.Address.Parameter == Keithley2182Parameters.Voltage.Id) standaloneVoltageColumns.Add((read.Id, channel.Column));
                     foreach (var channel in read.Channels) if (channel.Address.Parameter == Keithley2450Parameters.MeasuredResistance.Id) nativeResistanceColumns.Add((read.Id, channel.Column));
@@ -84,6 +90,13 @@ public sealed partial class RunDataRowValidator
                 case IfElseStep choice: pending.Push((choice.Then, item.Depth + 1)); if (choice.Else is { } other) pending.Push((other, item.Depth + 1)); break;
             }
         }
+        foreach (var calculation in calculations.Values)
+            foreach (var result in calculation.Columns)
+            {
+                var column = schema.Columns.SingleOrDefault(column => column.Parameter.Id == result.Column);
+                var unit = NumericPlanValue.InferUnit(result.Expression, input => schema.Columns.Single(column => column.Parameter.Id == input).Parameter.Unit);
+                if (column is null || !column.Optional || column.Source is not null || column.Parameter.Unit != unit || NumericPlanValue.Variables(result.Expression).Any(input => !column.DependsOn.Contains(input))) throw new ArgumentException("Calculated schema needs optional derived columns with inferred units and expression dependencies.");
+            }
         foreach (var read in environment.Values)
         {
             var column = schema.Columns.SingleOrDefault(c => c.Parameter.Id == read.Column);
@@ -108,6 +121,8 @@ public sealed partial class RunDataRowValidator
     public void Validate(MeasurementDataRow row)
     {
         schema.ValidateRow(row);
+        if (row.Calculation is not null) { ValidateCalculation(row); return; }
+        if (row.Values.Keys.Any(calculatedColumns.Contains)) throw new ArgumentException("Calculated quantities require their input-row evidence.");
         ValidateEnvironment(row);
         if (row.MeasurementGroup is null && row.Analysis is null)
         {
@@ -220,7 +235,7 @@ public sealed partial class RunDataRowValidator
     }
     public void Append(MeasurementDataRow row)
     {
-        Validate(row); analysis.AppendValidated(row); count++;
+        Validate(row); analysis.AppendValidated(row); previousRow = row; count++;
         if (groups.Count == 0) return;
         recent.Enqueue(row); if (recent.Count > MeasurementGroupStep.MaximumInputs) recent.Dequeue();
     }

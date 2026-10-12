@@ -42,6 +42,7 @@ public sealed class SampleAnalysisRowValidator
             if (++visited > 10_000 || item.Depth > 128) throw new ArgumentException("Analysis plan exceeds the document node/depth budget.", nameof(plan));
             switch (item.Step)
             {
+                case CalculatedMeasurementStep calculated: pending.Push((calculated.Body, item.Depth + 1)); break;
                 case SampleAnalysisStep group:
                     group.ValidateRouting(plan.Routing ?? throw new ArgumentException("Sample analysis requires routing.", nameof(plan)));
                     foreach (var result in group.Columns)

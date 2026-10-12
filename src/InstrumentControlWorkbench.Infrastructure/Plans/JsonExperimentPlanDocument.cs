@@ -120,6 +120,7 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanStructur
             CheckSize(entry.Depth, ref nodes);
             values += entry.Step switch
             {
+                CalculatedMeasurementStep calculation => calculation.Columns.Sum(column => ValueCost(column.Expression)),
                 AssignValueStep assignment => ValueCost(assignment.Value),
                 SetParameterStep set => ValueCost(set.Value),
                 ConditionStep condition => ValueCost(condition.Condition.Value),
@@ -137,6 +138,7 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanStructur
             };
             switch (entry.Step)
             {
+                case CalculatedMeasurementStep calculation: pending.Push((calculation.Body, entry.Depth + 1)); break;
                 case MeasurementGroupStep point: foreach (var member in point.Members) pending.Push((member.Body, entry.Depth + 1)); break;
                 case SampleAnalysisStep sample: foreach (var reading in sample.Readings) pending.Push((reading, entry.Depth + 1)); break;
                 case ThresholdSwitchStep choice: foreach (var child in choice.Children) pending.Push((child, entry.Depth + 1)); break;

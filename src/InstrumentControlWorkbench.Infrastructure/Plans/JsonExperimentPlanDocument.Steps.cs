@@ -54,6 +54,10 @@ public sealed partial class JsonExperimentPlanDocument
                 o["readings"] = readings;
                 o["columns"] = new JsonArray(group.Columns.Select(c => (JsonNode)new JsonObject { ["kind"] = c.Kind.ToString(), ["column"] = c.Column.Value }).ToArray());
                 break;
+            case CalculatedMeasurementStep s:
+                o["kind"] = "calculated_measurement"; o["body"] = EncodeStep(s.Body, depth + 1, ref count);
+                o["columns"] = new JsonArray(s.Columns.Select(column => (JsonNode)new JsonObject { ["column"] = column.Column.Value, ["expression"] = EncodeValue(column.Expression) }).ToArray());
+                if (s.ContinueOnUnavailable) o["continueOnUnavailable"] = true; break;
             case SequenceStep s:
                 o["kind"] = "sequence";
                 var children = new JsonArray();
@@ -235,6 +239,9 @@ public sealed partial class JsonExperimentPlanDocument
                 {
                     var column = Object(c, "kind", "column"); return new SampleDerivedColumn(NamedEnum<SampleDerivedQuantity>(column, "kind"), new(Text(column, "column")));
                 }));
+            case "calculated_measurement":
+                o = Object(node, "id", "kind", "body", "columns", "continueOnUnavailable");
+                return new CalculatedMeasurementStep(id, DecodeStep(Required(o, "body"), depth + 1, ref count), Array(Required(o, "columns")).Select(item => { var column = Object(item, "column", "expression"); return new CalculatedColumn(new(Text(column, "column")), DecodeValue(Required(column, "expression"))); }), o.ContainsKey("continueOnUnavailable") && Boolean(o, "continueOnUnavailable"));
             case "sequence":
                 Object(o, "id", "kind", "children");
                 var children = new List<ExperimentStep>();

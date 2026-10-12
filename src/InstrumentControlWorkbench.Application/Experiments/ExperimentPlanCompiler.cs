@@ -393,6 +393,18 @@ internal static class ExperimentPlanCompiler
                     ValidateEnvironmentPolicy([pair.VoltageColumn, pair.CurrentColumn], pair.EnvironmentReads);
                     ValidateEnvironment(pair.EnvironmentReads, axes);
                     return 1;
+                case CalculatedMeasurementStep calculation:
+                    var calculationCost = Visit(calculation.Body, known, axes, depth + 1);
+                    var inputs = calculation.InputColumns.Concat(axes).Append(Elapsed.Id).ToHashSet();
+                    foreach (var result in calculation.Columns)
+                    {
+                        var references = NumericPlanValue.Variables(result.Expression);
+                        if (references.Any(reference => !inputs.Contains(reference)) || columns.ContainsKey(result.Column)) throw new ArgumentException("Calculated columns require current-row inputs, ordered results and globally unique result IDs.");
+                        var resultUnit = NumericPlanValue.InferUnit(result.Expression, reference => columns[reference].Parameter.Unit);
+                        AddColumn(result.Column, new(result.Column, result.Column.Value, resultUnit, ParameterAccess.Read), null, references.Concat(axes).Append(Elapsed.Id).Distinct().ToArray());
+                        BindQuantity(result.Column, resultUnit, known); inputs.Add(result.Column);
+                    }
+                    return checked(1 + calculationCost);
                 case MeasurementGroupStep point:
                     return checked(1 + point.Members.Sum(member => Visit(member.Body, known, axes, depth + 1)));
                 case SampleAnalysisStep analysis:

@@ -28,6 +28,7 @@ public sealed partial class FileRunArchive
             {
                 var header = metadata.Header;
                 var provenance = new RunDataRowValidator(header.Plan, header.Schema);
+                var hasCalculations = provenance.HasCalculations;
                 var hasMeasurementGroups = provenance.HasMeasurementGroups;
                 var hasEnvironment = provenance.HasEnvironment;
                 var hasAcquisitionFailures = provenance.HasRecoverableAcquisitions;
@@ -47,6 +48,7 @@ public sealed partial class FileRunArchive
                 await WriteCsvAsync(writer, ["# blackboard_json", header.Blackboard is null ? "" : JsonSerializer.Serialize(RunArchiveJson.BlackboardDto.From(header.Blackboard), RunArchiveJson.Options)], token);
                 await WriteCsvAsync(writer, ["row", "timestamp", .. header.Schema.Columns.Select(c => $"{c.Parameter.Id} [{c.Parameter.Unit}]"),
                     .. header.Plan?.Routing is null ? Array.Empty<string>() : new[] { "routing_json" },
+                    .. hasCalculations ? new[] { "calculation_json" } : Array.Empty<string>(),
                     .. hasAnalysis ? new[] { "analysis_json" } : Array.Empty<string>(),
                     .. hasMeasurementGroups ? new[] { "measurement_group_json" } : Array.Empty<string>(),
                     .. hasEnvironment ? new[] { "environment_json" } : Array.Empty<string>(),
@@ -60,6 +62,7 @@ public sealed partial class FileRunArchive
                         .. header.Schema.Columns.Select(c => row.Values.TryGetValue(c.Parameter.Id, out var value)
                             ? value.Value.ToString("R", CultureInfo.InvariantCulture) : ""),
                         .. header.Plan?.Routing is null ? Array.Empty<string>() : new[] { row.Routing is null ? "" : JsonSerializer.Serialize(RunArchiveJson.SampleRouteDto.From(row.Routing), RunArchiveJson.Options) },
+                        .. hasCalculations ? new[] { row.Calculation is null ? "" : JsonSerializer.Serialize(RunArchiveJson.CalculationDto.From(row.Calculation), RunArchiveJson.Options) } : Array.Empty<string>(),
                         .. hasAnalysis ? new[] { row.Analysis is null ? "" : JsonSerializer.Serialize(RunArchiveJson.SampleAnalysisDto.From(row.Analysis), RunArchiveJson.Options) } : Array.Empty<string>(),
                         .. hasMeasurementGroups ? new[] { row.MeasurementGroup is null ? "" : JsonSerializer.Serialize(RunArchiveJson.MeasurementGroupDto.From(row.MeasurementGroup), RunArchiveJson.Options) } : Array.Empty<string>(),
                         .. hasEnvironment ? new[] { row.Environment.Count == 0 ? "" : JsonSerializer.Serialize(row.Environment.Select(RunArchiveJson.EnvironmentObservationDto.From), RunArchiveJson.Options) } : Array.Empty<string>(),
