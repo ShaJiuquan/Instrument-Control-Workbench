@@ -1,0 +1,26 @@
+{
+  "format": "instrument-workbench-plan",
+  "version": 1,
+  "name": "Explicit pure current-source import context",
+  "preparations": [],
+  "currentSourcePreparations": [
+    {
+      "device": "current-source",
+      "current": {
+        "value": 1e-05,
+        "unit": "Ampere"
+      },
+      "compliance": {
+        "value": 10,
+        "unit": "Volt"
+      }
+    }
+  ],
+  "metadata": {},
+  "maximumStepExecutions": 500,
+  "root": {
+    "kind": "sequence",
+    "id": "context",
+    "children": []
+  }
+}

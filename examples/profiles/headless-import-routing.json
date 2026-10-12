@@ -1,0 +1,16 @@
+{
+  "format": "instrument-workbench-import-routing",
+  "version": 1,
+  "channels": "channel_profiles.json",
+  "samples": "samples.json",
+  "ports": "instrument_ports.json",
+  "matrix": "matrix",
+  "channel_wiring": "k2450",
+  "route_settle_s": 0,
+  "wirings": [
+    {
+      "id": "k2450",
+      "source": "k2450"
+    }
+  ]
+}

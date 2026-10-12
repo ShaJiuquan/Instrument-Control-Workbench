@@ -1774,3 +1774,21 @@ not genericT/s; naming/range ambiguity and no calibration/readbackproof -> remai
 pending, nofakeconversion. See headless-cli.md. RawPPMS import stillvia workspace,
 remote authentication/crossprocess leasing/startup reconciliation/native visual/
 fieldprofiles and broader migration remain active; GitHub only, native deferred.
+
+## Headless PPMS import (2026-10-13)
+
+CLI import requiresdevices/nativecontext/rawPPMS/output, optional bounded64KiB/depth16
+version1 routing selection with relative3profile paths and explicitmatrix/channelwiring/
+source/optionalmeter IDs/settle. Existing workspace validatescontext, configuredalias/
+roleauthority, profilebindings, full importedtree and inheritedbudget before atomic
+native save; no driverIO/leases/archive/import-root execution. Namedinput/profile
+output collisions reject. Argument fields staycommand-scoped; unknown/duplicate/bad
+version/oversize/role/missing/unsupported/budget/cancel preserveoldoutput.18Application
+newcases plus15CLI regressions: routed6rows, current samplecollection28rows (includes
+joint-point summaries), fresh runtime/archive/CSV; standaloneK6221+K2182 2rows with
+explicitcurrentprep/no routing. ActualCLI subprocesses import/run6and28rows. No Core/
+schema/newpackages/Rust/physical/desktop changes; native deferred peruser. See
+headless-ppms-import.md. Thishost reuses existing importer coverage, doesnotmake
+unsupported commands work. Fieldzones/controller/measurement/workflow/crossprocess/
+remoteauth/startup reconciliation/data/settings and native acceptance remain goalwork;
+independentC# engine/GitHubonly.

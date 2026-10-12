@@ -25,8 +25,9 @@ fall back to demo hardware or simulation. The supplied example explicitly declar
 simulation devices with IDs matching the plan. Validation loads/compiles metadata
 without connecting, acquiring leases or creating run records. Execution uses the
 existing registered adapters; this stage's acceptance uses simulation only.
-Raw PPMS trees must first be imported/saved through the existing workspace; the
-CLI currently consumes native versioned plans.
+The run/validate commands consume native versioned plans. Raw PPMS trees can be
+converted with the CLI import command and explicit context/routing selections;
+see headless-ppms-import.md.
 
 Stdout is newline-delimited JSON with `version: 1`. Facts include `validated`
 (name, required device model/driver kind and execution budget), `started`

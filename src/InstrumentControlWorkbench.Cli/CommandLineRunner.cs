@@ -32,7 +32,14 @@ public sealed class CommandLineRunner(IConfiguredDeviceFactory? factory = null, 
         await using var archive = options.Archive is null ? null : new FileRunArchive(options.Archive);
         var startup = await new DeviceConfigurationStartup(new JsonDeviceConfigurationDocument(), factory ?? new ConfiguredDeviceFactory(), leases, hub)
             .StartAsync(options.Devices, null, cancellationToken, archive is null ? null : [archive], safetyTimeout);
-        runs = startup.Runs; var workspace = new ExperimentPlanWorkspace(new JsonExperimentPlanDocument(), runs);
+        runs = startup.Runs; var workspace = new ExperimentPlanWorkspace(new JsonExperimentPlanDocument(), runs, new PpmsExperimentPlanImporter(), new PpmsRoutingProfileImporter(), startup.Devices);
+        if (options.Command == "import")
+        {
+            var imported = await ImportPlanCommand.ExecuteAsync(options, workspace, cancellationToken);
+            await Report(new { version = 1, kind = "imported", name = imported.Plan.Name, input = options.Ppms, output = options.Output, routing = imported.Plan.Routing is not null, maximum_steps = imported.Plan.MaximumStepExecutions, devices = imported.Preview.Devices.Select(id => id.Value) });
+            if (reportingError is not null) throw new IOException("Import succeeded but CLI reporting failed.", reportingError);
+            return 0;
+        }
         var document = await workspace.LoadAsync(options.Plan, cancellationToken);
         await Report(new { version = 1, kind = "validated", name = document.Plan.Name, devices = startup.Devices.Registry.Devices.Where(device => document.Preview.Devices.Contains(device.Id)).Select(device => new { id = device.Id.Value, model = device.Model, driver = device.DriverKind.ToString() }), maximum_steps = document.Preview.MaximumStepExecutions, dynamic_loops = document.Preview.HasDynamicLoops });
         if (reportingError is not null) throw new IOException("CLI output failed before execution.", reportingError);

@@ -1,0 +1,76 @@
+{
+  "format": "instrument-workbench-devices",
+  "version": 1,
+  "primarySource": "k2450",
+  "devices": [
+    {
+      "id": "k2450",
+      "model": "K2450",
+      "displayName": "Headless source simulator",
+      "category": "SourceMeter",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      }
+    },
+    {
+      "id": "field",
+      "model": "SIM-FIELD",
+      "displayName": "Headless field simulator",
+      "category": "Field",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      }
+    },
+    {
+      "id": "temperature",
+      "model": "SIM-TEMPERATURE",
+      "displayName": "Headless temperature simulator",
+      "category": "Temperature",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      }
+    },
+    {
+      "id": "rotator",
+      "model": "ROTATOR",
+      "displayName": "Headless rotation simulator",
+      "category": "Rotation",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      }
+    },
+    {
+      "id": "matrix",
+      "model": "K3706",
+      "displayName": "Headless matrix simulator",
+      "category": "Matrix",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      },
+      "matrix": {
+        "cards": [
+          {
+            "slot": 1,
+            "rows": 8,
+            "columns": 12
+          }
+        ],
+        "guardedSources": [
+          "k2450"
+        ]
+      }
+    }
+  ],
+  "aliases": {
+    "k2450": "k2450",
+    "field": "field",
+    "temperature": "temperature",
+    "angle": "rotator",
+    "k3706": "matrix"
+  }
+}

@@ -1729,6 +1729,12 @@
     "status": "partial",
     "implementation": "src/InstrumentControlWorkbench.Cli; scripts/package-cli.sh",
     "tests": "HeadlessCliTests.cs; actual CLI subprocess validate/run/SIGTERM acceptance",
-    "limits": "Native plans and explicit device documents; simulation acceptance only, local bounded control file, process-local leases, no authenticated remote server or raw PPMS CLI importer. Unconfirmed stop retains process ownership."
+    "limits": "Native plans and explicit device documents; simulation acceptance only, local bounded control file, process-local leases, no authenticated remote server or raw PPMS CLI importer. Unconfirmed stop retains process ownership.",
+    "ppmsImport": {
+      "status": "partial",
+      "implementation": "Cli ImportPlanCommand; existing Application ExperimentPlanWorkspace and PPMS/profile adapters",
+      "tests": "HeadlessCliImportTests; actual import/run CLI subprocesses",
+      "limits": "Explicit configured aliases/preparations/budget and optional bounded routing selection. Six-row routed voltage,28-row sample collection,two-row pure current/meter simulation verified. Underlying unsupported PPMS commands remain unsupported."
+    }
   }
 }
