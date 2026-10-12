@@ -11,14 +11,20 @@
       </Grid>
       <StackPanel Grid.Row="1">
         <TextBlock Text="WORKSPACE" FontSize="9" Foreground="#6D7C95" Margin="23,0,0,13"/>
-      <Button Classes="nav" Classes.active="{Binding IsMeasurementPage}" Command="{Binding OpenMeasurementCommand}" AutomationProperties.Name="测量工作台">
+      <Button Classes="nav" Classes.active="{Binding IsMeasurementPage}" Command="{Binding OpenMeasurementCommand}" IsVisible="{Binding HasPrimarySource}" AutomationProperties.Name="测量工作台">
         <Grid ColumnDefinitions="3,*"><Border Classes="indicator" Width="3" Height="18" CornerRadius="2"/><StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" Margin="14,0,0,0" VerticalAlignment="Center"><Path Data="M 3,3 L 9,3 L 9,9 L 3,9 Z M 15,3 L 21,3 L 21,9 L 15,9 Z M 3,15 L 9,15 L 9,21 L 3,21 Z M 15,15 L 21,15 L 21,21 L 15,21 Z"/><TextBlock Text="测量工作台" VerticalAlignment="Center"/></StackPanel></Grid>
+      </Button>
+      <Button Classes="nav" Classes.active="{Binding IsPlanPage}" Command="{Binding OpenPlansCommand}" IsVisible="{Binding HasPlanWorkspace}" AutomationProperties.Name="实验计划">
+        <Grid ColumnDefinitions="3,*"><Border Classes="indicator" Width="3" Height="18" CornerRadius="2"/><StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" Margin="14,0,0,0" VerticalAlignment="Center"><Path Data="M 3,3 L 10,3 L 10,10 L 3,10 Z M 14,14 L 21,14 L 21,21 L 14,21 Z M 10,7 L 17,7 L 17,14"/><TextBlock Text="实验计划" VerticalAlignment="Center"/></StackPanel></Grid>
       </Button>
       <Button Classes="nav" Classes.active="{Binding IsInstrumentsPage}" Command="{Binding OpenInstrumentsCommand}" AutomationProperties.Name="仪器与连接">
         <Grid ColumnDefinitions="3,*"><Border Classes="indicator" Width="3" Height="18" CornerRadius="2"/><StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" Margin="14,0,0,0" VerticalAlignment="Center"><Path Data="M 1,15 L 5,15 L 8,4 L 12,21 L 16,10 L 22,10"/><TextBlock Text="仪器与连接" VerticalAlignment="Center"/></StackPanel></Grid>
       </Button>
       <Button Classes="nav" Classes.active="{Binding IsDataPage}" Command="{Binding OpenDataCommand}" AutomationProperties.Name="运行数据">
         <Grid ColumnDefinitions="3,*"><Border Classes="indicator" Width="3" Height="18" CornerRadius="2"/><StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" Margin="14,0,0,0" VerticalAlignment="Center"><Path Data="M 4,2 L 15,2 L 21,8 L 21,22 L 4,22 Z M 15,2 L 15,8 L 21,8 M 8,12 L 17,12 M 8,17 L 17,17"/><TextBlock Text="运行数据" VerticalAlignment="Center"/></StackPanel></Grid>
+      </Button>
+      <Button Classes="nav" Classes.active="{Binding IsHistoryPage}" Command="{Binding OpenHistoryCommand}" IsVisible="{Binding HasHistory}" AutomationProperties.Name="运行历史">
+        <Grid ColumnDefinitions="3,*"><Border Classes="indicator" Width="3" Height="18" CornerRadius="2"/><StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" Margin="14,0,0,0" VerticalAlignment="Center"><Path Data="M 3,5 L 21,5 M 3,11 L 21,11 M 3,17 L 15,17"/><TextBlock Text="运行历史" VerticalAlignment="Center"/></StackPanel></Grid>
       </Button>
       <Button Classes="nav" Classes.active="{Binding IsEventsPage}" Command="{Binding OpenEventsCommand}" AutomationProperties.Name="事件记录">
         <Grid ColumnDefinitions="3,*"><Border Classes="indicator" Width="3" Height="18" CornerRadius="2"/><StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" Margin="14,0,0,0" VerticalAlignment="Center"><Path Data="M 4,5 L 20,5 M 4,11 L 16,11 M 4,17 L 20,17"/><TextBlock Text="事件记录" VerticalAlignment="Center"/></StackPanel></Grid>
@@ -28,8 +34,8 @@
         <TextBlock Text="ACTIVE INSTRUMENT" FontSize="9" Foreground="#6D7C95" Margin="7,0,0,0"/>
         <Border Background="#1D293D" BorderBrush="#2F3C4F" BorderThickness="1" CornerRadius="7" Padding="13,14">
           <StackPanel Spacing="8">
-            <TextBlock Text="Keithley 2450" Foreground="#DBE2EE" FontSize="12"/>
-            <TextBlock Text="SourceMeter · 四线测量" Foreground="#8091AB" FontSize="10"/>
+            <TextBlock Text="{Binding PrimarySourceName}" TextWrapping="Wrap" Foreground="#DBE2EE" FontSize="12"/>
+            <TextBlock Text="{Binding PrimarySourceKind}" TextWrapping="Wrap" Foreground="#8091AB" FontSize="10"/>
             <TextBlock Text="{Binding ConnectionText}" Foreground="#AFA0EA" FontSize="10"/>
           </StackPanel>
         </Border>
@@ -37,7 +43,7 @@
       <Border Grid.Row="4" BorderBrush="#2F3C4F" BorderThickness="0,1,0,0" Margin="22,0" Padding="0,18,0,23">
         <Grid ColumnDefinitions="28,*">
           <Border Background="#344055" Width="28" Height="28" CornerRadius="14"><TextBlock Text="IW" Foreground="#CED8EA" FontSize="9" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-          <StackPanel Grid.Column="1" Margin="10,0,0,0" Spacing="5"><TextBlock Text="本地实验室" Foreground="#DBE2EE" FontSize="11"/><TextBlock Text="Local simulation" Foreground="#7889A2" FontSize="9"/></StackPanel>
+          <StackPanel Grid.Column="1" Margin="10,0,0,0" Spacing="5"><TextBlock Text="本地实验室" Foreground="#DBE2EE" FontSize="11"/><TextBlock Text="{Binding RuntimeKind}" Foreground="#7889A2" FontSize="9"/></StackPanel>
         </Grid>
       </Border>
     </Grid>

@@ -1,0 +1,30 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:InstrumentControlWorkbench.App.Controls"
+             xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels"
+             x:Class="InstrumentControlWorkbench.App.Views.RunHistoryView" x:DataType="vm:RunHistoryViewModel">
+  <Grid RowDefinitions="*,Auto" ColumnDefinitions="270,16,*">
+    <Border Classes="panel">
+      <Grid RowDefinitions="Auto,*,Auto">
+        <Grid ColumnDefinitions="*,Auto" Margin="16"><TextBlock Text="已保存运行" Classes="section"/><controls:OperatorButton Grid.Column="1" Content="刷新" Command="{Binding RefreshCommand}" AutomationProperties.Name="刷新历史"/></Grid>
+        <ListBox Grid.Row="1" ItemsSource="{Binding Runs}" SelectedItem="{Binding SelectedRun, Mode=TwoWay}" Margin="10,0,10,10" Background="Transparent" BorderThickness="0">
+          <ListBox.ItemTemplate><DataTemplate x:DataType="vm:RunHistoryItem"><StackPanel Spacing="5" Margin="0,7"><TextBlock Text="{Binding Name}" TextWrapping="Wrap"/><TextBlock Text="{Binding Time}" Classes="caption" FontSize="10"/><TextBlock Text="{Binding Summary}" Classes="caption" FontSize="10"/></StackPanel></DataTemplate></ListBox.ItemTemplate>
+        </ListBox>
+        <controls:OperatorButton Grid.Row="2" Margin="16" Content="打开数据" Command="{Binding OpenCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" AutomationProperties.Name="打开历史数据"/>
+      </Grid>
+    </Border>
+    <Border Grid.Column="2" Classes="panel">
+      <Grid RowDefinitions="Auto,*,Auto">
+        <StackPanel Margin="16" Spacing="6"><TextBlock Text="{Binding LoadedName}" Classes="section"/><TextBlock Text="{Binding Details}" Classes="caption" TextWrapping="Wrap"/></StackPanel>
+        <ListBox Grid.Row="1" ItemsSource="{Binding Rows}" Margin="10,0,10,10" Background="Transparent" BorderThickness="0">
+          <ListBox.ItemTemplate><DataTemplate x:DataType="vm:PlanRowItem"><Grid ColumnDefinitions="40,88,*" Margin="0,5"><TextBlock Text="{Binding Index}" Classes="caption" FontSize="10"/><TextBlock Grid.Column="1" Text="{Binding Time}" Classes="caption" FontSize="10"/><TextBlock Grid.Column="2" Text="{Binding Values}" TextWrapping="Wrap" FontSize="10"/></Grid></DataTemplate></ListBox.ItemTemplate>
+        </ListBox>
+        <StackPanel Grid.Row="2" Margin="16" Spacing="8">
+          <TextBlock Text="CSV 导出路径" Classes="caption"/>
+          <TextBox Text="{Binding ExportPath, Mode=TwoWay}" IsEnabled="{Binding CanRefresh}" AutomationProperties.Name="CSV 导出路径"/>
+          <controls:OperatorButton Content="导出 CSV（覆盖路径文件）" Command="{Binding ExportCommand}" HorizontalAlignment="Left" AutomationProperties.Name="导出历史 CSV"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+    <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Text="{Binding Message}" Classes="caption" TextWrapping="Wrap" Margin="0,12,0,0" MaxHeight="58" TextTrimming="CharacterEllipsis"/>
+  </Grid>
+</UserControl>

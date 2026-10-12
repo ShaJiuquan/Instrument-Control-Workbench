@@ -14,7 +14,7 @@
           </StackPanel>
           <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
             <Border Classes="badge" Classes.connected="{Binding Connected}"><TextBlock Text="{Binding ConnectionText}"/></Border>
-            <Border Classes="badge"><TextBlock Text="DEMO MODE"/></Border>
+            <Border Classes="badge"><TextBlock Text="{Binding RuntimeKind}"/></Border>
             <Border Background="{DynamicResource AccentSoft}" CornerRadius="14" Width="28" Height="28" Margin="8,0,0,0"><TextBlock Text="IW" FontSize="10" Foreground="{DynamicResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
           </StackPanel>
         </Grid>
@@ -39,13 +39,16 @@
             </Grid>
           </Grid>
           <views:InstrumentView IsVisible="{Binding IsInstrumentsPage}"/>
-          <views:RunDataView IsVisible="{Binding IsDataPage}"/>
+          <views:RunDataView IsVisible="{Binding IsIvDataPage}"/>
+          <Grid IsVisible="{Binding IsPlanDataPage}"><views:PlanResultsView DataContext="{Binding Plans}"/></Grid>
+          <views:PlanWorkspaceView IsVisible="{Binding IsPlanPage}"/>
           <views:EventLogView IsVisible="{Binding IsEventsPage}"/>
+          <Grid IsVisible="{Binding IsHistoryPage}"><views:RunHistoryView DataContext="{Binding History}"/></Grid>
         </Grid>
       </Grid>
       <Border Grid.Row="2" Background="White" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="20,0">
         <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
-          <TextBlock Text="●  SIMULATOR" Foreground="#199E74" FontSize="9" Margin="0,0,14,0"/>
+          <TextBlock Text="{Binding RuntimeKind}" Foreground="#199E74" FontSize="9" Margin="0,0,14,0"/>
           <TextBlock Grid.Column="1" Text="{Binding LastEvent}" Classes="caption" FontSize="10" TextTrimming="CharacterEllipsis" Margin="0,0,24,0"/>
           <TextBlock Grid.Column="2" Text="{Binding SafetyText}" Classes="caption" FontSize="10"/>
         </Grid>

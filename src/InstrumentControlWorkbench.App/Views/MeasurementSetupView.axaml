@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels"
+             xmlns:controls="using:InstrumentControlWorkbench.App.Controls"
+             xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:views="using:InstrumentControlWorkbench.App.Views"
              x:Class="InstrumentControlWorkbench.App.Views.MeasurementSetupView" x:DataType="vm:MainWindowViewModel">
   <Border Classes="panel">
     <Grid RowDefinitions="Auto,*,Auto">
@@ -31,12 +32,13 @@
         <StackPanel Spacing="10">
           <TextBlock Text="{Binding PlanSummary}" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
           <Grid ColumnDefinitions="*,10,Auto">
-            <Button AutomationProperties.Name="开始测量" Classes="primary" Command="{Binding StartRunCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" MinHeight="36">
+            <controls:OperatorButton AutomationProperties.Name="开始测量" Classes="primary" Command="{Binding StartRunCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" MinHeight="36">
               <StackPanel Orientation="Horizontal" Spacing="9"><Path Data="M 0,0 L 0,10 L 8,5 Z" Fill="White" Width="8" Height="10" VerticalAlignment="Center"/><TextBlock Text="开始测量"/></StackPanel>
-            </Button>
-            <Button Grid.Column="2" Classes="stop" Command="{Binding AbortRunCommand}" Content="停止" MinHeight="36"/>
+            </controls:OperatorButton>
+            <controls:OperatorButton Grid.Column="2" Classes="stop" Command="{Binding AbortRunCommand}" Content="停止" MinHeight="36"/>
           </Grid>
-          <TextBlock Text="{Binding SafetyText}" Classes="caption" FontSize="10" HorizontalAlignment="Center"/>
+          <views:ExecutionControlsView/>
+          <TextBlock Text="{Binding SafetyText}" Classes="caption" FontSize="10" HorizontalAlignment="Center" TextWrapping="Wrap"/>
         </StackPanel>
       </Border>
     </Grid>

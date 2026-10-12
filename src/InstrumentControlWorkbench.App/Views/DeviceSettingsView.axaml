@@ -1,0 +1,24 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:InstrumentControlWorkbench.App.Controls"
+             xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels"
+             x:Class="InstrumentControlWorkbench.App.Views.DeviceSettingsView" x:DataType="vm:DeviceSettingsViewModel">
+  <Border Classes="panel" Padding="18">
+    <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="12">
+      <StackPanel Spacing="5"><TextBlock Text="设备配置文档" Classes="section"/><TextBlock Text="保存的配置在下次启动时生效。当前运行使用启动时的设备实例。" Classes="caption" TextWrapping="Wrap"/></StackPanel>
+      <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+        <TextBox Text="{Binding DocumentPath}" IsReadOnly="{Binding IsReadOnly}" Watermark="设备配置文件路径"/>
+        <WrapPanel Grid.Column="1">
+          <controls:OperatorButton Content="载入" Command="{Binding LoadCommand}" Margin="0,0,8,0"/>
+          <controls:OperatorButton Content="验证" Command="{Binding ValidateCommand}" Margin="0,0,8,0"/>
+          <controls:OperatorButton Content="保存" Command="{Binding SaveCommand}"/>
+        </WrapPanel>
+      </Grid>
+      <StackPanel Grid.Row="2" Spacing="4">
+        <TextBlock Text="{Binding Message}" Classes="caption" Classes.error="{Binding HasError}" TextWrapping="Wrap"/>
+        <TextBlock Text="新配置已保存，需要重新启动。" Foreground="{DynamicResource Accent}" IsVisible="{Binding RestartRequired}" TextWrapping="Wrap"/>
+      </StackPanel>
+      <TextBox Grid.Row="3" Text="{Binding DocumentText}" IsReadOnly="{Binding IsReadOnly}" AcceptsReturn="True" AcceptsTab="True"
+               FontFamily="monospace" FontSize="12" TextWrapping="NoWrap" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+    </Grid>
+  </Border>
+</UserControl>

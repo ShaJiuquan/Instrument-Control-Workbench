@@ -1,0 +1,61 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:InstrumentControlWorkbench.App.Controls"
+             xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:views="using:InstrumentControlWorkbench.App.Views"
+             x:Class="InstrumentControlWorkbench.App.Views.PlanWorkspaceView" x:DataType="vm:MainWindowViewModel">
+  <Grid ColumnDefinitions="280,16,*">
+    <Border Classes="panel">
+      <Grid RowDefinitions="Auto,*,Auto">
+        <StackPanel Margin="18,18,18,12" Spacing="6">
+          <TextBlock Text="计划结构" Classes="section"/>
+          <TextBlock Text="{Binding Plans.PlanName}" TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding Plans.PlanSummary}" Classes="caption"/>
+        </StackPanel>
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+          <ItemsControl ItemsSource="{Binding Plans.Outline}" Margin="12,0,12,8">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:PlanOutlineItem">
+                <Border Classes="planStep" Classes.active="{Binding IsActive}" Padding="10,8" Margin="{Binding Indent}">
+                  <StackPanel Spacing="4"><TextBlock Text="{Binding Title}" FontSize="12"/><TextBlock Text="{Binding Detail}" Classes="caption" FontSize="10" TextWrapping="Wrap"/><TextBlock Text="{Binding Id.Value}" FontSize="9" Foreground="#98A0B0"/></StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+        <Border Grid.Row="2" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="16">
+          <StackPanel Spacing="10">
+            <TextBlock Text="{Binding StatusText}" FontSize="12"/>
+            <TextBlock Text="{Binding Plans.CurrentStep}" Classes="caption" TextWrapping="Wrap" MaxHeight="44" TextTrimming="CharacterEllipsis"/>
+            <Grid ColumnDefinitions="*,8,Auto">
+              <controls:OperatorButton Classes="primary" Content="运行计划" Command="{Binding StartPlanCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" AutomationProperties.Name="运行计划"/>
+              <controls:OperatorButton Grid.Column="2" Content="停止" Classes="stop" Command="{Binding AbortRunCommand}"/>
+            </Grid>
+            <views:ExecutionControlsView/>
+            <TextBlock Text="源表结束时关闭输出；磁场保持当前读数。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+          </StackPanel>
+        </Border>
+      </Grid>
+    </Border>
+    <Grid Grid.Column="2" RowDefinitions="*,12,190">
+      <Border Classes="panel" DataContext="{Binding Plans}" x:DataType="vm:PlanWorkspaceViewModel">
+        <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+          <Grid ColumnDefinitions="*,Auto" Margin="16,16,16,10">
+            <StackPanel Spacing="5"><TextBlock Text="计划文档" Classes="section"/><TextBlock Text="JSON 编辑 · 修改后先验证" Classes="caption" FontSize="10"/></StackPanel>
+            <controls:OperatorButton Grid.Column="1" Content="验证计划" Command="{Binding ValidateCommand}" AutomationProperties.Name="验证计划"/>
+          </Grid>
+          <TextBox Grid.Row="1" Text="{Binding DocumentPath, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" Margin="16,0,16,8" Watermark="计划文件的完整路径" AutomationProperties.Name="计划文件路径"/>
+          <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Margin="16,0,16,10">
+            <controls:OperatorButton Content="载入" Command="{Binding LoadCommand}" AutomationProperties.Name="载入计划"/><controls:OperatorButton Content="保存" Command="{Binding SaveCommand}" AutomationProperties.Name="保存计划"/>
+            <TextBlock Text="有未保存修改" IsVisible="{Binding IsDirty}" Classes="caption" VerticalAlignment="Center" FontSize="10"/>
+          </StackPanel>
+          <TextBox Grid.Row="3" Text="{Binding DocumentText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AcceptsReturn="True" AcceptsTab="True" FontFamily="Menlo,Consolas,monospace" FontSize="11" TextWrapping="NoWrap" Margin="16,0,16,10" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" AutomationProperties.Name="计划内容"/>
+          <Border Grid.Row="4" Padding="16,0,16,12"><TextBlock Text="{Binding Message}" Classes="caption" Classes.error="{Binding HasError}" TextWrapping="Wrap" MaxHeight="58" TextTrimming="CharacterEllipsis"/></Border>
+        </Grid>
+      </Border>
+      <views:PlanResultsView Grid.Row="2" DataContext="{Binding Plans}"/>
+    </Grid>
+  </Grid>
+  <UserControl.Styles>
+    <Style Selector="Border.planStep"><Setter Property="CornerRadius" Value="5"/><Setter Property="Margin" Value="0,0,0,6"/></Style>
+    <Style Selector="Border.planStep.active"><Setter Property="Background" Value="{DynamicResource AccentSoft}"/></Style>
+  </UserControl.Styles>
+</UserControl>

@@ -1291,3 +1291,24 @@ remain unestablished. Hardware-descriptor test doubles are not physical adapters
 29 original UI drafts untouched/excluded; no native inspection, lab IO, dependency
 or Rust writes. Independent C# engine/GitHub only/full goal active. See
 k6221-dc-admission.md.
+
+
+## Desktop operator integration (2026-10-12)
+
+Adopt original29 local drafts after byte-exact backup and acceptance repairs.
+Configured composition/shared registry/run/archive; plan validation/editor/trace,
+device status/settings, history/CSV, pause/resume/abort/recovery and awaited close.
+Outline now traverses all supported composite families including timeout children
+and measurement groups; graph editing/paged history wiring remain incomplete.
+Native reproduced Avalonia11.3.8 disabled-Button accessibility exception crossing
+Mac callback. OperatorButton uses standard theme and macOS-only inert disabled
+invoke, preserving enabled errors and other-platform peer behavior; command bodies
+recheck admission.15 new App cases plus18 existing operator-draft cases;80 App
+cases passed. Actual native start/pause/locks/resume/abort/joint15-row scan before
+repair, repaired disabled calls/completed21-row run and final source timeout child/
+fault/one preserved row/output-off verified. Final source native history/active
+close/post-repair screenshot and committed-package parity remain unverified after
+desktop relock; backend unsafe close/recovery tests do not substitute native proof.
+History full load/live memory/graph/physical/full PPMS remain pending. No new
+dependencies or Rust edits; independent engine/GitHub only/full goal active. See
+desktop-operator-surface.md.

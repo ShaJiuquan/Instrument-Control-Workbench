@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:InstrumentControlWorkbench.App.Controls"
+             xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels"
+             x:Class="InstrumentControlWorkbench.App.Views.DeviceOperatorView" x:DataType="vm:DeviceOperatorViewModel">
+  <Grid ColumnDefinitions="230,16,*">
+    <Border Classes="panel" Padding="12">
+      <Grid RowDefinitions="Auto,*">
+        <TextBlock Text="已启用的设备" Classes="section" Margin="4,4,4,12"/>
+        <ListBox Grid.Row="1" ItemsSource="{Binding Devices}" SelectedItem="{Binding Selected}" IsEnabled="{Binding CanSelect}" Background="Transparent">
+          <ListBox.ItemTemplate><DataTemplate x:DataType="vm:DeviceStatusItem">
+            <StackPanel Spacing="5" Margin="4,8">
+              <TextBlock Text="{Binding Name}" TextWrapping="Wrap"/>
+              <TextBlock Text="{Binding Kind}" Classes="caption" TextWrapping="Wrap"/>
+              <TextBlock Text="{Binding Lifecycle}" Classes="caption"/>
+            </StackPanel>
+          </DataTemplate></ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+    </Border>
+    <Border Grid.Column="2" Classes="panel" Padding="20">
+      <Grid RowDefinitions="Auto,Auto,Auto,*">
+        <StackPanel Spacing="6">
+          <TextBlock Text="{Binding Selected.Name}" FontSize="18" TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding Selected.Id}" Classes="mono" TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding Selected.Kind}" Classes="secondary" TextWrapping="Wrap"/>
+        </StackPanel>
+        <WrapPanel Grid.Row="1" Margin="0,18,0,14">
+          <controls:OperatorButton Content="连接" Command="{Binding ConnectCommand}" Margin="0,0,8,4"/>
+          <controls:OperatorButton Content="刷新状态" Command="{Binding RefreshCommand}" Margin="0,0,8,4"/>
+          <controls:OperatorButton Content="断开" Command="{Binding DisconnectCommand}" Margin="0,0,8,4"/>
+        </WrapPanel>
+        <StackPanel Grid.Row="2" Spacing="6" Margin="0,0,0,16">
+          <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Classes.error="{Binding HasError}" Classes="caption"/>
+          <TextBlock Text="{Binding Selected.Safety}" TextWrapping="Wrap" Classes="caption"/>
+          <TextBlock Text="{Binding Selected.Updated}" Classes="caption"/>
+        </StackPanel>
+        <ScrollViewer Grid.Row="3">
+          <ItemsControl ItemsSource="{Binding Parameters}">
+            <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:DeviceParameterItem">
+              <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="0,10">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                  <StackPanel Spacing="4"><TextBlock Text="{Binding Label}" TextWrapping="Wrap"/><TextBlock Text="{Binding Id}" Classes="caption" TextWrapping="Wrap"/></StackPanel>
+                  <StackPanel Grid.Column="1" Spacing="4" HorizontalAlignment="Right"><TextBlock Text="{Binding Value}" Classes="mono"/><TextBlock Text="{Binding Unit}" Classes="caption"/></StackPanel>
+                </Grid>
+              </Border>
+            </DataTemplate></ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>

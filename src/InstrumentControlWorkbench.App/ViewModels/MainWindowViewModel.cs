@@ -6,22 +6,27 @@ using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using InstrumentControlWorkbench.Application.Devices;
+using InstrumentControlWorkbench.Application.Experiments;
 using InstrumentControlWorkbench.Application.Instruments;
 using InstrumentControlWorkbench.Application.Measurements;
 using InstrumentControlWorkbench.Application.Notifications;
+using InstrumentControlWorkbench.Core.Data;
+using InstrumentControlWorkbench.Core.Experiments;
 using InstrumentControlWorkbench.Core.Instruments;
 using InstrumentControlWorkbench.Core.Measurements;
 using InstrumentControlWorkbench.Core.Notifications;
 
 namespace InstrumentControlWorkbench.App.ViewModels;
 
-public enum WorkbenchPage { Measurement, Instruments, Data, Events }
-public enum OperatorRunState { Ready, Starting, Running, Stopping, Completed, Aborted, Faulted }
+public enum WorkbenchPage { Measurement, Instruments, Data, Events, Plans, History }
+public enum OperatorRunState { Ready, Starting, Running, Stopping, Completed, Aborted, Faulted, Pausing, Paused, Recovering }
 
 public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
 {
     private readonly NotificationHub notifications;
-    private readonly InstrumentManager instrumentManager;
+    private readonly InstrumentManager? instrumentManager;
+    private readonly IAsyncDisposable? storage;
     private readonly MeasurementRunService runService;
     private readonly CancellationTokenSource lifetime = new();
     private readonly Task notificationListener;
@@ -29,16 +34,36 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     private bool closing;
     private int plannedPoints = 21;
 
-    public MainWindowViewModel(InstrumentManager instrumentManager, MeasurementRunService runService, NotificationHub notifications)
+    public MainWindowViewModel(InstrumentManager? instrumentManager, MeasurementRunService runService, NotificationHub notifications,
+        ExperimentPlanWorkspace? workspace = null, ExperimentPlan? initialPlan = null, string? planPath = null,
+        RunHistoryService? history = null, string? exportDirectory = null,
+        DeviceRegistry? registry = null, DeviceSettingsViewModel? settings = null, IAsyncDisposable? storage = null)
     {
         this.instrumentManager = instrumentManager;
         this.runService = runService;
         this.notifications = notifications;
-        InstrumentId = instrumentManager.InstrumentId.Value;
-        EventLog.Add("工作台已就绪。当前使用 Keithley 2450 仿真驱动。");
+        InstrumentId = instrumentManager?.InstrumentId.Value ?? "未选择源表";
+        this.storage = storage; Settings = settings;
+        if (registry is not null) Devices = new(registry, () => !closing && !IsBusy && !IsConnecting && !runService.HasActiveRun && Plans is not { IsDocumentBusy: true }, NotifyCommandState);
+        if (instrumentManager is null) page = WorkbenchPage.Plans;
+        if (history is not null && exportDirectory is not null) History = new(history, exportDirectory);
+        if (workspace is not null && initialPlan is not null && planPath is not null)
+            Plans = new(workspace, initialPlan, planPath, () => CanEdit, NotifyCommandState);
+        EventLog.Add(instrumentManager is null ? "工作台已就绪。未选择源表，可使用已绑定的实验计划。" : $"工作台已就绪。主源表：{instrumentManager.Descriptor.DisplayName} · {instrumentManager.Descriptor.DriverKind}。");
         notificationListener = ListenForNotificationsAsync(lifetime.Token);
     }
 
+    public DeviceOperatorViewModel? Devices { get; }
+    public DeviceSettingsViewModel? Settings { get; }
+    public bool HasDevices => Devices is not null;
+    public bool HasSettings => Settings is not null;
+    public bool HasPrimarySource => instrumentManager is not null;
+    public string PrimarySourceName => instrumentManager?.Descriptor.DisplayName ?? "未选择源表";
+    public string PrimarySourceKind => instrumentManager?.Descriptor.DriverKind.ToString() ?? "计划按设备绑定执行";
+    public string RuntimeKind => Devices is null ? "工作台" : $"{Devices.Devices.Count} 台已启用设备";
+    public RunHistoryViewModel? History { get; }
+    public bool HasHistory => History is not null;
+    public bool IsHistoryPage => Page == WorkbenchPage.History;
     public string InstrumentId { get; }
     public ObservableCollection<MeasurementPoint> PlotPoints { get; } = new();
     public ObservableCollection<MeasurementPointRow> RecentPoints { get; } = new();
@@ -72,11 +97,11 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     [ObservableProperty] private int completedPoints;
     [ObservableProperty] private string operationError = "";
 
-    public bool IsMeasurementPage => Page == WorkbenchPage.Measurement;
+    public bool IsMeasurementPage => Page == WorkbenchPage.Measurement && HasPrimarySource;
     public bool IsInstrumentsPage => Page == WorkbenchPage.Instruments;
     public bool IsDataPage => Page == WorkbenchPage.Data;
     public bool IsEventsPage => Page == WorkbenchPage.Events;
-    public bool CanEdit => !IsBusy && !IsConnecting && !runService.HasActiveRun;
+    public bool CanEdit => !closing && !IsBusy && !IsConnecting && !runService.HasActiveRun && Plans is not { IsDocumentBusy: true } && Devices is not { IsBusy: true };
     public bool HasPoints => CompletedPoints > 0;
     public bool HasOperationError => !string.IsNullOrEmpty(OperationError);
     public string PageTitle => Page switch
@@ -84,6 +109,8 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         WorkbenchPage.Measurement => "测量工作台",
         WorkbenchPage.Instruments => "仪器与连接",
         WorkbenchPage.Data => "运行数据",
+        WorkbenchPage.Plans => "实验计划",
+        WorkbenchPage.History => "运行历史",
         _ => "事件记录",
     };
     public string PageDescription => Page switch
@@ -91,14 +118,19 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         WorkbenchPage.Measurement => "配置扫描，观察读数，检查测量结果。",
         WorkbenchPage.Instruments => "查看已接入的设备与最近一次状态回报。",
         WorkbenchPage.Data => "查看当前会话最近一次运行的数据与固定配置。",
+        WorkbenchPage.Plans => "编辑并验证计划，执行多设备扫描，观察步骤与数据。",
+        WorkbenchPage.History => "检查已保存的运行与部分数据，导出带单位和设备快照的结果。",
         _ => "查看连接、采集与停止过程中的事件。",
     };
-    public string ConnectionText => IsConnecting ? "正在连接" : Connected ? "已连接" : "未连接";
-    public string SafetyText => !HasSnapshot ? "输出状态未知" : OutputEnabled ? "输出已启用" : "已回报输出关闭";
+    public string ConnectionText => !HasPrimarySource ? "未选择主源表" : IsConnecting ? "正在连接" : Connected ? "已连接" : "未连接";
+    public string SafetyText => NeedsSafetyRecovery ? "停止状态未确认 · 资源保留" : !HasPrimarySource ? "停止回报见设备页" : !HasSnapshot ? "输出状态未知" : OutputEnabled ? "输出已启用" : "已回报输出关闭";
     public string StatusText => RunState switch
     {
         OperatorRunState.Starting => "准备测量",
         OperatorRunState.Running => "正在采集",
+        OperatorRunState.Pausing => "正在暂停 · 等待停止回报",
+        OperatorRunState.Paused => "已暂停 · 资源保留",
+        OperatorRunState.Recovering => "正在确认设备停止状态",
         OperatorRunState.Stopping => "正在停止 · 等待关断回报",
         OperatorRunState.Completed => "测量完成",
         OperatorRunState.Aborted => "测量已停止",
@@ -121,6 +153,9 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         OnPropertyChanged(nameof(IsInstrumentsPage));
         OnPropertyChanged(nameof(IsDataPage));
         OnPropertyChanged(nameof(IsEventsPage));
+        OnPropertyChanged(nameof(IsPlanPage));
+        OnPropertyChanged(nameof(IsHistoryPage));
+        OnPropertyChanged(nameof(IsIvDataPage)); OnPropertyChanged(nameof(IsPlanDataPage));
         OnPropertyChanged(nameof(PageTitle));
         OnPropertyChanged(nameof(PageDescription));
     }
@@ -128,6 +163,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     {
         OnPropertyChanged(nameof(StatusText));
         AbortRunCommand.NotifyCanExecuteChanged();
+        NotifyPlanCommands();
     }
     partial void OnIsBusyChanged(bool value) => NotifyCommandState();
     partial void OnIsConnectingChanged(bool value)
@@ -173,32 +209,42 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         StartRunCommand.NotifyCanExecuteChanged();
         ConnectCommand.NotifyCanExecuteChanged();
         AbortRunCommand.NotifyCanExecuteChanged();
+        NotifyPlanCommands();
+        Devices?.RefreshCommands();
     }
 
     [RelayCommand] private void OpenMeasurement() => Page = WorkbenchPage.Measurement;
     [RelayCommand] private void OpenInstruments() => Page = WorkbenchPage.Instruments;
     [RelayCommand] private void OpenData() => Page = WorkbenchPage.Data;
     [RelayCommand] private void OpenEvents() => Page = WorkbenchPage.Events;
+    [RelayCommand]
+    private async Task OpenHistoryAsync()
+    {
+        Page = WorkbenchPage.History;
+        if (History is not null && History.RefreshCommand.CanExecute(null)) await History.RefreshCommand.ExecuteAsync(null);
+    }
     [RelayCommand] private void ToggleTable() => ShowTable = !ShowTable;
 
-    private bool CanConnect() => !closing && CanEdit && !Connected;
+    private bool CanConnect() => HasPrimarySource && !closing && CanEdit && !Connected;
     [RelayCommand(CanExecute = nameof(CanConnect))]
     private async Task ConnectAsync()
     {
         IsConnecting = true;
         OperationError = "";
-        try { ApplySnapshot(await instrumentManager.ConnectAsync(lifetime.Token)); }
+        try { ApplySnapshot(await instrumentManager!.ConnectAsync(lifetime.Token)); }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
         catch (Exception ex) { OperationError = $"连接失败：{ex.Message}"; }
         finally { IsConnecting = false; }
     }
 
-    private bool CanStartRun() => !closing && CanEdit && !OutputEnabled && TryGetRecipe(out _, out _);
+    private bool CanStartRun() => HasPrimarySource && !closing && CanEdit && !OutputEnabled && TryGetRecipe(out _, out _);
     [RelayCommand(CanExecute = nameof(CanStartRun))]
     private async Task StartRunAsync()
     {
         if (!CanStartRun() || !TryGetRecipe(out var recipe, out _)) return;
         IsBusy = true;
+        PauseRequested = false;
+        IsPlanRun = false;
         OperationError = "";
         plannedPoints = recipe.Points;
         PlotPoints.Clear();
@@ -211,7 +257,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         LatestVoltage = "—";
         RunSample = string.IsNullOrWhiteSpace(SampleName) ? "未命名样品" : SampleName.Trim();
         RunRecipeSummary = $"{recipe.StartVoltage:0.###} → {recipe.StopVoltage:0.###} V · {recipe.Points} 点 · {recipe.DwellSeconds:0.###} s · 限流 {recipe.ComplianceAmps * 1e6:0.###} µA";
-        try { await runService.StartIvSweepAsync(recipe, lifetime.Token); }
+        try { await runService.StartIvSweepAsync(recipe, lifetime.Token, new RunMetadata(sampleName: RunSample)); }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
         catch (Exception ex)
         {
@@ -221,13 +267,15 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         finally { IsBusy = false; }
     }
 
-    private bool CanAbortRun() => IsBusy && RunState != OperatorRunState.Stopping;
+    private bool CanAbortRun() => IsBusy && RunState != OperatorRunState.Stopping &&
+        runService.Phase is RunExecutionPhase.Starting or RunExecutionPhase.Running or RunExecutionPhase.Paused;
     [RelayCommand(CanExecute = nameof(CanAbortRun))]
     private void AbortRun()
     {
+        if (!CanAbortRun()) { NotifyCommandState(); return; }
         RunState = OperatorRunState.Stopping;
         runService.Abort();
-        AppendEvent($"{DateTimeOffset.Now:HH:mm:ss}  操作员请求停止采集；等待设备关断回报。");
+        AppendEvent($"{DateTimeOffset.Now:HH:mm:ss}  操作员请求停止采集；等待设备停止状态回报。");
     }
 
     private bool TryGetRecipe(out IvSweepRecipe recipe, out string error) => SweepConfiguration.TryCreate(
@@ -246,7 +294,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     {
         switch (notification.Kind)
         {
-            case WorkbenchNotificationKind.InstrumentStateChanged when notification.Snapshot is { } snapshot:
+            case WorkbenchNotificationKind.InstrumentStateChanged when notification.InstrumentId == instrumentManager?.InstrumentId && notification.Snapshot is { } snapshot:
                 ApplySnapshot(snapshot);
                 break;
             case WorkbenchNotificationKind.MeasurementPointReceived when notification.Point is { } point:
@@ -256,16 +304,21 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
                 LatestVoltage = $"{point.SourceValue:0.000}";
                 LatestCurrent = $"{point.MeasuredValue * 1e3:0.0000}";
                 Elapsed = point.Elapsed.ToString(@"mm\:ss\.ff", CultureInfo.InvariantCulture);
-                if (RunState != OperatorRunState.Stopping) RunState = OperatorRunState.Running;
+                if (RunState is not (OperatorRunState.Stopping or OperatorRunState.Pausing or OperatorRunState.Paused)) RunState = OperatorRunState.Running;
                 break;
             case WorkbenchNotificationKind.RunStarted:
                 RunId = notification.RunId ?? "—";
-                if (RunState != OperatorRunState.Stopping) RunState = OperatorRunState.Running;
+                if (RunState is not (OperatorRunState.Stopping or OperatorRunState.Pausing or OperatorRunState.Paused)) RunState = OperatorRunState.Running;
                 break;
             case WorkbenchNotificationKind.RunCompleted: RunState = OperatorRunState.Completed; break;
             case WorkbenchNotificationKind.RunAborted: RunState = OperatorRunState.Aborted; break;
             case WorkbenchNotificationKind.RunFaulted: RunState = OperatorRunState.Faulted; break;
         }
+        Devices?.ApplyFact(notification);
+        if (IsPlanRun) Plans?.ApplyFact(notification);
+        if (notification.Kind == WorkbenchNotificationKind.RunPaused) RunState = OperatorRunState.Paused;
+        if (notification.Kind == WorkbenchNotificationKind.RunResumed) { RunState = OperatorRunState.Running; PauseRequested = false; }
+        NotifyCommandState();
         AppendEvent($"{notification.OccurredAt:HH:mm:ss}  {notification.Message}");
     }
     private void AppendEvent(string message)
@@ -279,10 +332,10 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         Identifier = snapshot.Identifier;
         Lifecycle = snapshot.Lifecycle.ToString();
         Connected = snapshot.Connected;
-        HasSnapshot = true;
+        HasSnapshot = snapshot.Connected || instrumentManager?.Descriptor.DriverKind == InstrumentControlWorkbench.Core.Devices.DriverKind.Simulation;
         OutputEnabled = snapshot.OutputEnabled;
-        ReadbackVoltage = $"{snapshot.Source.Level:0.000} V";
-        ReadbackCompliance = $"{snapshot.Source.Compliance * 1e6:0.###} µA";
+        ReadbackVoltage = HasSnapshot ? $"{snapshot.Source.Level:0.000} {snapshot.Source.LevelUnit}" : "未连接 · 未读取";
+        ReadbackCompliance = !HasSnapshot ? "未连接 · 未读取" : snapshot.Source.Function == SourceFunction.Voltage ? $"{snapshot.Source.Compliance * 1e6:0.###} µA" : $"{snapshot.Source.Compliance:0.###} V";
         LastUpdate = snapshot.LastHeartbeat == DateTimeOffset.MinValue ? "—" : snapshot.LastHeartbeat.ToString("HH:mm:ss.fff");
     }
     public async ValueTask DisposeAsync()
@@ -293,8 +346,31 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         runService.Abort();
         var runTask = StartRunCommand.ExecutionTask;
         var connectTask = ConnectCommand.ExecutionTask;
-        if (runTask is not null) await runTask;
-        if (connectTask is not null) await connectTask;
+        var planTask = StartPlanCommand.ExecutionTask;
+        var recoveryTask = RecoverSafetyCommand.ExecutionTask;
+        try
+        {
+            using var shutdown = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            if (runTask is not null) await runTask.WaitAsync(shutdown.Token);
+            if (connectTask is not null) await connectTask.WaitAsync(shutdown.Token);
+            if (planTask is not null) await planTask.WaitAsync(shutdown.Token);
+            if (recoveryTask is not null) await recoveryTask.WaitAsync(shutdown.Token);
+            await runService.WaitForFinalizationAsync(shutdown.Token);
+            if (NeedsSafetyRecovery) await runService.RecoverSafetyAsync(shutdown.Token, reconnect: true);
+            if (Devices is not null) await Devices.DisconnectForCloseAsync(shutdown.Token);
+        }
+        catch (Exception ex)
+        {
+            closing = false;
+            OperationError = $"关闭未完成，设备停止状态尚未确认：{ex.Message}";
+            NotifyCommandState();
+            throw;
+        }
+        if (Plans is not null) await Plans.DisposeAsync();
+        if (History is not null) await History.DisposeAsync();
+        if (Settings is not null) await Settings.DisposeAsync();
+        if (Devices is not null) await Devices.DisposeAsync();
+        if (storage is not null) await storage.DisposeAsync();
         disposed = true;
         lifetime.Cancel();
         await notificationListener;

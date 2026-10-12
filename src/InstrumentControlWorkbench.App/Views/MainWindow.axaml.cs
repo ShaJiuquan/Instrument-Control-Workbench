@@ -16,7 +16,8 @@ public partial class MainWindow : Window
         base.OnClosing(e);
         if (cleanupStarted) return;
         cleanupStarted = true;
-        if (DataContext is MainWindowViewModel viewModel) await viewModel.DisposeAsync();
+        try { if (DataContext is MainWindowViewModel viewModel) await viewModel.DisposeAsync(); }
+        catch { cleanupStarted = false; return; } // ViewModel reports the retained unsafe state; keep the window open.
         cleanupComplete = true;
         Close();
     }

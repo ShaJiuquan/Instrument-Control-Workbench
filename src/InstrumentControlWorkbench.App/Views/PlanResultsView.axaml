@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels"
+             x:Class="InstrumentControlWorkbench.App.Views.PlanResultsView" x:DataType="vm:PlanWorkspaceViewModel">
+  <Border Classes="panel">
+    <Grid RowDefinitions="Auto,*">
+      <Grid ColumnDefinitions="*,Auto" Margin="16,14,16,10">
+        <StackPanel Spacing="4"><TextBlock Text="{Binding LastRunName}" Classes="section" TextTrimming="CharacterEllipsis"/><TextBlock Text="{Binding LastRunId}" Classes="caption" FontSize="9"/></StackPanel>
+        <TextBlock Grid.Column="1" Text="{Binding RowCount}" Classes="caption" VerticalAlignment="Top"/>
+      </Grid>
+      <ListBox Grid.Row="1" ItemsSource="{Binding Rows}" Margin="10,0,10,10" Background="Transparent" BorderThickness="0">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:PlanRowItem">
+            <Grid ColumnDefinitions="30,88,*" Margin="0,4">
+              <TextBlock Text="{Binding Index}" Classes="caption" FontSize="10"/>
+              <TextBlock Grid.Column="1" Text="{Binding Time}" Classes="caption" FontSize="10"/>
+              <TextBlock Grid.Column="2" Text="{Binding Values}" FontSize="10" TextWrapping="Wrap"/>
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Grid>
+  </Border>
+</UserControl>

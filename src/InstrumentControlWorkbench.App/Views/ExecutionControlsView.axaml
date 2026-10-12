@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:InstrumentControlWorkbench.App.Controls"
+             xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels"
+             x:Class="InstrumentControlWorkbench.App.Views.ExecutionControlsView" x:DataType="vm:MainWindowViewModel">
+  <StackPanel Spacing="8">
+    <Grid ColumnDefinitions="*,8,*">
+      <controls:OperatorButton Command="{Binding PauseRunCommand}" Content="暂停" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" AutomationProperties.Name="暂停运行"/>
+      <controls:OperatorButton Grid.Column="2" Command="{Binding ResumeRunCommand}" Content="继续" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" AutomationProperties.Name="继续运行"/>
+    </Grid>
+    <controls:OperatorButton Command="{Binding RecoverSafetyCommand}" Content="重连并确认停止状态" IsVisible="{Binding NeedsSafetyRecovery}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" AutomationProperties.Name="安全恢复"/>
+  </StackPanel>
+</UserControl>
