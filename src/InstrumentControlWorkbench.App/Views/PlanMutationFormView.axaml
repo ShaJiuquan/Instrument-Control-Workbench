@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels"
+ x:Class="InstrumentControlWorkbench.App.Views.PlanMutationFormView" x:DataType="vm:PlanMutationFormViewModel">
+ <StackPanel Spacing="6">
+  <TextBlock Text="目标变量 ID" Classes="caption"/><TextBox Text="{Binding Variable, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="运算变量"/>
+  <TextBlock Text="操作 / Set、Add、Subtract、Multiply" Classes="caption" FontSize="10"/>
+  <ComboBox ItemsSource="{Binding Actions}" SelectedItem="{Binding Action, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="变量运算操作"/>
+  <TextBlock Text="{Binding UnitLabel}" Classes="caption"/><TextBox Text="{Binding NumberText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="变量运算数值"/>
+  <ComboBox ItemsSource="{Binding Units}" SelectedItem="{Binding Unit, Mode=TwoWay}" IsVisible="{Binding CanChooseUnit}" HorizontalAlignment="Stretch" AutomationProperties.Name="变量运算单位"/>
+  <TextBlock Text="缺失数值变量按 0 初始化；加减／赋值单位须一致，乘数为无量纲。应用时完整验证。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+ </StackPanel>
+</UserControl>

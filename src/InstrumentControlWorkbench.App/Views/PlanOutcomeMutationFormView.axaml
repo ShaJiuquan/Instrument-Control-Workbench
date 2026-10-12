@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:views="using:InstrumentControlWorkbench.App.Views"
+ x:Class="InstrumentControlWorkbench.App.Views.PlanOutcomeMutationFormView" x:DataType="vm:PlanOutcomeMutationFormViewModel">
+ <StackPanel Spacing="8">
+  <TextBlock Text="内部步骤通过流程图编辑；这里只修改执行结果后的变量回调。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+  <CheckBox Content="成功后执行变量运算" IsChecked="{Binding UseSuccess, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" AutomationProperties.Name="启用成功回调"/>
+  <Grid IsVisible="{Binding UseSuccess}"><views:PlanMutationFormView DataContext="{Binding Success}"/></Grid>
+  <CheckBox Content="流程失败后执行变量运算" IsChecked="{Binding UseFailure, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" AutomationProperties.Name="启用失败回调"/>
+  <Grid IsVisible="{Binding UseFailure}"><views:PlanMutationFormView DataContext="{Binding Failure}"/></Grid>
+  <TextBlock Text="失败回调仅适用于流程返回 Failure；设备、超时、取消和清理错误不会被回调覆盖。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+ </StackPanel>
+</UserControl>

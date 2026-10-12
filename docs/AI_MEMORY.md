@@ -1470,3 +1470,19 @@ target caption replaced, prior variable fallback test updated. Native pending:
 current tool inventory has no cua control; no user windows/new process touched.
 No deps/Rust/lab IO; independent engine/GitHub only/full goal active. See
  typed-value-node-forms.md.
+
+## Variable operations and outcome forms (2026-10-13)
+
+Readonly Rust conditions.rs confirms set/add/sub/mul, zero initialization and
+ordinary outcome callbacks; no generic experiment evaluator found. C# existing
+MutateValueStep/OutcomeMutationStep now have named forms/two palette kinds. Typed
+units, finite parsing, operation changes clear numeric input; Multiply dimensionless.
+Optional callbacks preserve body/existing IDs; new slots unique IDs and blank
+physical authoring, readonly by admission/inclusion. Full compiler and original
+exception/finalization semantics unchanged: workflow Failure runs failure callback
+but still fails, arithmetic/hardware/deadline/abort/safety errors never invoke it.
+22 App cases/App258pass, saved/fresh increment2 loop two rows/count4/output-off;
+ordinary Failure count5 with original PlanFailedException; overflow count0/no callback/
+original ArgumentOutOfRangeException/output-off/released run. No dependency/Core/
+interpreter/Rust/physical changes. Native unavailable (no cua control), unverified;
+independent engine/GitHub only/full goal active. See mutation-callback-node-forms.md.

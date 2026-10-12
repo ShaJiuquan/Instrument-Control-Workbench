@@ -55,6 +55,8 @@ public partial class PlanStepFormViewModel : ObservableObject
                 foreach (var channel in s.Channels) Channels.Add(new(devices, template ? null : channel, MarkDirty)); break;
             case SourceOutputStep s: outputEnabled = s.Enabled; break;
         }
+        if (step is MutateValueStep mutation) MutationForm = new(mutation, MarkDirty, template);
+        if (step is OutcomeMutationStep callback) OutcomeForm = new(callback, MarkDirty);
         if (HasValue)
         {
             var value = step switch { SetParameterStep set => set.Value, WaitStableStep wait => wait.Target, AssignValueStep assign => assign.Value, _ => throw new InvalidOperationException("Missing value model.") };
@@ -85,6 +87,10 @@ public partial class PlanStepFormViewModel : ObservableObject
     public bool HasValue => IsSet || IsWaitStable || IsAssign;
     public PlanValueFormViewModel? ValueForm { get; }
     public bool HasCondition => original is ConditionStep or IfElseStep or WhileStep;
+    public bool HasMutation => MutationForm is not null;
+    public PlanMutationFormViewModel? MutationForm { get; }
+    public bool HasOutcome => OutcomeForm is not null;
+    public PlanOutcomeMutationFormViewModel? OutcomeForm { get; }
     public PlanConditionFormViewModel? ConditionForm { get; }
     public bool IsScan => original is ScanStep;
     public bool IsRead => original is ReadStep;
@@ -98,7 +104,7 @@ public partial class PlanStepFormViewModel : ObservableObject
     public PlanAcquisitionFormViewModel? Acquisition { get; }
     public bool HasEnvironment => IsRead || HasAcquisition;
     public PlanEnvironmentFormViewModel? Environment { get; }
-    public bool IsSupported => HasSeconds || IsRepeat || HasAddress || IsRead || IsOutput || HasAcquisition || IsAssign || HasCondition;
+    public bool IsSupported => HasSeconds || IsRepeat || HasAddress || IsRead || IsOutput || HasAcquisition || IsAssign || HasCondition || HasMutation || HasOutcome;
     public PlanParameterSelectionViewModel Address { get; }
     public ObservableCollection<PlanReadChannelFormViewModel> Channels { get; } = new();
     [ObservableProperty] private string seconds = "";
@@ -125,7 +131,7 @@ public partial class PlanStepFormViewModel : ObservableObject
     partial void OnPollSecondsChanged(string value) => MarkDirty();
     partial void OnIsReadOnlyChanged(bool value)
     {
-        Address.IsReadOnly = value; if (ValueForm is { } expression) expression.IsReadOnly = value; if (ConditionForm is { } condition) condition.IsReadOnly = value; if (Environment is { } environment) environment.IsReadOnly = value; if (Acquisition is { } acquisition) acquisition.IsReadOnly = value; foreach (var channel in Channels) channel.IsReadOnly = value;
+        Address.IsReadOnly = value; if (MutationForm is { } mutation) mutation.IsReadOnly = value; if (OutcomeForm is { } outcome) outcome.IsReadOnly = value; if (ValueForm is { } expression) expression.IsReadOnly = value; if (ConditionForm is { } condition) condition.IsReadOnly = value; if (Environment is { } environment) environment.IsReadOnly = value; if (Acquisition is { } acquisition) acquisition.IsReadOnly = value; foreach (var channel in Channels) channel.IsReadOnly = value;
         AddChannelCommand.NotifyCanExecuteChanged(); RemoveChannelCommand.NotifyCanExecuteChanged();
     }
     private void AddressChanged()
@@ -153,6 +159,8 @@ public partial class PlanStepFormViewModel : ObservableObject
     public ExperimentStep Build()
     {
         if (Acquisition is { } acquisition) return acquisition.Build();
+        if (MutationForm is { } mutation) return mutation.Build();
+        if (OutcomeForm is { } outcome) return outcome.Build();
         return original switch
         {
             DelayStep s => new DelayStep(s.Id, Duration(Seconds)),
