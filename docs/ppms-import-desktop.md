@@ -78,3 +78,8 @@ built without asserting a successful window. Dropdown/layout/import/cancel/
 restore/run/close interaction and committed-package parity still require native
 inspection after desktop access returns. No physical lab IO or Rust edits, no
 new dependency. Independent C# engine/GitHub only/full goal remains active.
+
+After desktop access returned, native controller-only import/execution/restoration
+completed24 rows, and three profile files loaded with explicit unbound routing.
+See [node-editor-native-acceptance.md](node-editor-native-acceptance.md); this does
+not establish the complete native matrix/source/meter/dropdown workflow.

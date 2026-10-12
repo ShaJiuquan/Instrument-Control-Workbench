@@ -19,10 +19,14 @@ public partial class PlanWorkspaceViewModel
     [ObservableProperty] private string paletteKind = "等待";
     [ObservableProperty] private PlanStepFormViewModel? nodeForm;
     [ObservableProperty] private PlanStepFormViewModel? paletteForm;
+    [ObservableProperty] private bool showAdvancedNode;
     public ObservableCollection<PlanGraphNodeViewModel> GraphNodes { get; } = new();
     public string[] PaletteKinds { get; } = ["等待", "顺序", "重复", "超时保护", "重试", "读取仪器", "设置参数", "参数扫描", "源输出"];
     public bool SupportsNodeForm => NodeForm?.IsSupported == true;
     public bool HasPaletteForm => PaletteForm is not null;
+    public bool IsNodeFormVisible => SupportsNodeForm && !ShowAdvancedNode;
+    public bool IsNodeJsonVisible => !SupportsNodeForm || ShowAdvancedNode;
+    public string NodeEditorToggleText => ShowAdvancedNode ? "参数表单" : "高级 JSON";
     public bool SupportsGraph => workspace.SupportsStructureEditing;
     public double GraphWidth => GraphNodes.Count == 0 ? 340 : GraphNodes.Max(n => n.X) + 240;
     public double GraphHeight => Math.Max(220, GraphNodes.Count * 86 + 24);
@@ -48,7 +52,15 @@ public partial class PlanWorkspaceViewModel
         RefreshCommands(); changed();
     }
     partial void OnNodeFragmentDirtyChanged(bool value) { RefreshCommands(); changed(); }
-    partial void OnNodeFormChanged(PlanStepFormViewModel? value) => OnPropertyChanged(nameof(SupportsNodeForm));
+    partial void OnNodeFormChanged(PlanStepFormViewModel? value) { OnPropertyChanged(nameof(SupportsNodeForm)); NotifyEditorMode(); }
+    partial void OnShowAdvancedNodeChanged(bool value) => NotifyEditorMode();
+    private void NotifyEditorMode()
+    {
+        OnPropertyChanged(nameof(IsNodeFormVisible)); OnPropertyChanged(nameof(IsNodeJsonVisible)); OnPropertyChanged(nameof(NodeEditorToggleText)); ToggleNodeEditorCommand.NotifyCanExecuteChanged();
+    }
+    private bool CanToggleNodeEditor() => !disposed && !IsDocumentBusy && SupportsNodeForm;
+    [RelayCommand(CanExecute = nameof(CanToggleNodeEditor))]
+    private void ToggleNodeEditor() { if (CanToggleNodeEditor()) ShowAdvancedNode = !ShowAdvancedNode; }
     partial void OnPaletteFormChanged(PlanStepFormViewModel? value) => OnPropertyChanged(nameof(HasPaletteForm));
     partial void OnPaletteKindChanged(string value) { ResetPaletteForm(); RefreshGraphCommands(); }
     private void FormChanged()
@@ -63,6 +75,7 @@ public partial class PlanWorkspaceViewModel
         ApplyNodeCommand.NotifyCanExecuteChanged(); DiscardNodeCommand.NotifyCanExecuteChanged(); AppendNodeCommand.NotifyCanExecuteChanged();
         RemoveNodeCommand.NotifyCanExecuteChanged(); MoveEarlierCommand.NotifyCanExecuteChanged(); MoveLaterCommand.NotifyCanExecuteChanged();
         foreach (var node in GraphNodes) node.SelectCommand.NotifyCanExecuteChanged();
+        ToggleNodeEditorCommand.NotifyCanExecuteChanged();
         if (NodeForm is { } form) form.IsReadOnly = !CanEditNode || jsonFragmentEdited;
         if (PaletteForm is { } palette) palette.IsReadOnly = !CanAppendNode();
     }
@@ -100,7 +113,7 @@ public partial class PlanWorkspaceViewModel
         try
         {
             NodeFragment = SelectedNode is null || validated is null ? "" : workspace.ReadFragment(validated.Plan, SelectedNode.Id);
-            jsonFragmentEdited = false; NodeForm = null;
+            jsonFragmentEdited = false; NodeForm = null; ShowAdvancedNode = false;
             if (SelectedNode is not null && validated is not null)
             {
                 PlanStepFormViewModel? form = null;

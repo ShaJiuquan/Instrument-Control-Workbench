@@ -60,3 +60,9 @@ package parity checks; more device-specific settings/preparation, routing,
 resistance/analysis and environment forms; expression authoring, richer scan
 generation, drag/reparent and virtualization; physical and full PPMS acceptance.
 No new dependency. Independent C# execution/GitHub only/full goal stays active.
+
+Native follow-up on the published44eb8bb package and corrected editor now confirms
+the common rejection/discard/channel/import path and improved form/JSON space.
+The earlier lock/startup failure remains historical evidence. See
+[node-editor-native-acceptance.md](node-editor-native-acceptance.md) for the exact
+checked subset and still-pending configured native scenarios/package parity.

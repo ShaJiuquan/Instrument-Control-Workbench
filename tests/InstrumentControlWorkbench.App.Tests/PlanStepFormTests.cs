@@ -15,6 +15,34 @@ namespace InstrumentControlWorkbench.App.Tests;
 
 public sealed class PlanStepFormTests
 {
+    [Fact]
+    public async Task EditorModeSwitchPreservesTheDraftAndProtectsFormAndJsonMutations()
+    {
+        var (shell, _) = Create(); await using var owner = shell; var vm = shell.Plans!;
+        vm.GraphNodes.Single(n => n.Id.Value == "delay").SelectCommand.Execute(null); var before = vm.DocumentText;
+        Assert.True(vm.IsNodeFormVisible); vm.ToggleNodeEditorCommand.Execute(null); Assert.True(vm.IsNodeJsonVisible); Assert.False(vm.NodeFragmentDirty); Assert.Equal(before, vm.DocumentText);
+        vm.ToggleNodeEditorCommand.Execute(null); vm.NodeForm!.Seconds = "2"; vm.ToggleNodeEditorCommand.Execute(null);
+        Assert.True(vm.IsNodeJsonVisible); Assert.True(vm.IsNodeReadOnly); Assert.False(shell.StartPlanCommand.CanExecute(null)); vm.DiscardNodeCommand.Execute(null);
+        Assert.True(vm.IsNodeFormVisible); Assert.False(vm.NodeFragmentDirty);
+        shell.IsBusy = true; vm.RefreshCommands(); vm.ToggleNodeEditorCommand.Execute(null); Assert.True(vm.IsNodeJsonVisible); Assert.True(vm.IsNodeReadOnly);
+        vm.IsDocumentBusy = true; var mode = vm.ShowAdvancedNode; vm.ToggleNodeEditorCommand.Execute(null); Assert.Equal(mode, vm.ShowAdvancedNode);
+        vm.IsDocumentBusy = false; shell.IsBusy = false;
+    }
+    [Fact]
+    public async Task UnsupportedNodeKeepsJsonAndCannotExposeAnEmptyForm()
+    {
+        var (shell, _) = Create(); await using var owner = shell; var vm = shell.Plans!;
+        Assert.False(vm.SupportsNodeForm); Assert.True(vm.IsNodeJsonVisible); Assert.False(vm.ToggleNodeEditorCommand.CanExecute(null));
+        vm.ToggleNodeEditorCommand.Execute(null); Assert.False(vm.ShowAdvancedNode);
+    }
+    [Fact]
+    public void ShortDecimalAndScientificScanTextRoundTripsEveryOriginalBinaryValue()
+    {
+        double[] values = [.05, .1, 1e-200, double.Epsilon, .9999999999999999];
+        var original = new ScanStep(new("precise"), new(new("source"), new("volts")), new("axis"), new(values.Select(v => new Quantity(v, PhysicalUnit.Volt))), TimeSpan.Zero, new SequenceStep(new("body"), []));
+        var form = new PlanStepFormViewModel(original, Catalog(), () => { }); var built = (ScanStep)form.Build();
+        Assert.Equal(values.Select(BitConverter.DoubleToInt64Bits), built.Values.Values.Select(v => BitConverter.DoubleToInt64Bits(v.Value)));
+    }
     [Theory]
     [InlineData("-1")]
     [InlineData("NaN")]

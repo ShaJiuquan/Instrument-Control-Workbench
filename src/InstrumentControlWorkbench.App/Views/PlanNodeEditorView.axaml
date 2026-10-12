@@ -1,13 +1,13 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:controls="using:InstrumentControlWorkbench.App.Controls" xmlns:views="using:InstrumentControlWorkbench.App.Views"
              x:Class="InstrumentControlWorkbench.App.Views.PlanNodeEditorView" x:DataType="vm:PlanWorkspaceViewModel">
-  <Grid RowDefinitions="Auto,*,Auto,Auto" Margin="8">
-    <TextBlock Text="{Binding SelectedNodeTitle}" Classes="caption" TextTrimming="CharacterEllipsis" Margin="0,0,0,8"/>
-    <Grid Grid.Row="1" IsVisible="{Binding SupportsNodeForm}"><views:PlanStepFormView DataContext="{Binding NodeForm}"/></Grid>
-    <TextBox Grid.Row="1" IsVisible="{Binding !SupportsNodeForm}" Text="{Binding NodeFragment, Mode=TwoWay}" IsReadOnly="{Binding IsNodeReadOnly}" AcceptsReturn="True" AcceptsTab="True" FontFamily="Menlo,Consolas,monospace" FontSize="11" TextWrapping="NoWrap" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" AutomationProperties.Name="所选节点参数"/>
-    <Expander Grid.Row="2" Header="高级 JSON" IsVisible="{Binding SupportsNodeForm}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" FontSize="11">
-      <TextBox Text="{Binding NodeFragment, Mode=TwoWay}" IsReadOnly="{Binding IsNodeReadOnly}" Height="150" AcceptsReturn="True" AcceptsTab="True" FontFamily="Menlo,Consolas,monospace" FontSize="11" TextWrapping="NoWrap" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" AutomationProperties.Name="所选节点高级 JSON"/>
-    </Expander>
-    <WrapPanel Grid.Row="3" Margin="0,8,0,0"><controls:OperatorButton Content="应用并验证" Command="{Binding ApplyNodeCommand}" Margin="0,0,8,0" AutomationProperties.Name="应用流程节点"/><controls:OperatorButton Content="撤销节点修改" Command="{Binding DiscardNodeCommand}" AutomationProperties.Name="撤销流程节点"/></WrapPanel>
+  <Grid RowDefinitions="Auto,*,Auto" Margin="8">
+    <Grid ColumnDefinitions="*,8,Auto" Margin="0,0,0,8">
+      <TextBlock Text="{Binding SelectedNodeTitle}" Classes="caption" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+      <controls:OperatorButton Grid.Column="2" Content="{Binding NodeEditorToggleText}" Command="{Binding ToggleNodeEditorCommand}" IsVisible="{Binding SupportsNodeForm}" AutomationProperties.Name="切换节点编辑方式"/>
+    </Grid>
+    <Grid Grid.Row="1" IsVisible="{Binding IsNodeFormVisible}"><views:PlanStepFormView DataContext="{Binding NodeForm}"/></Grid>
+    <TextBox Grid.Row="1" IsVisible="{Binding IsNodeJsonVisible}" Text="{Binding NodeFragment, Mode=TwoWay}" IsReadOnly="{Binding IsNodeReadOnly}" AcceptsReturn="True" AcceptsTab="True" FontFamily="Menlo,Consolas,monospace" FontSize="11" TextWrapping="NoWrap" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" AutomationProperties.Name="所选节点参数"/>
+    <WrapPanel Grid.Row="2" Margin="0,8,0,0"><controls:OperatorButton Content="应用并验证" Command="{Binding ApplyNodeCommand}" Margin="0,0,8,0" AutomationProperties.Name="应用流程节点"/><controls:OperatorButton Content="撤销节点修改" Command="{Binding DiscardNodeCommand}" AutomationProperties.Name="撤销流程节点"/></WrapPanel>
   </Grid>
 </UserControl>

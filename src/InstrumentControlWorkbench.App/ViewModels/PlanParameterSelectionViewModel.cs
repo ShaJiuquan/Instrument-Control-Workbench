@@ -40,7 +40,7 @@ public partial class PlanParameterSelectionViewModel : ObservableObject
     [ObservableProperty] private IReadOnlyList<PlanParameterChoice> parameters = Array.Empty<PlanParameterChoice>();
     [ObservableProperty] private bool isReadOnly;
     public string Constraint => ActualParameter() is { } p ? $"{p.Unit} · {p.Access} · 声明范围 {Bound(p.Minimum)} … {Bound(p.Maximum)}" : "请选择设备和参数；单位由设备描述确定。";
-    private static string Bound(Quantity? quantity) => quantity is { } q ? q.Value.ToString("G17", CultureInfo.InvariantCulture) : "未声明";
+    private static string Bound(Quantity? quantity) => quantity is { } q ? q.Value.ToString("R", CultureInfo.InvariantCulture) : "未声明";
     partial void OnSelectedDeviceChanged(PlanDeviceChoice? value)
     {
         // Resolve from our immutable catalog, not from a caller-supplied descriptor.

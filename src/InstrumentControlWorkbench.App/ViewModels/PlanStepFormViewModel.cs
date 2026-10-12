@@ -161,5 +161,5 @@ public partial class PlanStepFormViewModel : ObservableObject
         if (seconds < 0 || seconds > (uint.MaxValue - 1) / 1000.0) throw new FormatException("时间必须非负且在计时器范围内。");
         return TimeSpan.FromSeconds(seconds);
     }
-    private static string Number(double value) => value.ToString("G17", CultureInfo.InvariantCulture);
+    private static string Number(double value) => value.ToString("R", CultureInfo.InvariantCulture);
 }

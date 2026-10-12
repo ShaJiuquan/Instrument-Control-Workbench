@@ -37,9 +37,16 @@ public partial class PlanWorkspaceViewModel
     [ObservableProperty] private string profileSummary = "尚未载入路由档案";
     [ObservableProperty] private PlanDeviceChoice? importMatrix;
     [ObservableProperty] private PpmsWiringImportViewModel? channelWiring;
-    public string ImportPreparationSummary => validated is null ? "需先验证当前计划。" :
-        "使用当前计划的源准备：" + string.Join("；", validated.Plan.Preparations.Select(p => $"{p.Device} · {p.Function} · {p.Level.Value.ToString("G6", CultureInfo.InvariantCulture)} {p.Level.Unit} · 限值 {p.Compliance.Value.ToString("G6", CultureInfo.InvariantCulture)} {p.Compliance.Unit}")
-            .Concat(validated.Plan.CurrentSourcePreparations.Select(p => $"{p.Device} · {p.Settings.Current.Value.ToString("G6", CultureInfo.InvariantCulture)} {p.Settings.Current.Unit} · 限值 {p.Settings.Compliance.Value.ToString("G6", CultureInfo.InvariantCulture)} {p.Settings.Compliance.Unit} · 纯电流源"))) + $"；执行预算 {validated.Plan.MaximumStepExecutions}";
+    public string ImportPreparationSummary
+    {
+        get
+        {
+            if (validated is null) return "需先验证当前计划。";
+            var entries = validated.Plan.Preparations.Select(p => $"{p.Device} · {p.Function} · {p.Level.Value.ToString("G6", CultureInfo.InvariantCulture)} {p.Level.Unit} · 限值 {p.Compliance.Value.ToString("G6", CultureInfo.InvariantCulture)} {p.Compliance.Unit}")
+                .Concat(validated.Plan.CurrentSourcePreparations.Select(p => $"{p.Device} · {p.Settings.Current.Value.ToString("G6", CultureInfo.InvariantCulture)} {p.Settings.Current.Unit} · 限值 {p.Settings.Compliance.Value.ToString("G6", CultureInfo.InvariantCulture)} {p.Settings.Compliance.Unit} · 纯电流源")).ToArray();
+            return "使用当前计划的源准备：" + (entries.Length == 0 ? "无源准备" : string.Join("；", entries)) + $"；执行预算 {validated.Plan.MaximumStepExecutions}";
+        }
+    }
     partial void OnPpmsPathChanged(string value) => ImportOptionsChanged();
     partial void OnUseRoutingProfilesChanged(bool value) => ImportOptionsChanged();
     partial void OnRouteSettleSecondsChanged(string value) => ImportOptionsChanged();
@@ -98,7 +105,7 @@ public partial class PlanWorkspaceViewModel
                 if (DocumentText != previousText || NodeFragmentDirty || importOptionsVersion != version)
                 { Message = "导入期间草稿或绑定已变化，结果未替换当前计划。"; return; }
                 Apply(imported); importBackup = previous; importBackupDirty = previousDirty; IsDirty = true;
-                Message = "PPMS 计划已导入并通过完整验证；尚未执行或保存，可恢复导入前计划。";
+                Message = "PPMS 计划已导入并通过完整验证；可保存、运行或恢复导入前计划。";
             }
             catch (OperationCanceledException) when (operation.IsCancellationRequested) { Message = "导入已取消，当前计划保留。"; }
             finally { ppmsOperation = null; IsDocumentBusy = false; RefreshImportCommands(); }

@@ -1384,3 +1384,18 @@ execution/output-off and pure K6221/K2182 two-row run verified. No dependencies/
 Rust/lab IO. Native still pending: desktop locked, old69858/88403 UEs remain
 nonterminal, no new launch on observation timeout. Full preparations UI/native/
 full PPMS goal active; independent engine/GitHub only. See ppms-import-desktop.md.
+
+## Node editor native follow-up (2026-10-12)
+
+Desktop access restored; exact44eb8bb Simulation package native1060 rejection/
+discard/read-channel removal+last protection, controller PPMS import24 rows/
+restore, three-file profile load/unbound matrix gating and idle exit0 observed.
+G17 tails fixed via shortest round-trip text; header form/full-area JSON switch
+preserves one draft, readonly locks and fallback. Import success no longer claims
+not-executed after a run; empty preparation summary explicit. Corrected working
+native timing0.05/space/target/full-area JSON observed; user moved to instruments,
+automation yields their page and process remains live, no exit/restart claim.
+Three new App cases;141 App pass. Exact committed-package parity/configured native
+workflow/palette/cancel/active close/source prep forms/full PPMS remain pending.
+No dependencies/driver/Core/Rust/physical IO; independent engine/GitHub only/goal
+active. See node-editor-native-acceptance.md.
