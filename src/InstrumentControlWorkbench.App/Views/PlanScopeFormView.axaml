@@ -1,0 +1,10 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:views="using:InstrumentControlWorkbench.App.Views"
+ x:Class="InstrumentControlWorkbench.App.Views.PlanScopeFormView" x:DataType="vm:PlanScopeFormViewModel">
+ <StackPanel Spacing="10">
+  <TextBlock Text="内部步骤在流程图中添加、排序和编辑。只导出选定变量；局部修改不会直接覆盖父作用域。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+  <views:PlanVariableMapFormView DataContext="{Binding Inputs}"/>
+  <views:PlanVariableMapFormView DataContext="{Binding Outputs}"/>
+  <TextBlock Text="输入同时读取父快照；成功后才发布全部输出。失败或取消不会泄露局部变量。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+ </StackPanel>
+</UserControl>

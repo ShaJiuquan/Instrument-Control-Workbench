@@ -55,6 +55,8 @@ public partial class PlanStepFormViewModel : ObservableObject
                 foreach (var channel in s.Channels) Channels.Add(new(devices, template ? null : channel, MarkDirty)); break;
             case SourceOutputStep s: outputEnabled = s.Enabled; break;
         }
+        if (step is SubtreeStep subtree) ScopeForm = new(subtree, MarkDirty);
+        if (step is ForEachStep iterator) IterationForm = new(iterator, MarkDirty, template);
         if (step is MutateValueStep mutation) MutationForm = new(mutation, MarkDirty, template);
         if (step is OutcomeMutationStep callback) OutcomeForm = new(callback, MarkDirty);
         if (HasValue)
@@ -89,6 +91,10 @@ public partial class PlanStepFormViewModel : ObservableObject
     public bool HasCondition => original is ConditionStep or IfElseStep or WhileStep;
     public bool HasMutation => MutationForm is not null;
     public PlanMutationFormViewModel? MutationForm { get; }
+    public bool HasScope => ScopeForm is not null;
+    public PlanScopeFormViewModel? ScopeForm { get; }
+    public bool HasIteration => IterationForm is not null;
+    public PlanIterationFormViewModel? IterationForm { get; }
     public bool HasOutcome => OutcomeForm is not null;
     public PlanOutcomeMutationFormViewModel? OutcomeForm { get; }
     public PlanConditionFormViewModel? ConditionForm { get; }
@@ -104,7 +110,7 @@ public partial class PlanStepFormViewModel : ObservableObject
     public PlanAcquisitionFormViewModel? Acquisition { get; }
     public bool HasEnvironment => IsRead || HasAcquisition;
     public PlanEnvironmentFormViewModel? Environment { get; }
-    public bool IsSupported => HasSeconds || IsRepeat || HasAddress || IsRead || IsOutput || HasAcquisition || IsAssign || HasCondition || HasMutation || HasOutcome;
+    public bool IsSupported => HasSeconds || IsRepeat || HasAddress || IsRead || IsOutput || HasAcquisition || IsAssign || HasCondition || HasMutation || HasOutcome || HasScope || HasIteration;
     public PlanParameterSelectionViewModel Address { get; }
     public ObservableCollection<PlanReadChannelFormViewModel> Channels { get; } = new();
     [ObservableProperty] private string seconds = "";
@@ -131,7 +137,7 @@ public partial class PlanStepFormViewModel : ObservableObject
     partial void OnPollSecondsChanged(string value) => MarkDirty();
     partial void OnIsReadOnlyChanged(bool value)
     {
-        Address.IsReadOnly = value; if (MutationForm is { } mutation) mutation.IsReadOnly = value; if (OutcomeForm is { } outcome) outcome.IsReadOnly = value; if (ValueForm is { } expression) expression.IsReadOnly = value; if (ConditionForm is { } condition) condition.IsReadOnly = value; if (Environment is { } environment) environment.IsReadOnly = value; if (Acquisition is { } acquisition) acquisition.IsReadOnly = value; foreach (var channel in Channels) channel.IsReadOnly = value;
+        Address.IsReadOnly = value; if (ScopeForm is { } scope) scope.IsReadOnly = value; if (IterationForm is { } iteration) iteration.IsReadOnly = value; if (MutationForm is { } mutation) mutation.IsReadOnly = value; if (OutcomeForm is { } outcome) outcome.IsReadOnly = value; if (ValueForm is { } expression) expression.IsReadOnly = value; if (ConditionForm is { } condition) condition.IsReadOnly = value; if (Environment is { } environment) environment.IsReadOnly = value; if (Acquisition is { } acquisition) acquisition.IsReadOnly = value; foreach (var channel in Channels) channel.IsReadOnly = value;
         AddChannelCommand.NotifyCanExecuteChanged(); RemoveChannelCommand.NotifyCanExecuteChanged();
     }
     private void AddressChanged()
@@ -159,6 +165,8 @@ public partial class PlanStepFormViewModel : ObservableObject
     public ExperimentStep Build()
     {
         if (Acquisition is { } acquisition) return acquisition.Build();
+        if (ScopeForm is { } scope) return scope.Build();
+        if (IterationForm is { } iteration) return iteration.Build();
         if (MutationForm is { } mutation) return mutation.Build();
         if (OutcomeForm is { } outcome) return outcome.Build();
         return original switch

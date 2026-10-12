@@ -1486,3 +1486,20 @@ ordinary Failure count5 with original PlanFailedException; overflow count0/no ca
 original ArgumentOutOfRangeException/output-off/released run. No dependency/Core/
 interpreter/Rust/physical changes. Native unavailable (no cua control), unverified;
 independent engine/GitHub only/full goal active. See mutation-callback-node-forms.md.
+
+## Scoped subtree and numeric iteration forms (2026-10-13)
+
+Named typed forms expose existing SubtreeStep input/export maps and ForEachStep
+values/unit/timing/index base; IDs/bodies/children preserved. Parent snapshot inputs,
+success-only exports and failure/cancel restoration remain in the existing engine.
+Readonly observable map rows, mandatory IDs, full compiler type/availability rules.
+Timing/unit changes clear numbers; DelayBeforePoint binds Second, before-body delay;
+finite invariant list and existing timer/point/budget limits. Two palette kinds.
+Document graph permits direct subtree children append/remove/reorder; required
+slots protected and whole candidate compiled.24 App cases: mapping rejection/no IO,
+locks/retention/palette, removed producer rejected; fresh saved input rebind produces
+one0.02Volt row/selective exports/parent0.01 preserved/no local leak; immediate/timed
+saved fresh iterators three rows/index/total/units/output-off/released runs.
+Native pending (no cua tools), no user window/new process; no dependencies/Core/
+interpreter/Rust/physical changes. Independent engine/GitHub only/full goal active.
+See scope-iteration-node-forms.md.

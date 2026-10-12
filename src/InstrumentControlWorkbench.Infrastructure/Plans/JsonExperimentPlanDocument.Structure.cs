@@ -13,10 +13,10 @@ public sealed partial class JsonExperimentPlanDocument
         var root = StructureRoot(plan); var entries = WalkStructure((JsonObject)root["root"]!);
         return entries.Select(e =>
         {
-            var sequenceChild = e.Parent?["kind"]?.GetValue<string>() == "sequence" && e.Slot == "children";
+            var containerChild = (e.Parent?["kind"]?.GetValue<string>() is "sequence" or "subtree") && e.Slot == "children";
             return new PlanStructureNode(new(Text(e.Node, "id")), Text(e.Node, "kind"), e.Parent is null ? null : new(Text(e.Parent, "id")), e.Slot, e.Position, e.Depth,
-                Text(e.Node, "kind") == "sequence", sequenceChild, sequenceChild && e.Position > 0,
-                sequenceChild && e.Container is JsonArray array && e.Position < array.Count - 1);
+                Text(e.Node, "kind") is "sequence" or "subtree", containerChild, containerChild && e.Position > 0,
+                containerChild && e.Container is JsonArray array && e.Position < array.Count - 1);
         }).ToArray();
     }
     public string ReadFragment(ExperimentPlan plan, StepId selected)
@@ -55,13 +55,13 @@ public sealed partial class JsonExperimentPlanDocument
         }
         else if (edit.Kind == PlanStructureEditKind.Append)
         {
-            if (Text(entry.Node, "kind") != "sequence") throw new InvalidOperationException("Only an ordinary sequence accepts palette children.");
+            if (Text(entry.Node, "kind") is not ("sequence" or "subtree")) throw new InvalidOperationException("Only an ordinary sequence or scoped subtree accepts palette children.");
             ((JsonArray)entry.Node["children"]!).Add(replacement);
         }
         else
         {
-            if (entry.Parent?["kind"]?.GetValue<string>() != "sequence" || entry.Slot != "children" || entry.Container is not JsonArray children)
-                throw new InvalidOperationException("Only a direct ordinary-sequence child can be removed or reordered.");
+            if (entry.Parent?["kind"]?.GetValue<string>() is not ("sequence" or "subtree") || entry.Slot != "children" || entry.Container is not JsonArray children)
+                throw new InvalidOperationException("Only a direct sequence/subtree child can be removed or reordered.");
             if (edit.Kind == PlanStructureEditKind.Remove) children.RemoveAt(entry.Position);
             else
             {

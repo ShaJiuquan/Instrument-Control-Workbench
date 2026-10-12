@@ -22,7 +22,7 @@ public partial class PlanWorkspaceViewModel
     [ObservableProperty] private PlanStepFormViewModel? paletteForm;
     [ObservableProperty] private bool showAdvancedNode;
     public ObservableCollection<PlanGraphNodeViewModel> GraphNodes { get; } = new();
-    public string[] PaletteKinds { get; } = ["等待", "顺序", "重复", "超时保护", "重试", "读取仪器", "设置参数", "参数扫描", "源输出", "源与测量读数", "源表电阻", "独立源电阻", "变量赋值", "条件检查", "条件分支", "条件循环", "变量运算", "结果回调"];
+    public string[] PaletteKinds { get; } = ["等待", "顺序", "重复", "超时保护", "重试", "读取仪器", "设置参数", "参数扫描", "源输出", "源与测量读数", "源表电阻", "独立源电阻", "变量赋值", "条件检查", "条件分支", "条件循环", "变量运算", "结果回调", "数值迭代", "子流程"];
     public bool SupportsNodeForm => NodeForm?.IsSupported == true;
     public bool HasPaletteForm => PaletteForm is not null;
     public bool IsNodeFormVisible => SupportsNodeForm && !ShowAdvancedNode;
@@ -153,7 +153,7 @@ public partial class PlanWorkspaceViewModel
     private void ResetPaletteForm()
     {
         PaletteForm = null;
-        if (PaletteKind is not ("读取仪器" or "设置参数" or "参数扫描" or "源输出" or "源与测量读数" or "源表电阻" or "独立源电阻" or "变量赋值" or "条件检查" or "条件分支" or "条件循环" or "变量运算" or "结果回调")) return;
+        if (PaletteKind is not ("读取仪器" or "设置参数" or "参数扫描" or "源输出" or "源与测量读数" or "源表电阻" or "独立源电阻" or "变量赋值" or "条件检查" or "条件分支" or "条件循环" or "变量运算" or "结果回调" or "数值迭代" or "子流程")) return;
         PlanStepFormViewModel? form = null;
         form = new(CreatePaletteStep(PaletteKind), workspace.Devices, () => { if (ReferenceEquals(PaletteForm, form)) RefreshGraphCommands(); }, template: true, axes: workspace.AxisDefinitions, routing: validated?.Plan.Routing);
         PaletteForm = form;
@@ -182,6 +182,8 @@ public partial class PlanWorkspaceViewModel
             "条件循环" => new WhileStep(id, new(new("unselected_variable"), ComparisonOperator.Equal, new ConstantValue(new(0, PhysicalUnit.Dimensionless))), new SequenceStep(new(id.Value + "-body"), [])),
             "变量运算" => new MutateValueStep(id, new("requested"), VariableMutation.Set, new(0, PhysicalUnit.Dimensionless)),
             "结果回调" => new OutcomeMutationStep(id, new SequenceStep(new(id.Value + "-body"), [])),
+            "数值迭代" => new ForEachStep(id, new("requested"), new([new(0, PhysicalUnit.Dimensionless)]), new SequenceStep(new(id.Value + "-body"), [])),
+            "子流程" => new SubtreeStep(id, []),
             _ => throw new NotSupportedException("选择可用的步骤类型。"),
         };
     }

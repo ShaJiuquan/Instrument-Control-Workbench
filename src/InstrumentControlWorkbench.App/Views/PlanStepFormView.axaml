@@ -7,6 +7,8 @@
       <StackPanel Spacing="6" IsVisible="{Binding HasCycles}"><TextBlock Text="{Binding CyclesLabel}" Classes="caption"/><TextBox Text="{Binding Cycles, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="节点重复次数"/></StackPanel>
       <Grid IsVisible="{Binding HasAddress}"><views:PlanParameterSelectionView DataContext="{Binding Address}"/></Grid>
       <StackPanel Spacing="6" IsVisible="{Binding IsAssign}"><TextBlock Text="赋值目标变量 ID" Classes="caption"/><TextBox Text="{Binding VariableName, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="赋值变量"/></StackPanel>
+      <Grid IsVisible="{Binding HasScope}"><views:PlanScopeFormView DataContext="{Binding ScopeForm}"/></Grid>
+      <Grid IsVisible="{Binding HasIteration}"><views:PlanIterationFormView DataContext="{Binding IterationForm}"/></Grid>
       <Grid IsVisible="{Binding HasMutation}"><views:PlanMutationFormView DataContext="{Binding MutationForm}"/></Grid>
       <Grid IsVisible="{Binding HasOutcome}"><views:PlanOutcomeMutationFormView DataContext="{Binding OutcomeForm}"/></Grid>
       <Grid IsVisible="{Binding HasValue}"><views:PlanValueFormView DataContext="{Binding ValueForm}"/></Grid>
