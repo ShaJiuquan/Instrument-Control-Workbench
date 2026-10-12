@@ -25,6 +25,7 @@ public sealed partial class MeasurementRunService
         await notifications.PublishAsync(new(WorkbenchNotificationKind.StepStarted, $"Executing {step.Id}.",
             RunId: run.Id.ToString(), Step: step.Id), run.Token);
         var outcome = StepOutcome.Success;
+        if (step is ReadStep or ReadSourceSenseStep or ResistanceAcquisitionStep or ReadSampleResistanceStep) run.DataSet!.RequireCapacityForNextRow();
         switch (step)
         {
             case ConditionStep condition:

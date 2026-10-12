@@ -7,8 +7,10 @@ using InstrumentControlWorkbench.Core.Measurements;
 
 namespace InstrumentControlWorkbench.Infrastructure.Data;
 
-public sealed partial class FileRunArchive : IRunArchive, IAsyncDisposable
+public sealed partial class FileRunArchive : IRunArchive, IRunRowEncoding, IAsyncDisposable
 {
+    public string RowEncodingId => "instrument-workbench-run-row-v2";
+    public byte[] EncodeRow(int index, MeasurementDataRow row) => Writer.RowBytes(index, row);
     private readonly string directory;
     private readonly ConcurrentDictionary<RunId, Writer> active = new();
     private readonly SemaphoreSlim lifetimeGate = new(1, 1);
@@ -23,7 +25,7 @@ public sealed partial class FileRunArchive : IRunArchive, IAsyncDisposable
     public async Task OnStartedAsync(RunDataSetSnapshot dataSet, CancellationToken token)
     {
         ArgumentNullException.ThrowIfNull(dataSet);
-        if (dataSet.State != MeasurementRunState.Running || dataSet.FinishedAt is not null || dataSet.Rows.Count != 0 || dataSet.Blackboard is not null)
+        if (dataSet.State != MeasurementRunState.Running || dataSet.FinishedAt is not null || dataSet.Rows.Count != 0 || dataSet.TotalRowCount != 0 || dataSet.RowOffset != 0 || dataSet.Blackboard is not null)
             throw new ArgumentException("An archive starts with an empty acquiring data set.", nameof(dataSet));
         var bytes = RunArchiveJson.Encode(RunArchiveJson.HeaderDto.From(dataSet));
         var analysis = new RunDataRowValidator(dataSet.Plan, dataSet.Schema);
@@ -71,15 +73,30 @@ public sealed partial class FileRunArchive : IRunArchive, IAsyncDisposable
             writer.RequireOpen();
             if (dataSet.FinishedAt is null || dataSet.State is not (MeasurementRunState.Completed or MeasurementRunState.Aborted or MeasurementRunState.Faulted))
                 throw new ArgumentException("A terminal acquisition snapshot is required.", nameof(dataSet));
-            if (dataSet.FinishedAt < dataSet.StartedAt || dataSet.Rows.Count < writer.Count ||
+            if (dataSet.FinishedAt < dataSet.StartedAt || dataSet.TotalRowCount < writer.Count ||
                 !RunArchiveJson.Encode(RunArchiveJson.HeaderDto.From(dataSet)).AsSpan().SequenceEqual(writer.Header))
                 throw new InvalidOperationException("Final snapshot provenance does not match the started archive.");
             if (dataSet.Blackboard is { } blackboard) writer.Analysis.ValidateBlackboard(dataSet.Id, blackboard);
-            // Compare the committed prefix without retaining another copy of rows.
-            using var prefix = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-            for (var i = 0; i < writer.Count; i++) prefix.AppendData(Writer.RowBytes(i + 1, dataSet.Rows[i]));
-            if (!prefix.GetCurrentHash().AsSpan().SequenceEqual(writer.Hash.GetCurrentHash()))
-                throw new InvalidOperationException("Final snapshot changes previously delivered rows.");
+            if (dataSet.RowWindow is { } window)
+            {
+                if (window.EncodingId != RowEncodingId || window.RowOffset + dataSet.Rows.Count != window.TotalRows || writer.Count < window.RowOffset) throw new InvalidOperationException("Final live window cannot reconcile this archive prefix.");
+                var chain = window.PrefixSha256;
+                if (writer.Count == window.RowOffset && !string.Equals(chain, writer.ChainHash, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Final window changes the committed prefix.");
+                for (var i = 0; i < dataSet.Rows.Count; i++)
+                {
+                    var index = window.RowOffset + i + 1; chain = RunRowWindowProof.AppendHash(chain, Writer.RowBytes(index, dataSet.Rows[i]));
+                    if (index == writer.Count && !string.Equals(chain, writer.ChainHash, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Final window changes previously delivered rows.");
+                }
+                if (!string.Equals(chain, window.FullSha256, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Final row-window chain is inconsistent.");
+            }
+            else
+            {
+                if (!dataSet.HasCompleteRows) throw new InvalidOperationException("A partial preview cannot finalize an archive without canonical row evidence.");
+                // Compatibility for callers providing complete immutable results.
+                using var prefix = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                for (var i = 0; i < writer.Count; i++) prefix.AppendData(Writer.RowBytes(i + 1, dataSet.Rows[i]));
+                if (!prefix.GetCurrentHash().AsSpan().SequenceEqual(writer.Hash.GetCurrentHash())) throw new InvalidOperationException("Final snapshot changes previously delivered rows.");
+            }
             if (writer.UnconfirmedTail)
             {
                 await writer.Stream.FlushAsync(token);
@@ -89,7 +106,7 @@ public sealed partial class FileRunArchive : IRunArchive, IAsyncDisposable
             }
             // A cancelled external listener can leave a committed application row
             // undelivered. Safe-stop has already happened; persist missing rows now.
-            foreach (var row in dataSet.Rows.Skip(writer.Count)) await writer.AppendAsync(row, token);
+            foreach (var row in dataSet.Rows.Skip(writer.Count - dataSet.RowOffset)) await writer.AppendAsync(row, token);
             await writer.Stream.FlushAsync(token);
             var blackboardDto = dataSet.Blackboard is { } snapshot ? RunArchiveJson.BlackboardDto.From(snapshot) : null;
             var blackboardHash = blackboardDto is null ? null : Convert.ToHexString(SHA256.HashData(RunArchiveJson.Encode(blackboardDto)));
@@ -172,6 +189,7 @@ public sealed partial class FileRunArchive : IRunArchive, IAsyncDisposable
         public DataSetSchema Schema { get; } = schema;
         public SemaphoreSlim Gate { get; } = new(1, 1);
         public IncrementalHash Hash { get; } = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        public string ChainHash { get; private set; } = RunRowWindowProof.EmptyHash;
         public int Count { get; private set; }
         public long Bytes { get; private set; }
         public bool UnconfirmedTail { get; set; }
@@ -195,7 +213,7 @@ public sealed partial class FileRunArchive : IRunArchive, IAsyncDisposable
             await Stream.WriteAsync(bytes, token);
             await Stream.FlushAsync(token);
             Analysis.Append(row);
-            Hash.AppendData(bytes);
+            Hash.AppendData(bytes); ChainHash = RunRowWindowProof.AppendHash(ChainHash, bytes);
             Bytes += bytes.Length; Count++; UnconfirmedTail = false;
         }
         public async ValueTask DisposeAsync()

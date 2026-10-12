@@ -20,14 +20,16 @@ public sealed partial class MeasurementRunService
     private readonly NotificationHub notifications;
     private readonly IRunResultListener[] listeners;
     private readonly TimeSpan safetyTimeout;
+    private readonly IRunRowEncoding? rowEncoding;
+    private readonly RunRowRetention rowRetention;
     private readonly object admissionGate = new();
     private readonly SemaphoreSlim recoveryGate = new(1, 1);
     private RunExecutionContext? active;
 
     public MeasurementRunService(InstrumentManager instrumentManager, InstrumentLeaseService leaseService,
         NotificationHub notifications, IEnumerable<IRunResultListener>? resultListeners = null, TimeSpan? safetyTimeout = null,
-        DeviceRegistry? deviceRegistry = null)
-        : this(deviceRegistry ?? new DeviceRegistry([instrumentManager], leaseService), notifications, resultListeners, safetyTimeout)
+        DeviceRegistry? deviceRegistry = null, RunRowRetention? rowRetention = null)
+        : this(deviceRegistry ?? new DeviceRegistry([instrumentManager], leaseService), notifications, resultListeners, safetyTimeout, rowRetention)
     {
         ArgumentNullException.ThrowIfNull(instrumentManager);
         primaryInstrument = instrumentManager.InstrumentId;
@@ -35,7 +37,7 @@ public sealed partial class MeasurementRunService
 
     // Generic execution depends on registered capabilities, not a selected SMU.
     public MeasurementRunService(DeviceRegistry deviceRegistry, NotificationHub notifications,
-        IEnumerable<IRunResultListener>? resultListeners = null, TimeSpan? safetyTimeout = null)
+        IEnumerable<IRunResultListener>? resultListeners = null, TimeSpan? safetyTimeout = null, RunRowRetention? rowRetention = null)
     {
         ArgumentNullException.ThrowIfNull(deviceRegistry); ArgumentNullException.ThrowIfNull(notifications);
         devices = deviceRegistry;
@@ -43,10 +45,14 @@ public sealed partial class MeasurementRunService
         this.safetyTimeout = safetyTimeout ?? TimeSpan.FromSeconds(5);
         if (this.safetyTimeout <= TimeSpan.Zero || this.safetyTimeout > TimeSpan.FromMilliseconds(uint.MaxValue - 1))
             throw new ArgumentOutOfRangeException(nameof(safetyTimeout), "Safety timeout must be positive and fit the runtime timer range.");
+        this.rowRetention = rowRetention ?? new RunRowRetention();
         History = new InMemoryRunHistory();
         listeners = [History, .. resultListeners ?? []];
         if (listeners.Any(l => l is null) || listeners.Distinct().Count() != listeners.Length)
             throw new ArgumentException("Result listeners must be non-null and unique.", nameof(resultListeners));
+        var encoders = listeners.OfType<IRunRowEncoding>().ToArray();
+        if (encoders.Length > 1) throw new ArgumentException("Select one authoritative canonical row encoding/storage listener.", nameof(resultListeners));
+        rowEncoding = encoders.SingleOrDefault();
     }
 
     public bool HasActiveRun { get { lock (admissionGate) return active is not null; } }
@@ -144,7 +150,7 @@ public sealed partial class MeasurementRunService
             }
             var snapshots = run.Resources is null ? Array.Empty<InstrumentParameterSnapshot>() :
                 await run.Resources.CaptureParametersAsync(run.Token);
-            var dataSet = new RunDataSet(run.Id, compiled.Plan.Name, run.StartedAt, compiled.Schema, compiled.Plan.Metadata, snapshots, compiled.Plan, metadata);
+            var dataSet = new RunDataSet(run.Id, compiled.Plan.Name, run.StartedAt, compiled.Schema, compiled.Plan.Metadata, snapshots, compiled.Plan, metadata, rowEncoding, this.rowRetention);
             run.DataSet = dataSet;
             LatestDataSet = dataSet;
             foreach (var listener in listeners)

@@ -65,7 +65,14 @@ public sealed record MeasurementDataRow
 public sealed class RunDataSet
 {
     private readonly object gate = new();
-    private readonly List<MeasurementDataRow> rows = [];
+    private sealed record RetainedRow(MeasurementDataRow Row, long Bytes, string Digest);
+    private readonly Queue<RetainedRow> rows = [];
+    private readonly IRunRowEncoding? rowEncoding;
+    private readonly RunRowRetention? retention;
+    private string prefixHash = RunRowWindowProof.EmptyHash;
+    private string fullHash = RunRowWindowProof.EmptyHash;
+    private int totalRows;
+    private long retainedBytes;
     private readonly RunDataRowValidator rowValidator;
     private MeasurementRunState state = MeasurementRunState.Running;
     private DateTimeOffset? finishedAt;
@@ -73,7 +80,7 @@ public sealed class RunDataSet
 
     public RunDataSet(RunId id, string name, DateTimeOffset startedAt, DataSetSchema schema,
         IReadOnlyDictionary<string, Quantity> recipe, IEnumerable<InstrumentParameterSnapshot> instruments,
-        ExperimentPlan? plan = null, RunMetadata? metadata = null)
+        ExperimentPlan? plan = null, RunMetadata? metadata = null, IRunRowEncoding? rowEncoding = null, RunRowRetention? retention = null)
     {
         ArgumentNullException.ThrowIfNull(id);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -83,6 +90,8 @@ public sealed class RunDataSet
         var snapshots = instruments.ToArray();
         if (snapshots.Any(s => s is null) || snapshots.Select(s => s.InstrumentId).Distinct().Count() != snapshots.Length)
             throw new ArgumentException("Instrument snapshots must be non-null and unique.", nameof(instruments));
+        if (rowEncoding is not null) ArgumentException.ThrowIfNullOrWhiteSpace(rowEncoding.RowEncodingId);
+        this.rowEncoding = rowEncoding; this.retention = retention;
         Id = id;
         Name = name;
         StartedAt = startedAt;
@@ -104,12 +113,22 @@ public sealed class RunDataSet
     public RunMetadata Metadata { get; }
     public MeasurementRunState State { get { lock (gate) return state; } }
     public DateTimeOffset? FinishedAt { get { lock (gate) return finishedAt; } }
-    public IReadOnlyList<MeasurementDataRow> Rows { get { lock (gate) return Array.AsReadOnly(rows.ToArray()); } }
+    public int TotalRowCount { get { lock (gate) return totalRows; } }
+    public int RowOffset { get { lock (gate) return totalRows - rows.Count; } }
+    public long RetainedEncodedBytes { get { lock (gate) return retainedBytes; } }
+    public IReadOnlyList<MeasurementDataRow> Rows { get { lock (gate) return Array.AsReadOnly(rows.Select(row => row.Row).ToArray()); } }
 
     public RunDataSetSnapshot Capture()
     {
         lock (gate)
-            return new(Id, Name, StartedAt, finishedAt, state, Schema, Recipe, Instruments, Array.AsReadOnly(rows.ToArray()), Plan, Metadata, blackboard);
+            return new(Id, Name, StartedAt, finishedAt, state, Schema, Recipe, Instruments, Array.AsReadOnly(rows.Select(row => row.Row).ToArray()), Plan, Metadata, blackboard,
+                rowEncoding is null ? null : new RunRowWindowProof(rowEncoding.RowEncodingId, totalRows - rows.Count, totalRows, prefixHash, fullHash));
+    }
+
+    public void RequireCapacityForNextRow()
+    {
+        lock (gate)
+            if (retention is not null && rowEncoding is null && totalRows >= retention.MaximumRows) throw new InvalidOperationException("In-memory result capacity reached; configure durable row storage before a longer acquisition.");
     }
 
     public void Append(MeasurementDataRow row)
@@ -120,8 +139,15 @@ public sealed class RunDataSet
         lock (gate)
         {
             if (state != MeasurementRunState.Running) throw new InvalidOperationException("A finalized data set cannot accept rows.");
-            rowValidator.Append(row);
-            rows.Add(row);
+            if (retention is not null && rowEncoding is null && totalRows >= retention.MaximumRows) throw new InvalidOperationException("In-memory result capacity reached; configure durable row storage before a longer acquisition.");
+            var bytes = rowEncoding is null ? null : rowEncoding.EncodeRow(checked(totalRows + 1), row) ?? throw new InvalidOperationException("Canonical row encoding returned no frame.");
+            if (retention is not null && bytes is not null && bytes.Length > retention.MaximumEncodedBytes) throw new InvalidOperationException("A row exceeds the configured live retention byte limit.");
+            var nextHash = bytes is null ? fullHash : RunRowWindowProof.AppendHash(fullHash, bytes);
+            rowValidator.Append(row); totalRows++; fullHash = nextHash;
+            rows.Enqueue(new(row, bytes?.Length ?? 0, nextHash)); retainedBytes += bytes?.Length ?? 0;
+            if (retention is not null && rowEncoding is not null)
+                while (rows.Count > retention.MaximumRows || retainedBytes > retention.MaximumEncodedBytes)
+                { var removed = rows.Dequeue(); retainedBytes -= removed.Bytes; prefixHash = removed.Digest; }
         }
     }
 
@@ -145,4 +171,9 @@ public sealed record RunDataSetSnapshot(
     RunId Id, string Name, DateTimeOffset StartedAt, DateTimeOffset? FinishedAt,
     MeasurementRunState State, DataSetSchema Schema, IReadOnlyDictionary<string, Quantity> Recipe,
     IReadOnlyList<InstrumentParameterSnapshot> Instruments, IReadOnlyList<MeasurementDataRow> Rows,
-    ExperimentPlan? Plan = null, RunMetadata? Metadata = null, RunBlackboardSnapshot? Blackboard = null);
+    ExperimentPlan? Plan = null, RunMetadata? Metadata = null, RunBlackboardSnapshot? Blackboard = null, RunRowWindowProof? RowWindow = null, int CapturedRowOffset = 0, int? AcquiredRowCount = null)
+{
+    public int RowOffset => RowWindow?.RowOffset ?? CapturedRowOffset;
+    public int TotalRowCount => RowWindow?.TotalRows ?? AcquiredRowCount ?? Rows.Count;
+    public bool HasCompleteRows => RowOffset == 0 && TotalRowCount == Rows.Count;
+}

@@ -1675,3 +1675,22 @@ source-off/releases; managed form construction/save/reload/run. No physical/deps
 Rust changes; native remains deferred per user. See calculated-measurements.md.
 No nesting/inside old joint members; wrap group itself. Further statistics/workflow/
 variable discovery/PPMS scripts/data memory-indexing/controllers/hardware still active.
+
+## Bounded archived live rows (2026-10-13)
+
+Core row-encoding port + immutable retention/proof; queue tail/count/offset/encoded
+bytes, cumulative chained SHA256 and prefix checkpoints; captured rows bounded,
+old snapshots unchanged. Application default4096rows/32MiB encoded footprint uses
+single authoritative encoder/result listener (native FileRunArchive); withoutone
+keeps accepted rows and capacity fault checked before acquisition. No silentloss.
+Archive independently chains existing canonical row2 bytes, verifies prior committed
+chain+tail+full digest, reconciles available undelivered suffix; full-file SHA/final
+format unchanged, legacy full-snapshot proof retained. History32runs/1024rows preview
+counts distinct, trims drop proof, previews cannot finalize archives. Full paged/
+streaming storage remains; validators keep own bounded windows/absolute input indices.
+10Core+11Application new cases:row/byte/index/capture/digest limits/forgery, fresh20row
+archive with3rowtail, undeliveredlastrow, run/tail historyeviction, capacity cleanup,
+6calculatedrows archive with1rowtail. No dependencies/Rust/physical/UI changes;
+native still deferred per user. See bounded-row-retention.md. No exact managedheap/
+wholeprocess bound claimed; subscriber queues/plot caches/blackboard/full-load/index
+cost and settings UI plus broader PPMS/controller/hardware parity remain active.
