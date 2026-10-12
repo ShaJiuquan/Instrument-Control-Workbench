@@ -1864,3 +1864,21 @@ See sr830-reference-analysis.md. User mute/isolation wiring clarification pendin
 independent data work proceeds, native acceptance deferred, no deps/Rust/physical IO.
 Full differential/AC routing/controller/workflow/data/settings and remote ownership
 remain active; independent C# engine, GitHub only.
+
+## SR830 native frame and nominal-analysis authoring (2026-10-13)
+
+Palette raw-frame and nominal-referral entries now initialize explicit unselected
+frame fields. Dedicated profile-filtered VM/view preserves saved device/mode/prefix/
+reference, requires compatible declared eight/twelve input metadata and never IO.
+Unsupported reference-device switches retain flag until operator clears it or picks
+compatible profile; read-only capability controls propagated. Calculated body uses
+same frame form; explicit Core helper generator replaces only formula list, keeps
+raw body and continuation policy, and never rewrites loaded custom expressions.
+Body changes prompt regenerate/check; helper prefix alone not dirty. Existing
+metadata-only row picker/full workspace compile apply/append/discard/busy rules
+reused.19 new form cases, no-connection edits, real palette/graph/calc preview,
+fresh saved plan/run/archive/CSV tested. See sr830-authoring-forms.md. Named vertical
+components/compiled bindings; native minimum/visual checks remain deferred per
+user, no native inventory/window/process action. No deps/driver/Coreformat/Rust
+change. SR830 oscillator/mute and full differential/physical/controller/workflow/
+data/settings/remote goal still active; independent C# engine/GitHub only.

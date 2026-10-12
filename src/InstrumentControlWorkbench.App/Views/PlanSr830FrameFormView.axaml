@@ -1,0 +1,18 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels"
+ x:Class="InstrumentControlWorkbench.App.Views.PlanSr830FrameFormView" x:DataType="vm:PlanSr830FrameFormViewModel">
+ <StackPanel Spacing="8">
+  <TextBlock Text="锁相输入设备" Classes="caption"/>
+  <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="SR830 采样设备">
+   <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanDeviceChoice"><TextBlock Text="{Binding Label}" FontSize="11" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
+  </ComboBox>
+  <TextBlock Text="预期输入模式 / 须与实际设备设置一致" Classes="caption" TextWrapping="Wrap"/>
+  <ComboBox ItemsSource="{Binding Inputs}" SelectedItem="{Binding SelectedInput, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="SR830 预期输入模式"/>
+  <TextBlock Text="结果列前缀" Classes="caption"/>
+  <TextBox Text="{Binding Prefix, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="SR830 原始列前缀"/>
+  <TextBlock Text="{Binding InputSummary}" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+  <CheckBox IsChecked="{Binding IncludeReference, Mode=TwoWay}" IsEnabled="{Binding CanChooseReference}"><TextBlock Text="同时记录参考信号读回" TextWrapping="Wrap"/></CheckBox>
+  <TextBlock Text="{Binding ReferenceSummary}" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+  <TextBlock Text="参考读回不控制交流输出。名义换算不代表样品测量已经校准。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+ </StackPanel>
+</UserControl>

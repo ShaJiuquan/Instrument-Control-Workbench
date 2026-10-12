@@ -54,6 +54,7 @@ public partial class PlanStepFormViewModel : ObservableObject
                 foreach (var channel in s.Channels) Channels.Add(new(devices, template ? null : channel, MarkDirty)); break;
             case SourceOutputStep s: outputEnabled = s.Enabled; break;
         }
+        if (step is ReadSr830FrameStep lockIn) Sr830Frame = new(lockIn, devices, MarkDirty, template);
         if (step is CalculatedMeasurementStep calculated) CalculationForm = new(calculated, devices, axes ?? Array.Empty<AxisControllerDefinition>(), routing, MarkDirty, template);
         if (step is SampleAnalysisStep analysis) AnalysisForm = new(analysis, devices, axes ?? Array.Empty<AxisControllerDefinition>(), routing, MarkDirty, template);
         if (step is ScanStep scan) ScanValuesForm = new(scan.Values, () => Address.ResolveParameter().Unit, ValidateScanValues, MarkDirty, template);
@@ -118,11 +119,13 @@ public partial class PlanStepFormViewModel : ObservableObject
     public string SecondsLabel => IsRetry ? "重试间隔 / 秒" : IsTimeout || IsWaitStable ? "超时 / 秒" : "等待时间 / 秒";
     public string CyclesLabel => IsRetry ? "最大尝试次数" : "重复次数";
     public bool HasAddress => IsSet || IsScan || IsWaitStable;
+    public bool HasSr830Frame => Sr830Frame is not null;
+    public PlanSr830FrameFormViewModel? Sr830Frame { get; }
     public bool HasAcquisition => original is ReadSourceSenseStep or ReadResistanceStep or ReadCurrentResistanceStep or ReadSampleResistanceStep;
     public PlanAcquisitionFormViewModel? Acquisition { get; }
     public bool HasEnvironment => IsRead || HasAcquisition;
     public PlanEnvironmentFormViewModel? Environment { get; }
-    public bool IsSupported => original is CalculatedMeasurementStep || HasSeconds || IsRepeat || HasAddress || IsRead || IsOutput || HasAcquisition || IsAssign || HasCondition || HasMutation || HasOutcome || HasScope || HasIteration || HasAnalysis;
+    public bool IsSupported => original is CalculatedMeasurementStep || HasSr830Frame || HasSeconds || IsRepeat || HasAddress || IsRead || IsOutput || HasAcquisition || IsAssign || HasCondition || HasMutation || HasOutcome || HasScope || HasIteration || HasAnalysis;
     public PlanParameterSelectionViewModel Address { get; }
     public ObservableCollection<PlanReadChannelFormViewModel> Channels { get; } = new();
     [ObservableProperty] private string seconds = "";
@@ -147,6 +150,7 @@ public partial class PlanStepFormViewModel : ObservableObject
     partial void OnPollSecondsChanged(string value) => MarkDirty();
     partial void OnIsReadOnlyChanged(bool value)
     {
+        if (Sr830Frame is { } lockIn) lockIn.IsReadOnly = value;
         if (CalculationForm is { } calculation) calculation.IsReadOnly = value;
         if (AnalysisForm is { } analysis) analysis.IsReadOnly = value; if (ScanValuesForm is { } scanValues) scanValues.IsReadOnly = value; Address.IsReadOnly = value; if (ScopeForm is { } scope) scope.IsReadOnly = value; if (IterationForm is { } iteration) iteration.IsReadOnly = value; if (MutationForm is { } mutation) mutation.IsReadOnly = value; if (OutcomeForm is { } outcome) outcome.IsReadOnly = value; if (ValueForm is { } expression) expression.IsReadOnly = value; if (ConditionForm is { } condition) condition.IsReadOnly = value; if (Environment is { } environment) environment.IsReadOnly = value; if (Acquisition is { } acquisition) acquisition.IsReadOnly = value; foreach (var channel in Channels) channel.IsReadOnly = value;
         AddChannelCommand.NotifyCanExecuteChanged(); RemoveChannelCommand.NotifyCanExecuteChanged();
@@ -175,6 +179,7 @@ public partial class PlanStepFormViewModel : ObservableObject
     }
     public ExperimentStep Build()
     {
+        if (Sr830Frame is { } lockIn) return lockIn.Build();
         if (CalculationForm is { } calculation) return calculation.Build();
         if (AnalysisForm is { } analysis) return analysis.Build();
         if (Acquisition is { } acquisition) return acquisition.Build();

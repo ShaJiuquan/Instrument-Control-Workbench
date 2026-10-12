@@ -3,7 +3,8 @@
  <StackPanel Spacing="8">
   <TextBlock Text="{Binding InputSummary}" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
   <TextBlock Text="{Binding PreviewMessage}" IsVisible="{Binding HasPreviewMessage}" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
-  <Expander Header="本次测量" IsVisible="{Binding CanEditBody}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"><ContentControl Content="{Binding BodyForm}"/></Expander>
+  <Expander Header="本次测量" IsVisible="{Binding CanEditBody}" IsExpanded="{Binding HasSr830Body, Mode=OneWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"><ContentControl Content="{Binding BodyForm}"/></Expander>
+  <Grid IsVisible="{Binding HasSr830Body}"><views:PlanSr830NominalGeneratorView/></Grid>
   <CheckBox IsChecked="{Binding ContinueOnUnavailable, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"><TextBlock Text="结果不可计算时保留缺失值和原因，继续运行" TextWrapping="Wrap"/></CheckBox>
   <controls:OperatorButton Content="添加计算列" Command="{Binding AddColumnCommand}" HorizontalAlignment="Left"/>
   <ItemsControl ItemsSource="{Binding Columns}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:PlanCalculatedColumnFormViewModel">

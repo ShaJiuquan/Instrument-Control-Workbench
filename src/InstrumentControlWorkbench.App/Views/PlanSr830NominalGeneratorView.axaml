@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:controls="using:InstrumentControlWorkbench.App.Controls"
+ x:Class="InstrumentControlWorkbench.App.Views.PlanSr830NominalGeneratorView" x:DataType="vm:PlanCalculatedMeasurementFormViewModel">
+ <StackPanel Spacing="6">
+  <TextBlock Text="SR830 名义输入换算" Classes="caption"/>
+  <TextBlock Text="按当前输入模式生成 V 或 A 的名义换算，保留原始帧。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+  <TextBlock Text="换算结果列前缀" Classes="caption"/>
+  <TextBox Text="{Binding NominalResultPrefix, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="SR830 名义换算结果前缀"/>
+  <controls:OperatorButton Content="生成名义换算" Command="{Binding GenerateSr830NominalCommand}" HorizontalAlignment="Stretch" AutomationProperties.Name="生成 SR830 名义换算"/>
+  <TextBlock Text="{Binding NominalGenerationMessage}" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+ </StackPanel>
+</UserControl>

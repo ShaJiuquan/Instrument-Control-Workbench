@@ -46,7 +46,7 @@ public partial class PlanCalculatedMeasurementFormViewModel : ObservableObject
     public PlanCalculatedMeasurementFormViewModel(CalculatedMeasurementStep step, IReadOnlyList<DeviceDescriptor> devices, IReadOnlyList<AxisControllerDefinition> axes, RoutingConfiguration? routing, Action changed, bool template)
     {
         original = step; this.template = template; this.changed = changed; continueOnUnavailable = step.ContinueOnUnavailable; Columns = new(columns);
-        BodyForm = new(step.Body, devices, DraftChanged, template, axes, routing);
+        BodyForm = new(step.Body, devices, Sr830BodyChanged, template, axes, routing);
         foreach (var column in step.Columns) AddForm(column, template); loading = false;
     }
     public PlanStepFormViewModel BodyForm { get; }
@@ -60,7 +60,7 @@ public partial class PlanCalculatedMeasurementFormViewModel : ObservableObject
     private void DraftChanged()
     {
         if (loading || refreshing) return;
-        RefreshPreview(); changed();
+        RefreshPreview(); GenerateSr830NominalCommand.NotifyCanExecuteChanged(); changed();
     }
     private void RefreshPreview()
     {
@@ -90,7 +90,7 @@ public partial class PlanCalculatedMeasurementFormViewModel : ObservableObject
     [ObservableProperty] private bool continueOnUnavailable;
     [ObservableProperty] private bool isReadOnly;
     partial void OnContinueOnUnavailableChanged(bool value) => changed();
-    partial void OnIsReadOnlyChanged(bool value) { BodyForm.IsReadOnly = value; foreach (var column in Columns) column.IsReadOnly = value; AddColumnCommand.NotifyCanExecuteChanged(); RemoveColumnCommand.NotifyCanExecuteChanged(); }
+    partial void OnIsReadOnlyChanged(bool value) { BodyForm.IsReadOnly = value; foreach (var column in Columns) column.IsReadOnly = value; AddColumnCommand.NotifyCanExecuteChanged(); RemoveColumnCommand.NotifyCanExecuteChanged(); GenerateSr830NominalCommand.NotifyCanExecuteChanged(); }
     private void AddForm(CalculatedColumn? originalColumn, bool template)
     {
         PlanCalculatedColumnFormViewModel? form = null; form = new(originalColumn, () => { if (columns.Contains(form!)) DraftChanged(); }, template); form.IsReadOnly = IsReadOnly; columns.Add(form);

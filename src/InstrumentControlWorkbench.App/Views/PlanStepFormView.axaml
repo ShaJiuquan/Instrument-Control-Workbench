@@ -47,6 +47,7 @@
         </ItemsControl>
         <controls:OperatorButton Content="添加读取通道" Command="{Binding AddChannelCommand}" HorizontalAlignment="Left" AutomationProperties.Name="添加读取通道"/>
       </StackPanel>
+      <Grid IsVisible="{Binding HasSr830Frame}"><views:PlanSr830FrameFormView DataContext="{Binding Sr830Frame}"/></Grid>
       <Grid IsVisible="{Binding HasAcquisition}"><views:PlanAcquisitionFormView DataContext="{Binding Acquisition}"/></Grid>
       <Grid IsVisible="{Binding HasEnvironment}"><views:PlanEnvironmentFormView DataContext="{Binding Environment}"/></Grid>
       <TextBlock Text="修改不会发送设备命令；应用时验证完整计划。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>

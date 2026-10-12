@@ -184,6 +184,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
             ConditionStep s => ("条件检查", s.Condition.Variable.Value),
             CalculatedMeasurementStep s => ("读取后计算", string.Join(", ", s.Columns.Select(column => column.Column))),
             MeasurementGroupStep s => ("联合测量点", string.Join("、", s.Labels)),
+            ReadSr830FrameStep s => ("SR830 原始帧", $"{s.Device} · {s.Input} · {s.Prefix}" + (s.IncludeReference ? " · 参考读回" : "")),
             ReadSourceSenseStep s => ("源与测量读数", s.Device.Value),
             ReadCurrentResistanceStep s => ("独立源电阻", $"{s.Source} / {s.Meter}"),
             ReadSampleResistanceStep => ("样品电阻", step.Id.Value),
