@@ -1792,3 +1792,19 @@ headless-ppms-import.md. Thishost reuses existing importer coverage, doesnotmake
 unsupported commands work. Fieldzones/controller/measurement/workflow/crossprocess/
 remoteauth/startup reconciliation/data/settings and native acceptance remain goalwork;
 independentC# engine/GitHubonly.
+
+## Gate/bias voltage command import (2026-10-13)
+
+Readonly Rust voltage.rs evidence: same K2450; source/bias modes source-drain path,
+gate mode and legacyset_bias/set_gate force gate contacts. Core frozen ResolveGate
+prefers completeenabled biaspair then gatepair onlyif bothbiaskeysabsent; sourceports
+only, distinctpolarity/slots, independentmeter reject. Import command/schemaaliases,
+target/range aliases exclusive, fixedVoltageprep/deviceidentity; automatic2contact
+requiresTwoWire, channelnone externalexplicit. Existingoff/route/zero/compliance/range/
+level/on engine sequence and full card/guard/capability preflight retained. Missing
+contacts failinsteadRustwarnskip; nofakeactor success.9Core+18Application newcases:
+alias/mode/external/badprofile/noIO, pauseheldroute/outputoff/resume/abortbaseline,
+saved/fresh archive/CSV; actualCLI3row gate/source/legacygate example. No Coreformats/
+deps/Rust/physical/desktop changes. See gate-voltage-routing.md. Sourcefunctionchanges,
+gate/differential/polarization scans, actualhardware and fullPPMS/user native acceptance
+remain active; independentC# engine/GitHubonly/native deferred.

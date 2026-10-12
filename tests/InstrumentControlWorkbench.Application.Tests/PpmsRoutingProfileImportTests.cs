@@ -19,7 +19,7 @@ using InstrumentControlWorkbench.Infrastructure.Plans;
 
 namespace InstrumentControlWorkbench.Application.Tests;
 
-public sealed class PpmsRoutingProfileImportTests
+public sealed partial class PpmsRoutingProfileImportTests
 {
     private static readonly CancellationToken Token = CancellationToken.None;
     private static string Fixture(string name) => Path.Combine(AppContext.BaseDirectory, "profiles", name);
@@ -283,12 +283,13 @@ public sealed class PpmsRoutingProfileImportTests
     {
         public MockKeithley2450SourceMeter Source { get; } = new();
         public MockMatrixSwitch Matrix { get; }
+        public NotificationHub Hub { get; } = new();
         public MeasurementRunService Runs { get; }
         public ExperimentPlanWorkspace Workspace { get; }
         public ExperimentImportBindings Devices { get; }
         public Bench(bool twoWire = false, FileRunArchive? archive = null)
         {
-            var hub = new NotificationHub(); var leases = new InstrumentLeaseService(TimeSpan.FromSeconds(5)); var manager = new InstrumentManager(Source, hub);
+            var hub = Hub; var leases = new InstrumentLeaseService(TimeSpan.FromSeconds(5)); var manager = new InstrumentManager(Source, hub);
             var matrixId = new InstrumentId("matrix");
             Matrix = new(new(new(matrixId, "K3706", "Matrix", DriverKind.Simulation, DeviceStopPolicy.OpenRunAddedConnections, []), [new(1, 8, 10)], [Source.Id]));
             var field = MockEnvironmentCatalog.Field(); var registry = new DeviceRegistry([manager, new MatrixSwitchSession(Matrix, hub), new AxisControllerSession(field, hub)], leases);

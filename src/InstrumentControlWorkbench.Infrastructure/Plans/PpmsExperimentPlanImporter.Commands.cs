@@ -66,6 +66,9 @@ public sealed partial class PpmsExperimentPlanImporter
             case "set_field":
             case "set_angle":
                 return SetAxis(name[4..], p, path, c);
+            case "set_bias":
+            case "set_gate":
+                return SetSource(SourceFunction.Voltage, p, path, c, forceGate: true);
             case "set_voltage":
             case "set_current":
                 return SetSource(name == "set_voltage" ? SourceFunction.Voltage : SourceFunction.Current, p, path, c);
@@ -116,12 +119,23 @@ public sealed partial class PpmsExperimentPlanImporter
     }
     private static SetParameterStep Write(string id, InstrumentId device, ParameterDescriptor parameter, double value)
         => new(new(id), new(device, parameter.Id), new ConstantValue(new(value, parameter.Unit)));
-    private static ExperimentStep SetSource(SourceFunction function, JsonObject p, string path, ImportContext c)
+    private static ExperimentStep SetSource(SourceFunction function, JsonObject p, string path, ImportContext c, bool forceGate = false)
     {
         var voltage = function == SourceFunction.Voltage;
+        if (voltage)
+        {
+            p = (JsonObject)p.DeepClone();
+            foreach (var aliases in new[] { new[] { "target_v", "bias_v", "voltage_v" }, new[] { "source_range_v", "range_v", "voltage_range_v" } })
+            {
+                var present = aliases.Where(p.ContainsKey).ToArray();
+                if (present.Length > 1) throw new FormatException("Choose one voltage target/range alias.");
+                if (present.Length == 1 && present[0] != aliases[0]) { p[aliases[0]] = p[present[0]]?.DeepClone(); p.Remove(present[0]); }
+            }
+        }
         Fields(p, "instrument", "channel", voltage ? "target_v" : "target_a", voltage ? "compliance_a" : "compliance_v",
             voltage ? "source_range_v" : "source_range_a", voltage ? "voltage_mode" : "current_mode");
-        Choice(p, voltage ? "voltage_mode" : "current_mode", "source", "source");
+        Choice(p, voltage ? "voltage_mode" : "current_mode", "source", voltage ? ["source", "bias", "gate"] : ["source"]);
+        var gate = voltage && (forceGate || Text(p, "voltage_mode", "source").Trim().Equals("gate", StringComparison.OrdinalIgnoreCase));
         var smu = voltage ? Source(p, c, function) : null;
         var current = voltage ? null : CurrentSource(p, c);
         var sourceDevice = smu?.Device ?? current!.Device;
@@ -131,7 +145,20 @@ public sealed partial class PpmsExperimentPlanImporter
         if (voltage) { if (range is { } fixedRange) Keithley2450Limits.Validate(new SourceSetpoint(function, target, Number(p, "compliance_a", 1e-4), fixedRange)); }
         else _ = new CurrentExcitationConfiguration(current!.Configuration.Model, new(target, PhysicalUnit.Ampere), new(Number(p, "compliance_v", 1), PhysicalUnit.Volt), range);
         var steps = new List<ExperimentStep> { new SourceOutputStep(new(path + ".off"), sourceDevice, false) };
-        if (ChannelRoute(p, path, c, sourceDevice, "ch1") is { } route) steps.Add(route);
+        if (gate)
+        {
+            var channel = Text(p, "channel", "ch1").Trim();
+            if (!channel.Equals("none", StringComparison.OrdinalIgnoreCase))
+            {
+                if (smu!.Sense.Mode != SensingMode.TwoWire) throw new NotSupportedException("Automatic two-contact gate routing requires an explicit TwoWire source preparation.");
+                var profiles = c.Bindings.ChannelProfiles ?? throw new NotSupportedException("Gate routing needs explicit channel profiles; generic current/sense routes cannot stand in for gate contacts.");
+                var resolved = profiles.ResolveGate(channel);
+                if (resolved.Source != sourceDevice) throw new ArgumentException("Gate wiring source differs from the explicitly selected source.");
+                c.UsesChannelProfiles = true;
+                steps.Add(new RouteMatrixStep(new(path + ".route"), resolved.Route.Device, resolved.Route.Closed, resolved.Route.Settle));
+            }
+        }
+        else if (ChannelRoute(p, path, c, sourceDevice, "ch1") is { } route) steps.Add(route);
         // Park at zero before changing compliance so a previous high level cannot
         // invalidate an otherwise safe new level/compliance pair.
         steps.Add(Write(path + ".zero", sourceDevice, voltage ? Keithley2450Parameters.SourceVoltage : current!.Current, 0));

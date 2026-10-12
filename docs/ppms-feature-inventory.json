@@ -90,7 +90,8 @@
         "environmentImplementation": "src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.Environment.cs; src/InstrumentControlWorkbench.Application/Measurements/MeasurementRunService.Environment.cs; src/InstrumentControlWorkbench.Core/Data/RunDataRowValidator.cs",
         "environmentTests": "tests/InstrumentControlWorkbench.Application.Tests/EnvironmentAcquisitionTests.cs; tests/InstrumentControlWorkbench.Application.Tests/PpmsResistanceImportTests.cs",
         "environmentLimits": "All supported imported measurements automatically retain temperature/field/angle, source, actual value or unavailable error and UTC read completion time. Atomic admission includes bound controller readbacks; unbound roles record errors without guessing devices. Serialized C# capture follows electrical acquisition, unlike concurrent Rust futures. Raw sample observations, first-input analysis context and per-member wide-point evidence persist and validate through native/archive/CSV. Physical timing, sensor quality, remaining acquisition families/settings/UI and hardware remain pending. See environment-acquisition.md.",
-        "sourceRangeEvidence": "K2450 source-range subset implemented and protocol-tested through native/imported plans; 45 source-range cases. Actual physical families, sense range/quality and remaining per-feature semantics stay pending. See k2450SourceRanges and source-ranges.md."
+        "sourceRangeEvidence": "K2450 source-range subset implemented and protocol-tested through native/imported plans; 45 source-range cases. Actual physical families, sense range/quality and remaining per-feature semantics stay pending. See k2450SourceRanges and source-ranges.md.",
+        "gateRouting": "source/bias path and gate path explicit; target/range alias normalization, same owned engine. See gate-voltage-routing.md."
       }
     },
     {
@@ -99,7 +100,12 @@
       "aliases": [
         "bias_set"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "Core ImportChannelRouting.ResolveGate; Infrastructure PPMS Commands/Canonical lowering",
+        "tests": "GateChannelRoutingTests; PpmsRoutingProfileImportTests.Gate; actual CLI gate example",
+        "limits": "Same explicitly bound Voltage source; complete bias/gate source-port pair, automatic TwoWire or explicit external channel none; existing owned engine preflight/cleanup and simulated acceptance. Real hardware, live source-function changes and scans remain pending."
+      }
     },
     {
       "id": "set_angle",
@@ -127,7 +133,12 @@
       "aliases": [
         "gate_set"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "Core ImportChannelRouting.ResolveGate; Infrastructure PPMS Commands/Canonical lowering",
+        "tests": "GateChannelRoutingTests; PpmsRoutingProfileImportTests.Gate; actual CLI gate example",
+        "limits": "Same explicitly bound Voltage source; complete bias/gate source-port pair, automatic TwoWire or explicit external channel none; existing owned engine preflight/cleanup and simulated acceptance. Real hardware, live source-function changes and scans remain pending."
+      }
     },
     {
       "id": "temp_config",

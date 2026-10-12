@@ -1,0 +1,75 @@
+{
+  "experiment_id": "Explicit gate and source-drain voltage paths",
+  "type": "sequence",
+  "children": [
+    {
+      "type": "command",
+      "name": "gate_set",
+      "params": {
+        "channel": "ch1",
+        "voltage_mode": "source",
+        "bias_v": 0.02,
+        "compliance_a": 0.0001,
+        "source_range_v": "auto"
+      }
+    },
+    {
+      "type": "measurement",
+      "name": "measure_current",
+      "params": {
+        "meas_type": "basic",
+        "name": "current",
+        "instrument": "k2450",
+        "channel": "none",
+        "sensing_mode": "2wire",
+        "nplc": 1
+      }
+    },
+    {
+      "type": "command",
+      "name": "set_voltage",
+      "params": {
+        "channel": "ch1",
+        "voltage_mode": "bias",
+        "target_v": 0.01,
+        "compliance_a": 0.0001,
+        "source_range_v": "auto"
+      }
+    },
+    {
+      "type": "measurement",
+      "name": "measure_current",
+      "params": {
+        "meas_type": "basic",
+        "name": "current",
+        "instrument": "k2450",
+        "channel": "none",
+        "sensing_mode": "2wire",
+        "nplc": 1
+      }
+    },
+    {
+      "type": "command",
+      "name": "set_bias",
+      "params": {
+        "channel": "ch1",
+        "voltage_mode": "source",
+        "voltage_v": -0.03,
+        "compliance_a": 0.0001,
+        "source_range_v": "auto"
+      }
+    },
+    {
+      "type": "measurement",
+      "name": "measure_current",
+      "params": {
+        "meas_type": "basic",
+        "name": "current",
+        "instrument": "k2450",
+        "channel": "none",
+        "sensing_mode": "2wire",
+        "nplc": 1
+      }
+    }
+  ]
+}

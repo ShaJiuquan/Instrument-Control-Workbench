@@ -197,6 +197,8 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
         "field_set" => "set_field",
         "angle_set" or "rotator.set_angle" => "set_angle",
         "voltage_set" => "set_voltage",
+        "bias_set" => "set_bias",
+        "gate_set" => "set_gate",
         "current_set" => "set_current",
         "wait_temperature" or "wait_temp_state" or "wait_temp_stable" => "wait_temp",
         "wait_angle_state" => "wait_angle",
