@@ -10,7 +10,7 @@ using InstrumentControlWorkbench.Infrastructure.Plans;
 
 namespace InstrumentControlWorkbench.Application.Tests;
 
-public sealed class PlanStructureEditingTests
+public sealed partial class PlanStructureEditingTests
 {
     [Fact]
     public async Task EditsPreserveEnvelopeAndActualOrderWithoutAnyDeviceConnection()

@@ -52,18 +52,22 @@ public partial class PlanElectrodeFormViewModel : ObservableObject
 public partial class PlanSampleElectrodesFormViewModel : ObservableObject
 {
     private readonly Action changed;
-    public PlanSampleElectrodesFormViewModel(RoutingConfiguration routing, IReadOnlyList<SampleElectrode>? electrodes, SampleTopology topology, Action changed)
+    public PlanSampleElectrodesFormViewModel(RoutingConfiguration routing, IReadOnlyList<SampleElectrode>? electrodes, SampleTopology topology, Action changed, bool allowGuardCoordination = false)
     {
-        this.changed = changed;
+        this.changed = changed; AllowGuardCoordination = allowGuardCoordination;
         Electrodes = Array.AsReadOnly((electrodes is null ? SampleProfile.RequiredLabels(topology).Select(label => new PlanElectrodeFormViewModel(new(label), routing.Channels, null, changed)) : electrodes.Select(electrode => new PlanElectrodeFormViewModel(electrode.Label, routing.Channels, electrode, changed))).ToArray());
         Wirings = Array.AsReadOnly(routing.Wirings.Select(wiring => new PlanWiringChoice(wiring)).ToArray());
     }
+    public bool AllowGuardCoordination { get; }
+    public bool CanCoordinateGuards => AllowGuardCoordination && !IsReadOnly;
+    [ObservableProperty] private bool coordinateIndependentRoutes;
+    partial void OnCoordinateIndependentRoutesChanged(bool value) => changed();
     public IReadOnlyList<PlanElectrodeFormViewModel> Electrodes { get; }
     public IReadOnlyList<PlanWiringChoice> Wirings { get; }
     [ObservableProperty] private PlanWiringChoice? selectedWiring;
     [ObservableProperty] private bool isReadOnly;
     partial void OnSelectedWiringChanged(PlanWiringChoice? value) => changed();
-    partial void OnIsReadOnlyChanged(bool value) { foreach (var electrode in Electrodes) electrode.IsReadOnly = value; }
+    partial void OnIsReadOnlyChanged(bool value) { OnPropertyChanged(nameof(CanCoordinateGuards)); foreach (var electrode in Electrodes) electrode.IsReadOnly = value; }
     public WiringProfileId BuildWiring() => Wirings.FirstOrDefault(wiring => wiring.Profile.Id == SelectedWiring?.Profile.Id)?.Profile.Id ?? throw new InvalidOperationException("请选择验证接线；应用时检查全部测量方向。");
     public SampleElectrode[] Build() => Electrodes.Select(electrode => electrode.Build()).ToArray();
 }

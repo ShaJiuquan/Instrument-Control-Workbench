@@ -17,7 +17,7 @@ using InstrumentControlWorkbench.Infrastructure.Plans;
 
 namespace InstrumentControlWorkbench.App.Tests;
 
-public sealed class PlanSampleCatalogFormTests
+public sealed partial class PlanSampleCatalogFormTests
 {
     [Theory]
     [InlineData(SampleTopology.TwoWire, false)]
@@ -140,17 +140,17 @@ public sealed class PlanSampleCatalogFormTests
         public MeasurementRunService Runs { get; }
         public ExperimentPlanWorkspace Workspace { get; }
         public MainWindowViewModel Shell { get; }
-        public Bench(SampleTopology topology, bool independent = false)
+        public Bench(SampleTopology topology, bool independent = false, bool smuSource = false)
         {
             var labels = SampleProfile.RequiredLabels(topology); var ch1 = new ChannelProfile(new("channel1"), "CH1", Enumerable.Range(0, 6).Select(i => new ChannelConnection(new("c" + i), 1, i + 1)));
             var ch2 = new ChannelProfile(new("channel2"), "CH2", Enumerable.Range(0, 6).Select(i => new ChannelConnection(new("c" + i), 1, i + 7)).Append(new(new("outside"), 1, 99)));
             var sample = new SampleProfile(new("primary"), "Primary", topology, labels.Select((label, i) => new SampleElectrode(new(label), ch1.Id, new("c" + i))), new(new(.002, PhysicalUnit.Meter), new(.004, PhysicalUnit.Meter), new(.000001, PhysicalUnit.Meter)));
-            var unused = new SampleProfile(new("unused"), "Unused", topology, sample.Electrodes, sample.Geometry); var meter = new MockKeithley2182Meter(new("meter"), "Meter"); var sourceId = independent ? Current.Descriptor.Id : Source.Id;
+            var unused = new SampleProfile(new("unused"), "Unused", topology, sample.Electrodes, sample.Geometry); var meter = new MockKeithley2182Meter(new("meter"), "Meter"); var sourceId = independent && !smuSource ? Current.Descriptor.Id : Source.Id;
             var wiring = new InstrumentWiringProfile(new("wire"), sourceId, new(1, 1), new(1, 2), new(1, 3), new(1, 4), voltageMeter: independent ? meter.Descriptor.Id : null); var routing = new RoutingConfiguration(new("matrix"), [ch1, ch2], [wiring], [sample, unused]);
             var selection = topology switch { SampleTopology.TwoWire => SampleRouteSelection.TwoWireResistance, SampleTopology.FourWire => SampleRouteSelection.FourWireResistance, SampleTopology.HallBar => SampleRouteSelection.HallLongitudinal, _ => SampleRouteSelection.VdpAbCd }; var binding = new SampleRoutingBinding(sample.Id, wiring.Id, selection);
             ResistanceAcquisitionStep acquisition = independent ? new ReadCurrentResistanceStep(new("read"), sourceId, meter.Descriptor.Id, CurrentReference.ProgrammedSetpoint, new("V"), new("I"), new("R"), new(1e-12, PhysicalUnit.Ampere), new ConstantValue(new(.00001, PhysicalUnit.Ampere)), new(routing.Matrix, routing.Resolve(binding).Closed)) : new ReadResistanceStep(new("read"), sourceId, SourceFunction.Voltage, new("V"), new("I"), new("R"), new(1e-12, PhysicalUnit.Ampere));
-            Plan = new("catalog", new SequenceStep(new("root"), [new ReadSampleResistanceStep(acquisition, binding, TimeSpan.Zero)]), independent ? [] : [new(Source.Id, SourceFunction.Voltage, new(.01, PhysicalUnit.Volt), new(.001, PhysicalUnit.Ampere), new(SenseFunction.Current, topology == SampleTopology.TwoWire ? SensingMode.TwoWire : SensingMode.FourWire, 1, true))], routing: routing,
-                currentSourcePreparations: independent ? [new(Current.Descriptor.Id, new(new(.00001, PhysicalUnit.Ampere), new(10, PhysicalUnit.Volt)))] : null, maximumStepExecutions: 100);
+            Plan = new("catalog", new SequenceStep(new("root"), [new ReadSampleResistanceStep(acquisition, binding, TimeSpan.Zero)]), independent && !smuSource ? [] : [new(Source.Id, smuSource ? SourceFunction.Current : SourceFunction.Voltage, smuSource ? new(.00001, PhysicalUnit.Ampere) : new(.01, PhysicalUnit.Volt), smuSource ? new(10, PhysicalUnit.Volt) : new(.001, PhysicalUnit.Ampere), new(smuSource ? SenseFunction.Voltage : SenseFunction.Current, topology == SampleTopology.TwoWire ? SensingMode.TwoWire : SensingMode.FourWire, 1, true))], routing: routing,
+                currentSourcePreparations: independent && !smuSource ? [new(Current.Descriptor.Id, new(new(.00001, PhysicalUnit.Ampere), new(10, PhysicalUnit.Volt)))] : null, maximumStepExecutions: 100);
             var hub = new NotificationHub(); var manager = new InstrumentManager(Source, hub); Matrix = new(new(new(new("matrix"), "K3706", "Matrix", DriverKind.Simulation, DeviceStopPolicy.OpenRunAddedConnections, []), [new(1, 4, 12)], [Source.Id, Current.Descriptor.Id]));
             Runs = new(new DeviceRegistry([manager, new MatrixSwitchSession(Matrix, hub), new Keithley6221CurrentSourceSession(Current, hub), new Keithley2182MeterSession(meter, hub)], new(TimeSpan.FromSeconds(5))), hub); Workspace = new(new JsonExperimentPlanDocument(), Runs); Shell = new(manager, Runs, hub, Workspace, Plan, "unused-catalog.json");
         }

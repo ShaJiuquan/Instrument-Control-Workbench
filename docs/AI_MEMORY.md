@@ -1577,3 +1577,20 @@ fresh/old snapshots retained. No Core/schema/interpreter/deps/Rust/physical chan
 Native inventory again Mac locked/unlock failed/prior optional request pending; no
 window/process actions. Full goal active/engine independent/GitHub only; see
 sample-catalog-authoring.md. New catalogs/channel/wiring/guard UI remain pending.
+
+## Coordinated independent sample guards (2026-10-13)
+
+Default-off explicit electrode checkbox coordinates only target sample's internal
+independent RequiredRoutes. App service validates original guard/catalog, unchanged
+source/meter, all referenced wirings/actual cards, then typed replacements and one
+final compiler/codec candidate. Columns/threshold/expressions/reference/env/retry/
+dwells/IDs preserved; other samples/unwrapped reads/matrix commands unchanged.
+Core structure port bounded ReadSteps/ReplaceSteps; adapter one-walk batches,
+ID/overlap/slot/envelope protection, no execution policy. No opt-in keeps old guard
+rejection.12App+8Application new cases:6saved/fresh K6221/K2450-current+K2182 four-wire/
+Hall/vdP rows/terms7–12/exact guards/cleanup; nested repeat/subtree/if plans9/27rows/
+3summaries, other sample1–6 and external commands unchanged, rest JSON equal.
+Batch invalid/order/envelope/required slots and checkbox stale/busy/invalid guards.
+Native again Mac locked/unlock failed/prior optional request pending/no window or
+process actions. No interpreter/lifecycle/transport/deps/Rust/physical changes.
+Full goal active/engine independent/GitHub only; see coordinated-sample-guards.md.

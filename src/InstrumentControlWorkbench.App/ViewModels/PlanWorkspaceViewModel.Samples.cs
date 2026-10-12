@@ -75,7 +75,7 @@ public partial class PlanWorkspaceViewModel
                 {
                     if (loadingSample || CreatingSample || !ReferenceEquals(ElectrodeForm, mapping)) return;
                     mappingEdited = true; SampleDirty = true; HasError = false; Message = "电极映射修改尚未应用；选择验证接线并校验整个计划。"; RefreshCommands(); changed();
-                }); ElectrodeForm = mapping;
+                }, allowGuardCoordination: workspace.SupportsStructureEditing); ElectrodeForm = mapping;
             }
         }
         finally { loadingSample = false; }
@@ -93,7 +93,7 @@ public partial class PlanWorkspaceViewModel
             }
             else
             {
-                var document = mappingEdited ? workspace.UpdateSampleDefinition(validated!.Plan, SampleForm!.Id, SampleForm.Build(), ElectrodeForm!.Build(), ElectrodeForm.BuildWiring()) : workspace.UpdateSampleDetails(validated!.Plan, SampleForm!.Id, SampleForm.Build());
+                var document = mappingEdited ? workspace.UpdateSampleDefinition(validated!.Plan, SampleForm!.Id, SampleForm.Build(), ElectrodeForm!.Build(), ElectrodeForm.BuildWiring(), ElectrodeForm.CoordinateIndependentRoutes) : workspace.UpdateSampleDetails(validated!.Plan, SampleForm!.Id, SampleForm.Build());
                 Apply(document);
             }
             IsDirty = true; Message = "样品已通过路由与完整计划验证。";

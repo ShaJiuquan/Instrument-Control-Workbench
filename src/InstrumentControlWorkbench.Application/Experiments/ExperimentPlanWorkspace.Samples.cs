@@ -29,7 +29,7 @@ public sealed partial class ExperimentPlanWorkspace
         runs.ValidateSampleRoutes(updated, sample.Id, validationWiring);
         return Inspect(new(plan.Name, plan.Root, plan.Preparations, plan.Metadata, updated, plan.CurrentSourcePreparations, plan.MaximumStepExecutions));
     }
-    public ValidatedPlanDocument UpdateSampleDefinition(ExperimentPlan plan, SampleId sampleId, SampleProfileDetails details, IReadOnlyList<SampleElectrode> electrodes, WiringProfileId validationWiring)
+    public ValidatedPlanDocument UpdateSampleDefinition(ExperimentPlan plan, SampleId sampleId, SampleProfileDetails details, IReadOnlyList<SampleElectrode> electrodes, WiringProfileId validationWiring, bool synchronizeIndependentRoutes = false)
     {
         ArgumentNullException.ThrowIfNull(electrodes); ArgumentNullException.ThrowIfNull(validationWiring);
         // Reuse canonical details admission, then replace only this sample's electrodes.
@@ -38,7 +38,9 @@ public sealed partial class ExperimentPlanWorkspace
         var replacement = new SampleProfile(original.Id, original.Name, original.Topology, electrodes, original.Geometry, original.OriginalId, original.Material, original.Substrate, original.Notes);
         var updated = new RoutingConfiguration(routing.Matrix, routing.Channels, routing.Wirings, routing.Samples.Select(sample => ReferenceEquals(sample, original) ? replacement : sample));
         runs.ValidateSampleRoutes(updated, original.Id, validationWiring);
-        return Inspect(new(plan.Name, plan.Root, plan.Preparations, plan.Metadata, updated, plan.CurrentSourcePreparations, plan.MaximumStepExecutions));
+        var complete = new ExperimentPlan(plan.Name, plan.Root, plan.Preparations, plan.Metadata, updated, plan.CurrentSourcePreparations, plan.MaximumStepExecutions);
+        if (synchronizeIndependentRoutes) complete = CoordinateIndependentSampleGuards(plan, complete, original.Id);
+        return Inspect(complete);
     }
     public ValidatedPlanDocument RemoveSample(ExperimentPlan plan, SampleId sampleId)
     {
