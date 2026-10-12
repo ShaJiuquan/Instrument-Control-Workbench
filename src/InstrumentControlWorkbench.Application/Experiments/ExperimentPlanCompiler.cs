@@ -332,6 +332,19 @@ internal static class ExperimentPlanCompiler
                     if (!registry.GetAxisDefinition(settings.Device).SupportsSoftwareTemperatureRamp)
                         throw new NotSupportedException("Controller has no temperature-stability profile.");
                     return 1;
+                case WaitTemperatureStateStep stateWait:
+                    Device(stateWait.Device);
+                    if (!registry.GetAxisDefinition(stateWait.Device).SupportsSoftwareTemperatureRamp) throw new NotSupportedException("Controller has no temperature-state profile.");
+                    return 1;
+                case WaitAngleStep angleWait:
+                    Device(angleWait.Device); var angleDefinition = registry.GetAxisDefinition(angleWait.Device);
+                    if (angleDefinition.Target.Unit != PhysicalUnit.Degree) throw new ArgumentException("Angle waits require a Degree controller.");
+                    if (angleWait.Target is { } angleTarget)
+                    {
+                        if (ValueUnit(angleTarget, known) != PhysicalUnit.Degree) throw new ArgumentException("Angle target requires Degree.");
+                        if (angleTarget is ConstantValue constantAngle) angleDefinition.Target.Validate(constantAngle.Value);
+                    }
+                    return 1;
                 case WaitTemperatureStep temperatureWait:
                     Device(temperatureWait.Device);
                     var temperatureDefinition = registry.GetAxisDefinition(temperatureWait.Device);

@@ -1,0 +1,65 @@
+{
+  "type": "sequence",
+  "label": "Simulated temperature and angle current-target waits",
+  "children": [
+    {
+      "type": "command",
+      "name": "set_temperature",
+      "source_line": 1,
+      "params": {
+        "target_k": 300,
+        "ramp_strategy": "hardware",
+        "rate_k_per_min": 5,
+        "wait_mode": "none"
+      }
+    },
+    {
+      "type": "command",
+      "name": "temp_set_config",
+      "source_line": 2,
+      "params": {
+        "stable_duration_s": 0
+      }
+    },
+    {
+      "type": "command",
+      "name": "wait_temp",
+      "source_line": 3,
+      "params": {
+        "wait_for": "stable",
+        "timeout_s": 1,
+        "poll_ms": 100
+      }
+    },
+    {
+      "type": "command",
+      "name": "set_angle",
+      "source_line": 4,
+      "params": {
+        "target_deg": 0,
+        "wait_mode": "none"
+      }
+    },
+    {
+      "type": "command",
+      "name": "wait_angle",
+      "source_line": 5,
+      "params": {
+        "timeout_s": 0,
+        "poll_ms": 100
+      }
+    },
+    {
+      "type": "measurement",
+      "name": "measure_temp",
+      "source_line": 6,
+      "params": {}
+    },
+    {
+      "type": "measurement",
+      "name": "measure_angle",
+      "source_line": 7,
+      "params": {}
+    }
+  ]
+}

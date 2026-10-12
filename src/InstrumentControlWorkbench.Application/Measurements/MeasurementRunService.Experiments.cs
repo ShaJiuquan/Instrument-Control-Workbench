@@ -143,6 +143,10 @@ public sealed partial class MeasurementRunService
             case TemperatureStabilityStep settings:
                 await run.Resources!.ConfigureTemperatureStabilityAsync(settings.Device, settings.Change, run.Token);
                 break;
+            case WaitTemperatureStateStep stateWait:
+                await WaitTemperatureStateAsync(stateWait, run); break;
+            case WaitAngleStep angleWait:
+                await WaitAngleAsync(angleWait, run); break;
             case WaitTemperatureStep temperatureWait:
                 await WaitTemperatureAsync(temperatureWait, run);
                 break;

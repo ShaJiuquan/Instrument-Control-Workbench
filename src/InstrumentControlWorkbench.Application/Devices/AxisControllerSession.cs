@@ -54,6 +54,20 @@ public sealed partial class AxisControllerSession : IDeviceSession
         finally { operations.Exit(); }
     }
 
+    internal async Task<AxisControllerSnapshot> ReadAxisSnapshotAsync(RunId owner, CancellationToken token)
+    {
+        await operations.EnterAsync(token, owner);
+        try
+        {
+            var snapshot = await port.GetSnapshotAsync(token); token.ThrowIfCancellationRequested();
+            if (!snapshot.Connected) throw new InvalidOperationException($"{Descriptor.Id} is disconnected.");
+            Definition.Target.Validate(snapshot.Target); Definition.Readback.Validate(snapshot.Readback); Definition.Rate.Validate(snapshot.Rate);
+            await PublishAsync(snapshot, token); return snapshot;
+        }
+        catch { faulted = true; ResetTemperatureRuntime(); throw; }
+        finally { operations.Exit(); }
+    }
+
     public async Task DisconnectDeviceAsync(CancellationToken token, RunId? owner = null)
     {
         await operations.EnterAsync(token, owner);

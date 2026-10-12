@@ -776,3 +776,25 @@ provenance. Native editor/physical/parallel/background/full PPMS remain pending.
 29 original UI drafts untouched/excluded; Mac lock verified this stage; no lab
 IO/dependencies/Rust writes. Independent C# engine; GitHub only; full goal active.
 See meter-sweeps.md.
+
+
+## Live controller waits (2026-10-12)
+
+Core WaitTemperatureStateStep observes current Reached/Stable (Reached accepts
+Stable); WaitAngleStep uses fresh coherent target/readback each poll unless an
+explicit Degree comparison target is authored. No target writes or synthetic
+rows. Application capability/unit/availability preflight, claimed snapshot IO,
+fresh temperature runtime and pause evidence reset; existing shared leases,
+hold/cancel/drain/retained failure recovery. PPMS wait_temp/aliases,wait_angle/
+state alias and generic wait_kind, strict aliases and source-line diagnostics;
+default3600/30 seconds, poll500 raised to runtime100ms floor. Zero timeout is
+truly no deadline; finite waits compose native TimeoutStep (wall time including
+pause), strict expiry and root abort priority; never drop live IO tasks or mask
+faults with workflow retry/decorators. Native codecs and angle value budget.
+68 new cases(10Core58Application), focused182Application+10Core; actual fixture
+with temperature settings/live state and angle current target, unrelated
+sources/matrix disconnected, native save/archive/CSV/fresh replay. Field vendor
+Holding/persistence, physical/background/parallel/native UI/full PPMS remain
+pending.29 original UI drafts untouched/excluded. No dependencies/Rust writes/
+physical IO; independent C# engine, GitHub only, full goal active. See
+controller-waits.md.

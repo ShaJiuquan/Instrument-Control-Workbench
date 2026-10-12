@@ -129,6 +129,7 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanDocument
                 SoftwareTemperatureRampStep ramp => ValueCost(ramp.Target),
                 HardwareTemperatureSetpointStep ramp => ValueCost(ramp.Target),
                 WaitTemperatureStep wait => ValueCost(wait.Target),
+                WaitAngleStep { Target: { } target } => ValueCost(target),
                 WaitStableStep wait => ValueCost(wait.Target),
                 ReadCurrentResistanceStep { ExpectedProgrammedCurrent: { } expected } => ValueCost(expected),
                 _ => 0,

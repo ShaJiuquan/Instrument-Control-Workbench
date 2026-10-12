@@ -167,6 +167,17 @@ public sealed partial class DeviceRunResources
         }
         finally { gate.Release(); }
     }
+    internal async Task<AxisControllerSnapshot> ReadAxisSnapshotAsync(InstrumentId id, CancellationToken token)
+    {
+        await gate.WaitAsync(token);
+        try
+        {
+            RequireActive(); await RequireStoppedTaskFinishedAsync(id); token.ThrowIfCancellationRequested(); touched.Add(id);
+            var axis = Get(id) as AxisControllerSession ?? throw new NotSupportedException($"{id} is not an axis controller.");
+            return await axis.ReadAxisSnapshotAsync(Owner, token);
+        }
+        finally { gate.Release(); }
+    }
     internal async Task<TemperatureStabilityObservation> ReadTemperatureStabilityAsync(InstrumentId id, CancellationToken token)
     {
         await gate.WaitAsync(token);

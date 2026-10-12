@@ -48,7 +48,17 @@ public sealed partial class PpmsExperimentPlanImporter
             case "k6221.set_auto_range":
             case "k6221.set_source_auto_range":
                 return CurrentSourceCommand(name, p, path, c);
+            case "wait_temp":
+            case "wait_temp_reached":
+            case "wait_angle":
+                return ControllerWait(name, p, path, c);
             case "wait":
+                var waitKind = Canonical(Text(p, "wait_kind", "wait"));
+                if (waitKind is "wait_temp" or "wait_temp_reached" or "wait_angle")
+                {
+                    var stateParams = (JsonObject)p.DeepClone(); stateParams.Remove("wait_kind");
+                    return ControllerWait(waitKind, stateParams, path, c);
+                }
                 Fields(p, "seconds", "wait_kind"); Choice(p, "wait_kind", "wait", "wait");
                 return new DelayStep(new(path), Duration(p, "seconds", 5));
             case "set_temperature":
