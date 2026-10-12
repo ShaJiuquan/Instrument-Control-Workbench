@@ -24,7 +24,9 @@ public enum OperatorRunState { Ready, Starting, Running, Stopping, Completed, Ab
 
 public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
 {
-    private readonly NotificationHub notifications;
+    private readonly NotificationSubscription displayNotifications;
+    public const int MaximumPlotPoints = 4096;
+    public const int MaximumRecentPoints = 200;
     private readonly InstrumentManager? instrumentManager;
     private readonly IAsyncDisposable? storage;
     private readonly MeasurementRunService runService;
@@ -32,6 +34,8 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     private readonly Task notificationListener;
     private bool disposed;
     private bool closing;
+    public bool NotificationObservationLost { get; private set; }
+    public string LiveDisplaySummary => $"曲线显示最近 {PlotPoints.Count} 点 · 表格最近 {RecentPoints.Count} 点 · 已省略 {displayNotifications.OmittedDisplayFacts} 条实时更新";
     private int plannedPoints = 21;
 
     public MainWindowViewModel(InstrumentManager? instrumentManager, MeasurementRunService runService, NotificationHub notifications,
@@ -41,10 +45,10 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     {
         this.instrumentManager = instrumentManager;
         this.runService = runService;
-        this.notifications = notifications;
+        displayNotifications = notifications.SubscribeDisplay();
         InstrumentId = instrumentManager?.InstrumentId.Value ?? "未选择源表";
         this.storage = storage ?? history; Settings = settings;
-        if (registry is not null) Devices = new(registry, () => !closing && !IsBusy && !IsConnecting && !runService.HasActiveRun && Plans is not { IsDocumentBusy: true }, NotifyCommandState);
+        if (registry is not null) Devices = new(registry, () => !closing && !NotificationObservationLost && !IsBusy && !IsConnecting && !runService.HasActiveRun && Plans is not { IsDocumentBusy: true }, NotifyCommandState);
         if (instrumentManager is null) page = WorkbenchPage.Plans;
         if (history is not null && exportDirectory is not null) History = new(history, exportDirectory);
         if (workspace is not null && initialPlan is not null && planPath is not null)
@@ -101,7 +105,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     public bool IsInstrumentsPage => Page == WorkbenchPage.Instruments;
     public bool IsDataPage => Page == WorkbenchPage.Data;
     public bool IsEventsPage => Page == WorkbenchPage.Events;
-    public bool CanEdit => !closing && !IsBusy && !IsConnecting && !runService.HasActiveRun && Plans is not { IsDocumentBusy: true } && Devices is not { IsBusy: true };
+    public bool CanEdit => !closing && !NotificationObservationLost && !IsBusy && !IsConnecting && !runService.HasActiveRun && Plans is not { IsDocumentBusy: true } && Devices is not { IsBusy: true };
     public bool HasPoints => CompletedPoints > 0;
     public bool HasOperationError => !string.IsNullOrEmpty(OperationError);
     public string PageTitle => Page switch
@@ -122,9 +126,9 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         WorkbenchPage.History => "检查已保存的运行与部分数据，导出带单位和设备快照的结果。",
         _ => "查看连接、采集与停止过程中的事件。",
     };
-    public string ConnectionText => !HasPrimarySource ? "未选择主源表" : IsConnecting ? "正在连接" : Connected ? "已连接" : "未连接";
-    public string SafetyText => NeedsSafetyRecovery ? "停止状态未确认 · 资源保留" : !HasPrimarySource ? "停止回报见设备页" : !HasSnapshot ? "输出状态未知" : OutputEnabled ? "输出已启用" : "已回报输出关闭";
-    public string StatusText => RunState switch
+    public string ConnectionText => NotificationObservationLost ? "连接显示已过期" : !HasPrimarySource ? "未选择主源表" : IsConnecting ? "正在连接" : Connected ? "已连接" : "未连接";
+    public string SafetyText => NotificationObservationLost ? "状态显示已过期 · 需重新确认" : NeedsSafetyRecovery ? "停止状态未确认 · 资源保留" : !HasPrimarySource ? "停止回报见设备页" : !HasSnapshot ? "输出状态未知" : OutputEnabled ? "输出已启用" : "已回报输出关闭";
+    public string StatusText => NotificationObservationLost ? "状态显示已过期" : RunState switch
     {
         OperatorRunState.Starting => "准备测量",
         OperatorRunState.Running => "正在采集",
@@ -285,13 +289,34 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     {
         try
         {
-            await foreach (var notification in notifications.Reader.ReadAllAsync(cancellationToken))
-                Dispatcher.UIThread.Post(() => { if (!disposed) ApplyNotification(notification); });
+            await foreach (var notification in displayNotifications.Reader.ReadAllAsync(cancellationToken))
+                await Dispatcher.UIThread.InvokeAsync(() => { if (!disposed) ApplyFact(notification); }, DispatcherPriority.Normal, cancellationToken).GetTask();
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+        catch (NotificationLagException ex)
+        {
+            try
+            {
+                await Dispatcher.UIThread.InvokeAsync(() => ApplyObservationFailure(ex), DispatcherPriority.Normal, cancellationToken).GetTask();
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+        }
     }
-    private void ApplyNotification(WorkbenchNotification notification)
+    public void ApplyObservationFailure(NotificationLagException failure)
     {
+        if (disposed) return;
+        NotificationObservationLost = true;
+        OperationError = $"状态通知积压，显示已停止更新：{failure.Capacity} 条容量已用尽。请停止运行后重新打开工作台。";
+        AppendEvent(OperationError);
+        OnPropertyChanged(nameof(NotificationObservationLost));
+        OnPropertyChanged(nameof(StatusText));
+        OnPropertyChanged(nameof(ConnectionText));
+        NotifyCommandState();
+    }
+
+    public void ApplyFact(WorkbenchNotification notification)
+    {
+        if (disposed || NotificationObservationLost) return;
         switch (notification.Kind)
         {
             case WorkbenchNotificationKind.InstrumentStateChanged when notification.InstrumentId == instrumentManager?.InstrumentId && notification.Snapshot is { } snapshot:
@@ -299,8 +324,10 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
                 break;
             case WorkbenchNotificationKind.MeasurementPointReceived when notification.Point is { } point:
                 PlotPoints.Add(point);
-                CompletedPoints = PlotPoints.Count;
+                while (PlotPoints.Count > MaximumPlotPoints) PlotPoints.RemoveAt(0);
+                CompletedPoints = notification.AcquiredRowCount ?? CompletedPoints + 1;
                 RecentPoints.Insert(0, MeasurementPointRow.FromPoint(CompletedPoints, point));
+                while (RecentPoints.Count > MaximumRecentPoints) RecentPoints.RemoveAt(RecentPoints.Count - 1);
                 LatestVoltage = $"{point.SourceValue:0.000}";
                 LatestCurrent = $"{point.MeasuredValue * 1e3:0.0000}";
                 Elapsed = point.Elapsed.ToString(@"mm\:ss\.ff", CultureInfo.InvariantCulture);
@@ -314,6 +341,8 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
             case WorkbenchNotificationKind.RunAborted: RunState = OperatorRunState.Aborted; break;
             case WorkbenchNotificationKind.RunFaulted: RunState = OperatorRunState.Faulted; break;
         }
+        if (!IsPlanRun && notification.Kind is (WorkbenchNotificationKind.RunCompleted or WorkbenchNotificationKind.RunAborted or WorkbenchNotificationKind.RunFaulted) && notification.AcquiredRowCount is { } total) CompletedPoints = total;
+        OnPropertyChanged(nameof(LiveDisplaySummary));
         Devices?.ApplyFact(notification);
         if (IsPlanRun) Plans?.ApplyFact(notification);
         if (notification.Kind == WorkbenchNotificationKind.RunPaused) RunState = OperatorRunState.Paused;
@@ -373,6 +402,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         if (storage is not null) await storage.DisposeAsync();
         disposed = true;
         lifetime.Cancel();
+        displayNotifications.Dispose();
         await notificationListener;
         lifetime.Dispose();
     }

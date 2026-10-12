@@ -23,8 +23,8 @@ public partial class MainWindowViewModel
     }
     [RelayCommand] private void OpenPlans() => Page = WorkbenchPage.Plans;
     private bool CanStartPlan() => !closing && CanEdit && Plans is { IsValidated: true };
-    private bool CanPauseRun() => IsBusy && !PauseRequested && runService.Phase is RunExecutionPhase.Starting or RunExecutionPhase.Running;
-    private bool CanResumeRun() => IsBusy && runService.Phase == RunExecutionPhase.Paused;
+    private bool CanPauseRun() => !NotificationObservationLost && IsBusy && !PauseRequested && runService.Phase is RunExecutionPhase.Starting or RunExecutionPhase.Running;
+    private bool CanResumeRun() => !NotificationObservationLost && IsBusy && runService.Phase == RunExecutionPhase.Paused;
     private bool CanRecoverSafety() => !closing && !IsBusy && !IsConnecting && runService.Phase == RunExecutionPhase.SafetyRecoveryRequired;
     public bool NeedsSafetyRecovery => runService.Phase == RunExecutionPhase.SafetyRecoveryRequired;
 

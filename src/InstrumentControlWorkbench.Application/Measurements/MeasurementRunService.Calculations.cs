@@ -20,6 +20,6 @@ public sealed partial class MeasurementRunService
             if (row.Values.TryGetValue(column.Column, out var value)) run.SetVariable(column.Column, value, step.Id);
             else run.Blackboard.Remove(column.Column);
         foreach (var listener in listeners) await listener.OnRowAsync(run.Id, row, listener == History ? CancellationToken.None : run.Token);
-        await notifications.PublishAsync(new(WorkbenchNotificationKind.DataRowReceived, "Calculated measurement results recorded with original input-row evidence.", RunId: run.Id.ToString(), Step: step.Id, Row: row), CancellationToken.None);
+        await notifications.PublishAsync(new(WorkbenchNotificationKind.DataRowReceived, "Calculated measurement results recorded with original input-row evidence.", RunId: run.Id.ToString(), Step: step.Id, Row: row, AcquiredRowCount: run.RowsAcquired), CancellationToken.None);
     }
 }

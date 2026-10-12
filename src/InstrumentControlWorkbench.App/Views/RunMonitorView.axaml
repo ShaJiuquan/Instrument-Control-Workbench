@@ -21,13 +21,14 @@
       <controls:MeasurementPlot Grid.Row="2" Points="{Binding PlotPoints}" MinHeight="110" ClipToBounds="True" Margin="12,5,18,0"/>
       <views:PointTableView Grid.Row="3" IsVisible="{Binding ShowTable}" Height="92"/>
       <Border Grid.Row="4" Padding="20,13,20,17">
-        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
+        <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto">
           <Grid ColumnDefinitions="17,8,*" VerticalAlignment="Center" Margin="0,0,12,0">
             <Border Background="{DynamicResource Accent}" Height="2" VerticalAlignment="Center"/>
             <TextBlock Grid.Column="2" Text="{Binding RunSample}" Classes="caption" TextTrimming="CharacterEllipsis"/>
           </Grid>
           <TextBlock Grid.Column="1" Text="{Binding CompletedSummary}" Classes="caption"/>
-          <ProgressBar Grid.Row="1" Grid.ColumnSpan="2" Value="{Binding ProgressPercent}" Minimum="0" Maximum="100" Height="3" Margin="0,12,0,0"/>
+          <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding LiveDisplaySummary}" Classes="caption" FontSize="10" TextWrapping="Wrap" Margin="0,6,0,0"/>
+          <ProgressBar Grid.Row="2" Grid.ColumnSpan="2" Value="{Binding ProgressPercent}" Minimum="0" Maximum="100" Height="3" Margin="0,12,0,0"/>
         </Grid>
       </Border>
     </Grid>

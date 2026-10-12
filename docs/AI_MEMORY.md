@@ -1694,3 +1694,23 @@ archive with3rowtail, undeliveredlastrow, run/tail historyeviction, capacity cle
 native still deferred per user. See bounded-row-retention.md. No exact managedheap/
 wholeprocess bound claimed; subscriber queues/plot caches/blackboard/full-load/index
 cost and settings UI plus broader PPMS/controller/hardware parity remain active.
+
+## Bounded notification observers and live display (2026-10-13)
+
+Reliable subscriptions/default legacy Reader bounded4096; overflow detaches only
+lagging observer, drains prefix then explicit NotificationLagException. Display
+subscription512 evicts only point/row/log/step telemetry, counts omissions; preserves
+remaining critical lifecycle/safety/device/instrument/matrix order. All-critical
+pressure explicitly fails observer; publishers never wait. Default retains from
+construction for existing Reader compatibility, with bounded references. Shell
+owns/disposes display subscription and awaits cancellable dispatcher operations
+(one pending UI job); plot4096/table200/event200. Absolute acquired row counts on
+row/IV/terminal facts fix totals after omission and tail eviction, including sample
+analysis/calculated rows. Gap marks shell connection/run/safety stale, blocks new
+work/pause/resume/edit; owned abort/recovery/close guards retained.12Application
+queue cases +1fresh300row archive with stalled observer/3rowtail +3App cases and
+extended plan-count regression; fresh archive preserves all300rows. No exactheap
+bound, durable notification journal or auto-resubscription claimed. No dependencies,
+Rust edits/physical IO; native acceptance deferred per user's code-first instruction.
+See bounded-notifications.md. Full goal remains active, with wider data/cache/index,
+settings, PPMS workflow/controller/realhardware parity still pending; GitHub only.

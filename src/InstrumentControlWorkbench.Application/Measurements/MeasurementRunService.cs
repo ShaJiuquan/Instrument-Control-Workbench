@@ -306,5 +306,5 @@ public sealed partial class MeasurementRunService
     }
 
     private ValueTask PublishAsync(RunExecutionContext run, WorkbenchNotificationKind kind, string message, CancellationToken token)
-        => notifications.PublishAsync(new(kind, message, run.NotificationInstrument, RunId: run.Id.ToString()), token);
+        => notifications.PublishAsync(new(kind, message, run.NotificationInstrument, RunId: run.Id.ToString(), AcquiredRowCount: run.RowsAcquired), token);
 }

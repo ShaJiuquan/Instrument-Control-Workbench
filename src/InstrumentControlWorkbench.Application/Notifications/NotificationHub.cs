@@ -6,24 +6,23 @@ namespace InstrumentControlWorkbench.Application.Notifications;
 public sealed class NotificationHub
 {
     private readonly object gate = new();
-    private readonly HashSet<Channel<WorkbenchNotification>> channels = [];
+    private readonly HashSet<NotificationMailbox> mailboxes = [];
     private readonly NotificationSubscription defaultSubscription;
 
-    public NotificationHub() => defaultSubscription = Subscribe();
-
+    // Preserve the legacy Reader's from-construction observation, with bounded retention.
+    public NotificationHub(int capacity = 4096) => defaultSubscription = Subscribe(capacity);
     public ChannelReader<WorkbenchNotification> Reader => defaultSubscription.Reader;
+    public NotificationSubscription Subscribe(int capacity = 4096) => AddSubscription(capacity, false);
+    public NotificationSubscription SubscribeDisplay(int capacity = 512) => AddSubscription(capacity, true);
 
-    public NotificationSubscription Subscribe()
+    private NotificationSubscription AddSubscription(int capacity, bool allowDisplayGaps)
     {
-        var channel = Channel.CreateUnbounded<WorkbenchNotification>(new() { SingleReader = true });
-        lock (gate) channels.Add(channel);
-        return new(channel.Reader, () =>
+        if (capacity is < 1 or > 100_000) throw new ArgumentOutOfRangeException(nameof(capacity));
+        var mailbox = new NotificationMailbox(capacity, allowDisplayGaps);
+        lock (gate) mailboxes.Add(mailbox);
+        return new(mailbox, () =>
         {
-            lock (gate)
-            {
-                channels.Remove(channel);
-                channel.Writer.TryComplete();
-            }
+            lock (gate) { mailboxes.Remove(mailbox); mailbox.Close(); }
         });
     }
 
@@ -32,22 +31,18 @@ public sealed class NotificationHub
         ArgumentNullException.ThrowIfNull(notification);
         cancellationToken.ThrowIfCancellationRequested();
         notification = notification with { Timestamp = notification.Timestamp ?? DateTimeOffset.UtcNow };
-        lock (gate)
-            foreach (var channel in channels) channel.Writer.TryWrite(notification);
+        lock (gate) mailboxes.RemoveWhere(mailbox => !mailbox.Publish(notification));
         return ValueTask.CompletedTask;
     }
 }
 
 public sealed class NotificationSubscription : IDisposable
 {
+    private readonly NotificationMailbox mailbox;
     private Action? unsubscribe;
-
-    internal NotificationSubscription(ChannelReader<WorkbenchNotification> reader, Action unsubscribe)
-    {
-        Reader = reader;
-        this.unsubscribe = unsubscribe;
-    }
-
+    internal NotificationSubscription(NotificationMailbox mailbox, Action unsubscribe)
+    { this.mailbox = mailbox; Reader = mailbox; this.unsubscribe = unsubscribe; }
     public ChannelReader<WorkbenchNotification> Reader { get; }
+    public long OmittedDisplayFacts => mailbox.OmittedCount;
     public void Dispose() => Interlocked.Exchange(ref unsubscribe, null)?.Invoke();
 }

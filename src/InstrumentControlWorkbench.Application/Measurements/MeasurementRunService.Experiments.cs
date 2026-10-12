@@ -293,7 +293,7 @@ public sealed partial class MeasurementRunService
         foreach (var listener in started)
             await listener.OnRowAsync(run.Id, row, listener == History ? CancellationToken.None : run.Token);
         await notifications.PublishAsync(new(WorkbenchNotificationKind.DataRowReceived,
-            $"Acquired row {run.RowsAcquired}; quality {row.QualityState} ({row.QualityIssues}); observed column evidence {row.ObservedQualityColumns}/{row.Quality.Count}.", RunId: run.Id.ToString(), Step: step, Row: row), CancellationToken.None);
+            $"Acquired row {run.RowsAcquired}; quality {row.QualityState} ({row.QualityIssues}); observed column evidence {row.ObservedQualityColumns}/{row.Quality.Count}.", RunId: run.Id.ToString(), Step: step, Row: row, AcquiredRowCount: run.RowsAcquired), CancellationToken.None);
     }
 
     private async Task AcquireSourceSenseRowAsync(ReadSourceSenseStep step, RunExecutionContext run, IReadOnlyList<IRunResultListener> started, bool ivPlot)
@@ -315,7 +315,7 @@ public sealed partial class MeasurementRunService
         {
             var point = new MeasurementPoint(frame.Timestamp, run.Elapsed.Elapsed, voltage.Value, current.Value, "V", "A");
             await notifications.PublishAsync(new(WorkbenchNotificationKind.MeasurementPointReceived,
-                $"Point {voltage.Value:0.###} V -> {current.Value:0.###E+0} A", step.Device, Point: point, RunId: run.Id.ToString()), CancellationToken.None);
+                $"Point {voltage.Value:0.###} V -> {current.Value:0.###E+0} A", step.Device, Point: point, RunId: run.Id.ToString(), AcquiredRowCount: run.RowsAcquired), CancellationToken.None);
         }
     }
 

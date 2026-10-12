@@ -144,6 +144,10 @@ public sealed class PlanOperatorTests
         Assert.Equal(200, planVm.Rows.Count);
         Assert.Equal("205", planVm.Rows[0].Index);
         Assert.Contains("Ampere", planVm.Rows[0].Values);
+        planVm.ApplyFact(new(WorkbenchNotificationKind.DataRowReceived, "latest after gap", RunId: "run_a", Row: row, AcquiredRowCount: 300));
+        Assert.Equal(300, planVm.AcquiredRows); Assert.Equal("300", planVm.Rows[0].Index);
+        planVm.ApplyFact(new(WorkbenchNotificationKind.RunCompleted, "terminal after gap", RunId: "run_a", AcquiredRowCount: 350));
+        Assert.Equal(350, planVm.AcquiredRows); Assert.Equal(200, planVm.Rows.Count);
     }
 
     private static (MainWindowViewModel, MeasurementRunService, MockKeithley2450SourceMeter, NotificationHub) Create()

@@ -249,7 +249,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
         }
         if (fact.Kind == WorkbenchNotificationKind.DataRowReceived && fact.Row is { } row)
         {
-            AcquiredRows++;
+            AcquiredRows = fact.AcquiredRowCount ?? AcquiredRows + 1;
             Rows.Insert(0, new(AcquiredRows.ToString(CultureInfo.InvariantCulture), row.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff"),
                 string.Join("   ·   ", row.Values.Select(v => $"{v.Key}: {v.Value.Value.ToString("G6", CultureInfo.InvariantCulture)} {v.Value.Unit}"))));
             while (Rows.Count > 200) Rows.RemoveAt(Rows.Count - 1);
@@ -257,6 +257,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
         }
         if (fact.Kind is WorkbenchNotificationKind.RunCompleted or WorkbenchNotificationKind.RunAborted or WorkbenchNotificationKind.RunFaulted)
         {
+            if (fact.AcquiredRowCount is { } total) { AcquiredRows = total; OnPropertyChanged(nameof(RowCount)); }
             foreach (var node in Outline) node.IsActive = false;
             foreach (var node in GraphNodes) node.IsActive = false;
             CurrentStep = fact.Message;

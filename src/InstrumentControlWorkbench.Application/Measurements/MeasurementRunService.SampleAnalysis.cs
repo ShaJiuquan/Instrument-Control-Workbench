@@ -46,6 +46,6 @@ public sealed partial class MeasurementRunService
             await listener.OnRowAsync(run.Id, row, listener == History ? CancellationToken.None : run.Token);
         await notifications.PublishAsync(new(WorkbenchNotificationKind.DataRowReceived,
             $"Analyzed sample group: rows {firstInput}–{firstInput + step.Readings.Count - 1}, issues {result.Issues}; acquisition quality {row.QualityState} ({row.QualityIssues}); observed column evidence {row.ObservedQualityColumns}/{row.Quality.Count}.",
-            RunId: run.Id.ToString(), Step: step.Id, Row: row), CancellationToken.None);
+            RunId: run.Id.ToString(), Step: step.Id, Row: row, AcquiredRowCount: run.RowsAcquired), CancellationToken.None);
     }
 }
