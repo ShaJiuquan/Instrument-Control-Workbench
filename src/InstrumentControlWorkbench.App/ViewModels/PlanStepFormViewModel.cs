@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using InstrumentControlWorkbench.Application.Experiments;
 using InstrumentControlWorkbench.Core.Devices;
 using InstrumentControlWorkbench.Core.Experiments;
 using InstrumentControlWorkbench.Core.Parameters;
@@ -79,6 +80,11 @@ public partial class PlanStepFormViewModel : ObservableObject
         }
         if (HasAcquisition) Acquisition = new(step, devices, MarkDirty, template, Environment, routing);
         loading = false;
+    }
+    public void SetAvailableVariables(IReadOnlyList<PlanVariableAvailability>? variables)
+    {
+        ValueForm?.SetAvailableVariables(variables); ConditionForm?.SetAvailableVariables(variables);
+        CalculationForm?.BodyForm.SetAvailableVariables(variables);
     }
     public bool IsDelay => original is DelayStep;
     public bool IsRepeat => original is RepeatStep;

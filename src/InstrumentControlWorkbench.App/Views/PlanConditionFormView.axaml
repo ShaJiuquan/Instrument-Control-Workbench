@@ -2,7 +2,8 @@
  xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:views="using:InstrumentControlWorkbench.App.Views"
  x:Class="InstrumentControlWorkbench.App.Views.PlanConditionFormView" x:DataType="vm:PlanConditionFormViewModel">
  <StackPanel Spacing="8">
-  <TextBlock Text="条件左侧变量 ID" Classes="caption"/><TextBox Text="{Binding Variable, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="条件变量"/>
+  <views:PlanVariablePickerView DataContext="{Binding VariablePicker}"/>
+  <TextBlock Text="条件左侧变量 ID（可手填）" Classes="caption"/><TextBox Text="{Binding Variable, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="条件变量"/>
   <TextBlock Text="比较运算" Classes="caption"/><ComboBox ItemsSource="{Binding Comparisons}" SelectedItem="{Binding Comparison, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="条件运算"/>
   <TextBlock Text="比较右侧值" Classes="caption"/><views:PlanValueFormView DataContext="{Binding Value}"/>
   <Expander Header="相等容差" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" FontSize="11">

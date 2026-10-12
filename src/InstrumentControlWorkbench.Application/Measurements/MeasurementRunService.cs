@@ -84,6 +84,12 @@ public sealed partial class MeasurementRunService
     public Task StartAnalyzedSampleResistanceAsync(SampleResistanceRecipe recipe, CancellationToken token, RunMetadata? metadata = null)
         => StartPlanAsync(SampleResistanceAnalysisPlan.Create(recipe), token, metadata);
 
+    public IReadOnlyList<PlanVariableAvailability> DescribeVariables(ExperimentPlan plan, StepId step, PlanVariablePosition position = PlanVariablePosition.BeforeStep)
+    {
+        ArgumentNullException.ThrowIfNull(step);
+        return ExperimentPlanCompiler.Compile(plan, devices, step, position).InspectedVariables!;
+    }
+
     public ExperimentPlanPreview PreviewPlan(ExperimentPlan plan)
     {
         var compiled = ExperimentPlanCompiler.Compile(plan, devices);

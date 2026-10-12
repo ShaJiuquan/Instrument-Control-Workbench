@@ -45,7 +45,7 @@ public partial class PlanWorkspaceViewModel
     partial void OnSelectedNodeChanged(PlanGraphNodeViewModel? value)
     {
         foreach (var node in GraphNodes) node.IsSelected = node == value;
-        LoadSelectedFragment(); OnPropertyChanged(nameof(SelectedNodeTitle)); RefreshGraphCommands();
+        LoadSelectedFragment(); RefreshPaletteVariables(); OnPropertyChanged(nameof(SelectedNodeTitle)); RefreshGraphCommands();
     }
     partial void OnNodeFragmentChanged(string value)
     {
@@ -103,7 +103,7 @@ public partial class PlanWorkspaceViewModel
                 () => !disposed && !IsDocumentBusy && !HasUnappliedEdits));
         }
         SelectedNode = GraphNodes.FirstOrDefault(n => n.Id == old) ?? GraphNodes.FirstOrDefault();
-        LoadSelectedFragment(); OnPropertyChanged(nameof(GraphWidth)); OnPropertyChanged(nameof(GraphHeight));
+        LoadSelectedFragment(); RefreshPaletteVariables(); OnPropertyChanged(nameof(GraphWidth)); OnPropertyChanged(nameof(GraphHeight));
     }
     private void SelectGraphNode(PlanGraphNodeViewModel node)
     {
@@ -121,6 +121,7 @@ public partial class PlanWorkspaceViewModel
             {
                 PlanStepFormViewModel? form = null;
                 form = new(workspace.ReadStep(validated.Plan, SelectedNode.Id), workspace.Devices, () => { if (ReferenceEquals(NodeForm, form)) FormChanged(); }, axes: workspace.AxisDefinitions, routing: validated.Plan.Routing);
+                form.SetAvailableVariables(workspace.DescribeVariables(validated.Plan, SelectedNode.Id));
                 NodeForm = form;
             }
             NodeFragmentDirty = false;
@@ -158,7 +159,12 @@ public partial class PlanWorkspaceViewModel
         if (PaletteKind is not ("读取仪器" or "设置参数" or "参数扫描" or "源输出" or "源与测量读数" or "源表电阻" or "独立源电阻" or "变量赋值" or "条件检查" or "条件分支" or "条件循环" or "变量运算" or "结果回调" or "数值迭代" or "子流程" or "Hall 分析" or "范德堡分析" or "独立源 Hall 分析" or "独立源范德堡分析" or "样品电阻" or "独立源样品电阻" or "读取后计算")) return;
         PlanStepFormViewModel? form = null;
         form = new(CreatePaletteStep(PaletteKind), workspace.Devices, () => { if (ReferenceEquals(PaletteForm, form)) RefreshGraphCommands(); }, template: true, axes: workspace.AxisDefinitions, routing: validated?.Plan.Routing);
-        PaletteForm = form;
+        PaletteForm = form; RefreshPaletteVariables();
+    }
+    private void RefreshPaletteVariables()
+    {
+        PaletteForm?.SetAvailableVariables(validated is not null && SelectedNode is { Definition.CanAppend: true } selected
+            ? workspace.DescribeVariables(validated.Plan, selected.Id, PlanVariablePosition.AppendChild) : null);
     }
     private static ExperimentStep CreatePaletteStep(string kind)
     {

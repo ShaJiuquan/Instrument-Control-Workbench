@@ -1,0 +1,10 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels"
+ x:Class="InstrumentControlWorkbench.App.Views.PlanVariablePickerView" x:DataType="vm:PlanVariablePickerViewModel">
+ <StackPanel Spacing="5">
+  <ComboBox ItemsSource="{Binding Choices}" SelectedItem="{Binding SelectedChoice, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="当前位置可用变量">
+   <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanVariableChoice"><TextBlock Text="{Binding DisplayName}" TextWrapping="Wrap" FontSize="11"/></DataTemplate></ComboBox.ItemTemplate>
+  </ComboBox>
+  <TextBlock Text="{Binding ContextHint}" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+ </StackPanel>
+</UserControl>

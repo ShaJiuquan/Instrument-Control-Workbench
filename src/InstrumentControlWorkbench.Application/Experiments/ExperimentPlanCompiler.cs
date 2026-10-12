@@ -11,7 +11,7 @@ using InstrumentControlWorkbench.Core.Routing;
 namespace InstrumentControlWorkbench.Application.Experiments;
 
 public sealed record ExperimentPlanPreview(DataSetSchema Schema, IReadOnlyList<InstrumentId> Devices, long MaximumStepExecutions, bool HasDynamicLoops = false);
-internal sealed record CompiledExperiment(ExperimentPlan Plan, DataSetSchema Schema, IReadOnlyList<InstrumentId> Devices, long MaximumStepExecutions, IReadOnlyDictionary<StepId, ResolvedSampleRoute> SampleRoutes, bool HasDynamicLoops);
+internal sealed record CompiledExperiment(ExperimentPlan Plan, DataSetSchema Schema, IReadOnlyList<InstrumentId> Devices, long MaximumStepExecutions, IReadOnlyDictionary<StepId, ResolvedSampleRoute> SampleRoutes, bool HasDynamicLoops, IReadOnlyList<PlanVariableAvailability>? InspectedVariables = null);
 
 // Compilation reads capability metadata only. No lease or driver operation occurs
 // until every branch, scan value, unit and result dependency has been checked.
@@ -20,16 +20,19 @@ internal static class ExperimentPlanCompiler
     public static readonly ParameterDescriptor Elapsed = new(new("elapsed"), "Elapsed time", PhysicalUnit.Second,
         ParameterAccess.Read, new(0, PhysicalUnit.Second));
 
-    public static CompiledExperiment Compile(ExperimentPlan plan, DeviceRegistry registry)
+    public static CompiledExperiment Compile(ExperimentPlan plan, DeviceRegistry registry, StepId? inspectStep = null, PlanVariablePosition inspectPosition = PlanVariablePosition.BeforeStep)
     {
         ArgumentNullException.ThrowIfNull(plan);
+        if (!Enum.IsDefined(inspectPosition)) throw new ArgumentOutOfRangeException(nameof(inspectPosition));
+        IReadOnlyList<PlanVariableAvailability>? inspectedVariables = null;
+        var visiting = new Stack<StepId>();
         var devices = registry.Devices.ToDictionary(d => d.Id);
         var needed = new HashSet<InstrumentId>();
         var columns = new Dictionary<ParameterId, DataColumn> { [Elapsed.Id] = new(Elapsed) };
         var environmentColumns = new HashSet<ParameterId>();
         var environmentPolicies = new Dictionary<ParameterId, IReadOnlyList<EnvironmentRead>>();
         var steps = new HashSet<StepId>();
-        var variables = new Dictionary<ParameterId, BlackboardValueType>();
+        var variables = new VariableFlowState();
         var preparations = plan.Preparations.ToDictionary(p => p.Device);
         var currentPreparations = plan.CurrentSourcePreparations.ToDictionary(p => p.Device);
         var sampleRoutes = new Dictionary<StepId, ResolvedSampleRoute>();
@@ -60,6 +63,7 @@ internal static class ExperimentPlanCompiler
             if (preparation.Settings.SourceDelay is { } delay) device.GetParameter(Keithley6221Parameters.SourceDelay.Id).ValidateWrite(delay);
         }
         var cost = Visit(plan.Root, variables, [], 0);
+        if (inspectStep is not null && inspectedVariables is null) throw new ArgumentException("Variable inspection position does not exist or cannot accept a child.", nameof(inspectStep));
         if (cost > plan.MaximumStepExecutions) throw new ArgumentOutOfRangeException(nameof(plan), "Plan exceeds its step execution budget.");
         // Check coupled ranges statically only when the counterpart is fixed.
         // Plans that change both source fields are checked against actual device
@@ -145,7 +149,7 @@ internal static class ExperimentPlanCompiler
                 Keithley2450Limits.Validate(levelWrite ? baseline with { Level = value.Value } : baseline with { Compliance = value.Value });
             }
         }
-        return new(plan, new(columns.Values), Array.AsReadOnly(needed.OrderBy(id => id.Value, StringComparer.Ordinal).ToArray()), hasDynamicLoops ? plan.MaximumStepExecutions : cost, new ReadOnlyDictionary<StepId, ResolvedSampleRoute>(sampleRoutes), hasDynamicLoops);
+        return new(plan, new(columns.Values), Array.AsReadOnly(needed.OrderBy(id => id.Value, StringComparer.Ordinal).ToArray()), hasDynamicLoops ? plan.MaximumStepExecutions : cost, new ReadOnlyDictionary<StepId, ResolvedSampleRoute>(sampleRoutes), hasDynamicLoops, inspectedVariables);
 
         DeviceDescriptor Device(InstrumentId id)
         {
@@ -167,7 +171,7 @@ internal static class ExperimentPlanCompiler
             if (!parameter.Access.HasFlag(access)) throw new InvalidOperationException($"{address.Parameter} does not allow {access}.");
             return parameter;
         }
-        BlackboardValueType ValueType(PlanValue value, Dictionary<ParameterId, BlackboardValueType> known)
+        BlackboardValueType ValueType(PlanValue value, VariableFlowState known)
         {
             ArgumentNullException.ThrowIfNull(value);
             return value switch
@@ -183,15 +187,15 @@ internal static class ExperimentPlanCompiler
                 _ => throw new NotSupportedException($"Unsupported value expression {value.GetType().Name}."),
             };
         }
-        PhysicalUnit ValueUnit(PlanValue value, Dictionary<ParameterId, BlackboardValueType> known)
+        PhysicalUnit ValueUnit(PlanValue value, VariableFlowState known)
             => ValueType(value, known).Unit ?? throw new ArgumentException("A physical operand must be a quantity; booleans and text cannot be coerced to numbers.");
-        void BindVariable(ParameterId id, BlackboardValueType type, Dictionary<ParameterId, BlackboardValueType> known)
+        void BindVariable(ParameterId id, BlackboardValueType type, VariableFlowState known)
         {
             ArgumentNullException.ThrowIfNull(id);
             if (known.TryGetValue(id, out var existing) && existing != type) throw new ArgumentException($"Variable {id} cannot change type or units.");
-            known[id] = type; bindings.Add((id, type, variableScope));
+            known[id] = type; if (inspectStep is not null) known.Define(id, visiting.Peek()); bindings.Add((id, type, variableScope));
         }
-        void BindQuantity(ParameterId id, PhysicalUnit unit, Dictionary<ParameterId, BlackboardValueType> known)
+        void BindQuantity(ParameterId id, PhysicalUnit unit, VariableFlowState known)
             => BindVariable(id, BlackboardValueType.Quantity(unit), known);
         void AddColumn(ParameterId id, ParameterDescriptor parameter, ParameterAddress? source, IReadOnlyList<ParameterId> dependencies, bool environment = false)
         {
@@ -227,12 +231,17 @@ internal static class ExperimentPlanCompiler
             ThresholdSwitchStep choice => choice.Children.Any(CanReportWorkflowFailure),
             _ => false, // Validated IO/acquisition leaves either succeed or throw; controls cannot swallow those errors.
         };
-        void RetainCommonVariables(Dictionary<ParameterId, BlackboardValueType> known, IReadOnlyList<Dictionary<ParameterId, BlackboardValueType>> paths)
+        void RetainCommonVariables(VariableFlowState known, IReadOnlyList<VariableFlowState> paths)
         {
             var common = paths[0].Where(item => paths.All(path => path.TryGetValue(item.Key, out var unit) && unit == item.Value)).ToArray();
-            known.Clear(); foreach (var item in common) BindVariable(item.Key, item.Value, known);
+            var origins = inspectStep is null ? null : common.ToDictionary(item => item.Key, item => paths.SelectMany(path => path.Definitions(item.Key)).Distinct().ToArray());
+            known.Clear(); foreach (var item in common)
+            {
+                BindVariable(item.Key, item.Value, known);
+                if (inspectStep is not null) known.SetDefinitions(item.Key, origins![item.Key]);
+            }
         }
-        void CheckCondition(ValueCondition condition, Dictionary<ParameterId, BlackboardValueType> known)
+        void CheckCondition(ValueCondition condition, VariableFlowState known)
         {
             ArgumentNullException.ThrowIfNull(condition);
             if (!Enum.IsDefined(condition.Operator)) throw new ArgumentOutOfRangeException(nameof(condition.Operator));
@@ -244,7 +253,7 @@ internal static class ExperimentPlanCompiler
                 throw new ArgumentException("Equality tolerance requires positive matching quantity units and an equality operator.");
         }
         void ValidateSourceSense(InstrumentId device, SourceFunction function, ParameterId voltageColumn, ParameterId currentColumn,
-            Dictionary<ParameterId, BlackboardValueType> known, IReadOnlyList<ParameterId> axes)
+            VariableFlowState known, IReadOnlyList<ParameterId> axes)
         {
             var sourceDevice = Source(device);
             if (!preparations.TryGetValue(device, out var preparation) || preparation.Function != function ||
@@ -259,7 +268,7 @@ internal static class ExperimentPlanCompiler
             BindQuantity(voltageColumn, PhysicalUnit.Volt, known); BindQuantity(currentColumn, PhysicalUnit.Ampere, known);
         }
         // Shared compiler boundary for direct and sample-independent acquisition.
-        void ValidateIndependentResistance(ReadCurrentResistanceStep independent, Dictionary<ParameterId, BlackboardValueType> known, IReadOnlyList<ParameterId> axes)
+        void ValidateIndependentResistance(ReadCurrentResistanceStep independent, VariableFlowState known, IReadOnlyList<ParameterId> axes)
         {
             var excitation = Device(independent.Source); var pureCurrent = excitation.Model == "K6221";
             if (excitation.StopPolicy != DeviceStopPolicy.OutputOff || pureCurrent && (!currentPreparations.ContainsKey(independent.Source) || independent.CurrentReference != CurrentReference.ProgrammedSetpoint) ||
@@ -291,7 +300,7 @@ internal static class ExperimentPlanCompiler
             else { BindQuantity(independent.VoltageColumn, PhysicalUnit.Volt, known); BindQuantity(independent.CurrentColumn, PhysicalUnit.Ampere, known); BindQuantity(independent.ResistanceColumn, PhysicalUnit.Ohm, known); }
             ValidateEnvironmentPolicy([independent.VoltageColumn, independent.CurrentColumn, independent.ResistanceColumn], independent.EnvironmentReads); ValidateEnvironment(independent.EnvironmentReads, axes);
         }
-        void ValidateResistance(ReadResistanceStep resistance, Dictionary<ParameterId, BlackboardValueType> known, IReadOnlyList<ParameterId> axes)
+        void ValidateResistance(ReadResistanceStep resistance, VariableFlowState known, IReadOnlyList<ParameterId> axes)
         {
             ValidateSourceSense(resistance.Device, resistance.Function, resistance.VoltageColumn, resistance.CurrentColumn, known, axes);
             ValidateEnvironmentPolicy([resistance.VoltageColumn, resistance.CurrentColumn, resistance.ResistanceColumn], resistance.EnvironmentReads);
@@ -323,11 +332,18 @@ internal static class ExperimentPlanCompiler
                     throw new ArgumentException("Shared acquisition columns require one consistent environment policy; use distinct IDs.");
                 else environmentPolicies[column] = reads;
         }
-        long Visit(ExperimentStep step, Dictionary<ParameterId, BlackboardValueType> known, IReadOnlyList<ParameterId> axes, int depth)
+        long Visit(ExperimentStep step, VariableFlowState known, IReadOnlyList<ParameterId> axes, int depth)
         {
             ArgumentNullException.ThrowIfNull(step);
             if (depth > 128 || steps.Count >= 10_000) throw new ArgumentOutOfRangeException(nameof(plan), "Plan exceeds its depth or node limit.");
             if (!steps.Add(step.Id)) throw new ArgumentException($"Duplicate step ID {step.Id}.");
+            if (step.Id == inspectStep && inspectPosition == PlanVariablePosition.BeforeStep) inspectedVariables = known.Capture(axes);
+            visiting.Push(step.Id);
+            try { return VisitBody(step, known, axes, depth); }
+            finally { visiting.Pop(); }
+        }
+        long VisitBody(ExperimentStep step, VariableFlowState known, IReadOnlyList<ParameterId> axes, int depth)
+        {
             switch (step)
             {
                 case TemperatureStabilityStep settings:
@@ -448,7 +464,7 @@ internal static class ExperimentPlanCompiler
                     var mutationUnit = mutation.Action == VariableMutation.Multiply && known.ContainsKey(mutation.Variable) ? ValueUnit(new VariableValue(mutation.Variable), known) : mutation.Action == VariableMutation.Multiply ? PhysicalUnit.Dimensionless : mutation.Value.Unit;
                     BindQuantity(mutation.Variable, mutationUnit, known); return 1;
                 case OutcomeMutationStep hook:
-                    var beforeHook = new Dictionary<ParameterId, BlackboardValueType>(known);
+                    var beforeHook = new VariableFlowState(known);
                     var firstBinding = bindings.Count;
                     var hookCost = Visit(hook.Body, known, axes, depth + 1);
                     // Definite-availability joins omit optional branch variables.
@@ -468,18 +484,18 @@ internal static class ExperimentPlanCompiler
                 case WhileStep loop:
                     CheckCondition(loop.Condition, known); hasDynamicLoops = true;
                     AddColumn(loop.IterationColumn, new(loop.IterationColumn, "While iteration (1-based)", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
-                    var bodyKnown = new Dictionary<ParameterId, BlackboardValueType>(known); BindQuantity(loop.IterationColumn, PhysicalUnit.Dimensionless, bodyKnown);
+                    var bodyKnown = new VariableFlowState(known); BindQuantity(loop.IterationColumn, PhysicalUnit.Dimensionless, bodyKnown);
                     var loopBodyCost = Visit(loop.Body, bodyKnown, [.. axes, loop.IterationColumn], depth + 1);
-                    RetainCommonVariables(known, [new Dictionary<ParameterId, BlackboardValueType>(known), bodyKnown]);
+                    RetainCommonVariables(known, [new VariableFlowState(known), bodyKnown]);
                     return checked(1 + loopBodyCost);
                 case FallbackStep fallback:
                     AddColumn(fallback.BranchColumn, new(fallback.BranchColumn, "Fallback branch (1-based)", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
                     AddColumn(fallback.TotalColumn, new(fallback.TotalColumn, "Fallback branch total", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
                     BindQuantity(fallback.BranchColumn, PhysicalUnit.Dimensionless, known); BindQuantity(fallback.TotalColumn, PhysicalUnit.Dimensionless, known);
-                    var branches = new List<Dictionary<ParameterId, BlackboardValueType>>(); long fallbackCost = 1;
+                    var branches = new List<VariableFlowState>(); long fallbackCost = 1;
                     foreach (var child in fallback.Children)
                     {
-                        var branch = new Dictionary<ParameterId, BlackboardValueType>(known); branches.Add(branch);
+                        var branch = new VariableFlowState(known); branches.Add(branch);
                         fallbackCost = checked(fallbackCost + Visit(child, branch, [.. axes, fallback.BranchColumn, fallback.TotalColumn], depth + 1));
                     }
                     RetainCommonVariables(known, branches); return fallbackCost;
@@ -489,28 +505,31 @@ internal static class ExperimentPlanCompiler
                     BindQuantity(retry.AttemptColumn, PhysicalUnit.Dimensionless, known); BindQuantity(retry.TotalColumn, PhysicalUnit.Dimensionless, known);
                     return checked(1 + retry.MaxAttempts * Visit(retry.Body, known, [.. axes, retry.AttemptColumn, retry.TotalColumn], depth + 1));
                 case ResultDecoratorStep decorator:
-                    var beforeDecoration = new Dictionary<ParameterId, BlackboardValueType>(known);
-                    var decorated = new Dictionary<ParameterId, BlackboardValueType>(known);
+                    var beforeDecoration = new VariableFlowState(known);
+                    var decorated = new VariableFlowState(known);
                     var decoratedCost = Visit(decorator.Body, decorated, axes, depth + 1);
                     // An IO-only child either completes its assignments or
                     // throws, even when the decorator changes its outcome.
                     if (!CanReportWorkflowFailure(decorator.Body))
-                    { known.Clear(); foreach (var item in decorated) BindVariable(item.Key, item.Value, known); }
+                    { RetainCommonVariables(known, [decorated]); }
                     else RetainCommonVariables(known, [beforeDecoration, decorated]);
                     return checked(1 + decoratedCost);
                 case TimeoutStep timeout:
                     return checked(1 + Visit(timeout.Body, known, axes, depth + 1));
                 case SubtreeStep subtree:
-                    var local = new Dictionary<ParameterId, BlackboardValueType>(known);
-                    foreach (var input in subtree.Inputs) local[input.Destination] = ValueType(new VariableValue(input.Source), known);
+                    var local = new VariableFlowState(known);
+                    foreach (var input in subtree.Inputs) { local[input.Destination] = ValueType(new VariableValue(input.Source), known); if (inspectStep is not null) local.Define(input.Destination, subtree.Id); }
                     long subtreeCost = 1;
                     variableScope++;
                     try { foreach (var child in subtree.Children) subtreeCost = checked(subtreeCost + Visit(child, local, axes, depth + 1)); }
                     finally { variableScope--; }
+                    if (subtree.Id == inspectStep && inspectPosition == PlanVariablePosition.AppendChild) inspectedVariables = local.Capture(axes);
                     foreach (var output in subtree.Outputs) BindVariable(output.Destination, ValueType(new VariableValue(output.Source), local), known);
                     return subtreeCost;
                 case SequenceStep sequence:
-                    return checked(1 + sequence.Children.Sum(child => Visit(child, known, axes, depth + 1)));
+                    var sequenceCost = checked(1 + sequence.Children.Sum(child => Visit(child, known, axes, depth + 1)));
+                    if (sequence.Id == inspectStep && inspectPosition == PlanVariablePosition.AppendChild) inspectedVariables = known.Capture(axes);
+                    return sequenceCost;
                 case RepeatStep repeat:
                     return checked(1 + repeat.Cycles * Visit(repeat.Body, known, axes, depth + 1));
                 case ScanStep scan:
@@ -624,10 +643,10 @@ internal static class ExperimentPlanCompiler
                     var selectorType = ValueType(new VariableValue(choice.Variable), known);
                     if (selectorType.Kind != BlackboardValueKind.Quantity || choice.Thresholds.Any(q => q.Unit != selectorType.Unit))
                         throw new ArgumentException("Switch requires an available numeric selector with matching threshold units.");
-                    Dictionary<ParameterId, BlackboardValueType>? switchCommon = null; long switchCost = 0;
+                    VariableFlowState? switchCommon = null; long switchCost = 0;
                     foreach (var child in choice.Children)
                     {
-                        var pathKnown = new Dictionary<ParameterId, BlackboardValueType>(known);
+                        var pathKnown = new VariableFlowState(known);
                         switchCost = Math.Max(switchCost, Visit(child, pathKnown, axes, depth + 1));
                         // Retain the common state incrementally, rather than
                         // holding one entire known-variable map per branch.
@@ -638,17 +657,17 @@ internal static class ExperimentPlanCompiler
                     return checked(1 + switchCost);
                 case IfElseStep conditional:
                     CheckCondition(conditional.Condition, known);
-                    var thenKnown = new Dictionary<ParameterId, BlackboardValueType>(known);
-                    var elseKnown = new Dictionary<ParameterId, BlackboardValueType>(known);
+                    var thenKnown = new VariableFlowState(known);
+                    var elseKnown = new VariableFlowState(known);
                     var thenCost = Visit(conditional.Then, thenKnown, axes, depth + 1);
                     var elseCost = conditional.Else is { } otherwise ? Visit(otherwise, elseKnown, axes, depth + 1) : 0;
                     RetainCommonVariables(known, [thenKnown, elseKnown]);
                     return checked(1 + Math.Max(thenCost, elseCost));
                 case BranchOnOutcomeStep branch:
-                    var beforeCondition = new Dictionary<ParameterId, BlackboardValueType>(known);
-                    var afterCondition = new Dictionary<ParameterId, BlackboardValueType>(known);
+                    var beforeCondition = new VariableFlowState(known);
+                    var afterCondition = new VariableFlowState(known);
                     var conditionCost = Visit(branch.Condition, afterCondition, axes, depth + 1);
-                    var failureKnown = new Dictionary<ParameterId, BlackboardValueType>(afterCondition);
+                    var failureKnown = new VariableFlowState(afterCondition);
                     if (CanReportWorkflowFailure(branch.Condition)) RetainCommonVariables(failureKnown, [beforeCondition, afterCondition]);
                     // A forced result of an otherwise non-failing child has
                     // completed the same observations on its failure path.

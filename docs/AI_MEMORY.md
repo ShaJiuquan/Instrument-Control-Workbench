@@ -1714,3 +1714,22 @@ bound, durable notification journal or auto-resubscription claimed. No dependenc
 Rust edits/physical IO; native acceptance deferred per user's code-first instruction.
 See bounded-notifications.md. Full goal remains active, with wider data/cache/index,
 settings, PPMS workflow/controller/realhardware parity still pending; GitHub only.
+
+## Compiler-backed variable discovery (2026-10-13)
+
+Application DescribeVariables validates full plan, captures only selected BeforeStep
+or sequence/subtree AppendChild position; immutable ordered IDs/kind/unit/active
+coordinate ID/possible first-static-entry last-writer steps. Same compiler type
+flow, optional origin tracking; branch common-state unions real writers, subtree
+mapping/output scope IDs, decorators no synthetic writer. Normal compile retains
+no inspection maps. Shared picker for node value/condition/recursive numeric
+operands; explicit ID/manual edit, hardware-unit/qualified-dimensionless/logical
+filters, no UI evaluation/conversion. Palette container-end context refreshed on
+selection without clearing draft; unavailable IDs retained then full appendreject,
+readonly/foreign/stale callback guards.9Application+9App new cases plus prior44typed
+form regressions; authored arithmetic saves/freshreload executes0.04V, sourceoff,
+fresh archive retains exact row. Native still deferred per user, managed control
+construction only. No Core/format/dependency/Rust/physical changes. See
+plan-variable-discovery.md. Calculated-row input picker and specialized mutation/
+scope mapping ID selection remain, alongside data/index/settings and broader
+PPMS scripts/controller/realhardware parity. Independent C# engine/GitHub only.

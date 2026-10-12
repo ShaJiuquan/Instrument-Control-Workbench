@@ -6,7 +6,7 @@
   <TextBlock Text="值类型" Classes="caption"/>
   <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="计划值类型"/>
   <StackPanel Spacing="6" IsVisible="{Binding HasNumber}"><TextBlock Text="有限数值" Classes="caption"/><TextBox Text="{Binding NumberText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="计划数值"/></StackPanel>
-  <StackPanel Spacing="6" IsVisible="{Binding HasVariable}"><TextBlock Text="变量 ID" Classes="caption"/><TextBox Text="{Binding Variable, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="计划变量引用"/></StackPanel>
+  <StackPanel Spacing="6" IsVisible="{Binding HasVariable}"><views:PlanVariablePickerView DataContext="{Binding VariablePicker}"/><TextBlock Text="变量 ID（可手填）" Classes="caption"/><TextBox Text="{Binding Variable, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="计划变量引用"/></StackPanel>
   <CheckBox Content="布尔值为 true" IsVisible="{Binding HasBoolean}" IsChecked="{Binding Boolean, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" AutomationProperties.Name="计划布尔值"/>
   <TextBox Text="{Binding Text, Mode=TwoWay}" IsVisible="{Binding HasText}" IsReadOnly="{Binding IsReadOnly}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60" AutomationProperties.Name="计划文本值"/>
   <StackPanel Spacing="6" IsVisible="{Binding HasUnit}">

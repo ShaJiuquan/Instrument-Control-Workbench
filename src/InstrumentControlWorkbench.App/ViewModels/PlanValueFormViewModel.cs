@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
+using InstrumentControlWorkbench.Application.Experiments;
 using InstrumentControlWorkbench.Core.Experiments;
 using InstrumentControlWorkbench.Core.Parameters;
 
@@ -17,9 +19,14 @@ public partial class PlanValueFormViewModel : ObservableObject
     private bool loading = true;
     private bool edited;
     private readonly int depth;
+    private readonly bool allowLogical;
+    private IReadOnlyList<PlanVariableAvailability>? variableContext;
+    public PlanVariablePickerViewModel VariablePicker { get; }
     public PlanValueFormViewModel(PlanValue value, Action changed, Func<PhysicalUnit>? boundUnit = null, bool allowLogical = false, int depth = 1)
     {
         if (depth < 1 || depth > ArithmeticValue.MaximumDepth || value is ArithmeticValue arithmeticValue && arithmeticValue.Depth + depth - 1 > ArithmeticValue.MaximumDepth) throw new ArgumentException("表达式层级超过允许范围。");
+        this.allowLogical = allowLogical;
+        VariablePicker = new("", id => Variable = id, AcceptsVariable);
         this.depth = depth; original = value; this.boundUnit = boundUnit; this.changed = changed;
         Kinds = (allowLogical ? Enum.GetValues<PlanValueInputKind>() : [PlanValueInputKind.Quantity, PlanValueInputKind.Variable, PlanValueInputKind.QualifiedNumber, PlanValueInputKind.Arithmetic]).Where(kind => kind != PlanValueInputKind.Arithmetic || depth < ArithmeticValue.MaximumDepth).ToArray();
         switch (value)
@@ -33,6 +40,21 @@ public partial class PlanValueFormViewModel : ObservableObject
             default: throw new NotSupportedException("该值使用高级 JSON 编辑。");
         }
         loading = false;
+    }
+    public void SetAvailableVariables(IReadOnlyList<PlanVariableAvailability>? variables)
+    {
+        variableContext = variables is null ? null : Array.AsReadOnly(variables.ToArray()); VariablePicker.SetContext(variableContext);
+        Left?.SetAvailableVariables(variableContext); Right?.SetAvailableVariables(variableContext);
+    }
+    private bool AcceptsVariable(PlanVariableAvailability variable)
+    {
+        if (Kind == PlanValueInputKind.QualifiedNumber) return variable.Type == BlackboardValueType.Quantity(PhysicalUnit.Dimensionless);
+        if (boundUnit is not null)
+        {
+            try { return variable.Type == BlackboardValueType.Quantity(boundUnit()); }
+            catch (InvalidOperationException) { return false; }
+        }
+        return allowLogical || variable.Type.Kind == BlackboardValueKind.Quantity;
     }
     public PlanValueInputKind[] Kinds { get; }
     public PhysicalUnit[] Units { get; } = Enum.GetValues<PhysicalUnit>();
@@ -72,19 +94,21 @@ public partial class PlanValueFormViewModel : ObservableObject
             SelectedOperator = null; Left = null; Right = null;
             if (value == PlanValueInputKind.Arithmetic && depth < ArithmeticValue.MaximumDepth) CreateOperands(new ConstantValue(new(0, PhysicalUnit.Dimensionless)), new ConstantValue(new(0, PhysicalUnit.Dimensionless)), true);
         }
+        VariablePicker.RefreshChoices();
         OnPropertyChanged(nameof(HasArithmetic)); OnPropertyChanged(nameof(HasNumber)); OnPropertyChanged(nameof(HasVariable)); OnPropertyChanged(nameof(HasBoolean)); OnPropertyChanged(nameof(HasText)); OnPropertyChanged(nameof(HasUnit)); Changed();
     }
     partial void OnNumberTextChanged(string value) => Changed();
-    partial void OnVariableChanged(string value) => Changed();
+    partial void OnVariableChanged(string value) { VariablePicker.SyncId(value); Changed(); }
     partial void OnUnitChanged(PhysicalUnit value) => Changed();
     partial void OnBooleanChanged(bool value) => Changed();
     partial void OnTextChanged(string value) => Changed();
-    partial void OnIsReadOnlyChanged(bool value) { if (Left is { } leftOperand) leftOperand.IsReadOnly = value; if (Right is { } rightOperand) rightOperand.IsReadOnly = value; OnPropertyChanged(nameof(CanChooseUnit)); }
+    partial void OnIsReadOnlyChanged(bool value) { VariablePicker.IsReadOnly = value; if (Left is { } leftOperand) leftOperand.IsReadOnly = value; if (Right is { } rightOperand) rightOperand.IsReadOnly = value; OnPropertyChanged(nameof(CanChooseUnit)); }
     private void Changed() { OnPropertyChanged(nameof(UnitLabel)); if (!loading) { edited = true; changed(); } }
     public void AddressChanged()
     {
         edited = true; NumberText = ""; Variable = "";
         if (HasArithmetic) { SelectedOperator = null; CreateOperands(new ConstantValue(new(0, PhysicalUnit.Dimensionless)), new ConstantValue(new(0, PhysicalUnit.Dimensionless)), true); }
+        VariablePicker.RefreshChoices();
         OnPropertyChanged(nameof(UnitLabel));
     }
     private void CreateOperands(PlanValue leftValue, PlanValue rightValue, bool clear)
@@ -93,6 +117,7 @@ public partial class PlanValueFormViewModel : ObservableObject
         leftOperand = new(leftValue, () => { if (ReferenceEquals(Left, leftOperand)) Changed(); }, depth: depth + 1);
         rightOperand = new(rightValue, () => { if (ReferenceEquals(Right, rightOperand)) Changed(); }, depth: depth + 1);
         if (clear) { leftOperand.AddressChanged(); rightOperand.AddressChanged(); }
+        leftOperand.SetAvailableVariables(variableContext); rightOperand.SetAvailableVariables(variableContext);
         leftOperand.IsReadOnly = IsReadOnly; rightOperand.IsReadOnly = IsReadOnly; Left = leftOperand; Right = rightOperand;
     }
     public PlanValue Build()
