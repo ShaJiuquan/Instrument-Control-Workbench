@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using InstrumentControlWorkbench.Application.Experiments;
 using InstrumentControlWorkbench.Core.Experiments;
+using InstrumentControlWorkbench.Core.Instruments;
 using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.App.ViewModels;
@@ -21,7 +22,7 @@ public partial class PlanWorkspaceViewModel
     [ObservableProperty] private PlanStepFormViewModel? paletteForm;
     [ObservableProperty] private bool showAdvancedNode;
     public ObservableCollection<PlanGraphNodeViewModel> GraphNodes { get; } = new();
-    public string[] PaletteKinds { get; } = ["等待", "顺序", "重复", "超时保护", "重试", "读取仪器", "设置参数", "参数扫描", "源输出"];
+    public string[] PaletteKinds { get; } = ["等待", "顺序", "重复", "超时保护", "重试", "读取仪器", "设置参数", "参数扫描", "源输出", "源与测量读数", "源表电阻", "独立源电阻"];
     public bool SupportsNodeForm => NodeForm?.IsSupported == true;
     public bool HasPaletteForm => PaletteForm is not null;
     public bool IsNodeFormVisible => SupportsNodeForm && !ShowAdvancedNode;
@@ -152,7 +153,7 @@ public partial class PlanWorkspaceViewModel
     private void ResetPaletteForm()
     {
         PaletteForm = null;
-        if (PaletteKind is not ("读取仪器" or "设置参数" or "参数扫描" or "源输出")) return;
+        if (PaletteKind is not ("读取仪器" or "设置参数" or "参数扫描" or "源输出" or "源与测量读数" or "源表电阻" or "独立源电阻")) return;
         PlanStepFormViewModel? form = null;
         form = new(CreatePaletteStep(PaletteKind), workspace.Devices, () => { if (ReferenceEquals(PaletteForm, form)) RefreshGraphCommands(); }, template: true);
         PaletteForm = form;
@@ -172,6 +173,9 @@ public partial class PlanWorkspaceViewModel
             "设置参数" => new SetParameterStep(id, address, new ConstantValue(new(0, PhysicalUnit.Dimensionless))),
             "参数扫描" => new ScanStep(id, address, new("axis"), new([new(0, PhysicalUnit.Dimensionless)]), TimeSpan.Zero, new SequenceStep(new(id.Value + "-body"), [])),
             "源输出" => new SourceOutputStep(id, address.Device, false),
+            "源与测量读数" => new ReadSourceSenseStep(id, new("unselected-source"), SourceFunction.Voltage, new("voltage_read"), new("current_read")),
+            "源表电阻" => new ReadResistanceStep(id, new("unselected-source"), SourceFunction.Voltage, new("voltage_read"), new("current_read"), new("resistance"), new(0, PhysicalUnit.Ampere)),
+            "独立源电阻" => new ReadCurrentResistanceStep(id, new("unselected-source"), new("unselected-meter"), CurrentReference.ProgrammedSetpoint, new("voltage_read"), new("current_read"), new("resistance"), new(0, PhysicalUnit.Ampere)),
             _ => throw new NotSupportedException("选择可用的步骤类型。"),
         };
     }

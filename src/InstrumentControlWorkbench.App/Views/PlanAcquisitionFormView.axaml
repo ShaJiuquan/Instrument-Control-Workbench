@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:views="using:InstrumentControlWorkbench.App.Views"
+ x:Class="InstrumentControlWorkbench.App.Views.PlanAcquisitionFormView" x:DataType="vm:PlanAcquisitionFormViewModel">
+ <StackPanel Spacing="8">
+  <TextBlock Text="源设备" Classes="caption"/>
+  <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="测量源设备">
+   <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanDeviceChoice"><TextBlock Text="{Binding Label}" FontSize="11" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
+  </ComboBox>
+  <StackPanel Spacing="6" IsVisible="{Binding HasSourceFunction}"><TextBlock Text="源功能 / 须与计划准备一致" Classes="caption"/><ComboBox ItemsSource="{Binding SourceFunctions}" SelectedItem="{Binding SourceFunction, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="测量源功能"/></StackPanel>
+  <Grid ColumnDefinitions="*,8,*">
+   <StackPanel Spacing="6"><TextBlock Text="电压结果列 / Volt" Classes="caption"/><TextBox Text="{Binding VoltageColumn, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="测量电压列"/></StackPanel>
+   <StackPanel Grid.Column="2" Spacing="6"><TextBlock Text="电流结果列 / Ampere" Classes="caption"/><TextBox Text="{Binding CurrentColumn, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="测量电流列"/></StackPanel>
+  </Grid>
+  <StackPanel Spacing="6" IsVisible="{Binding HasResistance}">
+   <TextBlock Text="电阻结果列 / Ohm" Classes="caption"/><TextBox Text="{Binding ResistanceColumn, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="测量电阻列"/>
+   <TextBlock Text="最小绝对电流 / Ampere" Classes="caption"/><TextBox Text="{Binding MinimumCurrent, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="电阻最小电流"/>
+  </StackPanel>
+  <views:PlanIndependentAcquisitionView IsVisible="{Binding IsIndependent}"/>
+  <StackPanel Spacing="6" IsVisible="{Binding IsSample}">
+   <TextBlock Text="矩阵切换后等待 / 秒" Classes="caption"/><TextBox Text="{Binding SampleSettle, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="样品路由等待秒"/>
+   <TextBlock Text="源设定后等待 / 秒" Classes="caption"/><TextBox Text="{Binding AcquisitionSettle, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="样品采集等待秒"/>
+   <CheckBox Content="路由由外层流程管理" IsChecked="{Binding RoutingManagedExternally, Mode=TwoWay}" IsEnabled="{Binding CanChooseExternalRouting}" AutomationProperties.Name="外层管理样品路由"/>
+  </StackPanel>
+  <TextBlock Text="{Binding PreservedContext}" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+ </StackPanel>
+</UserControl>

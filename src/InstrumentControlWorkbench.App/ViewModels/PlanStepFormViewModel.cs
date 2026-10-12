@@ -54,6 +54,7 @@ public partial class PlanStepFormViewModel : ObservableObject
                 foreach (var channel in s.Channels) Channels.Add(new(devices, template ? null : channel, MarkDirty)); break;
             case SourceOutputStep s: outputEnabled = s.Enabled; break;
         }
+        if (HasAcquisition) Acquisition = new(step, devices, MarkDirty, template);
         loading = false;
     }
     public bool IsDelay => original is DelayStep;
@@ -71,7 +72,9 @@ public partial class PlanStepFormViewModel : ObservableObject
     public string CyclesLabel => IsRetry ? "最大尝试次数" : "重复次数";
     public string StableTargetLabel => original is WaitStableStep s ? "目标保持原值：" + (s.Target switch { VariableValue v => "变量 " + v.Variable.Value, ConstantValue c => Number(c.Value.Value) + " " + c.Value.Unit, _ => "高级表达式" }) : "";
     public bool HasAddress => IsSet || IsScan || IsWaitStable;
-    public bool IsSupported => HasSeconds || IsRepeat || HasAddress || IsRead || IsOutput;
+    public bool HasAcquisition => original is ReadSourceSenseStep or ReadResistanceStep or ReadCurrentResistanceStep or ReadSampleResistanceStep;
+    public PlanAcquisitionFormViewModel? Acquisition { get; }
+    public bool IsSupported => HasSeconds || IsRepeat || HasAddress || IsRead || IsOutput || HasAcquisition;
     public PlanParameterSelectionViewModel Address { get; }
     public ObservableCollection<PlanReadChannelFormViewModel> Channels { get; } = new();
     [ObservableProperty] private string seconds = "";
@@ -98,7 +101,7 @@ public partial class PlanStepFormViewModel : ObservableObject
     partial void OnPollSecondsChanged(string value) => MarkDirty();
     partial void OnIsReadOnlyChanged(bool value)
     {
-        Address.IsReadOnly = value; foreach (var channel in Channels) channel.IsReadOnly = value;
+        Address.IsReadOnly = value; if (Acquisition is { } acquisition) acquisition.IsReadOnly = value; foreach (var channel in Channels) channel.IsReadOnly = value;
         AddChannelCommand.NotifyCanExecuteChanged(); RemoveChannelCommand.NotifyCanExecuteChanged();
     }
     private void AddressChanged()
@@ -125,6 +128,7 @@ public partial class PlanStepFormViewModel : ObservableObject
     }
     public ExperimentStep Build()
     {
+        if (Acquisition is { } acquisition) return acquisition.Build();
         return original switch
         {
             DelayStep s => new DelayStep(s.Id, Duration(Seconds)),

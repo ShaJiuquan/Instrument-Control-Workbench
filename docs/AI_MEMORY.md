@@ -1417,3 +1417,22 @@ observed; compact window left on user-selected instrument page. Successful nativ
 valid apply/run/K6221 dropdown/final committed-package parity remain unverified;
 final label/checkbox refinements only compiled/tested. No dependencies/Rust/lab IO;
 independent C# engine/GitHub only/full goal active. See source-preparation-forms.md.
+
+## Acquisition node forms (2026-10-12)
+
+Native source/sense, integrated resistance, independent current resistance and
+sample-wrapped acquisitions now use named typed forms; three direct palette kinds.
+Frozen registry role resolution (K2450/K6221/K2182), explicit V/I/R IDs/units,
+Ampere threshold, reference/constant expected current/retry and sample timings.
+Switching independent source clears reference/constant input; K6221 programmed
+reference only. Variable/qualified expectations, exact routes, environment and
+sample/wiring bindings retained, with advanced JSON for rebinding. Existing full
+compiler/draft/busy/readonly/stale guards remain authoritative; no driver calls.
+29 new App cases: exact field retention/invalid/family/reference/mixed/busy/stale;
+three palette fresh save/load/one-row simulations/output-off; frozen sample
+integrated/independent3/1rows/route provenance/matrix cleanup. Native working1060
+actual read_resistance negative/discard/valid apply/nine rows/Completed/output-off/
+save/reload/idle close0 and archive checksum/edited threshold verified. Independent,
+sample/retry/palette native actions and clean committed-package parity pending.
+No dependencies/Rust/lab IO; independent engine/GitHub only/full goal active.
+See acquisition-node-forms.md.

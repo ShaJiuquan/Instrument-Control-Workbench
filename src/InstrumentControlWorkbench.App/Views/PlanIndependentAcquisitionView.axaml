@@ -1,0 +1,27 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels"
+ x:Class="InstrumentControlWorkbench.App.Views.PlanIndependentAcquisitionView" x:DataType="vm:PlanAcquisitionFormViewModel">
+ <StackPanel Spacing="8">
+  <TextBlock Text="独立电压表" Classes="caption"/>
+  <ComboBox ItemsSource="{Binding Meters}" SelectedItem="{Binding SelectedMeter, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="测量独立电压表">
+   <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanDeviceChoice"><TextBlock Text="{Binding Label}" FontSize="11" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
+  </ComboBox>
+  <TextBlock Text="电流参考 / K6221 仅支持确认的设定值" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+  <ComboBox ItemsSource="{Binding CurrentReferences}" SelectedItem="{Binding SelectedReference, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="测量电流参考"/>
+  <TextBlock Text="{Binding ExpectedExpressionLabel}" IsVisible="{Binding HasExpectedExpression}" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+  <StackPanel Spacing="6" IsVisible="{Binding !HasExpectedExpression}">
+   <CheckBox Content="校验预期设定电流" IsChecked="{Binding UseExpectedCurrent, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" AutomationProperties.Name="校验预期电流"/>
+   <TextBox Text="{Binding ExpectedCurrent, Mode=TwoWay}" IsReadOnly="{Binding !CanEditExpectedCurrent}" Watermark="Ampere，须高于最小绝对电流" AutomationProperties.Name="预期设定电流"/>
+  </StackPanel>
+  <Expander Header="电压读取失败处理" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" FontSize="11">
+   <StackPanel Spacing="8" Margin="0,8,0,0">
+    <CheckBox Content="指定终端采集失败处理策略" IsChecked="{Binding UseRetry, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" AutomationProperties.Name="指定电阻失败策略"/>
+    <CheckBox Content="策略管理源输出" IsChecked="{Binding OwnsSourceOutput, Mode=TwoWay}" IsEnabled="{Binding CanChooseRetryOwnership}" AutomationProperties.Name="失败策略管理输出"/>
+    <TextBlock Text="重新使能后等待 / 秒；托管输出时必须为 0" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+    <TextBox Text="{Binding RetrySettle, Mode=TwoWay}" IsReadOnly="{Binding !CanEditRetrySettle}" AutomationProperties.Name="失败策略等待秒"/>
+    <CheckBox Content="记录无效点并继续" IsChecked="{Binding ContinueOnFailure, Mode=TwoWay}" IsEnabled="{Binding CanEditRetry}" AutomationProperties.Name="电阻失败继续"/>
+    <TextBlock Text="仅对已确认终止的电压采集失败适用；设备、路由或清理错误仍会终止运行。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+   </StackPanel>
+  </Expander>
+ </StackPanel>
+</UserControl>
