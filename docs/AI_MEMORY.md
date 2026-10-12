@@ -1557,3 +1557,23 @@ on fresh reopen; changed analysis uses actual geometry ratios, missing thickness
 retains raw/sheet and MissingGeometry/no rho. Native again locked/unlock failed/prior
 optional request pending, no window/process actions. No Core/schema/deps/Rust/physical
 changes. Full goal active/GitHub only/engine independent; see sample-details-editor.md.
+
+## Sample catalog creation and mapping (2026-10-13)
+
+Typed new sample ID/name/topology/real electrodes + existing metadata/geometry;
+topology clears mappings, old callbacks inert. Existing electrode editor preserves
+ID/topology/unedited/extra rows, channel changes clear connection; actual frozen
+catalog resolves choices instead of caller metadata. Application Add/UpdateDefinition/
+Remove + whole compiler/codec preserve plan envelope, 1–64/case-insensitive IDs.
+Runtime pure all-direction route validation checks actual matrix bounds/source guards/
+meter role/links/terminal polarity. Verification wiring never rewrites execution
+steps; incoherent fixed independent guards reject mapping change, atomic UI guard
+coordination pending. Shared SampleDirty admission, hidden form readonly during
+creation, stale/busy/selection/file/import/node/prep/JSON locks; removal validates all
+references/last sample.28 App+10Application new cases; prior focused19App/8Application
+also pass.7new saved/fresh simulated samples (4integrated+3independent) actual rows/
+new columns7–12/exact guards/provenance/cleanup;4existing integrated map edits saved/
+fresh/old snapshots retained. No Core/schema/interpreter/deps/Rust/physical changes.
+Native inventory again Mac locked/unlock failed/prior optional request pending; no
+window/process actions. Full goal active/engine independent/GitHub only; see
+sample-catalog-authoring.md. New catalogs/channel/wiring/guard UI remain pending.

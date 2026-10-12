@@ -29,14 +29,15 @@ public partial class PlanGeometryDimensionFormViewModel : ObservableObject
 public partial class PlanSampleDetailsFormViewModel : ObservableObject
 {
     private readonly Action changed;
-    public PlanSampleDetailsFormViewModel(SampleProfile sample, Action changed)
+    public PlanSampleDetailsFormViewModel(SampleProfile sample, Action changed, bool showIdentity = true)
     {
-        Id = sample.Id; Topology = sample.Topology; this.changed = changed;
+        ShowIdentity = showIdentity; Id = sample.Id; Topology = sample.Topology; this.changed = changed;
         sampleName = sample.Name; originalId = sample.OriginalId; material = sample.Material; substrate = sample.Substrate; notes = sample.Notes;
         Width = new("宽度", sample.Geometry.Width, changed); Length = new("长度", sample.Geometry.Length, changed);
         Thickness = new("厚度", sample.Geometry.Thickness, changed); Spacing = new("间距", sample.Geometry.Spacing, changed);
         Dimensions = Array.AsReadOnly(new[] { Width, Length, Thickness, Spacing });
     }
+    public bool ShowIdentity { get; }
     public SampleId Id { get; }
     public SampleTopology Topology { get; }
     public string Identity => Id + " · " + Topology;

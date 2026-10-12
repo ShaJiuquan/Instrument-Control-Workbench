@@ -1,0 +1,10 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:views="using:InstrumentControlWorkbench.App.Views"
+ x:Class="InstrumentControlWorkbench.App.Views.PlanSampleCreationFormView" x:DataType="vm:PlanSampleCreationFormViewModel">
+ <StackPanel Spacing="10">
+  <TextBlock Text="新样品 ID / 不能与已有 ID 重复" Classes="caption"/><TextBox Text="{Binding SampleIdText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="新样品 ID"/>
+  <TextBlock Text="拓扑 / 更换后重新选择电极" Classes="caption"/>
+  <ComboBox ItemsSource="{Binding Topologies}" SelectedItem="{Binding Topology, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="新样品拓扑"/>
+  <views:PlanSampleDetailsFormView DataContext="{Binding Details}"/>
+  <Grid IsVisible="{Binding HasMapping}"><views:PlanSampleElectrodesFormView DataContext="{Binding Mapping}"/></Grid>
+ </StackPanel>
+</UserControl>

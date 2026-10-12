@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
  xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" x:Class="InstrumentControlWorkbench.App.Views.PlanSampleDetailsFormView" x:DataType="vm:PlanSampleDetailsFormViewModel">
- <ScrollViewer HorizontalScrollBarVisibility="Disabled"><StackPanel Spacing="8" Margin="0,0,8,8">
-  <TextBlock Text="{Binding Identity}" Classes="caption" TextWrapping="Wrap"/>
+ <StackPanel Spacing="8" Margin="0,0,8,8">
+  <TextBlock Text="{Binding Identity}" IsVisible="{Binding ShowIdentity}" Classes="caption" TextWrapping="Wrap"/>
   <TextBlock Text="名称" Classes="caption"/><TextBox Text="{Binding SampleName, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="样品名称"/>
   <TextBlock Text="原始编号" Classes="caption"/><TextBox Text="{Binding OriginalId, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="样品原始编号"/>
   <TextBlock Text="材料" Classes="caption"/><TextBox Text="{Binding Material, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="样品材料"/>
@@ -15,5 +15,5 @@
   </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
   <TextBlock Text="备注" Classes="caption"/><TextBox Text="{Binding Notes, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60" AutomationProperties.Name="样品备注"/>
   <TextBlock Text="样品 ID、拓扑和电极连接保持原值。修改应用到本计划，历史运行仍保留原来的样品快照。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
- </StackPanel></ScrollViewer>
+ </StackPanel>
 </UserControl>
