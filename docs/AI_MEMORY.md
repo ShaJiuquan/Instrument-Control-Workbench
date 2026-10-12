@@ -1754,3 +1754,23 @@ See calculated-row-variable-picker.md. Preview notadmission: full later-node/glo
 budget/coupled-write checks remain normal compiler gates; synchronous refresh no
 incremental cache. Specialized workflow IDs, data/index/settings and broader PPMS
 scripts/controller/realhardware parity remain active; independent C# engine/GitHubonly.
+
+## Standalone headless CLI (2026-10-13)
+
+Separate .NET9 console composition, no Avalonia/newpackages. Mandatory actual device/
+native plan paths, metadata-only validate/no fallback; run reuses registry/full compiler/
+ownership/result archive, optional sample/CSV. Version1 JSON lifecycle reports include
+actual model/driver, archive-ready run ID, state/totalrows/ownership; CtrlC/SIGTERM
+cooperative abort drains cleanup+finalization. Unknownstop keepsprocess/archive alive;
+optional bounded8KiB/100ms controlfile targets exact run ID, status/pause/resume/abort/
+recover with explicitreconnect; immutable requestdedup4096 (status excluded), safety
+controls retained atcapacity, malformed/stale/reused commands rejected. Storedpoll
+lifetime canceled/awaited, outputfailure aborts beforedispose, useddevice disconnect.
+15Application newcases; real owned CLI processes validate0/6rowcalc run0/CSV and
+SIGTERM130/finalizedAborted, no desktop/hardwareIO. SelfcontainedCLI packaging script
+newoutput guards/manifests; osx-arm64 runtime acceptance, otherRIDs unexecuted.
+Rust readonly investigation/governance: field_set_ramp_rate current A/s twozones,
+not genericT/s; naming/range ambiguity and no calibration/readbackproof -> remains
+pending, nofakeconversion. See headless-cli.md. RawPPMS import stillvia workspace,
+remote authentication/crossprocess leasing/startup reconciliation/native visual/
+fieldprofiles and broader migration remain active; GitHub only, native deferred.

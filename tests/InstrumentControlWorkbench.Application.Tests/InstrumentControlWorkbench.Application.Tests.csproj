@@ -25,6 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\InstrumentControlWorkbench.Cli\InstrumentControlWorkbench.Cli.csproj" />
     <ProjectReference Include="..\..\src\InstrumentControlWorkbench.Application\InstrumentControlWorkbench.Application.csproj" />
     <ProjectReference Include="..\..\src\InstrumentControlWorkbench.Core\InstrumentControlWorkbench.Core.csproj" />
     <ProjectReference Include="..\..\src\InstrumentControlWorkbench.Infrastructure\InstrumentControlWorkbench.Infrastructure.csproj" />
