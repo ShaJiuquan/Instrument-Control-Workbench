@@ -1521,3 +1521,21 @@ Native cua inventory now callable but Mac locked/unlock failed; optional async
 unlock request sent, no user window/process touched. No Core/interpreter/schema/
 dependencies/Rust/physical changes. Engine independent/GitHub only/full goal active.
 See scan-generator-node-forms.md.
+
+## Sample analysis group forms (2026-10-13)
+
+Named typed analysis form exposes four fixed-kind/unit derived IDs and ordered2/8
+per-direction acquisition/routing/environment expanders, retaining independent
+per-reading thresholds/timings/expressions/retry/IDs. One whole-group draft/compiler,
+no flattening. Actual draft binding resolves frozen sample geometry; missing values
+explicit. Four integrated/independent Hall/vdP palettes require blank derived IDs/
+threshold and explicit bindings/reference. Raw columns uniquely scoped by new node
+ID to prevent accidental environment-policy collisions with previous acquisitions.
+24 App cases:4roundtrips/10invalid/noIO/4coordinated rebinds/4palettes/missing geometry/
+locks. Saved/fresh simulated edited and new groups execute ordered raw2/8 + summary
+3/9rows, exact catalog routes and derived values from actual raw inputs; outputs-off,
+matrixempty/runreleased. Missing geometry retains raw evidence and measured R with
+MissingGeometry/missing derived values. No Core/interpreter/schema/deps/Rust/physical
+changes. Native tool available but inventory again Mac locked/unlock unsuccessful;
+prior async unlock pending; no user window/new app launch. Full goal active/GitHub
+only/engine independent; see sample-analysis-node-forms.md.

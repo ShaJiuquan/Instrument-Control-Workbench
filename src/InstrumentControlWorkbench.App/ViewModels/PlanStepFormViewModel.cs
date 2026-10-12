@@ -53,6 +53,7 @@ public partial class PlanStepFormViewModel : ObservableObject
                 foreach (var channel in s.Channels) Channels.Add(new(devices, template ? null : channel, MarkDirty)); break;
             case SourceOutputStep s: outputEnabled = s.Enabled; break;
         }
+        if (step is SampleAnalysisStep analysis) AnalysisForm = new(analysis, devices, axes ?? Array.Empty<AxisControllerDefinition>(), routing, MarkDirty, template);
         if (step is ScanStep scan) ScanValuesForm = new(scan.Values, () => Address.ResolveParameter().Unit, ValidateScanValues, MarkDirty, template);
         if (step is SubtreeStep subtree) ScopeForm = new(subtree, MarkDirty);
         if (step is ForEachStep iterator) IterationForm = new(iterator, MarkDirty, template);
@@ -90,6 +91,8 @@ public partial class PlanStepFormViewModel : ObservableObject
     public bool HasCondition => original is ConditionStep or IfElseStep or WhileStep;
     public bool HasMutation => MutationForm is not null;
     public PlanMutationFormViewModel? MutationForm { get; }
+    public bool HasAnalysis => AnalysisForm is not null;
+    public PlanSampleAnalysisFormViewModel? AnalysisForm { get; }
     public bool HasScope => ScopeForm is not null;
     public PlanScopeFormViewModel? ScopeForm { get; }
     public bool HasIteration => IterationForm is not null;
@@ -110,7 +113,7 @@ public partial class PlanStepFormViewModel : ObservableObject
     public PlanAcquisitionFormViewModel? Acquisition { get; }
     public bool HasEnvironment => IsRead || HasAcquisition;
     public PlanEnvironmentFormViewModel? Environment { get; }
-    public bool IsSupported => HasSeconds || IsRepeat || HasAddress || IsRead || IsOutput || HasAcquisition || IsAssign || HasCondition || HasMutation || HasOutcome || HasScope || HasIteration;
+    public bool IsSupported => HasSeconds || IsRepeat || HasAddress || IsRead || IsOutput || HasAcquisition || IsAssign || HasCondition || HasMutation || HasOutcome || HasScope || HasIteration || HasAnalysis;
     public PlanParameterSelectionViewModel Address { get; }
     public ObservableCollection<PlanReadChannelFormViewModel> Channels { get; } = new();
     [ObservableProperty] private string seconds = "";
@@ -135,7 +138,7 @@ public partial class PlanStepFormViewModel : ObservableObject
     partial void OnPollSecondsChanged(string value) => MarkDirty();
     partial void OnIsReadOnlyChanged(bool value)
     {
-        if (ScanValuesForm is { } scanValues) scanValues.IsReadOnly = value; Address.IsReadOnly = value; if (ScopeForm is { } scope) scope.IsReadOnly = value; if (IterationForm is { } iteration) iteration.IsReadOnly = value; if (MutationForm is { } mutation) mutation.IsReadOnly = value; if (OutcomeForm is { } outcome) outcome.IsReadOnly = value; if (ValueForm is { } expression) expression.IsReadOnly = value; if (ConditionForm is { } condition) condition.IsReadOnly = value; if (Environment is { } environment) environment.IsReadOnly = value; if (Acquisition is { } acquisition) acquisition.IsReadOnly = value; foreach (var channel in Channels) channel.IsReadOnly = value;
+        if (AnalysisForm is { } analysis) analysis.IsReadOnly = value; if (ScanValuesForm is { } scanValues) scanValues.IsReadOnly = value; Address.IsReadOnly = value; if (ScopeForm is { } scope) scope.IsReadOnly = value; if (IterationForm is { } iteration) iteration.IsReadOnly = value; if (MutationForm is { } mutation) mutation.IsReadOnly = value; if (OutcomeForm is { } outcome) outcome.IsReadOnly = value; if (ValueForm is { } expression) expression.IsReadOnly = value; if (ConditionForm is { } condition) condition.IsReadOnly = value; if (Environment is { } environment) environment.IsReadOnly = value; if (Acquisition is { } acquisition) acquisition.IsReadOnly = value; foreach (var channel in Channels) channel.IsReadOnly = value;
         AddChannelCommand.NotifyCanExecuteChanged(); RemoveChannelCommand.NotifyCanExecuteChanged();
     }
     private void AddressChanged()
@@ -162,6 +165,7 @@ public partial class PlanStepFormViewModel : ObservableObject
     }
     public ExperimentStep Build()
     {
+        if (AnalysisForm is { } analysis) return analysis.Build();
         if (Acquisition is { } acquisition) return acquisition.Build();
         if (ScopeForm is { } scope) return scope.Build();
         if (IterationForm is { } iteration) return iteration.Build();

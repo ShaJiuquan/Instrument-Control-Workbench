@@ -1,0 +1,21 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:views="using:InstrumentControlWorkbench.App.Views"
+ x:Class="InstrumentControlWorkbench.App.Views.PlanSampleAnalysisFormView" x:DataType="vm:PlanSampleAnalysisFormViewModel">
+ <StackPanel Spacing="10">
+  <TextBlock Text="{Binding GroupLabel}" Classes="caption" TextWrapping="Wrap"/>
+  <TextBlock Text="{Binding GeometrySummary}" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+  <TextBlock Text="派生结果列 / 原始电压、电流、电阻仍保留" Classes="caption" TextWrapping="Wrap"/>
+  <ItemsControl ItemsSource="{Binding Columns}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:PlanDerivedColumnFormViewModel">
+   <StackPanel Spacing="6" Margin="0,0,0,8"><TextBlock Text="{Binding Label}" Classes="caption"/>
+    <TextBox Text="{Binding ColumnId, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="分析结果列 ID"/>
+   </StackPanel>
+  </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+  <TextBlock Text="按顺序采集所有方向；样品、接线、源功能与原始列须一致。修改后一次应用整个分析组。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+  <ItemsControl ItemsSource="{Binding Readings}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:PlanAnalysisReadingFormViewModel">
+   <Expander Header="{Binding Label}" HorizontalAlignment="Stretch" Margin="0,0,0,8">
+    <StackPanel Spacing="8"><views:PlanAcquisitionFormView DataContext="{Binding Acquisition}"/><views:PlanEnvironmentFormView DataContext="{Binding Environment}"/></StackPanel>
+   </Expander>
+  </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+  <TextBlock Text="片电阻与电阻率使用样品目录中的几何。几何缺失或采集失败时保留原始证据并标记缺失结果。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+ </StackPanel>
+</UserControl>
