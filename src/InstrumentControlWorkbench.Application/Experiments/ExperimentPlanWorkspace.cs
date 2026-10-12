@@ -66,6 +66,8 @@ public sealed partial class ExperimentPlanWorkspace(IExperimentPlanDocument docu
         return Inspect(new(plan.Name, plan.Root, plan.Preparations.Where(p => p.Device != device), plan.Metadata, plan.Routing,
             plan.CurrentSourcePreparations.Where(p => p.Device != device), plan.MaximumStepExecutions));
     }
+    public PlanCalculationDraftPreview DescribeCalculationDraft(ExperimentPlan plan, StepId target, PlanStructureEditKind kind, PlanCalculationDraft draft)
+        => runs.DescribeCalculationDraft(plan, target, kind, draft);
     public IReadOnlyList<PlanVariableAvailability> DescribeVariables(ExperimentPlan plan, StepId step, PlanVariablePosition position = PlanVariablePosition.BeforeStep)
         => runs.DescribeVariables(plan, step, position);
     public ExperimentStep ReadStep(ExperimentPlan plan, StepId selected) => StructureDocuments.ReadStep(plan, selected);

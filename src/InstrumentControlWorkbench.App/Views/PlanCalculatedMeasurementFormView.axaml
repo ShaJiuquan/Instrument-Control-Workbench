@@ -2,6 +2,7 @@
  <UserControl.DataTemplates><DataTemplate DataType="vm:PlanStepFormViewModel" x:DataType="vm:PlanStepFormViewModel"><views:PlanStepFormView/></DataTemplate></UserControl.DataTemplates>
  <StackPanel Spacing="8">
   <TextBlock Text="{Binding InputSummary}" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+  <TextBlock Text="{Binding PreviewMessage}" IsVisible="{Binding HasPreviewMessage}" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
   <Expander Header="本次测量" IsVisible="{Binding CanEditBody}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"><ContentControl Content="{Binding BodyForm}"/></Expander>
   <CheckBox IsChecked="{Binding ContinueOnUnavailable, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"><TextBlock Text="结果不可计算时保留缺失值和原因，继续运行" TextWrapping="Wrap"/></CheckBox>
   <controls:OperatorButton Content="添加计算列" Command="{Binding AddColumnCommand}" HorizontalAlignment="Left"/>
@@ -9,6 +10,7 @@
    <Border BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="5" Padding="8" Margin="0,0,0,8"><StackPanel Spacing="6">
     <TextBlock Text="结果列 ID / 按顺序计算" Classes="caption"/><TextBox Text="{Binding ColumnId, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="计算结果列 ID"/>
     <views:PlanValueFormView DataContext="{Binding Expression}"/>
+    <TextBlock Text="{Binding PreviewSummary}" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
     <controls:OperatorButton Content="移除计算列" Command="{Binding #CalculationRoot.((vm:PlanCalculatedMeasurementFormViewModel)DataContext).RemoveColumnCommand}" CommandParameter="{Binding}" HorizontalAlignment="Left"/>
    </StackPanel></Border>
   </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>

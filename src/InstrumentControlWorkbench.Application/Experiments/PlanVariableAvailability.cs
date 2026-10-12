@@ -6,7 +6,7 @@ namespace InstrumentControlWorkbench.Application.Experiments;
 public enum PlanVariablePosition { BeforeStep, AppendChild }
 
 // Static possibilities at a validated program position, not runtime values.
-public sealed record PlanVariableAvailability(ParameterId Id, BlackboardValueType Type, bool IsActiveAxis, IReadOnlyList<StepId> PossibleDefinitions);
+public sealed record PlanVariableAvailability(ParameterId Id, BlackboardValueType Type, bool IsActiveAxis, IReadOnlyList<StepId> PossibleDefinitions, bool MayBeAbsent = false);
 
 internal sealed class VariableFlowState : Dictionary<ParameterId, BlackboardValueType>
 {

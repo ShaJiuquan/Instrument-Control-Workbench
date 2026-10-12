@@ -1733,3 +1733,24 @@ construction only. No Core/format/dependency/Rust/physical changes. See
 plan-variable-discovery.md. Calculated-row input picker and specialized mutation/
 scope mapping ID selection remain, alongside data/index/settings and broader
 PPMS scripts/controller/realhardware parity. Independent C# engine/GitHub only.
+
+## Current-row calculation draft picker (2026-10-13)
+
+Application metadata-only draft probe first validates original host, visits current
+proposed acquisition at replace/sequence/subtree append context using same compiler
+rules; request-specific private exit returns only metadata, never runnable partial
+compile. Logical outputs/env/active axes/elapsed only, excludes unrelated/stale
+blackboard values. Frozen per-column ordered inputs, Core unit inference, blank/
+self/forward/collision/type errors no binding; prior valid results only. Absence
+from definite compiler availability and env semantics, not blanket schemaoptional;
+prior results conservatively mayfail. Shared recursive picker/summary/error panel
+refresh on body/column edits/add/remove/position, preserves stale ID text thenfull
+apply rejection; readonly/retired callbacks and no initialdirty.11Application+8App
+new cases: scoped/joint/optional/error/noIO queries and real picker-authored3column
+power/voltage/resistance chain saved/fresh runtime3rows/input2/sourceoff, fresh
+archive/CSV unit+calculation evidence. Native still deferred per user; managed
+construction/compiled bindings only. No Core/schema/dependency/Rust/physical changes.
+See calculated-row-variable-picker.md. Preview notadmission: full later-node/global/
+budget/coupled-write checks remain normal compiler gates; synchronous refresh no
+incremental cache. Specialized workflow IDs, data/index/settings and broader PPMS
+scripts/controller/realhardware parity remain active; independent C# engine/GitHubonly.

@@ -15,17 +15,21 @@ internal sealed record CompiledExperiment(ExperimentPlan Plan, DataSetSchema Sch
 
 // Compilation reads capability metadata only. No lease or driver operation occurs
 // until every branch, scan value, unit and result dependency has been checked.
-internal static class ExperimentPlanCompiler
+internal static partial class ExperimentPlanCompiler
 {
     public static readonly ParameterDescriptor Elapsed = new(new("elapsed"), "Elapsed time", PhysicalUnit.Second,
         ParameterAccess.Read, new(0, PhysicalUnit.Second));
 
     public static CompiledExperiment Compile(ExperimentPlan plan, DeviceRegistry registry, StepId? inspectStep = null, PlanVariablePosition inspectPosition = PlanVariablePosition.BeforeStep)
+        => CompileCore(plan, registry, inspectStep, inspectPosition, null);
+
+    private static CompiledExperiment CompileCore(ExperimentPlan plan, DeviceRegistry registry, StepId? inspectStep, PlanVariablePosition inspectPosition, CalculationProbe? calculationProbe)
     {
         ArgumentNullException.ThrowIfNull(plan);
         if (!Enum.IsDefined(inspectPosition)) throw new ArgumentOutOfRangeException(nameof(inspectPosition));
         IReadOnlyList<PlanVariableAvailability>? inspectedVariables = null;
         var visiting = new Stack<StepId>();
+        var trackDefinitions = inspectStep is not null || calculationProbe is not null;
         var devices = registry.Devices.ToDictionary(d => d.Id);
         var needed = new HashSet<InstrumentId>();
         var columns = new Dictionary<ParameterId, DataColumn> { [Elapsed.Id] = new(Elapsed) };
@@ -193,7 +197,7 @@ internal static class ExperimentPlanCompiler
         {
             ArgumentNullException.ThrowIfNull(id);
             if (known.TryGetValue(id, out var existing) && existing != type) throw new ArgumentException($"Variable {id} cannot change type or units.");
-            known[id] = type; if (inspectStep is not null) known.Define(id, visiting.Peek()); bindings.Add((id, type, variableScope));
+            known[id] = type; if (trackDefinitions) known.Define(id, visiting.Peek()); bindings.Add((id, type, variableScope));
         }
         void BindQuantity(ParameterId id, PhysicalUnit unit, VariableFlowState known)
             => BindVariable(id, BlackboardValueType.Quantity(unit), known);
@@ -234,11 +238,11 @@ internal static class ExperimentPlanCompiler
         void RetainCommonVariables(VariableFlowState known, IReadOnlyList<VariableFlowState> paths)
         {
             var common = paths[0].Where(item => paths.All(path => path.TryGetValue(item.Key, out var unit) && unit == item.Value)).ToArray();
-            var origins = inspectStep is null ? null : common.ToDictionary(item => item.Key, item => paths.SelectMany(path => path.Definitions(item.Key)).Distinct().ToArray());
+            var origins = !trackDefinitions ? null : common.ToDictionary(item => item.Key, item => paths.SelectMany(path => path.Definitions(item.Key)).Distinct().ToArray());
             known.Clear(); foreach (var item in common)
             {
                 BindVariable(item.Key, item.Value, known);
-                if (inspectStep is not null) known.SetDefinitions(item.Key, origins![item.Key]);
+                if (trackDefinitions) known.SetDefinitions(item.Key, origins![item.Key]);
             }
         }
         void CheckCondition(ValueCondition condition, VariableFlowState known)
@@ -410,6 +414,12 @@ internal static class ExperimentPlanCompiler
                     ValidateEnvironment(pair.EnvironmentReads, axes);
                     return 1;
                 case CalculatedMeasurementStep calculation:
+                    if (calculationProbe is { Kind: PlanStructureEditKind.Replace } replaceProbe && calculation.Id == replaceProbe.Target)
+                    {
+                        if (replaceProbe.Draft.Id != calculation.Id) throw new ArgumentException("A calculation replacement must retain its step ID.");
+                        Visit(replaceProbe.Draft.Body, known, axes, depth + 1);
+                        throw new CalculationInspectionComplete(replaceProbe, DescribeRowCalculations(replaceProbe, axes, known, columns));
+                    }
                     var calculationCost = Visit(calculation.Body, known, axes, depth + 1);
                     var inputs = calculation.InputColumns.Concat(axes).Append(Elapsed.Id).ToHashSet();
                     foreach (var result in calculation.Columns)
@@ -518,16 +528,31 @@ internal static class ExperimentPlanCompiler
                     return checked(1 + Visit(timeout.Body, known, axes, depth + 1));
                 case SubtreeStep subtree:
                     var local = new VariableFlowState(known);
-                    foreach (var input in subtree.Inputs) { local[input.Destination] = ValueType(new VariableValue(input.Source), known); if (inspectStep is not null) local.Define(input.Destination, subtree.Id); }
+                    foreach (var input in subtree.Inputs) { local[input.Destination] = ValueType(new VariableValue(input.Source), known); if (trackDefinitions) local.Define(input.Destination, subtree.Id); }
                     long subtreeCost = 1;
                     variableScope++;
                     try { foreach (var child in subtree.Children) subtreeCost = checked(subtreeCost + Visit(child, local, axes, depth + 1)); }
                     finally { variableScope--; }
+                    if (calculationProbe is { Kind: PlanStructureEditKind.Append } subtreeProbe && subtree.Id == subtreeProbe.Target)
+                    {
+                        variableScope++;
+                        try
+                        {
+                            Visit(subtreeProbe.Draft.Body, local, axes, depth + 1);
+                            throw new CalculationInspectionComplete(subtreeProbe, DescribeRowCalculations(subtreeProbe, axes, local, columns));
+                        }
+                        finally { variableScope--; }
+                    }
                     if (subtree.Id == inspectStep && inspectPosition == PlanVariablePosition.AppendChild) inspectedVariables = local.Capture(axes);
                     foreach (var output in subtree.Outputs) BindVariable(output.Destination, ValueType(new VariableValue(output.Source), local), known);
                     return subtreeCost;
                 case SequenceStep sequence:
                     var sequenceCost = checked(1 + sequence.Children.Sum(child => Visit(child, known, axes, depth + 1)));
+                    if (calculationProbe is { Kind: PlanStructureEditKind.Append } sequenceProbe && sequence.Id == sequenceProbe.Target)
+                    {
+                        Visit(sequenceProbe.Draft.Body, known, axes, depth + 1);
+                        throw new CalculationInspectionComplete(sequenceProbe, DescribeRowCalculations(sequenceProbe, axes, known, columns));
+                    }
                     if (sequence.Id == inspectStep && inspectPosition == PlanVariablePosition.AppendChild) inspectedVariables = known.Capture(axes);
                     return sequenceCost;
                 case RepeatStep repeat:

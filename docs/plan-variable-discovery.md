@@ -60,9 +60,9 @@ recursive operands and palette rejection. A picker-authored arithmetic expressio
 saves, reloads in a fresh runtime, acquires the expected 0.04 V, closes source
 output and reopens its archived row with the same value.
 
-Per-row calculated expression columns have different input rules; their picker
-is not yet populated by this upstream blackboard context. Mutation/scope mapping
-and other specialized form ID fields still accept manual IDs. Their existing
+Per-row calculated expression columns use their own current-row context, documented
+in calculated-row-variable-picker.md. Mutation/scope mapping and other specialized
+form ID fields still accept manual IDs. Their existing
 full preflight remains authoritative. No language scripts, new dependencies or
 physical instrument transport are added by this stage.
 

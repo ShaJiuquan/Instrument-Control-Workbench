@@ -122,6 +122,8 @@ public partial class PlanWorkspaceViewModel
                 PlanStepFormViewModel? form = null;
                 form = new(workspace.ReadStep(validated.Plan, SelectedNode.Id), workspace.Devices, () => { if (ReferenceEquals(NodeForm, form)) FormChanged(); }, axes: workspace.AxisDefinitions, routing: validated.Plan.Routing);
                 form.SetAvailableVariables(workspace.DescribeVariables(validated.Plan, SelectedNode.Id));
+                var hostPlan = validated.Plan; var target = SelectedNode.Id;
+                form.CalculationForm?.SetDraftInspector(draft => workspace.DescribeCalculationDraft(hostPlan, target, PlanStructureEditKind.Replace, draft));
                 NodeForm = form;
             }
             NodeFragmentDirty = false;
@@ -163,8 +165,11 @@ public partial class PlanWorkspaceViewModel
     }
     private void RefreshPaletteVariables()
     {
-        PaletteForm?.SetAvailableVariables(validated is not null && SelectedNode is { Definition.CanAppend: true } selected
-            ? workspace.DescribeVariables(validated.Plan, selected.Id, PlanVariablePosition.AppendChild) : null);
+        var hostPlan = validated?.Plan; var selected = SelectedNode is { Definition.CanAppend: true } node ? node : null;
+        PaletteForm?.SetAvailableVariables(hostPlan is not null && selected is not null
+            ? workspace.DescribeVariables(hostPlan, selected.Id, PlanVariablePosition.AppendChild) : null);
+        PaletteForm?.CalculationForm?.SetDraftInspector(hostPlan is not null && selected is not null
+            ? draft => workspace.DescribeCalculationDraft(hostPlan, selected.Id, PlanStructureEditKind.Append, draft) : null);
     }
     private static ExperimentStep CreatePaletteStep(string kind)
     {

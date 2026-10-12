@@ -11,7 +11,7 @@ public sealed record PlanVariableChoice(PlanVariableAvailability Variable)
 {
     public string Id => Variable.Id.Value;
     public string DisplayName => $"{Id} · {Variable.Type.Unit?.ToString() ?? Variable.Type.Kind.ToString()} · {(Variable.IsActiveAxis ? "坐标 ID · " : "")}" +
-        "定义 " + string.Join(", ", Variable.PossibleDefinitions.Take(8).Select(step => step.Value)) + (Variable.PossibleDefinitions.Count > 8 ? " …" : "");
+        (Variable.MayBeAbsent ? "可缺失 · " : "") + "定义 " + string.Join(", ", Variable.PossibleDefinitions.Take(8).Select(step => step.Value)) + (Variable.PossibleDefinitions.Count > 8 ? " …" : "");
 }
 
 public partial class PlanVariablePickerViewModel : ObservableObject
