@@ -54,7 +54,7 @@ public sealed partial class RunDataRowValidator
                     RegisterQuality(read.Id, read.Channels.Select(c => (c.Column, c.Address.Device))); RegisterEnvironment(read.Channels.Select(c => c.Column), read.EnvironmentReads); break;
                 case ReadSr830FrameStep read: lockInFrames.Add(read); RegisterQuality(read.Id, read.Channels.Take(4).Select(c => (c.Column, read.Device))); break;
                 case ReadPolarizationStep read:
-                    polarizationReads.Add(read.Id, read); RegisterQuality(read.Id, new[] { read.VoltageColumn, read.CurrentColumn }.Select(column => (column, read.Device))); RegisterEnvironment([read.VoltageColumn, read.CurrentColumn, read.AttemptsColumn], read.EnvironmentReads); break;
+                    polarizationReads.Add(read.Id, read); RegisterQuality(read.Id, new[] { read.VoltageColumn, read.CurrentColumn }.Select(column => (column, read.Device))); RegisterEnvironment([read.VoltageColumn, read.CurrentColumn, read.AttemptsColumn, .. read.RequestedPolarizationColumn is { } requested ? new[] { requested } : []], read.EnvironmentReads); break;
                 case ReadSourceSenseStep read: RegisterQuality(read.Id, new[] { read.VoltageColumn, read.CurrentColumn }.Select(c => (c, read.Device))); RegisterEnvironment([read.VoltageColumn, read.CurrentColumn], read.EnvironmentReads); break;
                 case ReadCurrentResistanceStep read:
                     independentResistance.Add(read.Id, read);
@@ -182,6 +182,13 @@ public sealed partial class RunDataRowValidator
         if (row.Analysis is null && row.MeasurementGroup is null && row.Calculation is null)
             foreach (var pulse in polarizationReads.Values.Where(p => row.Values.ContainsKey(p.AttemptsColumn)))
             {
+                if (pulse.RequestedPolarizationColumn is { } requested)
+                {
+                    if (!row.Values.TryGetValue(requested, out var voltageRequest)) throw new ArgumentException("Dynamic pulse row requires requested polarization voltage.");
+                    _ = pulse.Setpoint(voltageRequest);
+                    if (NumericPlanValue.Variables(pulse.PolarizationTarget).All(row.Values.ContainsKey) && NumericPlanValue.Evaluate(pulse.PolarizationTarget, variable => row.Values[variable]) != voltageRequest)
+                        throw new ArgumentException("Reported polarization voltage differs from its constant or current-row scan target.");
+                }
                 if (!row.Values.TryGetValue(pulse.VoltageColumn, out var voltage) || voltage.Unit != PhysicalUnit.Volt || !row.Values.TryGetValue(pulse.CurrentColumn, out var current) || current.Unit != PhysicalUnit.Ampere ||
                     row.Values[pulse.AttemptsColumn].Unit != PhysicalUnit.Dimensionless || row.Values[pulse.AttemptsColumn].Value != Math.Truncate(row.Values[pulse.AttemptsColumn].Value) || row.Values[pulse.AttemptsColumn].Value < 1 || row.Values[pulse.AttemptsColumn].Value > pulse.MaximumAttempts ||
                     row.Quality.Count != 2 || row.Quality.Any(q => q.Step != pulse.Id || q.Device != pulse.Device || q.MeterConfiguration is not null || q.PicoammeterConfiguration is not null || q.ElectrometerConfiguration is not null) || row.Quality[0].CapturedAt != row.Quality[1].CapturedAt || row.Quality[0].Status != row.Quality[1].Status || row.Quality[0].AcquisitionConfiguration != row.Quality[1].AcquisitionConfiguration)

@@ -409,7 +409,9 @@ public sealed partial class JsonExperimentPlanDocument
     private static JsonObject EncodePolarization(ReadPolarizationStep pulse, JsonObject o)
     {
         o["kind"] = "read_polarization";
-        o["configuration"] = EncodePreparation(new(pulse.Device, SourceFunction.Voltage, pulse.PolarizationVoltage, pulse.Compliance, pulse.Sense));
+        o["configuration"] = EncodePreparation(new(pulse.Device, SourceFunction.Voltage, NumericPlanValue.TryConstant(pulse.PolarizationTarget, out var constant) ? constant : pulse.ReadVoltage, pulse.Compliance, pulse.Sense));
+        if (!NumericPlanValue.TryConstant(pulse.PolarizationTarget, out _)) o["polarizationTarget"] = EncodeValue(pulse.PolarizationTarget);
+        if (pulse.RequestedPolarizationColumn is { } requested) o["requestedPolarizationColumn"] = requested.Value;
         o["polarizationSeconds"] = pulse.PolarizationDuration.TotalSeconds; o["interPulseVoltage"] = EncodeQuantity(pulse.InterPulseVoltage); o["interPulseSeconds"] = pulse.InterPulseDuration.TotalSeconds;
         o["readVoltage"] = EncodeQuantity(pulse.ReadVoltage); o["readDelaySeconds"] = pulse.ReadDelay.TotalSeconds;
         o["voltageColumn"] = pulse.VoltageColumn.Value; o["currentColumn"] = pulse.CurrentColumn.Value; o["attemptsColumn"] = pulse.AttemptsColumn.Value; o["maximumAttempts"] = pulse.MaximumAttempts; EncodeEnvironment(o, pulse.EnvironmentReads);
@@ -418,7 +420,7 @@ public sealed partial class JsonExperimentPlanDocument
     }
     private static ReadPolarizationStep DecodePolarization(JsonObject o, StepId id)
     {
-        Object(o, "id", "kind", "configuration", "polarizationSeconds", "interPulseVoltage", "interPulseSeconds", "readVoltage", "readDelaySeconds", "voltageColumn", "currentColumn", "attemptsColumn", "maximumAttempts", "requiredRoute", "environmentReads");
+        Object(o, "id", "kind", "configuration", "polarizationSeconds", "interPulseVoltage", "interPulseSeconds", "readVoltage", "readDelaySeconds", "voltageColumn", "currentColumn", "attemptsColumn", "maximumAttempts", "requiredRoute", "environmentReads", "polarizationTarget", "requestedPolarizationColumn");
         var pulsePreparation = DecodePreparation(o["configuration"]);
         if (pulsePreparation.Function != SourceFunction.Voltage || pulsePreparation.ManualSourceRange is not null) throw new FormatException("Polarization configuration requires an autoranged voltage source.");
         MatrixRouteExpectation? pulseRoute = null;
@@ -427,7 +429,7 @@ public sealed partial class JsonExperimentPlanDocument
             var route = Object(o["requiredRoute"], "device", "closed");
             pulseRoute = new(new(Text(route, "device")), Array(Required(route, "closed")).Select(p => { var point = Object(p, "slot", "row", "column"); return new MatrixCrossPoint(Integer(point, "slot"), Integer(point, "row"), Integer(point, "column")); }));
         }
-        return new ReadPolarizationStep(id, pulsePreparation.Device, pulsePreparation.Level, Duration(o, "polarizationSeconds"), DecodeQuantity(o["interPulseVoltage"]), Duration(o, "interPulseSeconds"), DecodeQuantity(o["readVoltage"]), Duration(o, "readDelaySeconds"), pulsePreparation.Compliance, pulsePreparation.Sense, new(Text(o, "voltageColumn")), new(Text(o, "currentColumn")), new(Text(o, "attemptsColumn")), Integer(o, "maximumAttempts"), pulseRoute, DecodeEnvironment(o));
+        return new ReadPolarizationStep(id, pulsePreparation.Device, pulsePreparation.Level, Duration(o, "polarizationSeconds"), DecodeQuantity(o["interPulseVoltage"]), Duration(o, "interPulseSeconds"), DecodeQuantity(o["readVoltage"]), Duration(o, "readDelaySeconds"), pulsePreparation.Compliance, pulsePreparation.Sense, new(Text(o, "voltageColumn")), new(Text(o, "currentColumn")), new(Text(o, "attemptsColumn")), Integer(o, "maximumAttempts"), pulseRoute, DecodeEnvironment(o), o.ContainsKey("requestedPolarizationColumn") ? new ParameterId(Text(o, "requestedPolarizationColumn")) : null, o.ContainsKey("polarizationTarget") ? DecodeValue(o["polarizationTarget"]) : null);
     }
 
 }

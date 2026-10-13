@@ -30,7 +30,7 @@ public sealed record MeasurementGroupMember
         {
             ReadStep read => read.Channels.Select(c => c.Column),
             ReadSr830FrameStep lockIn => lockIn.Channels.Select(c => c.Column),
-            ReadPolarizationStep pulse => new[] { pulse.VoltageColumn, pulse.CurrentColumn, pulse.AttemptsColumn },
+            ReadPolarizationStep pulse => new[] { pulse.VoltageColumn, pulse.CurrentColumn, pulse.AttemptsColumn }.Concat(pulse.RequestedPolarizationColumn is { } requested ? [requested] : []),
             ReadSourceSenseStep pair => new[] { pair.VoltageColumn, pair.CurrentColumn },
             ReadCurrentResistanceStep independent => new[] { independent.VoltageColumn, independent.CurrentColumn, independent.ResistanceColumn },
             ReadResistanceStep resistance => new[] { resistance.VoltageColumn, resistance.CurrentColumn, resistance.ResistanceColumn },

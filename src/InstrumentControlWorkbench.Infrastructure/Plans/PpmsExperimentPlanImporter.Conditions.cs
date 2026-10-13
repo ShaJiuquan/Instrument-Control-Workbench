@@ -57,7 +57,7 @@ public sealed partial class PpmsExperimentPlanImporter
         "field" => PhysicalUnit.Tesla,
         "temperature" => PhysicalUnit.Kelvin,
         "angle" => PhysicalUnit.Degree,
-        "voltage" or "bias" => PhysicalUnit.Volt,
+        "voltage" or "bias" or "pol_voltage" => PhysicalUnit.Volt,
         "current" => PhysicalUnit.Ampere,
         "scan_time" => PhysicalUnit.Second,
         "scan_number" => PhysicalUnit.Dimensionless,

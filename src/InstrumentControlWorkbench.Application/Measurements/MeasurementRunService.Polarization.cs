@@ -11,6 +11,8 @@ public sealed partial class MeasurementRunService
 {
     private async Task AcquirePolarizationRowAsync(ReadPolarizationStep step, RunExecutionContext run, IReadOnlyList<IRunResultListener> started)
     {
+        var polarizationVoltage = Resolve(step.PolarizationTarget, run);
+        _ = step.Setpoint(polarizationVoltage); // Validate before any per-pulse IO; freeze across pauses.
         for (var attempt = 1; attempt <= step.MaximumAttempts; attempt++)
         {
             if (attempt > 1) AdvancePlanExecution(run, step.Id);
@@ -18,7 +20,7 @@ public sealed partial class MeasurementRunService
             await run.Resources!.DisableSourceOutputAsync(step.Device, run.Token);
             if (step.RequiredRoute is { } route) await run.Resources.VerifyMatrixRouteAsync(route.Device, route.Closed, run.Token);
             // Configure the first voltage while OFF; ON cannot expose a stale level.
-            await run.Resources.ConfigureSourceMeterAsync(step.Device, step.Setpoint(step.PolarizationVoltage), step.Sense, run.Token);
+            await run.Resources.ConfigureSourceMeterAsync(step.Device, step.Setpoint(polarizationVoltage), step.Sense, run.Token);
             await run.Resources.EnableSourceOutputAsync(step.Device, run.Token, step.Sense.Mode);
             if (!await PolarizationDwellAsync(step, run, step.PolarizationDuration)) continue;
             if (step.InterPulseDuration > TimeSpan.Zero)
@@ -42,8 +44,10 @@ public sealed partial class MeasurementRunService
                 [step.AttemptsColumn] = attempts,
                 [ExperimentPlanCompiler.Elapsed.Id] = new(run.Elapsed.Elapsed.TotalSeconds, PhysicalUnit.Second),
             };
+            if (step.RequestedPolarizationColumn is { } requestedColumn) values[requestedColumn] = polarizationVoltage;
             var environment = await ReadEnvironmentAsync(step.EnvironmentReads, values, run);
             run.SetVariable(step.VoltageColumn, frame.Source, step.Id); run.SetVariable(step.CurrentColumn, frame.Sense, step.Id); run.SetVariable(step.AttemptsColumn, attempts, step.Id);
+            if (step.RequestedPolarizationColumn is { } requestedValue) run.SetVariable(requestedValue, polarizationVoltage, step.Id);
             var quality = new[] { step.VoltageColumn, step.CurrentColumn }.Select(column => new AcquisitionQuality(step.Id, step.Device, column, frame.Timestamp, frame.Status, frame.AcquisitionConfiguration));
             await CommitRowAsync(new(DateTimeOffset.UtcNow, values, environment: environment, quality: quality), step.Id, run, started); return;
         }

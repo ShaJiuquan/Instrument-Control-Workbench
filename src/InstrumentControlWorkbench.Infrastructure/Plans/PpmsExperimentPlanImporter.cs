@@ -70,6 +70,7 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
         public bool UsesSamples { get; set; }
         public bool UsesChannelProfiles { get; set; }
         public Stack<(InstrumentId Device, string Channel, Core.Parameters.ParameterId Axis, bool Gate)> SourceScans { get; } = new();
+        public Dictionary<string, (ParameterId Variable, string? Channel)> PolarizationChildren { get; } = new();
         public Dictionary<string, ParameterId> IteratorChildren { get; } = new();
         public Dictionary<string, PhysicalUnit> NumericVariables { get; } = new();
         public int Nodes { get; set; }
@@ -227,6 +228,7 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
         "meas_temp" or "read_temp" or "temperature" => "measure_temp",
         "meas_field" or "read_field" => "measure_field",
         "meas_angle" or "read_angle" => "measure_angle",
+        "pol_voltage" or "scan_pol_voltage" or "polarization_sweep" or "measure_polarization_sweep" => "measure_polarization",
         "pol_readout" or "polarization_readout" or "polread" => "measure_polarization_readout",
         "meas_current" or "read_current" => "measure_current",
         "meas_voltage" or "read_voltage" => "measure_voltage",

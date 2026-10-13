@@ -199,7 +199,7 @@ public sealed class PpmsPlanImportTests
         {
             case "unknown": node["type"] = "parallel"; break;
             case "children": node = Node("command", "sleep", new() { ["seconds"] = 0 }, Node("measurement", "read_field")); break;
-            case "mode": Object(node)["voltage_mode"] = "polarization"; break;
+            case "mode": Object(node)["voltage_mode"] = "unknown"; break;
             case "points": Object(node)["points"] = new JsonObject { ["mode"] = "shuffle", ["start"] = 0, ["end"] = 1, ["points"] = 3 }; break;
             case "range": Object(node)["source_range_v"] = "201"; break;
             case "route": Object(node)["channel"] = "missing"; break;

@@ -29,6 +29,7 @@ internal static partial class ExperimentPlanCompiler
         if (!Enum.IsDefined(inspectPosition)) throw new ArgumentOutOfRangeException(nameof(inspectPosition));
         IReadOnlyList<PlanVariableAvailability>? inspectedVariables = null;
         var visiting = new Stack<StepId>();
+        var activeIterationValues = new Dictionary<ParameterId, ScanValues>();
         var trackDefinitions = inspectStep is not null || calculationProbe is not null;
         var devices = registry.Devices.ToDictionary(d => d.Id);
         var needed = new HashSet<InstrumentId>();
@@ -314,6 +315,9 @@ internal static partial class ExperimentPlanCompiler
         }
         long ValidatePolarization(ReadPolarizationStep pulse, VariableFlowState known, IReadOnlyList<ParameterId> axes)
         {
+            if (ValueUnit(pulse.PolarizationTarget, known) != PhysicalUnit.Volt) throw new ArgumentException("Polarization target must resolve to Volt.");
+            if (pulse.PolarizationTarget is VariableValue variable && activeIterationValues.TryGetValue(variable.Variable, out var points))
+                foreach (var point in points.Values) _ = pulse.Setpoint(point);
             ValidateSourceSense(pulse.Device, SourceFunction.Voltage, pulse.VoltageColumn, pulse.CurrentColumn, known, axes);
             if (preparations[pulse.Device].Sense.Mode != pulse.Sense.Mode || axes.Any(axis => columns.TryGetValue(axis, out var column) && column.Source?.Device == pulse.Device))
                 throw new ArgumentException("Polarization must match frozen sensing mode and cannot take over an enclosing source scan.");
@@ -325,8 +329,27 @@ internal static partial class ExperimentPlanCompiler
             }
             AddColumn(pulse.AttemptsColumn, new(pulse.AttemptsColumn, "Complete pulse attempt count", PhysicalUnit.Dimensionless, ParameterAccess.Read, new(1, PhysicalUnit.Dimensionless), new(pulse.MaximumAttempts, PhysicalUnit.Dimensionless)), null, [.. axes, Elapsed.Id]);
             BindQuantity(pulse.AttemptsColumn, PhysicalUnit.Dimensionless, known);
-            ValidateEnvironmentPolicy([pulse.VoltageColumn, pulse.CurrentColumn, pulse.AttemptsColumn], pulse.EnvironmentReads); ValidateEnvironment(pulse.EnvironmentReads, axes);
+            if (pulse.RequestedPolarizationColumn is { } requested)
+            {
+                AddColumn(requested, new(requested, "Requested polarization voltage", PhysicalUnit.Volt, ParameterAccess.Read), null, [.. axes, Elapsed.Id]);
+                BindQuantity(requested, PhysicalUnit.Volt, known);
+            }
+            ValidateEnvironmentPolicy([pulse.VoltageColumn, pulse.CurrentColumn, pulse.AttemptsColumn, .. pulse.RequestedPolarizationColumn is { } requestedColumn ? new[] { requestedColumn } : []], pulse.EnvironmentReads); ValidateEnvironment(pulse.EnvironmentReads, axes);
             return pulse.MaximumAttempts;
+        }
+        long ValidateIteration(ForEachStep loop, VariableFlowState known, IReadOnlyList<ParameterId> axes, int depth)
+        {
+            var index = new ParameterId($"{loop.Variable}.index");
+            var total = new ParameterId($"{loop.Variable}.total");
+            if (axes.Contains(loop.Variable)) throw new ArgumentException($"Iterator {loop.Variable} is already active.");
+            AddColumn(loop.Variable, new(loop.Variable, loop.Timing == IterationTiming.DelayBeforePoint ? "Delay before point" : "Iterator value", loop.Values.Unit, ParameterAccess.Read), null, []);
+            AddColumn(index, new(index, loop.IndexBase == IterationIndexBase.OneBased ? "Iterator index (1-based)" : "Iterator index (0-based)", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
+            AddColumn(total, new(total, "Iterator total", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
+            BindQuantity(loop.Variable, loop.Values.Unit, known);
+            BindQuantity(index, PhysicalUnit.Dimensionless, known); BindQuantity(total, PhysicalUnit.Dimensionless, known);
+            activeIterationValues.Add(loop.Variable, loop.Values);
+            try { return checked(1 + loop.Values.Values.Count * Visit(loop.Body, known, [.. axes, loop.Variable, index, total], depth + 1)); }
+            finally { activeIterationValues.Remove(loop.Variable); }
         }
         void ValidateResistance(ReadResistanceStep resistance, VariableFlowState known, IReadOnlyList<ParameterId> axes)
         {
@@ -367,7 +390,7 @@ internal static partial class ExperimentPlanCompiler
             if (!steps.Add(step.Id)) throw new ArgumentException($"Duplicate step ID {step.Id}.");
             if (step.Id == inspectStep && inspectPosition == PlanVariablePosition.BeforeStep) inspectedVariables = known.Capture(axes);
             visiting.Push(step.Id);
-            try { return step is ReadPolarizationStep ? ValidatePolarization((ReadPolarizationStep)step, known, axes) : VisitBody(step, known, axes, depth); }
+            try { return step is ReadPolarizationStep ? ValidatePolarization((ReadPolarizationStep)step, known, axes) : step is ForEachStep ? ValidateIteration((ForEachStep)step, known, axes, depth) : VisitBody(step, known, axes, depth); }
             finally { visiting.Pop(); }
         }
         long VisitBody(ExperimentStep step, VariableFlowState known, IReadOnlyList<ParameterId> axes, int depth)
@@ -605,16 +628,6 @@ internal static partial class ExperimentPlanCompiler
                     AddColumn(scan.Column, axis, scan.Axis, []);
                     BindQuantity(scan.Column, axis.Unit, known);
                     return checked(1 + scan.Values.Values.Count * Visit(scan.Body, known, [.. axes, scan.Column], depth + 1));
-                case ForEachStep loop:
-                    var index = new ParameterId($"{loop.Variable}.index");
-                    var total = new ParameterId($"{loop.Variable}.total");
-                    if (axes.Contains(loop.Variable)) throw new ArgumentException($"Iterator {loop.Variable} is already active.");
-                    AddColumn(loop.Variable, new(loop.Variable, loop.Timing == IterationTiming.DelayBeforePoint ? "Delay before point" : "Iterator value", loop.Values.Unit, ParameterAccess.Read), null, []);
-                    AddColumn(index, new(index, loop.IndexBase == IterationIndexBase.OneBased ? "Iterator index (1-based)" : "Iterator index (0-based)", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
-                    AddColumn(total, new(total, "Iterator total", PhysicalUnit.Dimensionless, ParameterAccess.Read), null, []);
-                    BindQuantity(loop.Variable, loop.Values.Unit, known);
-                    BindQuantity(index, PhysicalUnit.Dimensionless, known); BindQuantity(total, PhysicalUnit.Dimensionless, known);
-                    return checked(1 + loop.Values.Values.Count * Visit(loop.Body, known, [.. axes, loop.Variable, index, total], depth + 1));
                 case SetParameterStep set:
                     var parameter = Parameter(set.Address, ParameterAccess.Write);
                     if (parameter.Unit != ValueUnit(set.Value, known)) throw new ArgumentException($"{set.Address.Parameter} value has the wrong unit.");

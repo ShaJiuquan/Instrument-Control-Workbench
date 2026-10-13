@@ -25,6 +25,17 @@ public sealed partial class TcpKeithley2450Tests
         Assert.Single(commands, c => c == Pair); Assert.False(peer.Output); Assert.False(b.Runs.HasActiveRun); await b.Source.DisconnectAsync(Token);
     }
     [Fact]
+    public async Task DynamicPolarizationSweepUsesActualTcpAdapterAndPreservesEachRequestedPoint()
+    {
+        await using var peer = new Keithley2450ScpiPeer { ActualSource = 1.005, ActualSense = 21e-6 }; var b = new Bench(peer);
+        var sense = new SenseConfiguration(SenseFunction.Current, SensingMode.TwoWire, 1, true); var axis = new ParameterId("pol_axis");
+        var pulse = new ReadPolarizationStep(new("pulse"), b.Source.Id, new(1, PhysicalUnit.Volt), TimeSpan.Zero, new(0, PhysicalUnit.Volt), TimeSpan.Zero, new(1, PhysicalUnit.Volt), TimeSpan.Zero, new(.001, PhysicalUnit.Ampere), sense, new("v"), new("i"), new("attempts"), requestedPolarizationColumn: new("requested"), polarizationTarget: new VariableValue(axis));
+        var loop = new ForEachStep(new("loop"), axis, new([new(5, PhysicalUnit.Volt), new(0, PhysicalUnit.Volt), new(-5, PhysicalUnit.Volt)]), pulse);
+        await b.Runs.StartPlanAsync(new("TCP polarization sweep", loop, [new(b.Source.Id, SourceFunction.Voltage, new(0, PhysicalUnit.Volt), new(.001, PhysicalUnit.Ampere), sense)]), Token);
+        var rows = b.Runs.LatestDataSet!.Rows; Assert.Equal(3, rows.Count); Assert.Equal(new[] { 5.0, 0, -5 }, rows.Select(r => r.Values[new("requested")].Value)); Assert.All(rows, r => Assert.Equal(new(1.005, PhysicalUnit.Volt), r.Values[new("v")]));
+        Assert.All(rows, r => Assert.Equal(ReadingQualityState.ObservedNormal, r.QualityState)); Assert.Equal(3, peer.Server.Commands.Count(command => command == Pair)); Assert.False(peer.Output); Assert.False(b.Runs.HasActiveRun); await b.Source.DisconnectAsync(Token);
+    }
+    [Fact]
     public async Task PolarizationTcpRefusedFinalOffSuppressesSampleAndRetainsSafetyOwnership()
     {
         await using var peer = new Keithley2450ScpiPeer(); var b = new Bench(peer);

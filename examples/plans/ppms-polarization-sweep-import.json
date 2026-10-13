@@ -1,0 +1,14 @@
+{
+  "experiment_id": "Polarization voltage point iterator with owned pulse readout",
+  "type": "scan", "name": "measure_polarization", "source_line": 1,
+  "params": {"points": [5, 0, -5], "channel": "none"},
+  "children": [{
+    "type": "measurement", "name": "polarization_readout", "source_line": 2,
+    "params": {
+      "sensing_mode": "4wire", "pol_duration_s": 0.001,
+      "inter_pulse_voltage_v": 0, "inter_pulse_duration_s": 0.001,
+      "read_voltage_v": 1, "read_delay_s": 0.001,
+      "compliance_a": 0.001, "nplc": 2, "meter_range_a": 0.001
+    }
+  }]
+}

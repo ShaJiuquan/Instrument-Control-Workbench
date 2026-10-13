@@ -490,7 +490,8 @@
         "polarization_sweep",
         "measure_polarization_sweep"
       ],
-      "status": "pending"
+      "status": "partial",
+      "notes": "Nonhardware Volt point iterator, actual Rust registry aliases and scan_voltage polarization mode; direct child point/channel injection, dynamic pulse targets with mandatory requested-V rows, all literal points preflight, paused-point restart, native save/fresh archive/CSV and TCP loopback verified. Parallel/physical waveform/native form pending. See polarization-scan.md."
     },
     {
       "id": "scan_temperature",

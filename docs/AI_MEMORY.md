@@ -1951,3 +1951,19 @@ Recursive compiler/codec pulse handling movedoutside largevisitorframes;
 polarization-readout.md. No deps/Rust/labIO/nativewindow change, graphlabelonly.
 Host timing/physicalwaveform/controller/procedure/visual-form acceptance and
 wider PPMS/workflow/data/settings/remote/SR830mute goal remain incomplete.
+
+## Polarization point iterator (2026-10-13)
+
+Rust actual registry maps measure_polarization/pol_voltage/scan_pol_voltage and
+scan_voltage polarization modes to injection-only iterator, notsourcewrite.
+C# ForEachVolt axis injects directmeasurement-child target/channel; sequence
+descendants stayfixed, parentunsupportedsourcecontrols reject, parallelpending.
+Dynamic ReadPolarizationStep target uses existingtypednumericvalues, mandatory
+requested-V column; oldfixedconstructor/encoding/archives unchanged. Runtime
+freezespoint beforeIO/pausereplay; scopedliteralForEachpoints checkedbeforeConnect
+by liftedcompilerhelper,128depth retained. Rowchecks requestedlimits/axis agreement
+andfooter/point/calcs optionaloutput; finalmutableglobalvars nothistoricalproof.
+Bipolar/list/generator/segment/guardedchild/noIOemptyloop/nativearchive/replay,
+pausedpoint andpartialabort, actualTCP3point tests. See polarization-scan.md.
+No deps/Rust/labIO/nativewindowactions; dynamicgraphlabelonly. Physicalpulse/sweep
+trigger/buffer/forms andbroadercontroller/workflow/data/settings/remote active.
