@@ -43,7 +43,7 @@ public sealed class ConfiguredDeviceFactory(TimeProvider? clock = null) : IConfi
             ConfiguredDeviceCategory.Meter => new(new MockKeithley2182Meter(configuration.Id, configuration.DisplayName)),
             ConfiguredDeviceCategory.Temperature => new(MockEnvironmentCatalog.Temperature(clock, configuration.Id, configuration.DisplayName)),
             ConfiguredDeviceCategory.Field => new(MockEnvironmentCatalog.Field(clock, configuration.Id, configuration.DisplayName)),
-            ConfiguredDeviceCategory.Rotation => new(MockEnvironmentCatalog.Angle(clock, configuration.Id, configuration.DisplayName)),
+            ConfiguredDeviceCategory.Rotation => new(MockEnvironmentCatalog.Angle(clock, configuration.Id, configuration.DisplayName, supportsHoming: true)),
             ConfiguredDeviceCategory.Matrix => new(new MockMatrixSwitch(new(
                 new(configuration.Id, configuration.Model, configuration.DisplayName, DriverKind.Simulation, DeviceStopPolicy.OpenRunAddedConnections, []),
                 configuration.Matrix!.Cards, configuration.Matrix.GuardedSources))),

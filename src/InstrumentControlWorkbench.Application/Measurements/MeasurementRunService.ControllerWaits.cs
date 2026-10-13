@@ -51,6 +51,21 @@ public sealed partial class MeasurementRunService
             await DwellAsync(run, step.PollInterval);
         }
     }
+    private async Task HomeRotationAsync(HomeRotationStep step, RunExecutionContext run)
+    {
+        await run.Resources!.StartRotationHomeAsync(step.Device, run.Token);
+        while (true)
+        {
+            run.Token.ThrowIfCancellationRequested(); await PauseCheckpointAsync(run);
+            var observed = await run.Resources.ReadAxisSnapshotAsync(step.Device, run.Token); run.Token.ThrowIfCancellationRequested();
+            if (observed.Target != new Quantity(0, PhysicalUnit.Degree)) throw new InvalidOperationException("Rotation target drifted during home; completion refused.");
+            if (!observed.Moving && Math.Abs(observed.Readback.Value) < step.Tolerance.Value)
+            {
+                await run.Resources.CompleteRotationHomeAsync(step.Device, run.Token); return;
+            }
+            await DwellAsync(run, step.PollInterval);
+        }
+    }
     private async Task WaitAngleAsync(WaitAngleStep step, RunExecutionContext run)
     {
         var requested = step.Target is { } authored ? Resolve(authored, run) : (Quantity?)null;

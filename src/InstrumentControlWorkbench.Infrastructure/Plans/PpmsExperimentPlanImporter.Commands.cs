@@ -13,6 +13,9 @@ public sealed partial class PpmsExperimentPlanImporter
     {
         switch (name)
         {
+            case "zero_angle":
+                Fields(p); var rotator = Axis("angle", c);
+                return new TimeoutStep(new(path + ".timeout"), TimeSpan.FromSeconds(30), new HomeRotationStep(new(path), rotator.Device.Id, new(.5, PhysicalUnit.Degree), TimeSpan.FromMilliseconds(500)));
             case "sr830.set_sensitivity":
             case "sr830.set_time_constant":
             case "sr830.set_filter_slope":

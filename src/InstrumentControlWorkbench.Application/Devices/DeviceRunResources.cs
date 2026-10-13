@@ -6,7 +6,7 @@ using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Application.Devices;
 
-internal sealed record DeviceResumeState(InstrumentId Device, bool OutputEnabled, ParameterId? Target, Quantity? TargetValue, SourceMeterSnapshot? SourceState = null, TemperatureControlConfiguration? TemperatureState = null, Keithley2182Settings? MeterState = null, Core.Instruments.Ports.K6221CurrentSourceSnapshot? CurrentSourceState = null, Quantity? TemperatureRate = null, Quantity? TemperatureSoftwareTarget = null, Quantity? TemperatureSoftwareRate = null, Sr830ResumeConfiguration? LockInState = null);
+internal sealed record DeviceResumeState(InstrumentId Device, bool OutputEnabled, ParameterId? Target, Quantity? TargetValue, SourceMeterSnapshot? SourceState = null, TemperatureControlConfiguration? TemperatureState = null, Keithley2182Settings? MeterState = null, Core.Instruments.Ports.K6221CurrentSourceSnapshot? CurrentSourceState = null, Quantity? TemperatureRate = null, Quantity? TemperatureSoftwareTarget = null, Quantity? TemperatureSoftwareRate = null, Sr830ResumeConfiguration? LockInState = null, bool Homing = false);
 
 public sealed record DeviceCleanupFailure(InstrumentId InstrumentId, Exception Error);
 
@@ -20,6 +20,7 @@ public sealed partial class DeviceRunResources
     private readonly SemaphoreSlim gate = new(1, 1);
     private readonly Dictionary<InstrumentId, Task<Exception?>> pendingStops = [];
     private readonly HashSet<InstrumentId> touched = [];
+    private readonly HashSet<InstrumentId> activeHomes = [];
     private readonly HashSet<InstrumentId> heldRoutes = [];
     private readonly HashSet<InstrumentId> recoveryRequired = [];
     private bool released;
@@ -178,6 +179,23 @@ public sealed partial class DeviceRunResources
             var axis = Get(id) as AxisControllerSession ?? throw new NotSupportedException($"{id} is not an axis controller.");
             await axis.ResetTemperatureEvidenceAsync(Owner, token);
         }
+        finally { gate.Release(); }
+    }
+    internal async Task StartRotationHomeAsync(InstrumentId id, CancellationToken token)
+    {
+        await gate.WaitAsync(token);
+        try
+        {
+            RequireActive(); var axis = Get(id) as AxisControllerSession ?? throw new NotSupportedException("Device is not an axis controller.");
+            await PrepareMutationAsync(id); token.ThrowIfCancellationRequested(); touched.Add(id); activeHomes.Add(id);
+            await axis.StartHomingAsync(Owner, token);
+        }
+        finally { gate.Release(); }
+    }
+    internal async Task CompleteRotationHomeAsync(InstrumentId id, CancellationToken token)
+    {
+        await gate.WaitAsync(token);
+        try { RequireActive(); token.ThrowIfCancellationRequested(); activeHomes.Remove(id); }
         finally { gate.Release(); }
     }
     internal async Task<AxisControllerSnapshot> ReadAxisSnapshotAsync(InstrumentId id, CancellationToken token)
@@ -501,7 +519,7 @@ public sealed partial class DeviceRunResources
             else if (session is AxisControllerSession axis)
                 result.Add(new(session.Descriptor.Id, false, axis.Definition.Target.Id, status.Values[axis.Definition.Target.Id], TemperatureState: axis.Definition.SupportsSoftwareTemperatureRamp ? await axis.CaptureTemperatureConfigurationAsync(Owner, token) : null,
                     TemperatureRate: axis.Definition.SupportsSoftwareTemperatureRamp ? status.Values[axis.Definition.Rate.Id] : null,
-                    TemperatureSoftwareTarget: status.Temperature?.SoftwareTarget, TemperatureSoftwareRate: status.Temperature?.SoftwareRate));
+                    TemperatureSoftwareTarget: status.Temperature?.SoftwareTarget, TemperatureSoftwareRate: status.Temperature?.SoftwareRate, Homing: activeHomes.Contains(session.Descriptor.Id)));
             else if (session is not MatrixSwitchSession) throw new NotSupportedException($"Pause has no resume policy for {session.Descriptor.Id}.");
         }
         return result.AsReadOnly();
@@ -568,6 +586,7 @@ public sealed partial class DeviceRunResources
                 try { await PrepareMutationAsync(state.Device); touched.Add(state.Device); await ((AxisControllerSession)Get(state.Device)).RestoreTemperatureTargetAsync(state.TargetValue!.Value, configuration, state.TemperatureRate!.Value, state.TemperatureSoftwareTarget, state.TemperatureSoftwareRate, Owner, token); }
                 finally { gate.Release(); }
             }
+            else if (state.Homing) await StartRotationHomeAsync(state.Device, token);
             else await WriteAsync(state.Device, state.Target!, state.TargetValue!.Value, token);
         }
         foreach (var state in states.Where(s => s.OutputEnabled)) await EnableSourceOutputAsync(state.Device, token, expectedResumeState: state.SourceState, expectedCurrentState: state.CurrentSourceState);

@@ -40,6 +40,8 @@ public sealed partial class JsonExperimentPlanDocument
                 o["kind"] = "software_temperature_ramp"; o["device"] = temperature.Device.Value; o["target"] = EncodeValue(temperature.Target);
                 if (temperature.Rate is { } rate) o["rate"] = EncodeQuantity(rate);
                 if (!temperature.EnableControl) o["enableControl"] = false; break;
+            case HomeRotationStep home:
+                o["kind"] = "home_rotation"; o["device"] = home.Device.Value; o["tolerance"] = EncodeQuantity(home.Tolerance); o["pollSeconds"] = home.PollInterval.TotalSeconds; break;
             case ReadSr830FrameStep lockIn:
                 o["kind"] = "read_sr830_frame"; o["device"] = lockIn.Device.Value; o["input"] = lockIn.Input.ToString(); o["prefix"] = lockIn.Prefix.Value; if (lockIn.IncludeReference) o["includeReference"] = true; break;
             case ReadSourceSenseStep pair:
@@ -221,6 +223,9 @@ public sealed partial class JsonExperimentPlanDocument
             case "software_temperature_ramp":
                 Object(o, "id", "kind", "device", "target", "rate", "enableControl");
                 return new SoftwareTemperatureRampStep(id, new(Text(o, "device")), DecodeValue(o["target"]), o.ContainsKey("rate") ? DecodeQuantity(o["rate"]) : null, !o.ContainsKey("enableControl") || Boolean(o, "enableControl"));
+            case "home_rotation":
+                Object(o, "id", "kind", "device", "tolerance", "pollSeconds");
+                return new HomeRotationStep(id, new(Text(o, "device")), DecodeQuantity(o["tolerance"]), Duration(o, "pollSeconds"));
             case "read_sr830_frame":
                 Object(o, "id", "kind", "device", "input", "prefix", "includeReference");
                 return new ReadSr830FrameStep(id, new(Text(o, "device")), NamedEnum<Sr830InputMode>(o, "input"), new(Text(o, "prefix")), o.ContainsKey("includeReference") && Boolean(o, "includeReference"));

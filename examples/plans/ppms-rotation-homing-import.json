@@ -1,0 +1,25 @@
+{
+  "experiment_id": "Dedicated rotator home and verified angle readback",
+  "type": "sequence",
+  "children": [
+    {
+      "type": "command",
+      "name": "set_angle",
+      "params": {
+        "target_deg": 10,
+        "speed_deg_per_s": 30,
+        "wait_mode": "none"
+      }
+    },
+    {
+      "type": "command",
+      "name": "angle_zero",
+      "params": {}
+    },
+    {
+      "type": "measurement",
+      "name": "measure_angle",
+      "params": {}
+    }
+  ]
+}

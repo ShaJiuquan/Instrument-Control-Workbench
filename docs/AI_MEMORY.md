@@ -1882,3 +1882,22 @@ components/compiled bindings; native minimum/visual checks remain deferred per
 user, no native inventory/window/process action. No deps/driver/Coreformat/Rust
 change. SR830 oscillator/mute and full differential/physical/controller/workflow/
 data/settings/remote goal still active; independent C# engine/GitHub only.
+
+## Dedicated rotation homing migration (2026-10-13)
+
+Readonly Rust zero_home writes dedicated [z,1,1501] then polls strictabs<.5deg
+with30s timeout/500ms poll. Added optional Degree/contains-zero homing definition
+and port, native HomeRotationStep, owned Application start/fresh stationary-zero
+completion and active-home pause/resume marker. Resume reissues home, never
+normal SetTarget(0); unsupported advertised ports/preflight reject beforeIO.
+ConfiguredROTATOR explicitly opts into dedicated immediate-home per Rustmock;
+genericAngle preserves legacy false default, so wrapped ports never inherit
+unimplemented capability. Aliases
+zero_angle/angle_zero/rotator.zero and source-lines/nativecodec preserved.5Core+
+16Application newcases: limits/capability, noordinarytargetwrite, moving/boundary/
+target drift, canceledstart/disconnect/abort, pausehome restart and failedhold
+retained recovery, fresh plan/archive/CSV. One-row CLI fixture; graphlabel only,
+no newform/desktop/physical/dependency/Rust change. See rotation-homing.md.
+Native visual/real home-sensor/protocol acceptance, wider PPMS/controllers/workflow/
+data/settings/remote and SR830 mute/differential gaps remain active; independent
+C# engine and GitHub only.

@@ -412,6 +412,10 @@ internal static partial class ExperimentPlanCompiler
                     // Live readback is not available at preflight: bound the path
                     // using the complete declared controller range.
                     return temperature.Rate is { } temperatureRate ? checked(1 + Math.Max(1, new TemperatureRampPath(controller.Target.Minimum!.Value, controller.Target.Maximum!.Value, temperatureRate).UpdateCount)) : 2;
+                case HomeRotationStep home:
+                    Device(home.Device);
+                    if (!registry.GetAxisDefinition(home.Device).SupportsHoming) throw new NotSupportedException("Controller has no dedicated rotational homing capability.");
+                    return 1;
                 case ReadSr830FrameStep lockIn:
                     Device(lockIn.Device);
                     if (!registry.SupportsSr830Frame(lockIn.Device)) throw new NotSupportedException("Device has no passive SR830 frame capability.");

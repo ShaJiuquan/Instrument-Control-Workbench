@@ -3,7 +3,7 @@ using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Infrastructure.Drivers;
 
-public sealed class MockAxisController : ITemperatureConfigurationPort
+public sealed class MockAxisController : ITemperatureConfigurationPort, IRotationHomingPort
 {
     private readonly object gate = new();
     private readonly TimeProvider clock;
@@ -52,6 +52,20 @@ public sealed class MockAxisController : ITemperatureConfigurationPort
         Definition.Target.ValidateWrite(value);
         token.ThrowIfCancellationRequested();
         lock (gate) { RequireConnected(); Advance(); target = value.Value; }
+        return Task.CompletedTask;
+    }
+
+    public Task StartHomingAsync(CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        if (!Definition.SupportsHoming) throw new NotSupportedException("This simulation profile has no dedicated rotational homing.");
+        lock (gate)
+        {
+            RequireConnected();
+            // Captured Rust mock likewise completes its dedicated home command
+            // immediately. This is not a physical travel/sensor simulation.
+            target = readback = 0; updatedAt = clock.GetTimestamp();
+        }
         return Task.CompletedTask;
     }
 

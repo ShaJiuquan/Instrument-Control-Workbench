@@ -20,6 +20,7 @@ public sealed partial class AxisControllerSession : IDeviceSession
     {
         if (port.Definition.SupportsSoftwareTemperatureRamp && port is not ITemperatureControlPort)
             throw new ArgumentException("Temperature ramp capability requires a temperature-control port.", nameof(port));
+        if (port.Definition.SupportsHoming && port is not IRotationHomingPort) throw new ArgumentException("Advertised rotation homing requires its dedicated port.", nameof(port));
         this.port = port;
         this.notifications = notifications;
         operations = new(port.Definition.Device.Id);
@@ -65,6 +66,23 @@ public sealed partial class AxisControllerSession : IDeviceSession
             await PublishAsync(snapshot, token); return snapshot;
         }
         catch { faulted = true; ResetTemperatureRuntime(); throw; }
+        finally { operations.Exit(); }
+    }
+
+    internal async Task StartHomingAsync(RunId owner, CancellationToken token)
+    {
+        if (!Definition.SupportsHoming || port is not IRotationHomingPort homing) throw new NotSupportedException("Controller does not implement rotational homing.");
+        await operations.EnterAsync(token, owner);
+        try
+        {
+            var before = await port.GetSnapshotAsync(token);
+            if (!before.Connected) throw new InvalidOperationException("Connect the rotation controller before homing.");
+            token.ThrowIfCancellationRequested(); await homing.StartHomingAsync(token); token.ThrowIfCancellationRequested();
+            var after = await port.GetSnapshotAsync(token);
+            if (!after.Connected || after.Target != new Quantity(0, PhysicalUnit.Degree)) throw new InvalidOperationException("Rotation home command did not confirm its zero target.");
+            await PublishAsync(after, token);
+        }
+        catch { faulted = true; throw; }
         finally { operations.Exit(); }
     }
 

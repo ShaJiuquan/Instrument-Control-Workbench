@@ -159,7 +159,12 @@
         "angle_zero",
         "rotator.zero"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "src/InstrumentControlWorkbench.Core/Experiments/HomeRotationStep.cs; src/InstrumentControlWorkbench.Application/Devices/AxisControllerSession.cs; src/InstrumentControlWorkbench.Infrastructure/Plans/PpmsExperimentPlanImporter.Commands.cs",
+        "tests": "tests/InstrumentControlWorkbench.Application.Tests/RotationHomingExecutionTests.cs",
+        "limits": "Dedicated advertised rotation homing, not target-zero substitution. zero_angle/angle_zero/rotator.zero use native timeout30s, strict0.5degree completion,500ms polling plus not-moving/zero-target checks. Atomic owned resources, cancellation/hold/failed-stop recovery, dedicated home restart on pause/resume; native save/archive/CSV and CLI simulation verified. Real home sensors/protocol/physical travel and native form/visual acceptance pending. See rotation-homing.md."
+      }
     },
     {
       "id": "instrument_config",

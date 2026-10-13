@@ -5,7 +5,7 @@ namespace InstrumentControlWorkbench.Core.Devices;
 public sealed record AxisControllerDefinition
 {
     public AxisControllerDefinition(DeviceDescriptor device, ParameterDescriptor target, ParameterDescriptor readback,
-        ParameterDescriptor rate, bool supportsSoftwareTemperatureRamp = false)
+        ParameterDescriptor rate, bool supportsSoftwareTemperatureRamp = false, bool supportsHoming = false)
     {
         ArgumentNullException.ThrowIfNull(device);
         ArgumentNullException.ThrowIfNull(target);
@@ -29,6 +29,9 @@ public sealed record AxisControllerDefinition
             if (device.GetParameter(parameter.Id) != parameter) throw new ArgumentException("Axis parameters must match its device descriptor.");
         if (supportsSoftwareTemperatureRamp && (target.Unit != PhysicalUnit.Kelvin || target.Minimum is not { Value: >= 1 } || target.Maximum is not { Value: <= 310 }))
             throw new ArgumentException("Software temperature ramp requires a bounded 1..310 K controller profile.");
+        if (supportsHoming && (target.Unit != PhysicalUnit.Degree || target.Minimum is not { Value: <= 0 } || target.Maximum is not { Value: >= 0 }))
+            throw new ArgumentException("Rotation homing requires a bounded degree axis containing zero.");
+        SupportsHoming = supportsHoming;
         SupportsSoftwareTemperatureRamp = supportsSoftwareTemperatureRamp;
         Device = device;
         Target = target;
@@ -36,6 +39,7 @@ public sealed record AxisControllerDefinition
         Rate = rate;
     }
 
+    public bool SupportsHoming { get; }
     public bool SupportsSoftwareTemperatureRamp { get; }
     public DeviceDescriptor Device { get; }
     public ParameterDescriptor Target { get; }
@@ -55,4 +59,11 @@ public interface IAxisControllerPort
     Task SetRateAsync(Quantity rate, CancellationToken cancellationToken);
     Task HoldAsync(CancellationToken cancellationToken);
     Task DisconnectAsync(CancellationToken cancellationToken);
+}
+
+// Optional dedicated operation. Advertising it does not turn a regular
+// SetTarget(0) implementation into a homing procedure.
+public interface IRotationHomingPort : IAxisControllerPort
+{
+    Task StartHomingAsync(CancellationToken token);
 }
