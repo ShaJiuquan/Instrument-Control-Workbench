@@ -46,6 +46,7 @@ public sealed partial class ExperimentPlanWorkspace(IExperimentPlanDocument docu
     public IReadOnlyList<AxisControllerDefinition> AxisDefinitions => runs.AxisDefinitions;
     public IReadOnlyList<AxisControllerDefinition> TemperatureScanDefinitions => runs.TemperatureScanDefinitions;
     public IReadOnlyList<MatrixSwitchDefinition> MatrixDefinitions => runs.MatrixDefinitions;
+    public IReadOnlyList<MatrixSwitchDefinition> Sr830AcIsolationDefinitions => runs.Sr830AcIsolationDefinitions;
     public ValidatedPlanDocument UpdateSourcePreparation(ExperimentPlan plan, SourcePreparation preparation)
     {
         ArgumentNullException.ThrowIfNull(preparation); runs.PreviewPlan(plan);

@@ -43,10 +43,10 @@ public partial class PlanCalculatedMeasurementFormViewModel : ObservableObject
     private Func<PlanCalculationDraft, PlanCalculationDraftPreview>? inspector;
     private PlanCalculationDraftPreview? preview;
     private readonly ObservableCollection<PlanCalculatedColumnFormViewModel> columns = new();
-    public PlanCalculatedMeasurementFormViewModel(CalculatedMeasurementStep step, IReadOnlyList<DeviceDescriptor> devices, IReadOnlyList<AxisControllerDefinition> axes, RoutingConfiguration? routing, Action changed, bool template)
+    public PlanCalculatedMeasurementFormViewModel(CalculatedMeasurementStep step, IReadOnlyList<DeviceDescriptor> devices, IReadOnlyList<AxisControllerDefinition> axes, RoutingConfiguration? routing, Action changed, bool template, IReadOnlyList<MatrixSwitchDefinition>? sr830AcIsolations = null)
     {
         original = step; this.template = template; this.changed = changed; continueOnUnavailable = step.ContinueOnUnavailable; Columns = new(columns);
-        BodyForm = new(step.Body, devices, Sr830BodyChanged, template, axes, routing);
+        BodyForm = new(step.Body, devices, Sr830BodyChanged, template, axes, routing, sr830AcIsolations: sr830AcIsolations);
         foreach (var column in step.Columns) AddForm(column, template); loading = false;
     }
     public PlanStepFormViewModel BodyForm { get; }

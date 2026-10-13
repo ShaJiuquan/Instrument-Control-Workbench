@@ -192,7 +192,7 @@ public sealed partial class MatrixSwitchSession : IDeviceSession
         var safe = snapshot.RouteKnown && (snapshot.Connected || Descriptor.DriverKind == DriverKind.Simulation) &&
             (Definition.AcIsolation is null || !snapshot.Closed.Intersect(Definition.AcIsolation.Connections).Any()) &&
             (!HasRoutingMutations || baseline is not null && !snapshot.Closed.Except(baseline).Any());
-        var status = new DeviceStatus(Descriptor, state, snapshot.Connected, safe, snapshot.Timestamp, new Dictionary<ParameterId, Quantity>());
+        var status = new DeviceStatus(Descriptor, state, snapshot.Connected, safe, snapshot.Timestamp, new Dictionary<ParameterId, Quantity>(), matrix: snapshot);
         await notifications.PublishAsync(new(WorkbenchNotificationKind.DeviceStateChanged, $"{Descriptor.DisplayName}: {state}", Descriptor.Id, Device: status), token);
         return status;
     }

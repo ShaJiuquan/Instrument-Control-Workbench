@@ -306,6 +306,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     {
         if (disposed) return;
         NotificationObservationLost = true;
+        Plans?.InvalidateAcIsolationObservation();
         OperationError = $"状态通知积压，显示已停止更新：{failure.Capacity} 条容量已用尽。请停止运行后重新打开工作台。";
         AppendEvent(OperationError);
         OnPropertyChanged(nameof(NotificationObservationLost));
@@ -344,6 +345,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         if (!IsPlanRun && notification.Kind is (WorkbenchNotificationKind.RunCompleted or WorkbenchNotificationKind.RunAborted or WorkbenchNotificationKind.RunFaulted) && notification.AcquiredRowCount is { } total) CompletedPoints = total;
         OnPropertyChanged(nameof(LiveDisplaySummary));
         Devices?.ApplyFact(notification);
+        Plans?.ApplyAcIsolationFact(notification);
         if (IsPlanRun) Plans?.ApplyFact(notification);
         if (notification.Kind == WorkbenchNotificationKind.RunPaused) RunState = OperatorRunState.Paused;
         if (notification.Kind == WorkbenchNotificationKind.RunResumed) { RunState = OperatorRunState.Running; PauseRequested = false; }

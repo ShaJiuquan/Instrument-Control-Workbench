@@ -39,8 +39,9 @@ requested amplitude. This is a configuration declaration, not hardware
 qualification. Existing DC guards must also confirm OFF before normal routing.
 A matrix with only the dedicated AC duty can have no DC guards.
 
-Active acquisition is authored through native JSON in this stage. The outline
-identifies the atomic operation. A dedicated active form, automatic sensitivity,
+Active acquisition can now be authored through a native form or native JSON.
+The outline identifies the atomic operation. See sr830-active-authoring.md for
+explicit device selection and recent controller readback. Automatic sensitivity,
 first-point discard and sample resistance calculation remain later work.
 
 ## Evidence and cleanup

@@ -25,6 +25,7 @@ public sealed class DeviceRegistry
         this.leases = leases;
         Devices = Array.AsReadOnly(items.Select(d => d.Descriptor).ToArray());
         MatrixDefinitions = Array.AsReadOnly(items.OfType<MatrixSwitchSession>().Select(matrix => matrix.Definition).ToArray());
+        Sr830AcIsolationDefinitions = Array.AsReadOnly(MatrixDefinitions.Where(IsAuthorableSr830AcIsolation).ToArray());
         AxisDefinitions = Array.AsReadOnly(items.OfType<AxisControllerSession>().Select(axis => axis.Definition).ToArray());
         TemperatureScanDefinitions = Array.AsReadOnly(items.OfType<AxisControllerSession>()
             .Where(axis => axis.SupportsTemperatureConfiguration && axis.Definition.Target.Unit == PhysicalUnit.Kelvin)
@@ -38,6 +39,16 @@ public sealed class DeviceRegistry
     public IReadOnlyList<AxisControllerDefinition> AxisDefinitions { get; }
     public IReadOnlyList<AxisControllerDefinition> TemperatureScanDefinitions { get; }
     public IReadOnlyList<MatrixSwitchDefinition> MatrixDefinitions { get; }
+    public IReadOnlyList<MatrixSwitchDefinition> Sr830AcIsolationDefinitions { get; }
+
+    private bool IsAuthorableSr830AcIsolation(MatrixSwitchDefinition definition)
+    {
+        if (definition.AcIsolation is not { } capability || !sessions.TryGetValue(capability.Generator, out var generator) ||
+            generator is not Sr830MeterSession { SupportsExcitation: true }) return false;
+        // Static domain validation only; complete paths and cards are frozen by their definitions.
+        definition.Validate(capability.Connections);
+        return true;
+    }
     public Task<TemperatureStabilitySettings> ConfigureTemperatureStabilityAsync(InstrumentId id, TemperatureStabilityChange change, CancellationToken token)
         => GetManual(id) is AxisControllerSession axis ? axis.ConfigureTemperatureStabilityAsync(change, token)
             : throw new NotSupportedException($"{id} has no temperature-control profile.");

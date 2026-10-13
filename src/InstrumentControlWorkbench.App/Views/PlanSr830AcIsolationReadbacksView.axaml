@@ -1,0 +1,20 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels"
+             x:Class="InstrumentControlWorkbench.App.Views.PlanSr830AcIsolationReadbacksView" x:DataType="vm:PlanWorkspaceViewModel">
+  <Expander Header="交流通路最近回读" IsVisible="{Binding HasSr830AcIsolationReadbacks}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" FontSize="11">
+    <StackPanel Spacing="6" Margin="0,6,0,0">
+      <TextBlock Text="控制器回读及时间；不代表电气隔离验证或设备占用已释放。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+      <ScrollViewer MaxHeight="130" HorizontalScrollBarVisibility="Disabled">
+        <ItemsControl ItemsSource="{Binding Sr830AcIsolationReadbacks}">
+          <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:PlanSr830AcIsolationReadbackViewModel">
+            <StackPanel Spacing="3" Margin="0,0,0,8">
+              <TextBlock Text="{Binding Label}" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
+              <TextBlock Text="{Binding StateText}" FontSize="11" TextWrapping="Wrap"/>
+              <TextBlock Text="{Binding ObservedAt}" Classes="caption" FontSize="10"/>
+            </StackPanel>
+          </DataTemplate></ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </StackPanel>
+  </Expander>
+</UserControl>

@@ -1,0 +1,37 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels"
+             x:Class="InstrumentControlWorkbench.App.Views.PlanSr830AcFormView" x:DataType="vm:PlanSr830AcFormViewModel">
+  <StackPanel Spacing="10">
+    <TextBlock Text="SR830 主动交流原始帧" FontWeight="SemiBold" TextWrapping="Wrap"/>
+    <TextBlock Text="{Binding SafetySummary}" Classes="caption" TextWrapping="Wrap"/>
+    <TextBlock Text="主动发生器" Classes="caption"/>
+    <ComboBox ItemsSource="{Binding Generators}" SelectedItem="{Binding SelectedGenerator, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="主动 SR830 发生器">
+      <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanDeviceChoice"><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
+    </ComboBox>
+    <TextBlock Text="{Binding SelectionSummary}" Classes="caption" TextWrapping="Wrap"/>
+    <TextBlock Text="已注册样品隔离通路" Classes="caption"/>
+    <ComboBox ItemsSource="{Binding Isolators}" SelectedItem="{Binding SelectedIsolator, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="主动 SR830 隔离设备">
+      <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanSr830AcIsolatorChoice"><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
+    </ComboBox>
+    <TextBlock Text="{Binding ConnectionsSummary}" Classes="caption" TextWrapping="Wrap"/>
+    <TextBox Text="{Binding ConnectionsText, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True" MaxHeight="112" AutomationProperties.Name="主动 SR830 注册连接集只读"/>
+    <Expander Header="发生器参数" IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+      <StackPanel Spacing="8" Margin="0,8,0,0">
+        <TextBlock Text="以下数值是模板初值，尚未加入计划，也不是样品测量建议；请按实验要求明确核对。" IsVisible="{Binding IsTemplate}" Classes="caption" TextWrapping="Wrap"/>
+        <TextBlock Text="发生器参考频率 / Hz" Classes="caption"/><TextBox Text="{Binding Frequency, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="主动 SR830 频率 Hz"/>
+        <TextBlock Text="发生器正弦振幅 / Vrms（不是样品端实测电压）" Classes="caption" TextWrapping="Wrap"/><TextBox Text="{Binding SineAmplitude, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="主动 SR830 正弦振幅 Vrms"/>
+        <TextBlock Text="检测谐波 / 整数" Classes="caption"/><TextBox Text="{Binding Harmonic, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="主动 SR830 谐波"/>
+      </StackPanel>
+    </Expander>
+    <Expander Header="输入、结果与等待" IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+      <StackPanel Spacing="8" Margin="0,8,0,0">
+        <TextBlock Text="预期输入模式 / 运行时须与设备设置一致" Classes="caption" TextWrapping="Wrap"/>
+        <ComboBox ItemsSource="{Binding Inputs}" SelectedItem="{Binding SelectedInput, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="主动 SR830 预期输入模式"/>
+        <TextBlock Text="{Binding InputSummary}" Classes="caption" TextWrapping="Wrap"/>
+        <TextBlock Text="结果列前缀 ID" Classes="caption"/><TextBox Text="{Binding Prefix, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="主动 SR830 结果前缀"/>
+        <TextBlock Text="连接通路后等待 / 十进制秒，精确至 0.0000001 秒" Classes="caption" TextWrapping="Wrap"/><TextBox Text="{Binding SettleSeconds, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="主动 SR830 等待秒"/>
+        <TextBlock Text="编辑不会操作设备；应用时验证完整计划。暂停后重做本次采集，断开确认失败时不保存本次数据。" Classes="caption" TextWrapping="Wrap"/>
+      </StackPanel>
+    </Expander>
+  </StackPanel>
+</UserControl>

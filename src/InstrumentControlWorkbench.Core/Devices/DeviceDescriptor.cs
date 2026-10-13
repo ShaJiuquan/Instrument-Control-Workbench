@@ -42,7 +42,7 @@ public sealed record DeviceDescriptor
 public sealed record DeviceStatus
 {
     public DeviceStatus(DeviceDescriptor descriptor, InstrumentLifecycleState lifecycle, bool connected,
-        bool safetyConfirmed, DateTimeOffset timestamp, IReadOnlyDictionary<ParameterId, Quantity> values, TemperatureRuntimeStatus? temperature = null)
+        bool safetyConfirmed, DateTimeOffset timestamp, IReadOnlyDictionary<ParameterId, Quantity> values, TemperatureRuntimeStatus? temperature = null, MatrixSwitchSnapshot? matrix = null)
     {
         ArgumentNullException.ThrowIfNull(descriptor);
         ArgumentNullException.ThrowIfNull(values);
@@ -51,6 +51,10 @@ public sealed record DeviceStatus
         foreach (var value in values) descriptor.GetParameter(value.Key).Validate(value.Value);
         if (temperature is not null && (!descriptor.Parameters.Any(p => p.Unit == PhysicalUnit.Kelvin && p.Access.HasFlag(ParameterAccess.Read)) || !connected && temperature.State != TemperatureStabilityState.Fault))
             throw new ArgumentException("Temperature runtime requires a readable Kelvin profile and fault state when disconnected.", nameof(temperature));
+        if (matrix is not null && (descriptor.StopPolicy != DeviceStopPolicy.OpenRunAddedConnections || matrix.Definition.Device != descriptor ||
+            matrix.Connected != connected || matrix.Timestamp != timestamp || timestamp == default ||
+            safetyConfirmed && (!matrix.RouteKnown || matrix.Definition.AcIsolation is { } ac && matrix.Closed.Intersect(ac.Connections).Any())))
+            throw new ArgumentException("Matrix runtime observation must match its profile, connection, time and stop confirmation.", nameof(matrix));
         Descriptor = descriptor;
         Lifecycle = lifecycle;
         Connected = connected;
@@ -58,6 +62,7 @@ public sealed record DeviceStatus
         Timestamp = timestamp;
         Values = new ReadOnlyDictionary<ParameterId, Quantity>(new Dictionary<ParameterId, Quantity>(values));
         Temperature = temperature;
+        Matrix = matrix;
     }
 
     public DeviceDescriptor Descriptor { get; }
@@ -67,4 +72,5 @@ public sealed record DeviceStatus
     public DateTimeOffset Timestamp { get; }
     public IReadOnlyDictionary<ParameterId, Quantity> Values { get; }
     public TemperatureRuntimeStatus? Temperature { get; }
+    public MatrixSwitchSnapshot? Matrix { get; }
 }

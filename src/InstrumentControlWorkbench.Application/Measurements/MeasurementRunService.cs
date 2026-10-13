@@ -66,6 +66,7 @@ public sealed partial class MeasurementRunService
     public IReadOnlyList<AxisControllerDefinition> AxisDefinitions => devices.AxisDefinitions;
     public IReadOnlyList<AxisControllerDefinition> TemperatureScanDefinitions => devices.TemperatureScanDefinitions;
     public IReadOnlyList<MatrixSwitchDefinition> MatrixDefinitions => devices.MatrixDefinitions;
+    public IReadOnlyList<MatrixSwitchDefinition> Sr830AcIsolationDefinitions => devices.Sr830AcIsolationDefinitions;
 
     public Task StartIvSweepAsync(IvSweepRecipe recipe, CancellationToken cancellationToken, RunMetadata? metadata = null)
     {

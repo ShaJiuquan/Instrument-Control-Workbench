@@ -30,6 +30,7 @@
               <controls:OperatorButton Grid.Column="2" Content="停止" Classes="stop" Command="{Binding AbortRunCommand}"/>
             </Grid>
             <views:ExecutionControlsView/>
+            <views:PlanSr830AcIsolationReadbacksView DataContext="{Binding Plans}"/>
             <TextBlock Text="源表结束时关闭输出；磁场保持当前读数。" Classes="caption" FontSize="10" TextWrapping="Wrap"/>
           </StackPanel>
         </Border>

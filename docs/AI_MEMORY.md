@@ -2123,3 +2123,17 @@ operations; visual acceptance remains deferred and full migration active.
   routes. Nonzero amplitude or AbortAcquisition is never output-OFF evidence.
 - Active mock/config profile is distinct from passive SR830. No physical adapter
   or continuity qualification is implied. See sr830-active-isolation.md.
+
+## Native active SR830 authoring and recent readback (2026-10-13)
+
+- Native active raw-frame form and separate palette use the zero-IO immutable
+  registry capability directory. No template physical binding or recipe-granted
+  capability; saved path mismatch blocks apply without silently replacing it.
+- Generator Vrms is not sample voltage; input mode is an expectation, settling
+  is fixed time, and raw voltage-domain X/Y/R does not establish sample current.
+- Matrix snapshots are optionally carried in DeviceStatus with consistency
+  validation, reusing existing IO. Independent recent-readback presentation
+  uses route sets and timestamps, not SafetyConfirmed or row/terminal events.
+- Epoch fences and notification loss clear display; no status fact edits a plan.
+  Native visual/physical acceptance and full AC/differential migration remain
+  pending. See sr830-active-authoring.md.

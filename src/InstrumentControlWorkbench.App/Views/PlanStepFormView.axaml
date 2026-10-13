@@ -49,6 +49,7 @@
       </StackPanel>
       <Grid IsVisible="{Binding HasTemperatureScan}"><views:PlanTemperatureScanFormView DataContext="{Binding TemperatureScan}"/></Grid>
       <Grid IsVisible="{Binding HasPolarization}"><views:PlanPolarizationFormView DataContext="{Binding Polarization}"/></Grid>
+      <Grid IsVisible="{Binding HasSr830Ac}"><views:PlanSr830AcFormView DataContext="{Binding Sr830Ac}"/></Grid>
       <Grid IsVisible="{Binding HasSr830Frame}"><views:PlanSr830FrameFormView DataContext="{Binding Sr830Frame}"/></Grid>
       <Grid IsVisible="{Binding HasAcquisition}"><views:PlanAcquisitionFormView DataContext="{Binding Acquisition}"/></Grid>
       <Grid IsVisible="{Binding HasEnvironment}"><views:PlanEnvironmentFormView DataContext="{Binding Environment}"/></Grid>
