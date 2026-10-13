@@ -312,6 +312,22 @@ internal static partial class ExperimentPlanCompiler
             else { BindQuantity(independent.VoltageColumn, PhysicalUnit.Volt, known); BindQuantity(independent.CurrentColumn, PhysicalUnit.Ampere, known); BindQuantity(independent.ResistanceColumn, PhysicalUnit.Ohm, known); }
             ValidateEnvironmentPolicy([independent.VoltageColumn, independent.CurrentColumn, independent.ResistanceColumn], independent.EnvironmentReads); ValidateEnvironment(independent.EnvironmentReads, axes);
         }
+        long ValidatePolarization(ReadPolarizationStep pulse, VariableFlowState known, IReadOnlyList<ParameterId> axes)
+        {
+            ValidateSourceSense(pulse.Device, SourceFunction.Voltage, pulse.VoltageColumn, pulse.CurrentColumn, known, axes);
+            if (preparations[pulse.Device].Sense.Mode != pulse.Sense.Mode || axes.Any(axis => columns.TryGetValue(axis, out var column) && column.Source?.Device == pulse.Device))
+                throw new ArgumentException("Polarization must match frozen sensing mode and cannot take over an enclosing source scan.");
+            if (pulse.RequiredRoute is { } route)
+            {
+                Device(route.Device); var matrix = registry.GetMatrixDefinition(route.Device); matrix.Validate(route.Closed);
+                if (!matrix.GuardedSources.Contains(pulse.Device)) throw new ArgumentException("Polarization matrix route must guard its source.");
+                foreach (var guard in matrix.GuardedSources) if (Device(guard).StopPolicy != DeviceStopPolicy.OutputOff) throw new ArgumentException("Polarization matrix guards must have output-off policy.");
+            }
+            AddColumn(pulse.AttemptsColumn, new(pulse.AttemptsColumn, "Complete pulse attempt count", PhysicalUnit.Dimensionless, ParameterAccess.Read, new(1, PhysicalUnit.Dimensionless), new(pulse.MaximumAttempts, PhysicalUnit.Dimensionless)), null, [.. axes, Elapsed.Id]);
+            BindQuantity(pulse.AttemptsColumn, PhysicalUnit.Dimensionless, known);
+            ValidateEnvironmentPolicy([pulse.VoltageColumn, pulse.CurrentColumn, pulse.AttemptsColumn], pulse.EnvironmentReads); ValidateEnvironment(pulse.EnvironmentReads, axes);
+            return pulse.MaximumAttempts;
+        }
         void ValidateResistance(ReadResistanceStep resistance, VariableFlowState known, IReadOnlyList<ParameterId> axes)
         {
             ValidateSourceSense(resistance.Device, resistance.Function, resistance.VoltageColumn, resistance.CurrentColumn, known, axes);
@@ -351,7 +367,7 @@ internal static partial class ExperimentPlanCompiler
             if (!steps.Add(step.Id)) throw new ArgumentException($"Duplicate step ID {step.Id}.");
             if (step.Id == inspectStep && inspectPosition == PlanVariablePosition.BeforeStep) inspectedVariables = known.Capture(axes);
             visiting.Push(step.Id);
-            try { return VisitBody(step, known, axes, depth); }
+            try { return step is ReadPolarizationStep ? ValidatePolarization((ReadPolarizationStep)step, known, axes) : VisitBody(step, known, axes, depth); }
             finally { visiting.Pop(); }
         }
         long VisitBody(ExperimentStep step, VariableFlowState known, IReadOnlyList<ParameterId> axes, int depth)

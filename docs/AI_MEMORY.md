@@ -1933,3 +1933,21 @@ See k6514-electrometer.md. No deps/Rust/nativewindowactions; broadgoalactive.
 Full audit exposed recursive compiler stack growth after inline mixedmode check.
 Moved that check to static helper outside VisitBody; preserved128depth limit,
 existing127/128/importguard tests and added127/128electrometer-read probes.
+
+## Owned polarization pulse/readout (2026-10-13)
+
+Native ReadPolarizationStep through existing K2450 Application resources/ports;
+first voltage configuredOFF beforeON, optionalinter stage, pairedactualsourceV/I
+frame and freshconfig/time/route checks, independentOFF proof before anyrow/value.
+Pause dwell confirmsOFF beforecapturing state; resume leavesoldstageOFF and
+restartsfullattempt; boundedattemptcolumn/max/globalbudget, no stitchedpulses.
+Fault/abort/deadline cleanup and refusedOFF retainedrecovery; onlyRun ownsIO.
+PPMSreadoutaliases/params/sourceLines, explicitprep/channel, frozenmode/route;
+rawmapped4wire needsnamedsource/sense profiles, same-source/native or anyPPMS
+source-scan inheritance rejects. Nativecodec/group/calcs/fresharchive/CSV/footer
+provenance integrated. ActualTCPadapter two/fourwire +refusedOFF loopback.
+Recursive compiler/codec pulse handling movedoutside largevisitorframes;
+127/128depth preserved (inlineswitchpattern initiallyoverflowed). See
+polarization-readout.md. No deps/Rust/labIO/nativewindow change, graphlabelonly.
+Host timing/physicalwaveform/controller/procedure/visual-form acceptance and
+wider PPMS/workflow/data/settings/remote/SR830mute goal remain incomplete.

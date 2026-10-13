@@ -415,7 +415,8 @@
         "polarization_readout",
         "polread"
       ],
-      "status": "pending"
+      "status": "partial",
+      "notes": "Native owned software pulse/readout, PPMS aliases/frozen routing, paired original readbacks, confirmed-OFF-before-row, paused-attempt restart and bounded evidence; simulation and actual TCP adapter loopback verified, physical waveform and dedicated form pending. See polarization-readout.md."
     },
     {
       "id": "measure_dvdi_point",

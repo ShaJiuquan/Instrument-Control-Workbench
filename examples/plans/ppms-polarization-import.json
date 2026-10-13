@@ -1,0 +1,12 @@
+{
+  "experiment_id": "Software-timed polarization and current readout",
+  "type": "measurement", "name": "measure_polarization_readout", "source_line": 1,
+  "params": {
+    "instrument": "k2450", "channel": "none", "sensing_mode": "4wire",
+    "pol_voltage_v": 5, "pol_duration_s": 0.001,
+    "inter_pulse_voltage_v": 0, "inter_pulse_duration_s": 0.001,
+    "read_voltage_v": 1, "read_delay_s": 0.001,
+    "compliance_a": 0.001, "nplc": 2, "meter_range_a": 0.001,
+    "maximum_attempts": 8
+  }
+}

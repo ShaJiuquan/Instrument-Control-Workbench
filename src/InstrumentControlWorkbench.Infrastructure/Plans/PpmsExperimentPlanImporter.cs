@@ -227,6 +227,7 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
         "meas_temp" or "read_temp" or "temperature" => "measure_temp",
         "meas_field" or "read_field" => "measure_field",
         "meas_angle" or "read_angle" => "measure_angle",
+        "pol_readout" or "polarization_readout" or "polread" => "measure_polarization_readout",
         "meas_current" or "read_current" => "measure_current",
         "meas_voltage" or "read_voltage" => "measure_voltage",
         _ => name.Trim().ToLowerInvariant(),

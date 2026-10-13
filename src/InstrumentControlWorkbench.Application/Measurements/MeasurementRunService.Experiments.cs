@@ -187,6 +187,8 @@ public sealed partial class MeasurementRunService
             case ReadSr830FrameStep lockIn:
                 await AcquireSr830RowAsync(lockIn, run, started);
                 break;
+            case ReadPolarizationStep polarization:
+                await AcquirePolarizationRowAsync(polarization, run, started); break;
             case ReadSourceSenseStep pair:
                 await AcquireSourceSenseRowAsync(pair, run, started, ivPlot);
                 break;

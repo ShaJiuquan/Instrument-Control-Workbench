@@ -277,6 +277,7 @@ public sealed partial class PpmsExperimentPlanImporter
     }
     private static ExperimentStep Measurement(string name, JsonObject p, string path, ImportContext c)
     {
+        if (name == "measure_polarization_readout") return PolarizationReadout(p, path, c);
         if (name is "meas_r" or "meas_r_sample" or "meas_r_2w" or "meas_r_4w" or "meas_r_hallbar" or "meas_r_vdp")
             return Resistance(name, p, path, c);
         if (name is "measure_temp" or "measure_field" or "measure_angle")

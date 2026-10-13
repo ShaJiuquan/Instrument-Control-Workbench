@@ -13,6 +13,7 @@ public sealed partial class JsonExperimentPlanDocument
     {
         CheckSize(depth, ref count);
         var o = new JsonObject { ["id"] = step.Id.Value };
+        if (step is ReadPolarizationStep) return EncodePolarization((ReadPolarizationStep)step, o);
         switch (step)
         {
             case TemperatureStabilityStep settings:
@@ -229,6 +230,7 @@ public sealed partial class JsonExperimentPlanDocument
             case "read_sr830_frame":
                 Object(o, "id", "kind", "device", "input", "prefix", "includeReference");
                 return new ReadSr830FrameStep(id, new(Text(o, "device")), NamedEnum<Sr830InputMode>(o, "input"), new(Text(o, "prefix")), o.ContainsKey("includeReference") && Boolean(o, "includeReference"));
+            case "read_polarization": return DecodePolarization(o, id);
             case "read_source_sense":
                 Object(o, "id", "kind", "device", "function", "voltageColumn", "currentColumn", "environmentReads");
                 return new ReadSourceSenseStep(id, new(Text(o, "device")), NamedEnum<SourceFunction>(o, "function"), new(Text(o, "voltageColumn")), new(Text(o, "currentColumn")), DecodeEnvironment(o));
@@ -404,4 +406,28 @@ public sealed partial class JsonExperimentPlanDocument
             default: throw new NotSupportedException($"Unsupported plan step '{kind}'.");
         }
     }
+    private static JsonObject EncodePolarization(ReadPolarizationStep pulse, JsonObject o)
+    {
+        o["kind"] = "read_polarization";
+        o["configuration"] = EncodePreparation(new(pulse.Device, SourceFunction.Voltage, pulse.PolarizationVoltage, pulse.Compliance, pulse.Sense));
+        o["polarizationSeconds"] = pulse.PolarizationDuration.TotalSeconds; o["interPulseVoltage"] = EncodeQuantity(pulse.InterPulseVoltage); o["interPulseSeconds"] = pulse.InterPulseDuration.TotalSeconds;
+        o["readVoltage"] = EncodeQuantity(pulse.ReadVoltage); o["readDelaySeconds"] = pulse.ReadDelay.TotalSeconds;
+        o["voltageColumn"] = pulse.VoltageColumn.Value; o["currentColumn"] = pulse.CurrentColumn.Value; o["attemptsColumn"] = pulse.AttemptsColumn.Value; o["maximumAttempts"] = pulse.MaximumAttempts; EncodeEnvironment(o, pulse.EnvironmentReads);
+        if (pulse.RequiredRoute is { } pulseRoute) o["requiredRoute"] = new JsonObject { ["device"] = pulseRoute.Device.Value, ["closed"] = new JsonArray(pulseRoute.Closed.Select(point => (JsonNode)new JsonObject { ["slot"] = point.Slot, ["row"] = point.Row, ["column"] = point.Column }).ToArray()) };
+        return o;
+    }
+    private static ReadPolarizationStep DecodePolarization(JsonObject o, StepId id)
+    {
+        Object(o, "id", "kind", "configuration", "polarizationSeconds", "interPulseVoltage", "interPulseSeconds", "readVoltage", "readDelaySeconds", "voltageColumn", "currentColumn", "attemptsColumn", "maximumAttempts", "requiredRoute", "environmentReads");
+        var pulsePreparation = DecodePreparation(o["configuration"]);
+        if (pulsePreparation.Function != SourceFunction.Voltage || pulsePreparation.ManualSourceRange is not null) throw new FormatException("Polarization configuration requires an autoranged voltage source.");
+        MatrixRouteExpectation? pulseRoute = null;
+        if (o.ContainsKey("requiredRoute"))
+        {
+            var route = Object(o["requiredRoute"], "device", "closed");
+            pulseRoute = new(new(Text(route, "device")), Array(Required(route, "closed")).Select(p => { var point = Object(p, "slot", "row", "column"); return new MatrixCrossPoint(Integer(point, "slot"), Integer(point, "row"), Integer(point, "column")); }));
+        }
+        return new ReadPolarizationStep(id, pulsePreparation.Device, pulsePreparation.Level, Duration(o, "polarizationSeconds"), DecodeQuantity(o["interPulseVoltage"]), Duration(o, "interPulseSeconds"), DecodeQuantity(o["readVoltage"]), Duration(o, "readDelaySeconds"), pulsePreparation.Compliance, pulsePreparation.Sense, new(Text(o, "voltageColumn")), new(Text(o, "currentColumn")), new(Text(o, "attemptsColumn")), Integer(o, "maximumAttempts"), pulseRoute, DecodeEnvironment(o));
+    }
+
 }

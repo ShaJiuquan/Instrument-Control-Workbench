@@ -8,6 +8,7 @@ namespace InstrumentControlWorkbench.Core.Data;
 public sealed partial class RunDataRowValidator
 {
     private readonly ExperimentPlan? plan;
+    private readonly Dictionary<StepId, ReadPolarizationStep> polarizationReads = [];
     private readonly List<ReadSr830FrameStep> lockInFrames = [];
     private readonly Dictionary<StepId, CalculatedMeasurementStep> calculations = [];
     private MeasurementDataRow? previousRow;
@@ -52,6 +53,8 @@ public sealed partial class RunDataRowValidator
                     foreach (var channel in read.Channels) if (channel.Address.Parameter == Keithley2450Parameters.MeasuredResistance.Id) nativeResistanceColumns.Add((read.Id, channel.Column));
                     RegisterQuality(read.Id, read.Channels.Select(c => (c.Column, c.Address.Device))); RegisterEnvironment(read.Channels.Select(c => c.Column), read.EnvironmentReads); break;
                 case ReadSr830FrameStep read: lockInFrames.Add(read); RegisterQuality(read.Id, read.Channels.Take(4).Select(c => (c.Column, read.Device))); break;
+                case ReadPolarizationStep read:
+                    polarizationReads.Add(read.Id, read); RegisterQuality(read.Id, new[] { read.VoltageColumn, read.CurrentColumn }.Select(column => (column, read.Device))); RegisterEnvironment([read.VoltageColumn, read.CurrentColumn, read.AttemptsColumn], read.EnvironmentReads); break;
                 case ReadSourceSenseStep read: RegisterQuality(read.Id, new[] { read.VoltageColumn, read.CurrentColumn }.Select(c => (c, read.Device))); RegisterEnvironment([read.VoltageColumn, read.CurrentColumn], read.EnvironmentReads); break;
                 case ReadCurrentResistanceStep read:
                     independentResistance.Add(read.Id, read);
@@ -174,6 +177,16 @@ public sealed partial class RunDataRowValidator
                     throw new ArgumentException("Independent sample must preserve its electrode selection, meter identity and wired input 1.");
             }
         }
+        if (row.Analysis is null && row.MeasurementGroup is null && row.Calculation is null && row.Quality.Count == 0 && polarizationReads.Values.Any(p => row.Values.ContainsKey(p.VoltageColumn) || row.Values.ContainsKey(p.CurrentColumn) || row.Values.ContainsKey(p.AttemptsColumn)))
+            throw new ArgumentException("Polarization sample values require their original acquisition quality envelope.");
+        if (row.Analysis is null && row.MeasurementGroup is null && row.Calculation is null)
+            foreach (var pulse in polarizationReads.Values.Where(p => row.Values.ContainsKey(p.AttemptsColumn)))
+            {
+                if (!row.Values.TryGetValue(pulse.VoltageColumn, out var voltage) || voltage.Unit != PhysicalUnit.Volt || !row.Values.TryGetValue(pulse.CurrentColumn, out var current) || current.Unit != PhysicalUnit.Ampere ||
+                    row.Values[pulse.AttemptsColumn].Unit != PhysicalUnit.Dimensionless || row.Values[pulse.AttemptsColumn].Value != Math.Truncate(row.Values[pulse.AttemptsColumn].Value) || row.Values[pulse.AttemptsColumn].Value < 1 || row.Values[pulse.AttemptsColumn].Value > pulse.MaximumAttempts ||
+                    row.Quality.Count != 2 || row.Quality.Any(q => q.Step != pulse.Id || q.Device != pulse.Device || q.MeterConfiguration is not null || q.PicoammeterConfiguration is not null || q.ElectrometerConfiguration is not null) || row.Quality[0].CapturedAt != row.Quality[1].CapturedAt || row.Quality[0].Status != row.Quality[1].Status || row.Quality[0].AcquisitionConfiguration != row.Quality[1].AcquisitionConfiguration)
+                    throw new ArgumentException("Polarization rows require both original source/sense observations and a bounded integral attempt count.");
+            }
         if (row.Analysis is null && row.MeasurementGroup is null && row.Calculation is null && row.Quality.Count == 0 && electrometerColumns.Keys.Any(c => row.Values.ContainsKey(c.Column)))
             throw new ArgumentException("Electrometer rows require acquisition configuration evidence.");
         if (row.Analysis is null && row.MeasurementGroup is null && row.Calculation is null && row.Quality.Count == 0 && standaloneCurrentColumns.Any(c => row.Values.ContainsKey(c.Column)))
@@ -193,6 +206,7 @@ public sealed partial class RunDataRowValidator
                     settings.ValidateReading(function, row.Values[quality.Column]);
                 }
                 else if (quality.ElectrometerConfiguration is not null) throw new ArgumentException("Electrometer evidence belongs only to its declared function acquisition.");
+                if (polarizationReads.TryGetValue(quality.Step, out var pulse) && !row.Values.ContainsKey(pulse.AttemptsColumn)) throw new ArgumentException("Polarization result requires its attempt evidence.");
                 var passiveCurrent = standaloneCurrentColumns.Contains((quality.Step, quality.Column));
                 if (passiveCurrent && (quality.PicoammeterConfiguration is null || quality.Status is not null || quality.AcquisitionConfiguration is not null || quality.MeterConfiguration is not null) ||
                     quality.PicoammeterConfiguration is { } pico && (!passiveCurrent || row.Values[quality.Column].Unit != PhysicalUnit.Ampere || Math.Abs(row.Values[quality.Column].Value) > 0.021 || pico.ManualRange is { } span && Math.Abs(row.Values[quality.Column].Value) > span.Value * 1.05))
