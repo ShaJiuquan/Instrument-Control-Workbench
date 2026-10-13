@@ -81,6 +81,6 @@ public sealed class RoutingProfileCatalog
         var sampleRouting = new ImportSampleRouting(routing, ModeWirings.Where(p => sources.ContainsKey(p.Value.Value)), aliases, routeSettle);
         return new(devices.Instruments, devices.Axes, devices.Preparations, samples: sampleRouting,
             channelProfiles: new(this, routing, channelWiring, routeSettle, channelVoltageMeter),
-            standaloneVoltageMeters: devices.StandaloneVoltageMeters, currentSourcePreparations: devices.CurrentSourcePreparations);
+            standaloneVoltageMeters: devices.StandaloneVoltageMeters, currentSourcePreparations: devices.CurrentSourcePreparations, standaloneCurrentMeters: devices.StandaloneCurrentMeters);
     }
 }

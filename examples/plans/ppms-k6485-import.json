@@ -1,0 +1,11 @@
+{
+  "experiment_id": "Direct K6485 current simulation",
+  "type": "sequence",
+  "children": [
+    {"type": "command", "name": "k6485.set_zero_check", "source_line": 1, "params": {"enabled": false}},
+    {"type": "command", "name": "k6485.set_zero_correct", "source_line": 2, "params": {"enabled": true}},
+    {"type": "measurement", "name": "measure_current", "source_line": 3, "params": {"instrument": "k6485", "channel": "none", "meter_range_a": 2e-9, "nplc": 2, "filter_enabled": true, "filter_count": 3}},
+    {"type": "command", "name": "k6485.set_auto_range", "source_line": 4, "params": {"auto_range": true}},
+    {"type": "measurement", "name": "measure_current", "source_line": 5, "params": {"instrument": "k6485", "channel": "none", "nplc": 4}}
+  ]
+}

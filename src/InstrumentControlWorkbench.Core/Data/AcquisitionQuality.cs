@@ -10,12 +10,15 @@ public enum ReadingQualityState { Unobserved, PartiallyObserved, ObservedNormal,
 // preserve these input references; they do not invent new hardware status.
 public sealed record AcquisitionQuality
 {
-    public AcquisitionQuality(StepId step, InstrumentId device, ParameterId column, DateTimeOffset capturedAt, Keithley2450ReadingStatus? status, Keithley2450AcquisitionSettings? acquisitionConfiguration = null, Keithley2182Settings? meterConfiguration = null)
+    public AcquisitionQuality(StepId step, InstrumentId device, ParameterId column, DateTimeOffset capturedAt, Keithley2450ReadingStatus? status, Keithley2450AcquisitionSettings? acquisitionConfiguration = null, Keithley2182Settings? meterConfiguration = null, Keithley6485Settings? picoammeterConfiguration = null)
     {
         ArgumentNullException.ThrowIfNull(step); ArgumentException.ThrowIfNullOrWhiteSpace(device.Value); ArgumentNullException.ThrowIfNull(column);
         if (meterConfiguration is not null && (status is not null || acquisitionConfiguration is not null)) throw new ArgumentException("Passive meter evidence cannot claim K2450 buffer status or settings.");
+        if (picoammeterConfiguration is not null && (status is not null || acquisitionConfiguration is not null || meterConfiguration is not null || picoammeterConfiguration.ZeroCheck)) throw new ArgumentException("Picoammeter evidence requires zero check off and cannot claim other instrument status or settings.");
+        PicoammeterConfiguration = picoammeterConfiguration;
         Step = step; Device = device; Column = column; CapturedAt = capturedAt; Status = status; AcquisitionConfiguration = acquisitionConfiguration; MeterConfiguration = meterConfiguration;
     }
+    public Keithley6485Settings? PicoammeterConfiguration { get; }
     public Keithley2182Settings? MeterConfiguration { get; }
     public StepId Step { get; }
     public InstrumentId Device { get; }

@@ -85,6 +85,8 @@ internal static partial class ExperimentPlanCompiler
             }
             if (Device(write.Address.Device).Model == "SR830" && write.Values is { } lockInValues)
                 foreach (var value in lockInValues) Sr830Parameters.ValidateWrite(write.Address.Parameter, value);
+            if (Device(write.Address.Device).Model == "K6485" && write.Values is { } picoValues)
+                foreach (var value in picoValues) Keithley6485Parameters.ValidateWrite(write.Address.Parameter, value);
             if (write.Values is { } meterValues && Keithley2182Parameters.IsParameter(write.Address.Parameter))
                 foreach (var value in meterValues) Keithley2182Parameters.ValidateWrite(write.Address.Parameter, value);
             if (write.Values is { } functionValues && write.Address.Parameter == Keithley2450Parameters.ActiveSenseFunction.Id && functionValues.Any(v => v.Value != Math.Truncate(v.Value))) throw new ArgumentException("Sense function requires an integral enum code.");

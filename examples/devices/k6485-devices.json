@@ -1,0 +1,10 @@
+{
+  "format": "instrument-workbench-devices",
+  "version": 1,
+  "primarySource": null,
+  "devices": [{
+    "id": "picoammeter", "model": "K6485", "displayName": "Independent current simulator",
+    "category": "Meter", "enabled": true, "connection": {"transport": "simulation"}
+  }],
+  "aliases": {"k6485": "picoammeter"}
+}

@@ -1901,3 +1901,17 @@ no newform/desktop/physical/dependency/Rust change. See rotation-homing.md.
 Native visual/real home-sensor/protocol acceptance, wider PPMS/controllers/workflow/
 data/settings/remote and SR830 mute/differential gaps remain active; independent
 C# engine and GitHub only.
+
+## K6485 passive current migration (2026-10-13)
+
+Separate picoammeter port/settings/session and fixed1nA configured simulation;
+zero check defaultsON and sample reads require explicitOFF. Exact8currentranges,
+NPLC/averaging/zero registers, owned idle confirmation/pause drift/recovery.
+Optional per-reading PicoammeterConfiguration preserved in archive/CSV/points;
+reject absent/foreign evidence, configdrift/timestamp/unit/manualspan overflow.
+Six PPMS device commands; measure_current explicitK6485 is directC#extension
+(RustexperimentalcurrentK2450only; Rustmanualcurrent includesdirectK6485).
+Reject matrix/inheritedsource scans; no implicitzerooff/calibration/status.
+Onlysim registered, physicalcatalog fails beforeconstruction. See
+k6485-picoammeter.md for50HzNPLC/filter/status/zerocorrect/physical gaps.
+No deps/Rust/nativewindow changes; visualacceptance userdeferred. Broadgoalactive.

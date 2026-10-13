@@ -861,19 +861,22 @@
       "id": "k6485.set_nplc",
       "nodeType": "command",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "notes": "Native passive parameters/session, explicit simulation and validated PPMS import; real adapter/physical acceptance pending. See k6485-picoammeter.md."
     },
     {
       "id": "k6485.set_range",
       "nodeType": "command",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "notes": "Native passive parameters/session, explicit simulation and validated PPMS import; real adapter/physical acceptance pending. See k6485-picoammeter.md."
     },
     {
       "id": "k6485.set_zero_check",
       "nodeType": "command",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "notes": "Native passive parameters/session, explicit simulation and validated PPMS import; real adapter/physical acceptance pending. See k6485-picoammeter.md."
     },
     {
       "id": "k6514.set_function",

@@ -43,6 +43,13 @@ public sealed partial class PpmsExperimentPlanImporter
                 };
                 return new TemperatureControlStep(new(path), temperatureAxis.Device.Id, action,
                     name == "temp_ramp_on" ? new Quantity(Number(p, p.ContainsKey("rate") ? "rate" : "rate_k_per_min"), PhysicalUnit.KelvinPerMinute) : null);
+            case "k6485.set_nplc":
+            case "k6485.set_range":
+            case "k6485.set_auto_range":
+            case "k6485.set_zero_check":
+            case "k6485.set_zero_correct":
+            case "k6485.set_averaging":
+                return PicoammeterCommand(name, p, path, c);
             case "k2182.set_nplc":
             case "k2182.set_range":
             case "k2182.set_filter":
@@ -279,6 +286,11 @@ public sealed partial class PpmsExperimentPlanImporter
         {
             if (name != "measure_voltage") throw new NotSupportedException("K2182 has no current measurement capability.");
             return StandaloneVoltage(p, path, standalone, c);
+        }
+        if (c.Bindings.Instruments.TryGetValue(instrument, out var picoammeter) && c.Bindings.StandaloneCurrentMeters.Contains(picoammeter))
+        {
+            if (name != "measure_current") throw new NotSupportedException("K6485 has no voltage measurement capability.");
+            return StandaloneCurrent(p, path, picoammeter, c);
         }
         var senseFunction = name == "measure_voltage" ? SenseFunction.Voltage : SenseFunction.Current;
         var selector = RangeSelector(p, name == "measure_voltage" ? "meter_range_v" : "meter_range_a", senseFunction == SenseFunction.Voltage ? PhysicalUnit.Volt : PhysicalUnit.Ampere);

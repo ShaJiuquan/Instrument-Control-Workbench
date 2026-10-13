@@ -276,7 +276,7 @@ public sealed partial class MeasurementRunService
         {
             var observation = await run.Resources!.ReadObservationAsync(channel.Address.Device, channel.Address.Parameter, run.Token);
             var value = observation.Value;
-            quality.Add(new(read.Id, channel.Address.Device, channel.Column, observation.CapturedAt, observation.Status, observation.AcquisitionConfiguration, observation.MeterConfiguration));
+            quality.Add(new(read.Id, channel.Address.Device, channel.Column, observation.CapturedAt, observation.Status, observation.AcquisitionConfiguration, observation.MeterConfiguration, observation.PicoammeterConfiguration));
             values[channel.Column] = value;
         }
         var environment = await ReadEnvironmentAsync(read.EnvironmentReads, values, run);

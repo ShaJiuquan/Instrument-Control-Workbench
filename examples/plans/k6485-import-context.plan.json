@@ -1,0 +1,6 @@
+{
+  "format": "instrument-workbench-plan", "version": 1,
+  "name": "Direct picoammeter import context", "preparations": [], "metadata": {},
+  "maximumStepExecutions": 500,
+  "root": {"kind": "sequence", "id": "context", "children": []}
+}

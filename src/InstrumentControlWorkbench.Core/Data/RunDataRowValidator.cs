@@ -20,6 +20,7 @@ public sealed partial class RunDataRowValidator
     private readonly Dictionary<ParameterId, IReadOnlyList<EnvironmentRead>> environmentPolicies = [];
     private readonly Dictionary<StepId, IReadOnlyDictionary<ParameterId, InstrumentId>> acquisitions = [];
     private readonly HashSet<(StepId Step, ParameterId Column)> nativeResistanceColumns = [];
+    private readonly HashSet<(StepId Step, ParameterId Column)> standaloneCurrentColumns = [];
     private readonly HashSet<(StepId Step, ParameterId Column)> standaloneVoltageColumns = [];
     private readonly Dictionary<StepId, ReadCurrentResistanceStep> independentResistance = [];
     private readonly Dictionary<StepId, Core.Routing.ResolvedSampleRoute> independentSamples = [];
@@ -44,6 +45,7 @@ public sealed partial class RunDataRowValidator
                 case CalculatedMeasurementStep calculation:
                     calculations.Add(calculation.Id, calculation); foreach (var column in calculation.Columns) if (!calculatedColumns.Add(column.Column)) throw new ArgumentException("Calculated schema columns require distinct identities."); pending.Push((calculation.Body, item.Depth + 1)); break;
                 case ReadStep read:
+                    foreach (var channel in read.Channels) if (channel.Address.Parameter == Keithley6485Parameters.Current.Id) standaloneCurrentColumns.Add((read.Id, channel.Column));
                     foreach (var channel in read.Channels) if (channel.Address.Parameter == Keithley2182Parameters.Voltage.Id) standaloneVoltageColumns.Add((read.Id, channel.Column));
                     foreach (var channel in read.Channels) if (channel.Address.Parameter == Keithley2450Parameters.MeasuredResistance.Id) nativeResistanceColumns.Add((read.Id, channel.Column));
                     RegisterQuality(read.Id, read.Channels.Select(c => (c.Column, c.Address.Device))); RegisterEnvironment(read.Channels.Select(c => c.Column), read.EnvironmentReads); break;
@@ -170,6 +172,8 @@ public sealed partial class RunDataRowValidator
                     throw new ArgumentException("Independent sample must preserve its electrode selection, meter identity and wired input 1.");
             }
         }
+        if (row.Analysis is null && row.MeasurementGroup is null && row.Calculation is null && row.Quality.Count == 0 && standaloneCurrentColumns.Any(c => row.Values.ContainsKey(c.Column)))
+            throw new ArgumentException("Standalone current rows require acquisition configuration evidence.");
         if (row.Analysis is null && row.MeasurementGroup is null && row.Quality.Count != 0)
         {
             var step = row.Quality[0].Step;
@@ -179,6 +183,10 @@ public sealed partial class RunDataRowValidator
                 throw new ArgumentException("Acquisition quality must match the declared complete step, devices, columns and capture times.");
             foreach (var quality in row.Quality)
             {
+                var passiveCurrent = standaloneCurrentColumns.Contains((quality.Step, quality.Column));
+                if (passiveCurrent && (quality.PicoammeterConfiguration is null || quality.Status is not null || quality.AcquisitionConfiguration is not null || quality.MeterConfiguration is not null) ||
+                    quality.PicoammeterConfiguration is { } pico && (!passiveCurrent || row.Values[quality.Column].Unit != PhysicalUnit.Ampere || Math.Abs(row.Values[quality.Column].Value) > 0.021 || pico.ManualRange is { } span && Math.Abs(row.Values[quality.Column].Value) > span.Value * 1.05))
+                    throw new ArgumentException("Standalone current evidence must retain its observed picoammeter settings.");
                 var passiveVoltage = standaloneVoltageColumns.Contains((quality.Step, quality.Column));
                 if (passiveVoltage && (quality.Status is not null || quality.AcquisitionConfiguration is not null) ||
                     quality.MeterConfiguration is { } meter && (!passiveVoltage || Math.Abs(row.Values[quality.Column].Value) > Keithley2182Settings.MaximumInputVoltage(meter.Channel)))
