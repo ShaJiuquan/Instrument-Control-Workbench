@@ -66,8 +66,8 @@ fresh live temperature rather than leaving unowned thermal motion.
 Native v1 kind is software_temperature_scan; hardware v1 JSON fields remain
 compatible. PPMS ramp_mode=software and absent ramp_mode select software;
 explicit hardware still selects hardware, unknown modes reject. The workbench
-outline traverses the real child, with JSON authoring until a dedicated native
-form is added. Native/PPMS, graph, blackboard, fresh archive, CSV and 128-depth
+outline traverses the real child, with a shared native form and separate software palette; see
+temperature-scan-authoring.md. Native/PPMS, graph, blackboard, fresh archive, CSV and 128-depth
 checks are included. Native visual and physical thermal acceptance remain
 pending per the user's instruction to continue code checks.
 

@@ -1,0 +1,45 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:views="using:InstrumentControlWorkbench.App.Views"
+             x:Class="InstrumentControlWorkbench.App.Views.PlanTemperatureScanFormView" x:DataType="vm:PlanTemperatureScanFormViewModel">
+  <StackPanel Spacing="10">
+    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+    <TextBlock Text="温度控制器" Classes="caption"/>
+    <ComboBox ItemsSource="{Binding Controllers}" SelectedItem="{Binding SelectedController, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="温度扫描控制器">
+      <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanTemperatureControllerChoice"><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
+    </ComboBox>
+    <TextBlock Text="{Binding ControllerSummary}" Classes="caption" TextWrapping="Wrap"/>
+    <Expander Header="温度点与速率" IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+      <StackPanel Spacing="8" Margin="0,8,0,0">
+        <views:PlanScanValuesFormView DataContext="{Binding ValuesForm}"/>
+        <TextBlock Text="{Binding PrecisionSummary}" Classes="caption" TextWrapping="Wrap"/>
+        <TextBlock Text="{Binding RateSummary}" Classes="caption" TextWrapping="Wrap"/>
+        <TextBox Text="{Binding Rate, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="温度扫描速率 K每分钟"/>
+      </StackPanel>
+    </Expander>
+    <Expander Header="采样与结果列" IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+      <StackPanel Spacing="8" Margin="0,8,0,0">
+        <TextBlock Text="采样方式" Classes="caption"/>
+        <ComboBox ItemsSource="{Binding SamplingChoices}" SelectedItem="{Binding SelectedSamplingChoice, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="温度采样方式">
+          <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanTemperatureSamplingChoice"><TextBlock Text="{Binding Label}" TextWrapping="Wrap"/></DataTemplate></ComboBox.ItemTemplate>
+        </ComboBox>
+        <TextBlock Text="{Binding SamplingSummary}" Classes="caption" TextWrapping="Wrap"/>
+        <StackPanel Spacing="6" IsVisible="{Binding HasInterval}"><TextBlock Text="采样最小间隔 / 秒" Classes="caption"/><TextBox Text="{Binding IntervalSeconds, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="温度采样间隔秒"/></StackPanel>
+        <TextBlock Text="实际温度结果列 ID" Classes="caption"/>
+        <TextBox Text="{Binding Column, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="温度结果列 ID"/>
+        <TextBlock Text="{Binding EvidenceSummary}" Classes="caption" TextWrapping="Wrap"/>
+      </StackPanel>
+    </Expander>
+    <Expander Header="稳定与超时" IsExpanded="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+      <StackPanel Spacing="8" Margin="0,8,0,0">
+        <TextBlock Text="{Binding TimeoutSummary}" Classes="caption" TextWrapping="Wrap"/>
+        <CheckBox Content="首点等待连续稳定观测" IsChecked="{Binding WaitStableFirst, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" AutomationProperties.Name="温度扫描首点稳定"/>
+        <TextBlock Text="温度容差 / K" Classes="caption"/><TextBox Text="{Binding Tolerance, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="温度扫描容差 K"/>
+        <TextBlock Text="连续稳定观测次数 / 1 至 10000" Classes="caption"/><TextBox Text="{Binding StableCount, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="温度扫描稳定次数"/>
+        <TextBlock Text="稳定与终点等待上限 / 秒" Classes="caption"/><TextBox Text="{Binding StableTimeoutSeconds, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="温度扫描稳定超时秒"/>
+        <TextBlock Text="每个阈值等待上限 / 秒，仅前两种采样方式" Classes="caption"/><TextBox Text="{Binding StepTimeoutSeconds, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="温度扫描阈值超时秒"/>
+        <TextBlock Text="轮询间隔 / 秒，至少 0.05" Classes="caption"/><TextBox Text="{Binding PollSeconds, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="温度扫描轮询秒"/>
+        <TextBlock Text="暂停期间设定轨迹与等待期限暂停计时。子测量耗时仍计入轨迹，需另加超时保护；程序完成不等于设备已安全停止。" Classes="caption" TextWrapping="Wrap"/>
+      </StackPanel>
+    </Expander>
+  </StackPanel>
+</UserControl>

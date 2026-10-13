@@ -2096,3 +2096,19 @@ signals and waits, retaining non-overlap, ownership, cancellation and fresh
 recovery assertions. The test deadline allows normal source cleanup before
 matrix IO; production pending-stop behavior is unchanged. Failed audit logs
 are preserved in the stage publication evidence.
+
+## Native temperature scan authoring (2026-10-13)
+
+Frontend adds shared compiled-binding temperature form and two explicit palettes;
+backend supplies immutable independently configurable Kelvin controller catalog
+Registry -> RunService -> Workspace without IO. Type/ID/Body, unedited points,
+R-format numbers and unchanged TimeSpan ticks remain; changing controllers
+revalidates bounds without clearing values. No default physical binding in new
+templates, no axes fallback to guess optional capability. Four Chinese sampling
+choices map to typed enum; hidden intervals survive mode changes. Product review
+clarifies nominal vs hardware rate, first/threshold/endpoint deadlines, raw mK
+threshold timeout, unknown total and actual/confirmed/estimated evidence.
+Existing draft/JSON/apply/discard/busy/stale gates and complete compiler remain.
+Architecture/QA independently review, with save/reload/mock/archive/CSV checks.
+See temperature-scan-authoring.md. No dependencies/driver/Rust/lab/native window
+operations; visual acceptance remains deferred and full migration active.

@@ -47,6 +47,7 @@
         </ItemsControl>
         <controls:OperatorButton Content="添加读取通道" Command="{Binding AddChannelCommand}" HorizontalAlignment="Left" AutomationProperties.Name="添加读取通道"/>
       </StackPanel>
+      <Grid IsVisible="{Binding HasTemperatureScan}"><views:PlanTemperatureScanFormView DataContext="{Binding TemperatureScan}"/></Grid>
       <Grid IsVisible="{Binding HasPolarization}"><views:PlanPolarizationFormView DataContext="{Binding Polarization}"/></Grid>
       <Grid IsVisible="{Binding HasSr830Frame}"><views:PlanSr830FrameFormView DataContext="{Binding Sr830Frame}"/></Grid>
       <Grid IsVisible="{Binding HasAcquisition}"><views:PlanAcquisitionFormView DataContext="{Binding Acquisition}"/></Grid>

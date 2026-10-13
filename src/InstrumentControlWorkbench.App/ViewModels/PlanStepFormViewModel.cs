@@ -35,7 +35,7 @@ public partial class PlanStepFormViewModel : ObservableObject
     private readonly IReadOnlyList<DeviceDescriptor> devices;
     private readonly Action changed;
     private bool loading = true;
-    public PlanStepFormViewModel(ExperimentStep step, IReadOnlyList<DeviceDescriptor> devices, Action changed, bool template = false, IReadOnlyList<AxisControllerDefinition>? axes = null, RoutingConfiguration? routing = null)
+    public PlanStepFormViewModel(ExperimentStep step, IReadOnlyList<DeviceDescriptor> devices, Action changed, bool template = false, IReadOnlyList<AxisControllerDefinition>? axes = null, RoutingConfiguration? routing = null, IReadOnlyList<AxisControllerDefinition>? temperatureScanAxes = null)
     {
         original = step; this.devices = devices; this.changed = changed;
         ParameterAddress? address = step switch { SetParameterStep s => s.Address, ScanStep s => s.Axis, WaitStableStep s => s.Readback, SourceOutputStep s => new(s.Device, new("output")), _ => null };
@@ -54,6 +54,7 @@ public partial class PlanStepFormViewModel : ObservableObject
                 foreach (var channel in s.Channels) Channels.Add(new(devices, template ? null : channel, MarkDirty)); break;
             case SourceOutputStep s: outputEnabled = s.Enabled; break;
         }
+        if (step is TemperatureScanStep temperatureScan) TemperatureScan = new(temperatureScan, temperatureScanAxes ?? Array.Empty<AxisControllerDefinition>(), MarkDirty, template);
         if (step is ReadSr830FrameStep lockIn) Sr830Frame = new(lockIn, devices, MarkDirty, template);
         if (step is CalculatedMeasurementStep calculated) CalculationForm = new(calculated, devices, axes ?? Array.Empty<AxisControllerDefinition>(), routing, MarkDirty, template);
         if (step is SampleAnalysisStep analysis) AnalysisForm = new(analysis, devices, axes ?? Array.Empty<AxisControllerDefinition>(), routing, MarkDirty, template);
@@ -121,6 +122,8 @@ public partial class PlanStepFormViewModel : ObservableObject
     public string SecondsLabel => IsRetry ? "重试间隔 / 秒" : IsTimeout || IsWaitStable ? "超时 / 秒" : "等待时间 / 秒";
     public string CyclesLabel => IsRetry ? "最大尝试次数" : "重复次数";
     public bool HasAddress => IsSet || IsScan || IsWaitStable;
+    public bool HasTemperatureScan => TemperatureScan is not null;
+    public PlanTemperatureScanFormViewModel? TemperatureScan { get; }
     public bool HasPolarization => Polarization is not null;
     public PlanPolarizationFormViewModel? Polarization { get; }
     public bool HasSr830Frame => Sr830Frame is not null;
@@ -129,7 +132,7 @@ public partial class PlanStepFormViewModel : ObservableObject
     public PlanAcquisitionFormViewModel? Acquisition { get; }
     public bool HasEnvironment => IsRead || HasAcquisition || original is ReadPolarizationStep;
     public PlanEnvironmentFormViewModel? Environment { get; }
-    public bool IsSupported => HasPolarization || original is CalculatedMeasurementStep || HasSr830Frame || HasSeconds || IsRepeat || HasAddress || IsRead || IsOutput || HasAcquisition || IsAssign || HasCondition || HasMutation || HasOutcome || HasScope || HasIteration || HasAnalysis;
+    public bool IsSupported => HasTemperatureScan || HasPolarization || original is CalculatedMeasurementStep || HasSr830Frame || HasSeconds || IsRepeat || HasAddress || IsRead || IsOutput || HasAcquisition || IsAssign || HasCondition || HasMutation || HasOutcome || HasScope || HasIteration || HasAnalysis;
     public PlanParameterSelectionViewModel Address { get; }
     public ObservableCollection<PlanReadChannelFormViewModel> Channels { get; } = new();
     [ObservableProperty] private string seconds = "";
@@ -154,6 +157,7 @@ public partial class PlanStepFormViewModel : ObservableObject
     partial void OnPollSecondsChanged(string value) => MarkDirty();
     partial void OnIsReadOnlyChanged(bool value)
     {
+        if (TemperatureScan is { } temperature) temperature.IsReadOnly = value;
         if (Polarization is { } pulse) pulse.IsReadOnly = value;
         if (Sr830Frame is { } lockIn) lockIn.IsReadOnly = value;
         if (CalculationForm is { } calculation) calculation.IsReadOnly = value;
@@ -184,6 +188,7 @@ public partial class PlanStepFormViewModel : ObservableObject
     }
     public ExperimentStep Build()
     {
+        if (TemperatureScan is { } temperature) return temperature.Build();
         if (Polarization is { } pulse) return pulse.Build();
         if (Sr830Frame is { } lockIn) return lockIn.Build();
         if (CalculationForm is { } calculation) return calculation.Build();

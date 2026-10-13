@@ -22,12 +22,16 @@ public sealed class DeviceRegistry
         Devices = Array.AsReadOnly(items.Select(d => d.Descriptor).ToArray());
         MatrixDefinitions = Array.AsReadOnly(items.OfType<MatrixSwitchSession>().Select(matrix => matrix.Definition).ToArray());
         AxisDefinitions = Array.AsReadOnly(items.OfType<AxisControllerSession>().Select(axis => axis.Definition).ToArray());
+        TemperatureScanDefinitions = Array.AsReadOnly(items.OfType<AxisControllerSession>()
+            .Where(axis => axis.SupportsTemperatureConfiguration && axis.Definition.Target.Unit == PhysicalUnit.Kelvin)
+            .Select(axis => axis.Definition).ToArray());
     }
 
     public bool SupportsSr830Frame(InstrumentId device) => Get(device) is Sr830MeterSession;
     public bool SupportsSr830Reference(InstrumentId device) => Get(device) is Sr830MeterSession { SupportsReference: true };
     public IReadOnlyList<DeviceDescriptor> Devices { get; }
     public IReadOnlyList<AxisControllerDefinition> AxisDefinitions { get; }
+    public IReadOnlyList<AxisControllerDefinition> TemperatureScanDefinitions { get; }
     public IReadOnlyList<MatrixSwitchDefinition> MatrixDefinitions { get; }
     public Task<TemperatureStabilitySettings> ConfigureTemperatureStabilityAsync(InstrumentId id, TemperatureStabilityChange change, CancellationToken token)
         => GetManual(id) is AxisControllerSession axis ? axis.ConfigureTemperatureStabilityAsync(change, token)

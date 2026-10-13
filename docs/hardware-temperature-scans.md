@@ -59,7 +59,8 @@ Native version 1 adds hardware_temperature_scan with its complete executable
 body. PPMS scan_temp_ramp/temperature_ramp/temp_ramp, or scan_temperature/scan_temp
 with a ramp scan_mode, require explicit ramp_mode=hardware. The default software branch now uses SoftwareTemperatureScanStep; see
 software-temperature-scans.md. Hardware mode is never inferred from the default. Native plan, graph traversal, terminal blackboard, fresh archives
-and CSV retain settings, mode and actual sample axes. Dedicated native forms remain pending.
+and CSV retain settings, mode and actual sample axes. A shared native form and separate hardware palette now support authoring; see
+temperature-scan-authoring.md.
 
 The headless example uses headless-cooling.devices.json (SIM-CRYOSTAT),
 headless-hardware-ramp-context.plan.json and

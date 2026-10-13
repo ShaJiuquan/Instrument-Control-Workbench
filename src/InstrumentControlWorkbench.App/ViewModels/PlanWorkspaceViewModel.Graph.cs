@@ -24,7 +24,7 @@ public partial class PlanWorkspaceViewModel
     [ObservableProperty] private PlanStepFormViewModel? paletteForm;
     [ObservableProperty] private bool showAdvancedNode;
     public ObservableCollection<PlanGraphNodeViewModel> GraphNodes { get; } = new();
-    public string[] PaletteKinds { get; } = ["等待", "顺序", "重复", "超时保护", "重试", "读取仪器", "设置参数", "参数扫描", "源输出", "源与测量读数", "SR830 原始帧", "SR830 名义换算", "极化脉冲读出", "极化电压迭代", "源表电阻", "独立源电阻", "变量赋值", "条件检查", "条件分支", "条件循环", "变量运算", "结果回调", "数值迭代", "子流程", "Hall 分析", "范德堡分析", "独立源 Hall 分析", "独立源范德堡分析", "样品电阻", "独立源样品电阻", "读取后计算"];
+    public string[] PaletteKinds { get; } = ["等待", "顺序", "重复", "超时保护", "重试", "读取仪器", "设置参数", "参数扫描", "软件温度扫描", "硬件温度扫描", "源输出", "源与测量读数", "SR830 原始帧", "SR830 名义换算", "极化脉冲读出", "极化电压迭代", "源表电阻", "独立源电阻", "变量赋值", "条件检查", "条件分支", "条件循环", "变量运算", "结果回调", "数值迭代", "子流程", "Hall 分析", "范德堡分析", "独立源 Hall 分析", "独立源范德堡分析", "样品电阻", "独立源样品电阻", "读取后计算"];
     public bool SupportsNodeForm => NodeForm?.IsSupported == true;
     public bool HasPaletteForm => PaletteForm is not null;
     public bool IsNodeFormVisible => SupportsNodeForm && !ShowAdvancedNode;
@@ -120,7 +120,7 @@ public partial class PlanWorkspaceViewModel
             if (SelectedNode is not null && validated is not null)
             {
                 PlanStepFormViewModel? form = null;
-                form = new(workspace.ReadStep(validated.Plan, SelectedNode.Id), workspace.Devices, () => { if (ReferenceEquals(NodeForm, form)) FormChanged(); }, axes: workspace.AxisDefinitions, routing: validated.Plan.Routing);
+                form = new(workspace.ReadStep(validated.Plan, SelectedNode.Id), workspace.Devices, () => { if (ReferenceEquals(NodeForm, form)) FormChanged(); }, axes: workspace.AxisDefinitions, routing: validated.Plan.Routing, temperatureScanAxes: workspace.TemperatureScanDefinitions);
                 form.SetAvailableVariables(workspace.DescribeVariables(validated.Plan, SelectedNode.Id));
                 var hostPlan = validated.Plan; var target = SelectedNode.Id;
                 form.CalculationForm?.SetDraftInspector(draft => workspace.DescribeCalculationDraft(hostPlan, target, PlanStructureEditKind.Replace, draft));
@@ -158,9 +158,9 @@ public partial class PlanWorkspaceViewModel
     private void ResetPaletteForm()
     {
         PaletteForm = null;
-        if (PaletteKind is not ("读取仪器" or "设置参数" or "参数扫描" or "源输出" or "源与测量读数" or "SR830 原始帧" or "SR830 名义换算" or "极化脉冲读出" or "极化电压迭代" or "源表电阻" or "独立源电阻" or "变量赋值" or "条件检查" or "条件分支" or "条件循环" or "变量运算" or "结果回调" or "数值迭代" or "子流程" or "Hall 分析" or "范德堡分析" or "独立源 Hall 分析" or "独立源范德堡分析" or "样品电阻" or "独立源样品电阻" or "读取后计算")) return;
+        if (PaletteKind is not ("读取仪器" or "设置参数" or "参数扫描" or "软件温度扫描" or "硬件温度扫描" or "源输出" or "源与测量读数" or "SR830 原始帧" or "SR830 名义换算" or "极化脉冲读出" or "极化电压迭代" or "源表电阻" or "独立源电阻" or "变量赋值" or "条件检查" or "条件分支" or "条件循环" or "变量运算" or "结果回调" or "数值迭代" or "子流程" or "Hall 分析" or "范德堡分析" or "独立源 Hall 分析" or "独立源范德堡分析" or "样品电阻" or "独立源样品电阻" or "读取后计算")) return;
         PlanStepFormViewModel? form = null;
-        form = new(CreatePaletteStep(PaletteKind), workspace.Devices, () => { if (ReferenceEquals(PaletteForm, form)) RefreshGraphCommands(); }, template: true, axes: workspace.AxisDefinitions, routing: validated?.Plan.Routing);
+        form = new(CreatePaletteStep(PaletteKind), workspace.Devices, () => { if (ReferenceEquals(PaletteForm, form)) RefreshGraphCommands(); }, template: true, axes: workspace.AxisDefinitions, routing: validated?.Plan.Routing, temperatureScanAxes: workspace.TemperatureScanDefinitions);
         PaletteForm = form; RefreshPaletteVariables();
     }
     private void RefreshPaletteVariables()
@@ -185,6 +185,7 @@ public partial class PlanWorkspaceViewModel
             "读取仪器" => new ReadStep(id, [new(new("reading"), address)]),
             "设置参数" => new SetParameterStep(id, address, new ConstantValue(new(0, PhysicalUnit.Dimensionless))),
             "参数扫描" => new ScanStep(id, address, new("axis"), new([new(0, PhysicalUnit.Dimensionless)]), TimeSpan.Zero, new SequenceStep(new(id.Value + "-body"), [])),
+            "软件温度扫描" or "硬件温度扫描" => CreateTemperatureScanTemplate(id, kind),
             "源输出" => new SourceOutputStep(id, address.Device, false),
             "源与测量读数" => new ReadSourceSenseStep(id, new("unselected-source"), SourceFunction.Voltage, new("voltage_read"), new("current_read")),
             "极化电压迭代" => new ForEachStep(id, new("pol_voltage"), new([new(0, PhysicalUnit.Volt)]), new SequenceStep(new(id.Value + "-body"), [])),
@@ -207,6 +208,14 @@ public partial class PlanWorkspaceViewModel
             "Hall 分析" or "范德堡分析" or "独立源 Hall 分析" or "独立源范德堡分析" => CreateAnalysisTemplate(id, kind),
             _ => throw new NotSupportedException("选择可用的步骤类型。"),
         };
+    }
+    private static TemperatureScanStep CreateTemperatureScanTemplate(StepId id, string kind)
+    {
+        var points = new ScanValues([new(4, PhysicalUnit.Kelvin), new(5, PhysicalUnit.Kelvin)]);
+        var body = new SequenceStep(new(id.Value + "-body"), []);
+        return kind == "软件温度扫描"
+            ? new SoftwareTemperatureScanStep(id, new("unselected-temperature"), new("temperature"), points, new(1, PhysicalUnit.KelvinPerMinute), true, new(.1, PhysicalUnit.Kelvin), 3, TimeSpan.FromSeconds(3600), TimeSpan.FromSeconds(3600), TimeSpan.FromSeconds(.5), TemperatureRampSampling.Threshold, TimeSpan.FromSeconds(30), body)
+            : new HardwareTemperatureScanStep(id, new("unselected-temperature"), new("temperature"), points, new(1, PhysicalUnit.KelvinPerMinute), true, new(.1, PhysicalUnit.Kelvin), 3, TimeSpan.FromSeconds(3600), TimeSpan.FromSeconds(3600), TimeSpan.FromSeconds(.5), TemperatureRampSampling.Threshold, TimeSpan.FromSeconds(30), body);
     }
     private static SampleAnalysisStep CreateAnalysisTemplate(StepId id, string kind)
     {
