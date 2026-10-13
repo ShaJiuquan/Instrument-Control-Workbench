@@ -11,19 +11,21 @@ public static class MockEnvironmentCatalog
 {
     public static MockAxisController Temperature(TimeProvider? clock = null, InstrumentId? id = null, string? displayName = null) => Create(id ?? new("temperature"), displayName ?? "Temperature simulator",
         "temperature", PhysicalUnit.Kelvin, 1, 310, PhysicalUnit.KelvinPerMinute, 0.01, 20, 300, 5, clock);
+    public static MockAxisController PassiveTemperature(TimeProvider? clock = null, InstrumentId? id = null, string? displayName = null) => Create(id ?? new("temperature"), displayName ?? "Passive cryostat simulator",
+        "temperature", PhysicalUnit.Kelvin, 1, 310, PhysicalUnit.KelvinPerMinute, 0.01, 20, 4, 5, clock, passiveCooling: true);
     public static MockAxisController Field(TimeProvider? clock = null, InstrumentId? id = null, string? displayName = null) => Create(id ?? new("field"), displayName ?? "Magnetic-field simulator",
         "field", PhysicalUnit.Tesla, -9, 9, PhysicalUnit.TeslaPerSecond, 0.0001, 1, 0, 0.1, clock);
     public static MockAxisController Angle(TimeProvider? clock = null, InstrumentId? id = null, string? displayName = null, bool supportsHoming = false) => Create(id ?? new("rotator"), displayName ?? "Rotator simulator",
         "angle", PhysicalUnit.Degree, -360, 360, PhysicalUnit.DegreePerSecond, 0.1, 30, 0, 5, clock, supportsHoming);
 
     private static MockAxisController Create(InstrumentId id, string name, string prefix, PhysicalUnit unit, double min, double max,
-        PhysicalUnit rateUnit, double minRate, double maxRate, double initial, double initialRate, TimeProvider? clock, bool supportsHoming = false)
+        PhysicalUnit rateUnit, double minRate, double maxRate, double initial, double initialRate, TimeProvider? clock, bool supportsHoming = false, bool passiveCooling = false)
     {
         var target = new ParameterDescriptor(new($"{prefix}.target"), $"{name} target", unit, ParameterAccess.ReadWrite, new(min, unit), new(max, unit));
         var readback = new ParameterDescriptor(new($"{prefix}.readback"), $"{name} readback", unit, ParameterAccess.Read, new(min, unit), new(max, unit));
         var rate = new ParameterDescriptor(new($"{prefix}.rate"), $"{name} rate", rateUnit, ParameterAccess.ReadWrite, new(minRate, rateUnit), new(maxRate, rateUnit));
-        var device = new DeviceDescriptor(id, $"SIM-{prefix.ToUpperInvariant()}", name, DriverKind.Simulation,
+        var device = new DeviceDescriptor(id, passiveCooling ? "SIM-CRYOSTAT" : $"SIM-{prefix.ToUpperInvariant()}", name, DriverKind.Simulation,
             DeviceStopPolicy.HoldCurrentPosition, [target, readback, rate]);
-        return new(new(device, target, readback, rate, unit == PhysicalUnit.Kelvin, supportsHoming), new(initial, unit), new(initialRate, rateUnit), clock);
+        return new(new(device, target, readback, rate, unit == PhysicalUnit.Kelvin, supportsHoming), new(initial, unit), new(initialRate, rateUnit), clock, passiveCooling ? new Quantity(1.7, PhysicalUnit.Kelvin) : null, passiveCooling ? new Quantity(120, PhysicalUnit.KelvinPerMinute) : null);
     }
 }

@@ -1,0 +1,24 @@
+{
+  "type": "scan",
+  "name": "scan_temp_cooling",
+  "params": {
+    "points": [
+      4,
+      3.9,
+      3.8
+    ],
+    "cooling_setpoint_k": 3.8,
+    "end_temp_k": 3.8,
+    "tolerance_k": 0.001,
+    "timeout_s": 2,
+    "poll_interval_ms": 50,
+    "sample_mode": "linear",
+    "interval_s": 0.02
+  },
+  "children": [
+    {
+      "type": "measurement",
+      "name": "measure_temp"
+    }
+  ]
+}

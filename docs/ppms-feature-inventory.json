@@ -567,7 +567,12 @@
       "aliases": [
         "temperature_cooling"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "Core TemperatureCoolingStep; Application Cooling session/resources/executor/compiler; Infrastructure native/PPMS cooling codec and SIM-CRYOSTAT",
+        "tests": "TemperatureCoolingModelTests; TemperatureCoolingTests; TemperatureCoolingDocumentsTests; temperature regressions and packaged CLI fixture",
+        "limits": "Threshold/timed/immediate modes, actual axes, descending/generator points, early end, wall deadlines/cadence, owned OFF/normal scope ON and root OFF obligations on failure, pause/drift/recovery, guarded body, budgets, native/archive/CSV/graph. Whole-run terminal hold differs from Rust low-target retention; dedicated UI, physical fridge/controller/protocol and thermal handoff pending. See temperature-cooling.md."
+      }
     },
     {
       "id": "scan_angle",

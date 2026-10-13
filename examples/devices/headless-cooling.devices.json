@@ -1,0 +1,20 @@
+{
+  "format": "instrument-workbench-devices",
+  "version": 1,
+  "primarySource": null,
+  "devices": [
+    {
+      "id": "temperature",
+      "model": "SIM-CRYOSTAT",
+      "displayName": "Passive cryostat simulation",
+      "category": "Temperature",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      }
+    }
+  ],
+  "aliases": {
+    "temperature": "temperature"
+  }
+}

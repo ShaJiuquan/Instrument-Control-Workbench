@@ -1996,3 +1996,20 @@ first. Native pair rows use explicit status/reason codes and omit unavailable
 electrical values; strict row validator, blackboard, archive/CSV retain proof.
 See electrode-continuity.md. Dedicated UI/wide-point/calculation/physical
 acceptance remain pending. No deps/Rust/nativewindow/lab IO; broadgoalactive.
+
+## Passive temperature cooling (2026-10-13)
+
+TemperatureCoolingStep implements Rust threshold/timed/immediate cooling
+observations with actual Kelvin/index0/total, descending/end-appended points,
+wall-time threshold deadlines and timed cadence including pause/child time.
+Independent ramp/control OFF confirmed before low target; fresh target/rate/
+flags/readback evidence, read-only controller body preflight and global budget.
+Normal scope restores control ON/ramp OFF. Failure/abort/logical failure keeps
+OFF obligation in DeviceRunResources through bounded stops and explicit recovery;
+ordinary hold success cannot release failed OFF claims. Passive readback drift
+while control OFF no longer invalidates stop solely by target/readback equality.
+Whole-run terminal hold still parks live temperature, differing from Rust low-
+target retention. Explicit SIM-CRYOSTAT cold/fridge model; ordinary simulator
+unchanged. Native/import/graph/footer/fresharchive/CSV tested;11Core+40Application.
+See temperature-cooling.md. Dedicated UI, physical fridge/controller and terminal
+thermal handoff remain unverified. No deps/Rust/native window/lab IO; goal active.

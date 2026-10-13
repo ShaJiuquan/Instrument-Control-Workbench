@@ -13,8 +13,10 @@ public sealed class MockAxisController : ITemperatureConfigurationPort, IRotatio
     private double readback;
     private double rate;
     private long updatedAt;
+    private readonly Quantity? passiveFloor;
+    private readonly Quantity? passiveRate;
 
-    public MockAxisController(AxisControllerDefinition definition, Quantity initial, Quantity initialRate, TimeProvider? clock = null)
+    public MockAxisController(AxisControllerDefinition definition, Quantity initial, Quantity initialRate, TimeProvider? clock = null, Quantity? passiveFloor = null, Quantity? passiveRate = null)
     {
         ArgumentNullException.ThrowIfNull(definition);
         if (definition.Device.DriverKind != DriverKind.Simulation)
@@ -22,6 +24,9 @@ public sealed class MockAxisController : ITemperatureConfigurationPort, IRotatio
         definition.Target.Validate(initial);
         definition.Readback.Validate(initial);
         definition.Rate.ValidateWrite(initialRate);
+        if ((passiveFloor is null) != (passiveRate is null) || passiveFloor is { } floor && (!definition.SupportsSoftwareTemperatureRamp || floor.Unit != PhysicalUnit.Kelvin) || passiveRate is { } naturalRate && (naturalRate.Unit != PhysicalUnit.KelvinPerMinute || naturalRate.Value <= 0)) throw new ArgumentException("Passive simulation needs a temperature floor and positive natural cooling rate together.");
+        if (passiveFloor is { } lower) definition.Readback.Validate(lower);
+        this.passiveFloor = passiveFloor; this.passiveRate = passiveRate;
         Definition = definition;
         this.clock = clock ?? TimeProvider.System;
         target = readback = initial.Value;
@@ -126,7 +131,7 @@ public sealed class MockAxisController : ITemperatureConfigurationPort, IRotatio
         lock (gate)
         {
             Advance();
-            if (target != readback) throw new InvalidOperationException("Hold motion before disconnecting the controller.");
+            if (target != readback && !(passiveFloor is not null && !temperatureControl.ControlEnabled)) throw new InvalidOperationException("Hold motion before disconnecting the controller.");
             connected = false;
         }
         return Task.CompletedTask;
@@ -138,7 +143,11 @@ public sealed class MockAxisController : ITemperatureConfigurationPort, IRotatio
         var delta = clock.GetElapsedTime(updatedAt, now).TotalSeconds;
         updatedAt = now;
         if (!connected) return;
-        if (Definition.SupportsSoftwareTemperatureRamp && !temperatureControl.ControlEnabled) return;
+        if (Definition.SupportsSoftwareTemperatureRamp && !temperatureControl.ControlEnabled)
+        {
+            if (passiveFloor is { } floor && passiveRate is { } naturalRate) readback = Math.Max(floor.Value, readback - naturalRate.Value / 60 * delta);
+            return;
+        }
         var perSecond = Definition.Rate.Unit == PhysicalUnit.KelvinPerMinute ? rate / 60 : rate;
         var distance = perSecond * delta;
         readback = target > readback ? Math.Min(target, readback + distance) : Math.Max(target, readback - distance);

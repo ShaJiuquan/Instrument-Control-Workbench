@@ -160,7 +160,7 @@ public sealed partial class AxisControllerSession : IDeviceSession
             if (observationError is not null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(observationError).Throw();
             var snapshot = await port.GetSnapshotAsync(token);
             if ((!snapshot.Connected && Descriptor.DriverKind == DriverKind.Hardware) || snapshot.Moving) throw new InvalidOperationException($"{Descriptor.Id} did not confirm its hold policy.");
-            if (temperature is not null && (snapshot.Target != snapshot.Readback ||
+            if (temperature is not null && (configuration?.ControlEnabled == true && snapshot.Target != snapshot.Readback ||
                 await temperature.ReadControlConfigurationAsync(token) != configuration))
                 throw new InvalidOperationException($"{Descriptor.Id}: temperature hold changed control flags or did not park at live readback.");
             faulted = false;

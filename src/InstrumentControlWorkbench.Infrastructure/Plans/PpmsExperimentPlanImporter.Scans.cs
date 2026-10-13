@@ -10,6 +10,7 @@ public sealed partial class PpmsExperimentPlanImporter
 {
     private static ExperimentStep Scan(string name, JsonObject p, JsonObject node, string path, ImportContext c, int depth)
     {
+        if (name == "scan_temp_cooling" || name == "scan_temperature" && p["scan_mode"] is not null && IsCoolingMode(Text(p, "scan_mode"))) return CoolingScan(p, node, path, c, depth);
         if (name == "measure_polarization" || name == "scan_voltage" && p["voltage_mode"] is not null && IsPolarizationMode(Text(p, "voltage_mode"))) return PolarizationScan(p, node, path, c, depth);
         if (name is "scan_number" or "scan_time") return IterationScan(name, p, node, path, c, depth);
         if (name is "scan_voltage" or "scan_current" or "scan_gate")

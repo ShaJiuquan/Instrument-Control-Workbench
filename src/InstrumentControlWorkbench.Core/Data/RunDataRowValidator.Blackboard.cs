@@ -47,6 +47,7 @@ public sealed partial class RunDataRowValidator
                 ForEachStep loop => variable == loop.Variable ? entry.Value is BlackboardQuantity point && loop.Values.Values.Contains(point.Value) :
                     variable.Value == loop.Variable.Value + ".index" ? IsCount(entry, (int)loop.IndexBase, loop.Values.Values.Count - 1 + (int)loop.IndexBase) :
                     variable.Value == loop.Variable.Value + ".total" && IsCount(entry, loop.Values.Values.Count, loop.Values.Values.Count),
+                TemperatureCoolingStep cooling => variable == cooling.Column ? IsQuantity(entry, PhysicalUnit.Kelvin) : variable == cooling.IndexColumn ? IsCount(entry, 0, cooling.Sampling == CoolingSamplingMode.Threshold ? cooling.Thresholds.Values.Count - 1 : plan!.MaximumStepExecutions) : variable == cooling.TotalColumn && IsCount(entry, cooling.Sampling == CoolingSamplingMode.Threshold ? cooling.Thresholds.Values.Count : 0, cooling.Sampling == CoolingSamplingMode.Threshold ? cooling.Thresholds.Values.Count : 0),
                 WhileStep loop => variable == loop.IterationColumn && IsCount(entry, 1, plan!.MaximumStepExecutions),
                 RetryStep retry => variable == retry.AttemptColumn ? IsCount(entry, 1, retry.MaxAttempts) : variable == retry.TotalColumn && IsCount(entry, retry.MaxAttempts, retry.MaxAttempts),
                 FallbackStep fallback => variable == fallback.BranchColumn ? IsCount(entry, 1, fallback.Children.Count) : variable == fallback.TotalColumn && IsCount(entry, fallback.Children.Count, fallback.Children.Count),

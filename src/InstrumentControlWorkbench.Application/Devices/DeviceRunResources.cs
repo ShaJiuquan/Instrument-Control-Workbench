@@ -645,7 +645,7 @@ public sealed partial class DeviceRunResources
                 await matrix.ConfirmHeldRouteAsync(Owner, deadline.Token);
                 return null;
             }
-            var status = session is MatrixSwitchSession routed ? await routed.StopAfterSourcesAsync(deadline.Token, Owner)
+            var status = session is AxisControllerSession cooling && coolingRequiresOff.Contains(session.Descriptor.Id) ? await cooling.StopCoolingAsync(Owner, deadline.Token) : session is MatrixSwitchSession routed ? await routed.StopAfterSourcesAsync(deadline.Token, Owner)
                 : await session.StopDeviceAsync(deadline.Token, Owner);
             if (!status.SafetyConfirmed) throw new InvalidOperationException($"{session.Descriptor.Id} did not confirm {session.Descriptor.StopPolicy}.");
             return null;
