@@ -313,6 +313,24 @@ internal static partial class ExperimentPlanCompiler
             else { BindQuantity(independent.VoltageColumn, PhysicalUnit.Volt, known); BindQuantity(independent.CurrentColumn, PhysicalUnit.Ampere, known); BindQuantity(independent.ResistanceColumn, PhysicalUnit.Ohm, known); }
             ValidateEnvironmentPolicy([independent.VoltageColumn, independent.CurrentColumn, independent.ResistanceColumn], independent.EnvironmentReads); ValidateEnvironment(independent.EnvironmentReads, axes);
         }
+        long ValidateContinuity(ReadElectrodeContinuityStep read, VariableFlowState known, IReadOnlyList<ParameterId> axes)
+        {
+            if (read.Columns.Any(axes.Contains)) throw new ArgumentException("Continuity result columns cannot overwrite active axes.");
+            ValidateSourceSense(read.Source.Device, SourceFunction.Voltage, read.VoltageColumn, read.CurrentColumn, known, axes);
+            if (preparations[read.Source.Device].Sense.Mode != SensingMode.TwoWire || axes.Any(axis => columns.TryGetValue(axis, out var column) && column.Source?.Device == read.Source.Device))
+                throw new ArgumentException("Continuity requires frozen two-wire preparation outside a source scan.");
+            if (read.RequiredRoute is { } route)
+            {
+                Device(route.Device); var matrix = registry.GetMatrixDefinition(route.Device); matrix.Validate(route.Closed);
+                if (!matrix.GuardedSources.Contains(read.Source.Device)) throw new ArgumentException("Continuity matrix must guard its excitation source.");
+                foreach (var guard in matrix.GuardedSources) if (Device(guard).StopPolicy != DeviceStopPolicy.OutputOff) throw new ArgumentException("Continuity guards require output-off policy.");
+            }
+            AddColumn(read.ResistanceColumn, new(read.ResistanceColumn, "Absolute continuity resistance", PhysicalUnit.Ohm, ParameterAccess.Read, new(0, PhysicalUnit.Ohm)), null, [.. axes, Elapsed.Id, read.VoltageColumn, read.CurrentColumn]);
+            AddColumn(read.StatusColumn, new(read.StatusColumn, "Continuity: 0 connected, 1 open, 2 not_configured", PhysicalUnit.Dimensionless, ParameterAccess.Read, new(0, PhysicalUnit.Dimensionless), new(2, PhysicalUnit.Dimensionless)), null, [.. axes, Elapsed.Id]);
+            AddColumn(read.ReasonColumn, new(read.ReasonColumn, "Continuity reason: 0 resistance, 1 zero_current, 2 overrange, 3 not_configured", PhysicalUnit.Dimensionless, ParameterAccess.Read, new(0, PhysicalUnit.Dimensionless), new(3, PhysicalUnit.Dimensionless)), null, [.. axes, Elapsed.Id]);
+            known.Remove(read.VoltageColumn); known.Remove(read.CurrentColumn); known.Remove(read.ResistanceColumn);
+            BindQuantity(read.StatusColumn, PhysicalUnit.Dimensionless, known); BindQuantity(read.ReasonColumn, PhysicalUnit.Dimensionless, known); return 1;
+        }
         long ValidatePolarization(ReadPolarizationStep pulse, VariableFlowState known, IReadOnlyList<ParameterId> axes)
         {
             if (ValueUnit(pulse.PolarizationTarget, known) != PhysicalUnit.Volt) throw new ArgumentException("Polarization target must resolve to Volt.");
@@ -390,7 +408,7 @@ internal static partial class ExperimentPlanCompiler
             if (!steps.Add(step.Id)) throw new ArgumentException($"Duplicate step ID {step.Id}.");
             if (step.Id == inspectStep && inspectPosition == PlanVariablePosition.BeforeStep) inspectedVariables = known.Capture(axes);
             visiting.Push(step.Id);
-            try { return step is ReadPolarizationStep ? ValidatePolarization((ReadPolarizationStep)step, known, axes) : step is ForEachStep ? ValidateIteration((ForEachStep)step, known, axes, depth) : VisitBody(step, known, axes, depth); }
+            try { return step is ReadElectrodeContinuityStep ? ValidateContinuity((ReadElectrodeContinuityStep)step, known, axes) : step is ReadPolarizationStep ? ValidatePolarization((ReadPolarizationStep)step, known, axes) : step is ForEachStep ? ValidateIteration((ForEachStep)step, known, axes, depth) : VisitBody(step, known, axes, depth); }
             finally { visiting.Pop(); }
         }
         long VisitBody(ExperimentStep step, VariableFlowState known, IReadOnlyList<ParameterId> axes, int depth)

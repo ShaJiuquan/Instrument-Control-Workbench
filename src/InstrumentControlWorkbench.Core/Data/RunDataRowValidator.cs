@@ -28,6 +28,7 @@ public sealed partial class RunDataRowValidator
     private readonly Dictionary<StepId, Core.Routing.ResolvedSampleRoute> independentSamples = [];
     public bool HasRecoverableAcquisitions => independentResistance.Values.Any(s => s.Retry is { ContinueOnAcquisitionFailure: true });
     public bool HasIndependentResistance => independentResistance.Count != 0;
+    private readonly Dictionary<StepId, ReadElectrodeContinuityStep> continuityReads = [];
     private readonly Queue<MeasurementDataRow> recent = new();
     private int count;
     public bool HasCalculations => calculations.Count != 0;
@@ -53,6 +54,8 @@ public sealed partial class RunDataRowValidator
                     foreach (var channel in read.Channels) if (channel.Address.Parameter == Keithley2450Parameters.MeasuredResistance.Id) nativeResistanceColumns.Add((read.Id, channel.Column));
                     RegisterQuality(read.Id, read.Channels.Select(c => (c.Column, c.Address.Device))); RegisterEnvironment(read.Channels.Select(c => c.Column), read.EnvironmentReads); break;
                 case ReadSr830FrameStep read: lockInFrames.Add(read); RegisterQuality(read.Id, read.Channels.Take(4).Select(c => (c.Column, read.Device))); break;
+                case ReadElectrodeContinuityStep read:
+                    continuityReads.Add(read.Id, read); RegisterQuality(read.Id, new[] { read.VoltageColumn, read.CurrentColumn }.Select(column => (column, read.Source.Device))); break;
                 case ReadPolarizationStep read:
                     polarizationReads.Add(read.Id, read); RegisterQuality(read.Id, new[] { read.VoltageColumn, read.CurrentColumn }.Select(column => (column, read.Device))); RegisterEnvironment([read.VoltageColumn, read.CurrentColumn, read.AttemptsColumn, .. read.RequestedPolarizationColumn is { } requested ? new[] { requested } : []], read.EnvironmentReads); break;
                 case ReadSourceSenseStep read: RegisterQuality(read.Id, new[] { read.VoltageColumn, read.CurrentColumn }.Select(c => (c, read.Device))); RegisterEnvironment([read.VoltageColumn, read.CurrentColumn], read.EnvironmentReads); break;
@@ -131,6 +134,7 @@ public sealed partial class RunDataRowValidator
     {
         schema.ValidateRow(row);
         ValidateLockInFrame(row);
+        ValidateContinuity(row);
         if (row.Calculation is not null) { ValidateCalculation(row); return; }
         if (row.Values.Keys.Any(calculatedColumns.Contains)) throw new ArgumentException("Calculated quantities require their input-row evidence.");
         ValidateEnvironment(row);

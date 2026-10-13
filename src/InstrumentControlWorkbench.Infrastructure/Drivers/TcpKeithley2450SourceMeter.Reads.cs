@@ -69,7 +69,9 @@ public sealed partial class TcpKeithley2450SourceMeter
             await PrepareAcquisitionAsync(token);
             var raw = (await transport.QueryAsync(MeasureSourceSense, token)).Split(',');
             if (raw.Length != 4) throw new IOException("2450 acquisition requires one source/sense pair and both buffer status words.");
-            var source = Number(raw[0]); var sense = Number(raw[1]); var status = new Keithley2450ReadingStatus(StatusWord(raw[2]), StatusWord(raw[3])); await CheckErrorsAsync(token);
+            var status = new Keithley2450ReadingStatus(StatusWord(raw[2]), StatusWord(raw[3])); await CheckErrorsAsync(token);
+            status.ValidateAcquisition(state.Sense.Mode, state.Terminals, requireSourceReadback: true);
+            var source = AcquisitionNumber(raw[0]); var sense = AcquisitionNumber(raw[1]);
             return new(state.Source.Function, state.Sense.Function,
                 new(source, state.Source.Function == SourceFunction.Voltage ? PhysicalUnit.Volt : PhysicalUnit.Ampere),
                 new(sense, state.Sense.Function switch { SenseFunction.Voltage => PhysicalUnit.Volt, SenseFunction.Current => PhysicalUnit.Ampere, _ => PhysicalUnit.Ohm }), DateTimeOffset.UtcNow, status);
@@ -98,6 +100,12 @@ public sealed partial class TcpKeithley2450SourceMeter
     {
         if (!double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var value) || !double.IsFinite(value) || Math.Abs(value) >= 9e36)
             throw new IOException("SCPI numeric reply is malformed, nonfinite or overrange.");
+        return value;
+    }
+    private double AcquisitionNumber(string text)
+    {
+        if (!double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var value) || !double.IsFinite(value)) throw new IOException("SCPI numeric reply is malformed or nonfinite.");
+        if (Math.Abs(value) >= 9e36) throw new InstrumentReadException(Id, InstrumentReadFailureKind.Overrange, "SCPI numeric acquisition reply is overrange.");
         return value;
     }
     private static ushort StatusWord(string text)

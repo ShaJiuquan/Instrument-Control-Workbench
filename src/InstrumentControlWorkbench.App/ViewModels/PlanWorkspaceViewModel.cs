@@ -186,6 +186,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
             MeasurementGroupStep s => ("联合测量点", string.Join("、", s.Labels)),
             HomeRotationStep s => ("转台回零", $"{s.Device} · 容差 {s.Tolerance.Value}° · 硬件回零操作"),
             ReadSr830FrameStep s => ("SR830 原始帧", $"{s.Device} · {s.Input} · {s.Prefix}" + (s.IncludeReference ? " · 参考读回" : "")),
+            ReadElectrodeContinuityStep s => ("电极连通性", $"{s.Channel} · {s.Pair} · {(s.RequiredRoute is null ? "未配置" : s.Source.Device.ToString())}"),
             ReadPolarizationStep s => ("极化脉冲读出", $"{s.Device} · {(s.PolarizationTarget is ConstantValue value ? value.Value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + " V" : "扫描值")} → {s.ReadVoltage.Value} V · 暂停后重做"),
             ReadSourceSenseStep s => ("源与测量读数", s.Device.Value),
             ReadCurrentResistanceStep s => ("独立源电阻", $"{s.Source} / {s.Meter}"),

@@ -1,0 +1,32 @@
+{
+  "format": "instrument-workbench-plan",
+  "version": 1,
+  "name": "Explicit two-wire electrode diagnostic import context",
+  "preparations": [
+    {
+      "device": "k2450",
+      "function": "Voltage",
+      "level": {
+        "value": 0,
+        "unit": "Volt"
+      },
+      "compliance": {
+        "value": 0.001,
+        "unit": "Ampere"
+      },
+      "sense": {
+        "function": "Current",
+        "mode": "TwoWire",
+        "nplc": 1,
+        "autoRange": true
+      }
+    }
+  ],
+  "metadata": {},
+  "maximumStepExecutions": 500,
+  "root": {
+    "kind": "sequence",
+    "id": "context",
+    "children": []
+  }
+}

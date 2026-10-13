@@ -13,6 +13,7 @@ public sealed partial class JsonExperimentPlanDocument
     {
         CheckSize(depth, ref count);
         var o = new JsonObject { ["id"] = step.Id.Value };
+        if (step is ReadElectrodeContinuityStep) return EncodeContinuity((ReadElectrodeContinuityStep)step, o);
         if (step is ReadPolarizationStep) return EncodePolarization((ReadPolarizationStep)step, o);
         switch (step)
         {
@@ -230,6 +231,7 @@ public sealed partial class JsonExperimentPlanDocument
             case "read_sr830_frame":
                 Object(o, "id", "kind", "device", "input", "prefix", "includeReference");
                 return new ReadSr830FrameStep(id, new(Text(o, "device")), NamedEnum<Sr830InputMode>(o, "input"), new(Text(o, "prefix")), o.ContainsKey("includeReference") && Boolean(o, "includeReference"));
+            case "read_electrode_continuity": return DecodeContinuity(o, id);
             case "read_polarization": return DecodePolarization(o, id);
             case "read_source_sense":
                 Object(o, "id", "kind", "device", "function", "voltageColumn", "currentColumn", "environmentReads");

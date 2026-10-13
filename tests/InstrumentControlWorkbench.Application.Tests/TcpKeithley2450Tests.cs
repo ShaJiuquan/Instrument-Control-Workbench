@@ -156,7 +156,8 @@ public sealed partial class TcpKeithley2450Tests
     public async Task InvalidAcquisitionValueNeverBecomesADataRowAndStillStopsOverSynchronizedWire(string invalid)
     {
         await using var peer = new Keithley2450ScpiPeer(); peer.Override = (command, _) => command == Pair ? Task.FromResult<byte[]?>(LoopbackScpiServer.Reply("0.0197," + invalid + ",200,0")) : null;
-        var b = new Bench(peer); var error = await Assert.ThrowsAsync<IOException>(() => b.Runs.StartPlanAsync(b.Plan(), Token)); Assert.Contains("numeric", error.Message);
+        var b = new Bench(peer); Exception error = invalid == "9.9e37" ? await Assert.ThrowsAsync<InstrumentReadException>(() => b.Runs.StartPlanAsync(b.Plan(), Token)) : await Assert.ThrowsAsync<IOException>(() => b.Runs.StartPlanAsync(b.Plan(), Token)); Assert.Contains("numeric", error.Message);
+        if (error is InstrumentReadException overrange) Assert.Equal(InstrumentReadFailureKind.Overrange, overrange.Kind);
         Assert.Empty(b.Runs.LatestDataSet!.Rows); Assert.Equal(MeasurementRunState.Faulted, b.Runs.LatestDataSet.State); Assert.False(peer.Output); Assert.False(b.Runs.HasActiveRun);
         Assert.False(b.Leases.IsLeased(b.Source.Id, DateTimeOffset.UtcNow)); await b.Source.DisconnectAsync(Token);
     }

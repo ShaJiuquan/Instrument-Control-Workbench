@@ -1981,3 +1981,18 @@ invalid inputs, read-only/dirty/apply/discard, disconnected authoring and saved
 three-point simulation through fresh archive and CSV. No dependency, hardware
 IO or native window actions. Native minimum-window visual acceptance remains
 deferred per user. See polarization-authoring.md; broader migration active.
+
+## Electrode continuity diagnostics (2026-10-13)
+
+ReadElectrodeContinuityStep models one frozen channel/pair with two-wire K2450
+Force excitation, guarded route, strict settings and positive Ohm threshold.
+PPMS all-channel source/meter/bias/gate order, legacy enabled aliases and
+not_configured pairs lower into ordinary owned steps and terminal counters.
+Each configured observation requires fresh paired/settings/route evidence and
+confirmed OFF before commit. Only typed same-device overrange and zero current
+become open; transport/timeout/drift/cleanup errors fault. TCP acquisition
+sentinel typing is isolated from configuration parsing; SCPI/status checked
+first. Native pair rows use explicit status/reason codes and omit unavailable
+electrical values; strict row validator, blackboard, archive/CSV retain proof.
+See electrode-continuity.md. Dedicated UI/wide-point/calculation/physical
+acceptance remain pending. No deps/Rust/nativewindow/lab IO; broadgoalactive.

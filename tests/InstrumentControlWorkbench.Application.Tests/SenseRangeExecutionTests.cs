@@ -218,7 +218,7 @@ public sealed class SenseRangeExecutionTests
     public async Task PhysicalOverflowReplyNeverBecomesAFiniteManualRangeRow()
     {
         await using var peer = new Keithley2450ScpiPeer { ActualSense = 9.9e37 }; var b = new Bench(peer);
-        var error = await Assert.ThrowsAsync<IOException>(() => b.Runs.StartPlanAsync(b.Scan(SourceFunction.Voltage), Token)); Assert.Contains("overrange", error.Message);
+        var error = await Assert.ThrowsAsync<InstrumentReadException>(() => b.Runs.StartPlanAsync(b.Scan(SourceFunction.Voltage), Token)); Assert.Equal(InstrumentReadFailureKind.Overrange, error.Kind); Assert.Contains("overrange", error.Message);
         Assert.Empty(b.Runs.LatestDataSet!.Rows); Assert.False(peer.Output); Assert.False(b.Runs.HasActiveRun); Assert.False(b.Leases.IsLeased(b.Source.Id, DateTimeOffset.UtcNow)); await b.Source.DisconnectAsync(Token);
     }
     [Theory]

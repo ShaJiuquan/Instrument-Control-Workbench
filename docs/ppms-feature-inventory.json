@@ -405,7 +405,12 @@
         "test_electrodes",
         "continuity_test"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "Core ReadElectrodeContinuityStep and ImportChannelRouting.Continuity; Application owned Continuity resources/executor/compiler; Infrastructure strict native codec, PPMS Continuity import and TCP sentinel typing",
+        "tests": "ElectrodeContinuityModelTests; ElectrodeContinuityTests; PpmsRoutingProfileImportTests.Continuity; TcpKeithley2450Tests.Continuity",
+        "limits": "All frozen channel pairs and Rust defaults/aliases, K2450 two-wire Force routes, explicit status/reason and optional original V/I/R/quality, terminal counts, fresh settings/route and confirmed OFF before row, fault/recovery and local TCP overrange discrimination. Native/archive/CSV and headless fixture; dedicated UI, wide-point/calculation integration and physical sample/relay acceptance pending. See electrode-continuity.md."
+      }
     },
     {
       "id": "measure_polarization_readout",

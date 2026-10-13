@@ -4,7 +4,7 @@ using InstrumentControlWorkbench.Core.Routing;
 
 namespace InstrumentControlWorkbench.Core.Experiments;
 
-public sealed class ImportChannelRouting
+public sealed partial class ImportChannelRouting
 {
     private static readonly string[][] RoleAliases =
     [

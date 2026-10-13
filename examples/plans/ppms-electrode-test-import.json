@@ -1,0 +1,11 @@
+{
+  "type": "measurement",
+  "name": "electrode_test",
+  "params": {
+    "voltage_v": 0.1,
+    "compliance_a": 0.0001,
+    "max_connected_ohm": 1000000.0,
+    "nplc": 1,
+    "settle_s": 0
+  }
+}
