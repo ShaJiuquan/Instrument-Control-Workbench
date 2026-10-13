@@ -58,6 +58,7 @@ public sealed class SampleAnalysisRowValidator
                 case ThresholdSwitchStep choice: foreach (var child in choice.Children) pending.Push((child, item.Depth + 1)); break;
                 case FallbackStep fallback: foreach (var child in fallback.Children) pending.Push((child, item.Depth + 1)); break;
                 case RetryStep retry: pending.Push((retry.Body, item.Depth + 1)); break;
+                case HardwareTemperatureScanStep scan: pending.Push((scan.Body, item.Depth + 1)); break;
                 case TemperatureCoolingStep cooling: pending.Push((cooling.Body, item.Depth + 1)); break;
                 case WhileStep loop: pending.Push((loop.Body, item.Depth + 1)); break;
                 case OutcomeMutationStep hook: pending.Push((hook.Body, item.Depth + 1)); break;

@@ -215,6 +215,7 @@ public sealed partial class PpmsExperimentPlanImporter : IExperimentPlanImporter
         "iterate" => "for_each",
         "then" or "else" => "sequence",
         "gate" or "bias" or "scan_bias" => "scan_gate",
+        "temperature_ramp" or "temp_ramp" => "scan_temp_ramp",
         "temperature_cooling" or "temp_cooling" => "scan_temp_cooling",
         "scan_temp" => "scan_temperature",
         "time_s" => "scan_time",

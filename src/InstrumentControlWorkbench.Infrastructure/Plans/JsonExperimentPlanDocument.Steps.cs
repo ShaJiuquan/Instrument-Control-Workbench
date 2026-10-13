@@ -13,6 +13,7 @@ public sealed partial class JsonExperimentPlanDocument
     {
         CheckSize(depth, ref count);
         var o = new JsonObject { ["id"] = step.Id.Value };
+        if (step is HardwareTemperatureScanStep) return EncodeHardwareScan((HardwareTemperatureScanStep)step, o, depth, ref count);
         if (step is TemperatureCoolingStep) return EncodeCooling((TemperatureCoolingStep)step, o, depth, ref count);
         if (step is ReadElectrodeContinuityStep) return EncodeContinuity((ReadElectrodeContinuityStep)step, o);
         if (step is ReadPolarizationStep) return EncodePolarization((ReadPolarizationStep)step, o);
@@ -232,6 +233,7 @@ public sealed partial class JsonExperimentPlanDocument
             case "read_sr830_frame":
                 Object(o, "id", "kind", "device", "input", "prefix", "includeReference");
                 return new ReadSr830FrameStep(id, new(Text(o, "device")), NamedEnum<Sr830InputMode>(o, "input"), new(Text(o, "prefix")), o.ContainsKey("includeReference") && Boolean(o, "includeReference"));
+            case "hardware_temperature_scan": return DecodeHardwareScan(o, id, depth, ref count);
             case "temperature_cooling": return DecodeCooling(o, id, depth, ref count);
             case "read_electrode_continuity": return DecodeContinuity(o, id);
             case "read_polarization": return DecodePolarization(o, id);

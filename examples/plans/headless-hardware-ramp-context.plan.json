@@ -1,0 +1,13 @@
+{
+  "format": "instrument-workbench-plan",
+  "version": 1,
+  "name": "Explicit hardware temperature ramp import context",
+  "preparations": [],
+  "metadata": {},
+  "maximumStepExecutions": 500,
+  "root": {
+    "kind": "sequence",
+    "id": "context",
+    "children": []
+  }
+}

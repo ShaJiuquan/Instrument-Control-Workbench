@@ -338,8 +338,8 @@ public sealed partial class DeviceRunResources
             foreach (var pair in pendingStops.ToArray())
             {
                 if (!pair.Value.IsCompleted) continue;
-                if (heldRoutes.Contains(pair.Key) && !preserveRouting || retryFailed && await pair.Value is not null)
-                { pendingStops.Remove(pair.Key); heldRoutes.Remove(pair.Key); }
+                if ((heldRoutes.Contains(pair.Key) || heldTemperatureScans.Contains(pair.Key)) && !preserveRouting || retryFailed && await pair.Value is not null)
+                { pendingStops.Remove(pair.Key); heldRoutes.Remove(pair.Key); heldTemperatureScans.Remove(pair.Key); }
             }
             var matrices = sessions.Values.OfType<MatrixSwitchSession>().Where(m => touched.Contains(m.Descriptor.Id)).ToArray();
             // A new relay cleanup needs fresh excitation-off proof. Never replace a
@@ -352,11 +352,13 @@ public sealed partial class DeviceRunResources
                         pendingStops.Remove(guard.Descriptor.Id);
                 }
             foreach (var session in sessions.Values.Where(s => s is not MatrixSwitchSession && touched.Contains(s.Descriptor.Id)))
-                if (!pendingStops.ContainsKey(session.Descriptor.Id)) pendingStops.Add(session.Descriptor.Id, StopAndCaptureAsync(session));
+                if (!pendingStops.ContainsKey(session.Descriptor.Id)) pendingStops.Add(session.Descriptor.Id, StopAndCaptureAsync(session, preserveRouting));
             // All non-matrix stops begin together; only confirmed excitation-off
             // permits a later matrix relay write. Axis failure retains ownership
             // but does not prevent relay cleanup when excitation is confirmed off.
             var failures = new List<DeviceCleanupFailure>(await AwaitStopsAsync(pendingStops.Keys.Where(id => Get(id) is not MatrixSwitchSession).ToArray(), token));
+            if (preserveRouting) foreach (var id in temperatureScanRequiresRampOff.Where(id => pendingStops.TryGetValue(id, out var stop) && stop.IsCompleted))
+                    if (await pendingStops[id] is null) heldTemperatureScans.Add(id);
             foreach (var matrix in matrices)
             {
                 var id = matrix.Descriptor.Id;
@@ -632,7 +634,7 @@ public sealed partial class DeviceRunResources
         // need reconnection before another confirmation can succeed; it never
         // authorizes output enable or overlaps a still-running stop attempt.
         pendingStops.Remove(id);
-        heldRoutes.Remove(id);
+        heldRoutes.Remove(id); heldTemperatureScans.Remove(id);
     }
 
     private async Task<Exception?> StopAndCaptureAsync(IDeviceSession session, bool preserveRouting = false)
@@ -645,7 +647,7 @@ public sealed partial class DeviceRunResources
                 await matrix.ConfirmHeldRouteAsync(Owner, deadline.Token);
                 return null;
             }
-            var status = session is AxisControllerSession cooling && coolingRequiresOff.Contains(session.Descriptor.Id) ? await cooling.StopCoolingAsync(Owner, deadline.Token) : session is MatrixSwitchSession routed ? await routed.StopAfterSourcesAsync(deadline.Token, Owner)
+            var status = session is AxisControllerSession cooling && coolingRequiresOff.Contains(session.Descriptor.Id) ? await cooling.StopCoolingAsync(Owner, deadline.Token) : !preserveRouting && session is AxisControllerSession ramp && temperatureScanRequiresRampOff.Contains(session.Descriptor.Id) ? await ramp.StopTemperatureScanAsync(Owner, deadline.Token) : session is MatrixSwitchSession routed ? await routed.StopAfterSourcesAsync(deadline.Token, Owner)
                 : await session.StopDeviceAsync(deadline.Token, Owner);
             if (!status.SafetyConfirmed) throw new InvalidOperationException($"{session.Descriptor.Id} did not confirm {session.Descriptor.StopPolicy}.");
             return null;

@@ -559,7 +559,12 @@
       "aliases": [
         "temperature_ramp"
       ],
-      "status": "pending"
+      "status": "partial",
+      "evidence": {
+        "implementation": "Core HardwareTemperatureScanStep; Application temperature-scan session/resources/executor/compiler; Infrastructure native and PPMS hardware ramp codecs",
+        "tests": "HardwareTemperatureScanModelTests; HardwareTemperatureScanTests; HardwareTemperatureScanDocumentsTests; temperature regressions and packaged headless fixture",
+        "limits": "Hardware branch only, explicit ramp_mode=hardware. Four sampling modes/both directions, optional first-point consecutive stability, actual Kelvin/index/estimated totals, held pause semantics and root ramp-OFF obligation/recovery, guarded children, budgets/deadlines, native/archive/CSV/graph. Guard expiry faults rather than Rust warning/success. Software default, dedicated UI, physical controller/protocol/calibration and thermal handoff remain pending. See hardware-temperature-scans.md."
+      }
     },
     {
       "id": "scan_temp_cooling",

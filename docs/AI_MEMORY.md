@@ -2013,3 +2013,19 @@ target retention. Explicit SIM-CRYOSTAT cold/fridge model; ordinary simulator
 unchanged. Native/import/graph/footer/fresharchive/CSV tested;11Core+40Application.
 See temperature-cooling.md. Dedicated UI, physical fridge/controller and terminal
 thermal handoff remain unverified. No deps/Rust/native window/lab IO; goal active.
+
+## Hardware continuous temperature scans (2026-10-13)
+
+HardwareTemperatureScanStep implements hardware branch of Rust scan_temp_ramp.
+Live park/first target/rate confirmation, optional consecutive strict-tolerance
+stability, then hardware ramp ON/end target. Threshold and estimated-point
+sampling plus timed/immediate modes store actual Kelvin/index0/progress total.
+Guarded target/rate/control observations, owned read-only-controller children,
+active-time threshold/endpoint guard and global budget. Estimates exclude held
+pause; endpoint guard faults rather than Rust warn/success without arrival.
+Ramp-OFF obligation survives failure/abort/logical failure through root stops/
+recovery; successful paused holds cannot be reused as terminal OFF proof.
+Explicit hardware PPMS mode only; software default remains rejected. Native/
+graph/footer/fresharchive/CSV/depth verified. See hardware-temperature-scans.md.
+Dedicated UI, software scans, physical controller/protocol/thermal handoff and
+full PPMS remain pending; no deps/Rust/lab/nativewindow actions.

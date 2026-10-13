@@ -29,7 +29,7 @@ internal static partial class ExperimentPlanCompiler
         if (!Enum.IsDefined(inspectPosition)) throw new ArgumentOutOfRangeException(nameof(inspectPosition));
         IReadOnlyList<PlanVariableAvailability>? inspectedVariables = null;
         var visiting = new Stack<StepId>();
-        var activeCoolingDevices = new HashSet<InstrumentId>();
+        var activeTemperatureScans = new HashSet<InstrumentId>();
         var activeIterationValues = new Dictionary<ParameterId, ScanValues>();
         var trackDefinitions = inspectStep is not null || calculationProbe is not null;
         var devices = registry.Devices.ToDictionary(d => d.Id);
@@ -234,6 +234,7 @@ internal static partial class ExperimentPlanCompiler
             RetryStep retry => CanReportWorkflowFailure(retry.Body),
             TimeoutStep timeout => CanReportWorkflowFailure(timeout.Body),
             SubtreeStep subtree => subtree.Children.Any(CanReportWorkflowFailure),
+            HardwareTemperatureScanStep scan => CanReportWorkflowFailure(scan.Body),
             TemperatureCoolingStep cooling => CanReportWorkflowFailure(cooling.Body),
             WhileStep loop => CanReportWorkflowFailure(loop.Body),
             OutcomeMutationStep hook => CanReportWorkflowFailure(hook.Body),
@@ -315,10 +316,25 @@ internal static partial class ExperimentPlanCompiler
             else { BindQuantity(independent.VoltageColumn, PhysicalUnit.Volt, known); BindQuantity(independent.CurrentColumn, PhysicalUnit.Ampere, known); BindQuantity(independent.ResistanceColumn, PhysicalUnit.Ohm, known); }
             ValidateEnvironmentPolicy([independent.VoltageColumn, independent.CurrentColumn, independent.ResistanceColumn], independent.EnvironmentReads); ValidateEnvironment(independent.EnvironmentReads, axes);
         }
+        long ValidateHardwareScan(HardwareTemperatureScanStep scan, VariableFlowState known, IReadOnlyList<ParameterId> axes, int depth)
+        {
+            Device(scan.Device); var controller = registry.GetAxisDefinition(scan.Device);
+            if (!registry.SupportsTemperatureConfiguration(scan.Device) || controller.Target.Unit != PhysicalUnit.Kelvin || activeTemperatureScans.Contains(scan.Device)) throw new ArgumentException("Hardware temperature scan requires independent Kelvin configuration outside an active thermal scan.");
+            controller.Rate.ValidateWrite(scan.Rate); foreach (var point in scan.Points.Values) controller.Target.ValidateWrite(point);
+            if (axes.Contains(scan.Column) || axes.Any(axis => columns.TryGetValue(axis, out var column) && column.Source?.Device == scan.Device)) throw new ArgumentException("Hardware temperature scan cannot replace an enclosing controller axis.");
+            AddColumn(scan.Column, new(scan.Column, "Actual temperature at hardware ramp sample start", PhysicalUnit.Kelvin, ParameterAccess.Read, controller.Readback.Minimum, controller.Readback.Maximum), new(scan.Device, controller.Readback.Id), []);
+            AddColumn(scan.IndexColumn, new(scan.IndexColumn, "Temperature ramp sample index (0-based)", PhysicalUnit.Dimensionless, ParameterAccess.Read, new(0, PhysicalUnit.Dimensionless)), null, []);
+            AddColumn(scan.TotalColumn, new(scan.TotalColumn, "Ramp point count / timed estimate / 0 for immediate", PhysicalUnit.Dimensionless, ParameterAccess.Read, new(0, PhysicalUnit.Dimensionless)), null, []);
+            foreach (var column in new[] { scan.Column, scan.IndexColumn, scan.TotalColumn }) BindQuantity(column, column == scan.Column ? PhysicalUnit.Kelvin : PhysicalUnit.Dimensionless, known);
+            activeTemperatureScans.Add(scan.Device); long bodyCost;
+            try { bodyCost = Visit(scan.Body, known, [.. axes, scan.Column, scan.IndexColumn, scan.TotalColumn], depth + 1); } finally { activeTemperatureScans.Remove(scan.Device); }
+            if (scan.Sampling is TemperatureRampSampling.Timed or TemperatureRampSampling.Immediate) { hasDynamicLoops = true; return checked(2 + bodyCost); }
+            return checked(1 + scan.Points.Values.Count * (1 + bodyCost));
+        }
         long ValidateCooling(TemperatureCoolingStep cooling, VariableFlowState known, IReadOnlyList<ParameterId> axes, int depth)
         {
             var device = Device(cooling.Device); var controller = registry.GetAxisDefinition(cooling.Device);
-            if (!registry.SupportsTemperatureConfiguration(cooling.Device) || controller.Target.Unit != PhysicalUnit.Kelvin || activeCoolingDevices.Contains(cooling.Device)) throw new ArgumentException("Cooling needs independent Kelvin control outside another cooling scan of the same controller.");
+            if (!registry.SupportsTemperatureConfiguration(cooling.Device) || controller.Target.Unit != PhysicalUnit.Kelvin || activeTemperatureScans.Contains(cooling.Device)) throw new ArgumentException("Cooling needs independent Kelvin control outside another cooling scan of the same controller.");
             controller.Target.ValidateWrite(cooling.CoolingTarget); controller.Readback.Validate(cooling.EndTemperature);
             foreach (var threshold in cooling.Thresholds.Values) controller.Readback.Validate(threshold);
             if (axes.Contains(cooling.Column) || axes.Any(axis => columns.TryGetValue(axis, out var column) && column.Source?.Device == cooling.Device)) throw new ArgumentException("Cooling cannot take over an enclosing controller scan.");
@@ -326,10 +342,10 @@ internal static partial class ExperimentPlanCompiler
             AddColumn(cooling.IndexColumn, new(cooling.IndexColumn, "Cooling sample index (0-based)", PhysicalUnit.Dimensionless, ParameterAccess.Read, new(0, PhysicalUnit.Dimensionless)), null, []);
             AddColumn(cooling.TotalColumn, new(cooling.TotalColumn, "Cooling threshold count; 0 for continuous sampling", PhysicalUnit.Dimensionless, ParameterAccess.Read, new(0, PhysicalUnit.Dimensionless)), null, []);
             BindQuantity(cooling.Column, PhysicalUnit.Kelvin, known); BindQuantity(cooling.IndexColumn, PhysicalUnit.Dimensionless, known); BindQuantity(cooling.TotalColumn, PhysicalUnit.Dimensionless, known);
-            activeCoolingDevices.Add(cooling.Device);
+            activeTemperatureScans.Add(cooling.Device);
             long bodyCost;
             try { bodyCost = Visit(cooling.Body, known, [.. axes, cooling.Column, cooling.IndexColumn, cooling.TotalColumn], depth + 1); }
-            finally { activeCoolingDevices.Remove(cooling.Device); }
+            finally { activeTemperatureScans.Remove(cooling.Device); }
             if (cooling.Sampling != CoolingSamplingMode.Threshold) { hasDynamicLoops = true; return checked(2 + bodyCost); }
             return checked(1 + cooling.Thresholds.Values.Count * (1 + bodyCost));
         }
@@ -427,9 +443,9 @@ internal static partial class ExperimentPlanCompiler
             if (depth > 128 || steps.Count >= 10_000) throw new ArgumentOutOfRangeException(nameof(plan), "Plan exceeds its depth or node limit.");
             if (!steps.Add(step.Id)) throw new ArgumentException($"Duplicate step ID {step.Id}.");
             if (step.Id == inspectStep && inspectPosition == PlanVariablePosition.BeforeStep) inspectedVariables = known.Capture(axes);
-            if (activeCoolingDevices.Any(device => ChangesCoolingController(step, device))) throw new ArgumentException("Cooling children cannot reconfigure the active controller.");
+            if (activeTemperatureScans.Any(device => ChangesThermalController(step, device))) throw new ArgumentException("Active temperature-scan children cannot reconfigure their controller.");
             visiting.Push(step.Id);
-            try { return step is TemperatureCoolingStep ? ValidateCooling((TemperatureCoolingStep)step, known, axes, depth) : step is ReadElectrodeContinuityStep ? ValidateContinuity((ReadElectrodeContinuityStep)step, known, axes) : step is ReadPolarizationStep ? ValidatePolarization((ReadPolarizationStep)step, known, axes) : step is ForEachStep ? ValidateIteration((ForEachStep)step, known, axes, depth) : VisitBody(step, known, axes, depth); }
+            try { return step is HardwareTemperatureScanStep ? ValidateHardwareScan((HardwareTemperatureScanStep)step, known, axes, depth) : step is TemperatureCoolingStep ? ValidateCooling((TemperatureCoolingStep)step, known, axes, depth) : step is ReadElectrodeContinuityStep ? ValidateContinuity((ReadElectrodeContinuityStep)step, known, axes) : step is ReadPolarizationStep ? ValidatePolarization((ReadPolarizationStep)step, known, axes) : step is ForEachStep ? ValidateIteration((ForEachStep)step, known, axes, depth) : VisitBody(step, known, axes, depth); }
             finally { visiting.Pop(); }
         }
         long VisitBody(ExperimentStep step, VariableFlowState known, IReadOnlyList<ParameterId> axes, int depth)
@@ -809,7 +825,7 @@ internal static partial class ExperimentPlanCompiler
                 throw new ArgumentException("One electrometer read step cannot acquire different functions; author explicit zero-check/function/read sequences.");
     }
 
-    private static bool ChangesCoolingController(ExperimentStep step, InstrumentId device) => step switch
+    private static bool ChangesThermalController(ExperimentStep step, InstrumentId device) => step switch
     {
         SetParameterStep write => write.Address.Device == device,
         ScanStep scan => scan.Axis.Device == device,
@@ -818,6 +834,7 @@ internal static partial class ExperimentPlanCompiler
         HardwareTemperatureSetpointStep change => change.Device == device,
         SoftwareTemperatureRampStep change => change.Device == device,
         TemperatureCoolingStep cooling => cooling.Device == device,
+        HardwareTemperatureScanStep scan => scan.Device == device,
         _ => false,
     };
 

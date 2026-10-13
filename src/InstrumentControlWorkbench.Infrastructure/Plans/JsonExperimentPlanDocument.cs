@@ -144,6 +144,7 @@ public sealed partial class JsonExperimentPlanDocument : IExperimentPlanStructur
                 case ThresholdSwitchStep choice: foreach (var child in choice.Children) pending.Push((child, entry.Depth + 1)); break;
                 case FallbackStep fallback: foreach (var child in fallback.Children) pending.Push((child, entry.Depth + 1)); break;
                 case RetryStep retry: pending.Push((retry.Body, entry.Depth + 1)); break;
+                case HardwareTemperatureScanStep scan: values += scan.Points.Values.Count; pending.Push((scan.Body, entry.Depth + 1)); break;
                 case TemperatureCoolingStep cooling: values += cooling.Thresholds.Values.Count; pending.Push((cooling.Body, entry.Depth + 1)); break;
                 case WhileStep loop: pending.Push((loop.Body, entry.Depth + 1)); break;
                 case OutcomeMutationStep hook:
