@@ -882,13 +882,15 @@
       "id": "k6514.set_function",
       "nodeType": "command",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "notes": "Function-aware four-mode model/session, explicit simulation and validated commands; shared NPLC correction, real excitation/guard stop acceptance pending. See k6514-electrometer.md."
     },
     {
       "id": "k6514.set_nplc",
       "nodeType": "command",
       "aliases": [],
-      "status": "pending"
+      "status": "partial",
+      "notes": "Function-aware four-mode model/session, explicit simulation and validated commands; shared NPLC correction, real excitation/guard stop acceptance pending. See k6514-electrometer.md."
     },
     {
       "id": "k3706.open_channel",

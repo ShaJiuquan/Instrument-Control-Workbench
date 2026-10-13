@@ -85,6 +85,8 @@ internal static partial class ExperimentPlanCompiler
             }
             if (Device(write.Address.Device).Model == "SR830" && write.Values is { } lockInValues)
                 foreach (var value in lockInValues) Sr830Parameters.ValidateWrite(write.Address.Parameter, value);
+            if (Device(write.Address.Device).Model == "K6514" && write.Values is { } electrometerValues)
+                foreach (var value in electrometerValues) Keithley6514Parameters.ValidateWrite(write.Address.Parameter, value);
             if (Device(write.Address.Device).Model == "K6485" && write.Values is { } picoValues)
                 foreach (var value in picoValues) Keithley6485Parameters.ValidateWrite(write.Address.Parameter, value);
             if (write.Values is { } meterValues && Keithley2182Parameters.IsParameter(write.Address.Parameter))
@@ -627,6 +629,7 @@ internal static partial class ExperimentPlanCompiler
                     if (outputDevice.Model is not ("K2450" or "K6221") || outputDevice.StopPolicy != DeviceStopPolicy.OutputOff) throw new NotSupportedException("Device has no implemented output-source profile.");
                     return 1;
                 case ReadStep read:
+                    ValidateElectrometerFunctions(read, registry);
                     if (read.RequiredRoute is { } readRoute)
                     {
                         Device(readRoute.Device);
@@ -729,4 +732,13 @@ internal static partial class ExperimentPlanCompiler
             }
         }
     }
+    // Keep additional read checks outside the deep recursive visitor's stack frame.
+    private static void ValidateElectrometerFunctions(ReadStep read, DeviceRegistry registry)
+    {
+        foreach (var deviceChannels in read.Channels.GroupBy(c => c.Address.Device))
+            if (registry.Devices.SingleOrDefault(d => d.Id == deviceChannels.Key)?.Model == "K6514" &&
+                deviceChannels.Select(c => Keithley6514Parameters.ReadingFunction(c.Address.Parameter)).Where(f => f is not null).Distinct().Count() > 1)
+                throw new ArgumentException("One electrometer read step cannot acquire different functions; author explicit zero-check/function/read sequences.");
+    }
+
 }

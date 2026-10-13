@@ -31,7 +31,7 @@ public sealed class ExperimentImportBindings
     public ExperimentImportBindings(IEnumerable<KeyValuePair<string, InstrumentId>> instruments,
         IEnumerable<KeyValuePair<string, AxisControllerDefinition>> axes,
         IEnumerable<SourcePreparation>? preparations = null,
-        IEnumerable<KeyValuePair<string, ImportChannelRoute>>? channels = null, ImportSampleRouting? samples = null, ImportChannelRouting? channelProfiles = null, IEnumerable<InstrumentId>? standaloneVoltageMeters = null, IEnumerable<CurrentSourcePreparation>? currentSourcePreparations = null, IEnumerable<InstrumentId>? standaloneCurrentMeters = null)
+        IEnumerable<KeyValuePair<string, ImportChannelRoute>>? channels = null, ImportSampleRouting? samples = null, ImportChannelRouting? channelProfiles = null, IEnumerable<InstrumentId>? standaloneVoltageMeters = null, IEnumerable<CurrentSourcePreparation>? currentSourcePreparations = null, IEnumerable<InstrumentId>? standaloneCurrentMeters = null, IEnumerable<InstrumentId>? electrometers = null)
     {
         ArgumentNullException.ThrowIfNull(instruments); ArgumentNullException.ThrowIfNull(axes);
         Instruments = Freeze(instruments); Axes = Freeze(axes);
@@ -55,6 +55,10 @@ public sealed class ExperimentImportBindings
         if (picoammeters.Length + meters.Length > 64 || picoammeters.Distinct().Count() != picoammeters.Length || picoammeters.Any(m => !Instruments.Values.Contains(m) || meters.Contains(m) || items.Any(p => p.Device == m) || currents.Any(p => p.Device == m)))
             throw new ArgumentException("Standalone current meters must be distinct aliased passive devices.");
         StandaloneCurrentMeters = Array.AsReadOnly(picoammeters);
+        var electrometerIds = (electrometers ?? []).ToArray();
+        if (electrometerIds.Length + picoammeters.Length + meters.Length > 64 || electrometerIds.Distinct().Count() != electrometerIds.Length || electrometerIds.Any(m => !Instruments.Values.Contains(m) || meters.Contains(m) || picoammeters.Contains(m) || items.Any(p => p.Device == m) || currents.Any(p => p.Device == m)))
+            throw new ArgumentException("Electrometers must be distinct aliased devices without source preparations.");
+        Electrometers = Array.AsReadOnly(electrometerIds);
         if (channelProfiles?.VoltageMeter is { } channelMeter &&
             (!meters.Contains(channelMeter) || !Instruments.Values.Contains(channelProfiles.Wiring.SourceMeter) || !Instruments.Values.Contains(channelProfiles.Routing.Matrix) ||
                 !currents.Any(p => p.Device == channelProfiles.Wiring.SourceMeter) &&
@@ -71,6 +75,7 @@ public sealed class ExperimentImportBindings
     public IReadOnlyDictionary<string, ImportChannelRoute> Channels { get; }
     public IReadOnlyList<SourcePreparation> Preparations { get; }
     public IReadOnlyList<CurrentSourcePreparation> CurrentSourcePreparations { get; }
+    public IReadOnlyList<InstrumentId> Electrometers { get; }
     public IReadOnlyList<InstrumentId> StandaloneCurrentMeters { get; }
     public IReadOnlyList<InstrumentId> StandaloneVoltageMeters { get; }
     public ImportSampleRouting? Samples { get; }

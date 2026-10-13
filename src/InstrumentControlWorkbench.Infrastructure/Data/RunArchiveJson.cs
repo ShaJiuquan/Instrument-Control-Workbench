@@ -106,14 +106,31 @@ internal static partial class RunArchiveJson
     internal sealed record AcquisitionQualityDto(string Step, string Device, string Column, DateTimeOffset CapturedAt, ushort? SourceStatus, ushort? MeasurementStatus,
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] AcquisitionSettingsDto? AcquisitionConfiguration = null,
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] MeterSettingsDto? MeterConfiguration = null,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] PicoammeterSettingsDto? PicoammeterConfiguration = null)
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] PicoammeterSettingsDto? PicoammeterConfiguration = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] ElectrometerSettingsDto? ElectrometerConfiguration = null)
     {
         public AcquisitionQuality ToDomain()
         {
             if ((SourceStatus is null) != (MeasurementStatus is null)) throw new FormatException("Both buffer quality words must be present or absent.");
-            return new(new(Step), new(Device), new(Column), CapturedAt, SourceStatus is { } source ? new(source, MeasurementStatus!.Value) : null, AcquisitionConfiguration?.ToDomain(), MeterConfiguration?.ToDomain(), PicoammeterConfiguration?.ToDomain());
+            return new(new(Step), new(Device), new(Column), CapturedAt, SourceStatus is { } source ? new(source, MeasurementStatus!.Value) : null, AcquisitionConfiguration?.ToDomain(), MeterConfiguration?.ToDomain(), PicoammeterConfiguration?.ToDomain(), ElectrometerConfiguration?.ToDomain());
         }
-        public static AcquisitionQualityDto From(AcquisitionQuality quality) => new(quality.Step.Value, quality.Device.Value, quality.Column.Value, quality.CapturedAt, quality.Status?.Source, quality.Status?.Measurement, quality.AcquisitionConfiguration is { } settings ? AcquisitionSettingsDto.From(settings) : null, quality.MeterConfiguration is { } meter ? MeterSettingsDto.From(meter) : null, quality.PicoammeterConfiguration is { } pico ? PicoammeterSettingsDto.From(pico) : null);
+        public static AcquisitionQualityDto From(AcquisitionQuality quality) => new(quality.Step.Value, quality.Device.Value, quality.Column.Value, quality.CapturedAt, quality.Status?.Source, quality.Status?.Measurement, quality.AcquisitionConfiguration is { } settings ? AcquisitionSettingsDto.From(settings) : null, quality.MeterConfiguration is { } meter ? MeterSettingsDto.From(meter) : null, quality.PicoammeterConfiguration is { } pico ? PicoammeterSettingsDto.From(pico) : null, quality.ElectrometerConfiguration is { } electrometer ? ElectrometerSettingsDto.From(electrometer) : null);
+    }
+    internal sealed record ElectrometerRangeDto([property: JsonRequired] QuantityDto Span, [property: JsonRequired] bool AutoRange)
+    {
+        public ElectrometerRange ToDomain() => new(Required(Span).ToDomain(), AutoRange);
+        public static ElectrometerRangeDto From(ElectrometerRange range) => new(QuantityDto.From(range.Span), range.AutoRange);
+    }
+    internal sealed record ElectrometerSettingsDto([property: JsonRequired] string Function,
+        [property: JsonRequired] ElectrometerRangeDto Current, [property: JsonRequired] ElectrometerRangeDto Voltage,
+        [property: JsonRequired] ElectrometerRangeDto Resistance, [property: JsonRequired] ElectrometerRangeDto Charge,
+        [property: JsonRequired] double Nplc, [property: JsonRequired] bool ZeroCheck, [property: JsonRequired] bool ZeroCorrect,
+        [property: JsonRequired] bool AveragingEnabled, [property: JsonRequired] int AveragingCount, [property: JsonRequired] string AveragingMode)
+    {
+        public Keithley6514Settings ToDomain() => new(Function switch { "Current" => ElectrometerFunction.Current, "Voltage" => ElectrometerFunction.Voltage, "Resistance" => ElectrometerFunction.Resistance, "Charge" => ElectrometerFunction.Charge, _ => throw new FormatException("Unknown electrometer function.") },
+            Required(Current).ToDomain(), Required(Voltage).ToDomain(), Required(Resistance).ToDomain(), Required(Charge).ToDomain(), Nplc, ZeroCheck, ZeroCorrect, AveragingEnabled, AveragingCount,
+            AveragingMode switch { "Repeat" => Core.Instruments.AveragingMode.Repeat, "Moving" => Core.Instruments.AveragingMode.Moving, _ => throw new FormatException("Unknown electrometer averaging mode.") });
+        public static ElectrometerSettingsDto From(Keithley6514Settings s) => new(s.Function.ToString(), ElectrometerRangeDto.From(s.Current), ElectrometerRangeDto.From(s.Voltage), ElectrometerRangeDto.From(s.Resistance), ElectrometerRangeDto.From(s.Charge), s.Nplc, s.ZeroCheck, s.ZeroCorrect, s.AveragingEnabled, s.AveragingCount, s.AveragingMode.ToString());
     }
     internal sealed record PicoammeterSettingsDto([property: JsonRequired] QuantityDto? ManualRange, [property: JsonRequired] double Nplc,
         [property: JsonRequired] bool ZeroCheck, [property: JsonRequired] bool ZeroCorrect, [property: JsonRequired] bool AveragingEnabled,

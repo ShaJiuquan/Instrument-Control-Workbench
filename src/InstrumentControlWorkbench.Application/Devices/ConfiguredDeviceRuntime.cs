@@ -25,6 +25,7 @@ public sealed class ConfiguredDeviceRuntime
             if (ports.Descriptor.Id != device.Id || ports.Descriptor.DriverKind != device.DriverKind || ports.Descriptor.DisplayName != device.DisplayName ||
                 ports.SourceMeter is not null && device.Category != ConfiguredDeviceCategory.SourceMeter ||
                 ports.CurrentSource is not null && device.Category != ConfiguredDeviceCategory.Source ||
+                ports.Electrometer is not null && device.Category != ConfiguredDeviceCategory.Meter ||
                 ports.Picoammeter is not null && device.Category != ConfiguredDeviceCategory.Meter ||
                 ports.Meter is not null && device.Category != ConfiguredDeviceCategory.Meter ||
                 ports.LockIn is not null && device.Category != ConfiguredDeviceCategory.LockIn ||
@@ -36,6 +37,7 @@ public sealed class ConfiguredDeviceRuntime
                 var manager = new InstrumentManager(source, notifications); sources.Add(device.Id, manager); sessions.Add(manager);
             }
             else if (ports.Meter is { } meter) sessions.Add(new Keithley2182MeterSession(meter, notifications));
+            else if (ports.Electrometer is { } electrometer) sessions.Add(new Keithley6514MeterSession(electrometer, notifications));
             else if (ports.Picoammeter is { } picoammeter) sessions.Add(new Keithley6485MeterSession(picoammeter, notifications));
             else if (ports.LockIn is { } lockIn) sessions.Add(new Sr830MeterSession(lockIn, notifications));
             else if (ports.CurrentSource is { } current) sessions.Add(new Keithley6221CurrentSourceSession(current, notifications));
@@ -67,6 +69,6 @@ public sealed class ConfiguredDeviceRuntime
         var aliases = Configuration.Aliases.Where(p => registered.Contains(p.Value)).ToArray();
         var axes = aliases.Where(p => p.Key.Equals("temperature", StringComparison.OrdinalIgnoreCase) || p.Key.Equals("field", StringComparison.OrdinalIgnoreCase) || p.Key.Equals("angle", StringComparison.OrdinalIgnoreCase))
             .Select(p => KeyValuePair.Create(p.Key, Registry.GetAxisDefinition(p.Value)));
-        return new(aliases, axes, preparations, standaloneVoltageMeters: Configuration.Devices.Where(d => d.Enabled && aliases.Any(a => a.Value == d.Id) && d.Category == ConfiguredDeviceCategory.Meter && d.Model.Equals("K2182", StringComparison.OrdinalIgnoreCase)).Select(d => d.Id), currentSourcePreparations: currentSourcePreparations, standaloneCurrentMeters: Configuration.Devices.Where(d => d.Enabled && aliases.Any(a => a.Value == d.Id) && d.Category == ConfiguredDeviceCategory.Meter && d.Model.Equals("K6485", StringComparison.OrdinalIgnoreCase)).Select(d => d.Id));
+        return new(aliases, axes, preparations, standaloneVoltageMeters: Configuration.Devices.Where(d => d.Enabled && aliases.Any(a => a.Value == d.Id) && d.Category == ConfiguredDeviceCategory.Meter && d.Model.Equals("K2182", StringComparison.OrdinalIgnoreCase)).Select(d => d.Id), currentSourcePreparations: currentSourcePreparations, standaloneCurrentMeters: Configuration.Devices.Where(d => d.Enabled && aliases.Any(a => a.Value == d.Id) && d.Category == ConfiguredDeviceCategory.Meter && d.Model.Equals("K6485", StringComparison.OrdinalIgnoreCase)).Select(d => d.Id), electrometers: Configuration.Devices.Where(d => d.Enabled && aliases.Any(a => a.Value == d.Id) && d.Category == ConfiguredDeviceCategory.Meter && d.Model.Equals("K6514", StringComparison.OrdinalIgnoreCase)).Select(d => d.Id));
     }
 }

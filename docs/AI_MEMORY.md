@@ -1915,3 +1915,21 @@ Reject matrix/inheritedsource scans; no implicitzerooff/calibration/status.
 Onlysim registered, physicalcatalog fails beforeconstruction. See
 k6485-picoammeter.md for50HzNPLC/filter/status/zerocorrect/physical gaps.
 No deps/Rust/nativewindow changes; visualacceptance userdeferred. Broadgoalactive.
+
+## K6514 function-aware acquisition (2026-10-13)
+
+Four modes with independent typed selected spans/autorange flags and shared
+NPLC/filter/zero registers. Explicit zeroON before mode change/zeroOFF before
+sample read; changing zero check discharges real charge, never implicit.
+Selected nominal span remains observed underauto, not actualconversionrange.
+Session confirms mode/unrequestedregs and frameconfig/function/unit/time/range;
+mixedmodeRead preflightreject. Ownedread/stopproof/pause drift/recovery asK6485.
+ElectrometerConfiguration persisted/freshread/CSV/widepoint and domainchecked;
+no SMU/othermeter/calibrationclaims. Sevencommands and direct4modeextensions,
+no matrix/ensourcingscans. Shared chargeNPLC applies permanual insteadRustnoop;
+rejectcountoutsidebounds insteadclamp, boundRustRES/CHAR TODOs. Onlysim and
+sessionrejecthardware: ohmsinternalexcitation/guard needs richer stopproof.
+See k6514-electrometer.md. No deps/Rust/nativewindowactions; broadgoalactive.
+Full audit exposed recursive compiler stack growth after inline mixedmode check.
+Moved that check to static helper outside VisitBody; preserved128depth limit,
+existing127/128/importguard tests and added127/128electrometer-read probes.

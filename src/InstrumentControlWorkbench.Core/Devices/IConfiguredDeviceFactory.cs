@@ -17,6 +17,8 @@ public sealed class ConfiguredDevicePorts
     public ConfiguredDevicePorts(IK6221CurrentSourcePort source) { ArgumentNullException.ThrowIfNull(source); CurrentSource = source; }
     public ConfiguredDevicePorts(ISr830MeterPort meter) { ArgumentNullException.ThrowIfNull(meter); LockIn = meter; }
     public ConfiguredDevicePorts(IK6485MeterPort meter) { ArgumentNullException.ThrowIfNull(meter); Picoammeter = meter; }
+    public ConfiguredDevicePorts(IK6514MeterPort meter) { ArgumentNullException.ThrowIfNull(meter); Electrometer = meter; }
+    public IK6514MeterPort? Electrometer { get; }
     public IK6485MeterPort? Picoammeter { get; }
     public ISr830MeterPort? LockIn { get; }
     public IK6221CurrentSourcePort? CurrentSource { get; }
@@ -24,5 +26,5 @@ public sealed class ConfiguredDevicePorts
     public ISourceMeterPort? SourceMeter { get; }
     public IAxisControllerPort? Axis { get; }
     public IMatrixSwitchPort? Matrix { get; }
-    public DeviceDescriptor Descriptor => SourceMeter?.Descriptor ?? CurrentSource?.Descriptor ?? Meter?.Descriptor ?? Picoammeter?.Descriptor ?? LockIn?.Descriptor ?? Axis?.Definition.Device ?? Matrix!.Definition.Device;
+    public DeviceDescriptor Descriptor => SourceMeter?.Descriptor ?? CurrentSource?.Descriptor ?? Meter?.Descriptor ?? Picoammeter?.Descriptor ?? Electrometer?.Descriptor ?? LockIn?.Descriptor ?? Axis?.Definition.Device ?? Matrix!.Definition.Device;
 }

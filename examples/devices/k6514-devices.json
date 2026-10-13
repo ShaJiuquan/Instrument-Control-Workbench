@@ -1,0 +1,20 @@
+{
+  "format": "instrument-workbench-devices",
+  "version": 1,
+  "primarySource": null,
+  "devices": [
+    {
+      "id": "meter",
+      "model": "K6514",
+      "displayName": "Four-function electrometer simulator",
+      "category": "Meter",
+      "enabled": true,
+      "connection": {
+        "transport": "simulation"
+      }
+    }
+  ],
+  "aliases": {
+    "k6514": "meter"
+  }
+}

@@ -43,6 +43,14 @@ public sealed partial class PpmsExperimentPlanImporter
                 };
                 return new TemperatureControlStep(new(path), temperatureAxis.Device.Id, action,
                     name == "temp_ramp_on" ? new Quantity(Number(p, p.ContainsKey("rate") ? "rate" : "rate_k_per_min"), PhysicalUnit.KelvinPerMinute) : null);
+            case "k6514.set_function":
+            case "k6514.set_nplc":
+            case "k6514.set_range":
+            case "k6514.set_auto_range":
+            case "k6514.set_zero_check":
+            case "k6514.set_zero_correct":
+            case "k6514.set_averaging":
+                return ElectrometerCommand(name, p, path, c);
             case "k6485.set_nplc":
             case "k6485.set_range":
             case "k6485.set_auto_range":
@@ -276,12 +284,16 @@ public sealed partial class PpmsExperimentPlanImporter
             Fields(p, "meas_type", "name"); var axis = Axis(name == "measure_temp" ? "temperature" : name[8..], c);
             return new ReadStep(new(path), [new(new(path + ".value"), new(axis.Device.Id, axis.Readback.Id))], MeasurementEnvironment(path, c));
         }
+        if (name is "measure_charge" or "measure_electrometer_resistance")
+            return StandaloneElectrometer(name, p, path, ElectrometerDevice(Text(p, "instrument", "k6514").Trim(), c), c);
         if (name is not ("measure_voltage" or "measure_current")) throw new NotSupportedException($"Measurement '{name}' is not migrated.");
         Fields(p, "meas_type", "name", "instrument", "channel", "sensing_mode", "nplc", "meter_range_v", "meter_range_a", "sense_channel", "filter_enabled", "filter_count", "filter_window_percent");
         var defaultInstrument = name == "measure_voltage" ? "2182" : "k2450";
         if (name == "measure_voltage" && c.Bindings.Instruments.TryGetValue("k2182", out var defaultMeter) && c.Bindings.StandaloneVoltageMeters.Contains(defaultMeter))
             defaultInstrument = "k2182";
         var instrument = Text(p, "instrument", defaultInstrument).Trim();
+        if (c.Bindings.Instruments.TryGetValue(instrument, out var electrometer) && c.Bindings.Electrometers.Contains(electrometer))
+            return StandaloneElectrometer(name, p, path, electrometer, c);
         if (c.Bindings.Instruments.TryGetValue(instrument, out var standalone) && c.Bindings.StandaloneVoltageMeters.Contains(standalone))
         {
             if (name != "measure_voltage") throw new NotSupportedException("K2182 has no current measurement capability.");
