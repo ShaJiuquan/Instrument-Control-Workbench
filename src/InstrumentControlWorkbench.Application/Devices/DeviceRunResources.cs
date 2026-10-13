@@ -45,6 +45,8 @@ public sealed partial class DeviceRunResources
         try
         {
             RequireActive();
+            // Never reconnect any part of the group while an isolation task still owns IO.
+            foreach (var session in sessions.Values) await RequireAcStopFinishedAsync(session.Descriptor.Id, reconnect: true);
             foreach (var session in sessions.Values)
             {
                 await PrepareMutationAsync(session.Descriptor.Id, reconnect: true);
@@ -260,6 +262,7 @@ public sealed partial class DeviceRunResources
             await PrepareMutationAsync(id);
             foreach (var matrix in sessions.Values.OfType<MatrixSwitchSession>().Where(m => m.Definition.GuardedSources.Contains(id)))
             {
+                if (matrix.Definition.AcIsolation is not null) throw new InvalidOperationException("Dedicated AC isolation cannot guard generic DC output enable; combined DC and AC operation is unsupported.");
                 await PrepareMutationAsync(matrix.Descriptor.Id);
                 touched.Add(matrix.Descriptor.Id);
                 await matrix.ConfirmHeldRouteAsync(Owner, token);
@@ -293,6 +296,7 @@ public sealed partial class DeviceRunResources
         {
             RequireActive();
             var matrix = Get(id) as MatrixSwitchSession ?? throw new NotSupportedException($"{id} has no matrix capability.");
+            if (matrix.Definition.AcIsolation is not null) throw new InvalidOperationException("Registered AC isolation forbids generic matrix routing.");
             matrix.Definition.Validate(points);
             if (points.Length > 4096 || points.Distinct().Count() != points.Length) throw new ArgumentException("Expected connections must be unique and bounded.", nameof(desired));
             await PrepareMutationAsync(id); token.ThrowIfCancellationRequested(); touched.Add(id);
@@ -312,6 +316,7 @@ public sealed partial class DeviceRunResources
         {
             RequireActive();
             var matrix = Get(id) as MatrixSwitchSession ?? throw new NotSupportedException($"{id} has no matrix capability.");
+            if (matrix.Definition.AcIsolation is not null) throw new InvalidOperationException("Registered AC isolation forbids generic matrix routing.");
             matrix.Definition.Validate(points);
             if (points.Length > 4096 || points.Distinct().Count() != points.Length) throw new ArgumentException("Desired matrix connections must be unique and within the software budget.", nameof(desired));
             var guards = GetGuards(matrix);
@@ -358,12 +363,20 @@ public sealed partial class DeviceRunResources
             // All non-matrix stops begin together; only confirmed excitation-off
             // permits a later matrix relay write. Axis failure retains ownership
             // but does not prevent relay cleanup when excitation is confirmed off.
-            var failures = new List<DeviceCleanupFailure>(await AwaitStopsAsync(pendingStops.Keys.Where(id => Get(id) is not MatrixSwitchSession).ToArray(), token));
+            // AC emergency opening is independent of passive abort and DC-guard failures.
+            var acFailures = await StopAcIsolationsAsync(retryFailed, preserveRouting, token);
+            var failures = new List<DeviceCleanupFailure>(acFailures);
+            failures.AddRange(await AwaitStopsAsync(pendingStops.Keys.Where(id => Get(id) is not MatrixSwitchSession).ToArray(), token));
             if (preserveRouting) foreach (var id in temperatureScanRequiresRampOff.Where(id => pendingStops.TryGetValue(id, out var stop) && stop.IsCompleted))
                     if (await pendingStops[id] is null) heldTemperatureScans.Add(id);
             foreach (var matrix in matrices)
             {
                 var id = matrix.Descriptor.Id;
+                if (acFailures.Any(f => f.InstrumentId == id))
+                {
+                    recoveryRequired.Add(id);
+                    continue; // Failed or live isolation must not overlap generic matrix cleanup.
+                }
                 if (pendingStops.ContainsKey(id)) continue;
                 if (matrix.HasRoutingMutations && GetGuards(matrix).Any(g => failures.Any(f => f.InstrumentId == g.Descriptor.Id)))
                 {
@@ -376,7 +389,7 @@ public sealed partial class DeviceRunResources
             }
             failures.AddRange(await AwaitStopsAsync(pendingStops.Keys.Where(id => Get(id) is MatrixSwitchSession).ToArray(), token));
             foreach (var pair in pendingStops)
-                if (pair.Value.IsCompleted && await pair.Value is null) recoveryRequired.Remove(pair.Key);
+                if (pair.Value.IsCompleted && await pair.Value is null && !acFailures.Any(f => f.InstrumentId == pair.Key)) recoveryRequired.Remove(pair.Key);
             return failures.AsReadOnly();
         }
         finally { gate.Release(); }
@@ -412,6 +425,7 @@ public sealed partial class DeviceRunResources
         try
         {
             RequireActive();
+            if (!await HasTerminalAcProofAsync()) throw new InvalidOperationException("Fresh terminal AC isolation proof is required; all resources remain reserved.");
             foreach (var id in touched)
                 if (heldRoutes.Contains(id) || recoveryRequired.Contains(id) || !pendingStops.TryGetValue(id, out var stop) || !stop.IsCompleted || await stop is not null)
                     throw new InvalidOperationException($"{id} has not confirmed its stop policy; all resources remain reserved.");
@@ -630,12 +644,14 @@ public sealed partial class DeviceRunResources
     private async Task RequireStoppedTaskFinishedAsync(InstrumentId id)
     {
         Get(id);
+        await RequireAcStopFinishedAsync(id);
         if (recoveryRequired.Contains(id) || pendingStops.TryGetValue(id, out var stop) && (!stop.IsCompleted || await stop is not null))
             throw new InvalidOperationException($"{id} requires stop recovery before observation or mutation.");
     }
 
     private async Task PrepareMutationAsync(InstrumentId id, bool reconnect = false)
     {
+        await RequireAcStopFinishedAsync(id, reconnect);
         if (recoveryRequired.Contains(id) && !reconnect)
             throw new InvalidOperationException($"{id} requires fresh stop confirmation after reconnect before it can be changed.");
         if (!pendingStops.TryGetValue(id, out var stop)) return;

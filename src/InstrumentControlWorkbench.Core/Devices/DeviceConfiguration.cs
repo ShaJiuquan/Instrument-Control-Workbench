@@ -46,17 +46,25 @@ public sealed record SerialDeviceConnection : DeviceConnection
 }
 public sealed class ConfiguredMatrix
 {
-    public ConfiguredMatrix(IEnumerable<MatrixCardDefinition> cards, IEnumerable<InstrumentId> guardedSources)
+    public ConfiguredMatrix(IEnumerable<MatrixCardDefinition> cards, IEnumerable<InstrumentId> guardedSources, MatrixAcIsolationCapability? acIsolation = null)
     {
         ArgumentNullException.ThrowIfNull(cards); ArgumentNullException.ThrowIfNull(guardedSources);
         var c = cards.ToArray(); var s = guardedSources.ToArray();
         if (c.Length is < 1 or > 64 || c.Any(p => p is null) || c.Select(p => p.Slot).Distinct().Count() != c.Length ||
-            s.Length is < 1 or > 64 || s.Any(p => string.IsNullOrWhiteSpace(p.Value)) || s.Distinct().Count() != s.Length)
-            throw new ArgumentException("Matrix configuration requires one to 64 distinct cards and guarded source IDs.");
-        Cards = Array.AsReadOnly(c); GuardedSources = Array.AsReadOnly(s);
+            s.Length > 64 || s.Length == 0 && acIsolation is null || s.Any(p => string.IsNullOrWhiteSpace(p.Value)) || s.Distinct().Count() != s.Length)
+            throw new ArgumentException("Matrix configuration requires one to 64 distinct cards and up to 64 guarded source IDs; an empty guard set requires registered AC isolation.");
+        if (acIsolation is not null)
+            foreach (var point in acIsolation.Connections)
+            {
+                var card = c.SingleOrDefault(card => card.Slot == point.Slot);
+                if (card is null || point.Row > card.Rows || point.Column > card.Columns)
+                    throw new ArgumentException("AC isolation connection is outside the declared matrix cards.");
+            }
+        Cards = Array.AsReadOnly(c); GuardedSources = Array.AsReadOnly(s); AcIsolation = acIsolation;
     }
     public IReadOnlyList<MatrixCardDefinition> Cards { get; }
     public IReadOnlyList<InstrumentId> GuardedSources { get; }
+    public MatrixAcIsolationCapability? AcIsolation { get; }
 }
 public sealed record DeviceConfiguration
 {
@@ -103,10 +111,20 @@ public sealed class DeviceConfigurationCatalog
         if (a.Length > 64 || a.Any(p => string.IsNullOrWhiteSpace(p.Key) || p.Key.Length > 128 || p.Key != p.Key.Trim() || p.Key.Any(char.IsControl) || !d.Any(device => device.Id == p.Value)) ||
             a.Select(p => p.Key).Distinct(StringComparer.OrdinalIgnoreCase).Count() != a.Length)
             throw new ArgumentException("Device aliases must be distinct and reference existing instances.");
+        if (d.Where(p => p.Matrix?.AcIsolation is not null).GroupBy(p => p.Matrix!.AcIsolation!.Generator).Any(g => g.Count() > 1))
+            throw new ArgumentException("Each active AC generator must have exactly one registered isolation matrix in this profile.");
         foreach (var device in d)
             foreach (var source in device.Matrix?.GuardedSources ?? [])
                 if (!d.Any(p => p.Id == source && (p.Category is ConfiguredDeviceCategory.SourceMeter or ConfiguredDeviceCategory.Source) && (!device.Enabled || p.Enabled)))
                     throw new ArgumentException($"{device.Id}: guarded source {source} is missing, disabled or not an excitation source.");
+        foreach (var matrix in d.Where(device => device.Matrix?.AcIsolation is not null))
+        {
+            var isolation = matrix.Matrix!.AcIsolation!;
+            if (isolation.Generator == matrix.Id || !d.Any(generator => generator.Id == isolation.Generator &&
+                generator.Category == ConfiguredDeviceCategory.LockIn && generator.Model.Equals("SR830-AC-SIM", StringComparison.OrdinalIgnoreCase) &&
+                generator.Connection is SimulationDeviceConnection && (!matrix.Enabled || generator.Enabled)))
+                throw new ArgumentException($"{matrix.Id}: AC isolation requires a separate registered active SR830 simulation generator; passive SR830 cannot grant excitation capability.");
+        }
         foreach (var pair in a)
         {
             ConfiguredDeviceCategory? required = pair.Key.ToLowerInvariant() switch { "temperature" => ConfiguredDeviceCategory.Temperature, "field" => ConfiguredDeviceCategory.Field, "angle" => ConfiguredDeviceCategory.Rotation, _ => null };

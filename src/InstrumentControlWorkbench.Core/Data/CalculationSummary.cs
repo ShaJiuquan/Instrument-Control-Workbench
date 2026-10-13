@@ -36,6 +36,6 @@ public sealed record CalculationSummary
             }
             outcomes.Add(new(column.Column, issue));
         }
-        return new(input.Timestamp, values, input.Routing, input.Analysis, input.MeasurementGroup, input.Environment, input.Quality, input.IndependentResistance, input.AcquisitionFailures, new(step.Id, inputRow, outcomes));
+        return new(input.Timestamp, values, input.Routing, input.Analysis, input.MeasurementGroup, input.Environment, input.Quality, input.IndependentResistance, input.AcquisitionFailures, new(step.Id, inputRow, outcomes), input.Sr830Ac);
     }
 }

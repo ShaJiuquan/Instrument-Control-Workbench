@@ -10,7 +10,7 @@ namespace InstrumentControlWorkbench.Application.Devices;
 
 internal sealed record Sr830ResumeConfiguration(Sr830InputSettings Input, Sr830ReferenceReadback? Reference);
 
-public sealed class Sr830MeterSession : IDeviceSession
+public sealed partial class Sr830MeterSession : IDeviceSession
 {
     private readonly ISr830MeterPort port;
     private readonly InstrumentOperationGate operations;
@@ -112,7 +112,8 @@ public sealed class Sr830MeterSession : IDeviceSession
             await port.AbortAcquisitionAsync(token); var state = await port.GetSnapshotAsync(token);
             if (state.Acquiring || !state.Connected && Descriptor.DriverKind == DriverKind.Hardware) throw new InvalidOperationException("Lock-in acquisition idle was not confirmed; retain ownership.");
             faulted = false; var status = await PublishAsync(state, token);
-            await notifications.PublishAsync(new(WorkbenchNotificationKind.SafetyStateChanged, $"{Descriptor.DisplayName}: passive input acquisition idle confirmed; oscillator output is outside this profile.", Descriptor.Id), token); return status;
+            var message = SupportsExcitation ? $"{Descriptor.DisplayName}: acquisition idle confirmed; the sine generator remains enabled and requires external isolation." : $"{Descriptor.DisplayName}: passive input acquisition idle confirmed; oscillator output is outside this profile.";
+            await notifications.PublishAsync(new(WorkbenchNotificationKind.SafetyStateChanged, message, Descriptor.Id), token); return status;
         }
         catch { faulted = true; throw; }
         finally { operations.Exit(); }

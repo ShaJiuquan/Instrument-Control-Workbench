@@ -10,6 +10,8 @@ public sealed partial class RunDataRowValidator
     private readonly ExperimentPlan? plan;
     private readonly Dictionary<StepId, ReadPolarizationStep> polarizationReads = [];
     private readonly List<ReadSr830FrameStep> lockInFrames = [];
+    private readonly Dictionary<StepId, ReadSr830AcFrameStep> activeLockInFrames = [];
+    public bool HasSr830Ac => activeLockInFrames.Count != 0;
     private readonly Dictionary<StepId, CalculatedMeasurementStep> calculations = [];
     private MeasurementDataRow? previousRow;
     private readonly HashSet<ParameterId> calculatedColumns = [];
@@ -53,6 +55,7 @@ public sealed partial class RunDataRowValidator
                     foreach (var channel in read.Channels) if (channel.Address.Parameter == Keithley2182Parameters.Voltage.Id) standaloneVoltageColumns.Add((read.Id, channel.Column));
                     foreach (var channel in read.Channels) if (channel.Address.Parameter == Keithley2450Parameters.MeasuredResistance.Id) nativeResistanceColumns.Add((read.Id, channel.Column));
                     RegisterQuality(read.Id, read.Channels.Select(c => (c.Column, c.Address.Device))); RegisterEnvironment(read.Channels.Select(c => c.Column), read.EnvironmentReads); break;
+                case ReadSr830AcFrameStep read: activeLockInFrames.Add(read.Id, read); lockInFrames.Add(read.Frame); RegisterQuality(read.Id, read.Frame.Channels.Take(4).Select(c => (c.Column, read.Device))); break;
                 case ReadSr830FrameStep read: lockInFrames.Add(read); RegisterQuality(read.Id, read.Channels.Take(4).Select(c => (c.Column, read.Device))); break;
                 case ReadElectrodeContinuityStep read:
                     continuityReads.Add(read.Id, read); RegisterQuality(read.Id, new[] { read.VoltageColumn, read.CurrentColumn }.Select(column => (column, read.Source.Device))); break;
@@ -136,6 +139,7 @@ public sealed partial class RunDataRowValidator
     {
         schema.ValidateRow(row);
         ValidateLockInFrame(row);
+        ValidateSr830Ac(row);
         ValidateContinuity(row);
         if (row.Calculation is not null) { ValidateCalculation(row); return; }
         if (row.Values.Keys.Any(calculatedColumns.Contains)) throw new ArgumentException("Calculated quantities require their input-row evidence.");
@@ -259,7 +263,7 @@ public sealed partial class RunDataRowValidator
             offset += member.InputCount;
         }
         var expected = MeasurementGroupSummary.BuildRow(group, summary.Inputs[0].FirstInputRow, inputs);
-        if (expected.Timestamp != row.Timestamp || !expected.Environment.SequenceEqual(row.Environment) || !expected.Quality.SequenceEqual(row.Quality) || !expected.IndependentResistance.SequenceEqual(row.IndependentResistance) || !expected.AcquisitionFailures.SequenceEqual(row.AcquisitionFailures) || !expected.Values.Keys.ToHashSet().SetEquals(row.Values.Keys) || expected.Values.Any(p => row.Values[p.Key] != p.Value))
+        if (expected.Timestamp != row.Timestamp || !expected.Environment.SequenceEqual(row.Environment) || !expected.Quality.SequenceEqual(row.Quality) || !expected.IndependentResistance.SequenceEqual(row.IndependentResistance) || !expected.AcquisitionFailures.SequenceEqual(row.AcquisitionFailures) || !SameAcEvidence(expected.Sr830Ac, row.Sr830Ac) || !expected.Values.Keys.ToHashSet().SetEquals(row.Values.Keys) || expected.Values.Any(p => row.Values[p.Key] != p.Value))
             throw new ArgumentException("Measurement summary values/time differ from the preserved acquisitions.");
     }
     private void ValidateEnvironment(MeasurementDataRow row)

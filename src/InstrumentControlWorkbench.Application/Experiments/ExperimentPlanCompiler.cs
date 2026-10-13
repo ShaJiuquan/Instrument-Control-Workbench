@@ -11,7 +11,7 @@ using InstrumentControlWorkbench.Core.Routing;
 namespace InstrumentControlWorkbench.Application.Experiments;
 
 public sealed record ExperimentPlanPreview(DataSetSchema Schema, IReadOnlyList<InstrumentId> Devices, long MaximumStepExecutions, bool HasDynamicLoops = false);
-internal sealed record CompiledExperiment(ExperimentPlan Plan, DataSetSchema Schema, IReadOnlyList<InstrumentId> Devices, long MaximumStepExecutions, IReadOnlyDictionary<StepId, ResolvedSampleRoute> SampleRoutes, bool HasDynamicLoops, IReadOnlyList<PlanVariableAvailability>? InspectedVariables = null);
+internal sealed record CompiledExperiment(ExperimentPlan Plan, DataSetSchema Schema, IReadOnlyList<InstrumentId> Devices, long MaximumStepExecutions, IReadOnlyDictionary<StepId, ResolvedSampleRoute> SampleRoutes, bool HasDynamicLoops, IReadOnlyList<PlanVariableAvailability>? InspectedVariables = null, IReadOnlyList<ReadSr830AcFrameStep>? Sr830AcSteps = null);
 
 // Compilation reads capability metadata only. No lease or driver operation occurs
 // until every branch, scan value, unit and result dependency has been checked.
@@ -35,6 +35,7 @@ internal static partial class ExperimentPlanCompiler
         var devices = registry.Devices.ToDictionary(d => d.Id);
         var needed = new HashSet<InstrumentId>();
         var lockInColumnOwners = new Dictionary<ParameterId, StepId>();
+        var acSteps = new List<ReadSr830AcFrameStep>();
         var columns = new Dictionary<ParameterId, DataColumn> { [Elapsed.Id] = new(Elapsed) };
         var environmentColumns = new HashSet<ParameterId>();
         var environmentPolicies = new Dictionary<ParameterId, IReadOnlyList<EnvironmentRead>>();
@@ -162,7 +163,44 @@ internal static partial class ExperimentPlanCompiler
                 Keithley2450Limits.Validate(levelWrite ? baseline with { Level = value.Value } : baseline with { Compliance = value.Value });
             }
         }
-        return new(plan, new(columns.Values), Array.AsReadOnly(needed.OrderBy(id => id.Value, StringComparer.Ordinal).ToArray()), hasDynamicLoops ? plan.MaximumStepExecutions : cost, new ReadOnlyDictionary<StepId, ResolvedSampleRoute>(sampleRoutes), hasDynamicLoops, inspectedVariables);
+        return new(plan, new(columns.Values), Array.AsReadOnly(needed.OrderBy(id => id.Value, StringComparer.Ordinal).ToArray()), hasDynamicLoops ? plan.MaximumStepExecutions : cost, new ReadOnlyDictionary<StepId, ResolvedSampleRoute>(sampleRoutes), hasDynamicLoops, inspectedVariables, acSteps.AsReadOnly());
+
+        MatrixSwitchDefinition PassiveMatrix(InstrumentId id)
+        {
+            var definition = registry.GetMatrixDefinition(id);
+            if (definition.AcIsolation is not null) throw new ArgumentException("Registered AC isolation cannot participate in generic DC routing or verification.");
+            return definition;
+        }
+
+        long ValidateLockInFrame(ReadSr830FrameStep frame, VariableFlowState known, IReadOnlyList<ParameterId> axes)
+        {
+            Device(frame.Device);
+            if (!registry.SupportsSr830Frame(frame.Device)) throw new NotSupportedException("Device has no SR830 frame capability.");
+            if (frame.IncludeReference && !registry.SupportsSr830Reference(frame.Device)) throw new NotSupportedException("Device has no reference readback capability.");
+            foreach (var channel in frame.Channels)
+            {
+                if (columns.ContainsKey(channel.Column)) throw new ArgumentException("Lock-in frame columns require distinct acquisition identities.");
+                lockInColumnOwners.Add(channel.Column, frame.Id);
+                var measured = Parameter(channel.Address, ParameterAccess.Read);
+                AddColumn(channel.Column, measured, channel.Address, [.. axes, Elapsed.Id]); BindQuantity(channel.Column, measured.Unit, known);
+            }
+            return 1;
+        }
+        long ValidateActiveLockIn(ReadSr830AcFrameStep ac, VariableFlowState known, IReadOnlyList<ParameterId> axes)
+        {
+            Device(ac.Device); Device(ac.Isolator);
+            if (!registry.SupportsSr830Excitation(ac.Device)) throw new NotSupportedException("Active AC requires an explicit excitation-capable SR830 profile.");
+            var matrix = registry.GetMatrixDefinition(ac.Isolator);
+            var capability = matrix.AcIsolation ?? throw new ArgumentException("Active AC requires registered external isolation qualification.");
+            matrix.Validate(ac.Connections);
+            if (capability.Generator != ac.Device || !capability.Connections.ToHashSet().SetEquals(ac.Connections))
+                throw new ArgumentException("Active AC must use the registered generator and complete exact disconnect set.");
+            foreach (var guard in matrix.GuardedSources)
+                if (Device(guard).StopPolicy != DeviceStopPolicy.OutputOff) throw new ArgumentException("AC matrix DC guards must confirm output off.");
+            acSteps.Add(ac);
+            hasDynamicLoops = true; // Whole-attempt pause restarts consume the global execution budget.
+            return ValidateLockInFrame(ac.Frame, known, axes);
+        }
 
         DeviceDescriptor Device(InstrumentId id)
         {
@@ -304,7 +342,7 @@ internal static partial class ExperimentPlanCompiler
                 throw new ArgumentException("Expected excitation must exceed the minimum-current threshold.");
             if (independent.RequiredRoute is { } requiredRoute)
             {
-                Device(requiredRoute.Device); var requiredMatrix = registry.GetMatrixDefinition(requiredRoute.Device); requiredMatrix.Validate(requiredRoute.Closed);
+                Device(requiredRoute.Device); var requiredMatrix = PassiveMatrix(requiredRoute.Device); requiredMatrix.Validate(requiredRoute.Closed);
                 if (!requiredMatrix.GuardedSources.Contains(independent.Source)) throw new ArgumentException("Independent route must guard its excitation source.");
                 foreach (var guard in requiredMatrix.GuardedSources) if (Device(guard).StopPolicy != DeviceStopPolicy.OutputOff) throw new ArgumentException("Independent route guards require output-off policies.");
             }
@@ -365,7 +403,7 @@ internal static partial class ExperimentPlanCompiler
                 throw new ArgumentException("Continuity requires frozen two-wire preparation outside a source scan.");
             if (read.RequiredRoute is { } route)
             {
-                Device(route.Device); var matrix = registry.GetMatrixDefinition(route.Device); matrix.Validate(route.Closed);
+                Device(route.Device); var matrix = PassiveMatrix(route.Device); matrix.Validate(route.Closed);
                 if (!matrix.GuardedSources.Contains(read.Source.Device)) throw new ArgumentException("Continuity matrix must guard its excitation source.");
                 foreach (var guard in matrix.GuardedSources) if (Device(guard).StopPolicy != DeviceStopPolicy.OutputOff) throw new ArgumentException("Continuity guards require output-off policy.");
             }
@@ -385,7 +423,7 @@ internal static partial class ExperimentPlanCompiler
                 throw new ArgumentException("Polarization must match frozen sensing mode and cannot take over an enclosing source scan.");
             if (pulse.RequiredRoute is { } route)
             {
-                Device(route.Device); var matrix = registry.GetMatrixDefinition(route.Device); matrix.Validate(route.Closed);
+                Device(route.Device); var matrix = PassiveMatrix(route.Device); matrix.Validate(route.Closed);
                 if (!matrix.GuardedSources.Contains(pulse.Device)) throw new ArgumentException("Polarization matrix route must guard its source.");
                 foreach (var guard in matrix.GuardedSources) if (Device(guard).StopPolicy != DeviceStopPolicy.OutputOff) throw new ArgumentException("Polarization matrix guards must have output-off policy.");
             }
@@ -523,17 +561,9 @@ internal static partial class ExperimentPlanCompiler
                     if (!registry.GetAxisDefinition(home.Device).SupportsHoming) throw new NotSupportedException("Controller has no dedicated rotational homing capability.");
                     return 1;
                 case ReadSr830FrameStep lockIn:
-                    Device(lockIn.Device);
-                    if (!registry.SupportsSr830Frame(lockIn.Device)) throw new NotSupportedException("Device has no passive SR830 frame capability.");
-                    if (lockIn.IncludeReference && !registry.SupportsSr830Reference(lockIn.Device)) throw new NotSupportedException("Device has no reference readback capability.");
-                    foreach (var channel in lockIn.Channels)
-                    {
-                        if (columns.ContainsKey(channel.Column)) throw new ArgumentException("Lock-in frame columns require distinct acquisition identities.");
-                        lockInColumnOwners.Add(channel.Column, lockIn.Id);
-                        var measured = Parameter(channel.Address, ParameterAccess.Read);
-                        AddColumn(channel.Column, measured, channel.Address, [.. axes, Elapsed.Id]); BindQuantity(channel.Column, measured.Unit, known);
-                    }
-                    return 1;
+                    return ValidateLockInFrame(lockIn, known, axes);
+                case ReadSr830AcFrameStep ac:
+                    return ValidateActiveLockIn(ac, known, axes);
                 case ReadSourceSenseStep pair:
                     ValidateSourceSense(pair.Device, pair.Function, pair.VoltageColumn, pair.CurrentColumn, known, axes);
                     ValidateEnvironmentPolicy([pair.VoltageColumn, pair.CurrentColumn], pair.EnvironmentReads);
@@ -703,14 +733,14 @@ internal static partial class ExperimentPlanCompiler
                     return 1;
                 case VerifyMatrixRouteStep verification:
                     Device(verification.Device);
-                    var verifiedMatrix = registry.GetMatrixDefinition(verification.Device);
+                    var verifiedMatrix = PassiveMatrix(verification.Device);
                     verifiedMatrix.Validate(verification.Closed);
                     foreach (var guard in verifiedMatrix.GuardedSources)
                         if (Device(guard).StopPolicy != DeviceStopPolicy.OutputOff) throw new ArgumentException("Matrix guards must use output-off policy.");
                     return 1;
                 case RouteMatrixStep route:
                     Device(route.Device);
-                    var matrix = registry.GetMatrixDefinition(route.Device);
+                    var matrix = PassiveMatrix(route.Device);
                     matrix.Validate(route.Closed);
                     foreach (var guardedSource in matrix.GuardedSources)
                         if (Device(guardedSource).StopPolicy != DeviceStopPolicy.OutputOff)
@@ -725,7 +755,7 @@ internal static partial class ExperimentPlanCompiler
                     if (read.RequiredRoute is { } readRoute)
                     {
                         Device(readRoute.Device);
-                        var readMatrix = registry.GetMatrixDefinition(readRoute.Device);
+                        var readMatrix = PassiveMatrix(readRoute.Device);
                         readMatrix.Validate(readRoute.Closed);
                         if (read.ExcitationSource is { } excitationSource && !readMatrix.GuardedSources.Contains(excitationSource))
                             throw new ArgumentException("Read route must guard its declared excitation source.");
@@ -765,7 +795,7 @@ internal static partial class ExperimentPlanCompiler
                             throw new ArgumentException("Source preparation sensing mode does not match the selected sample topology.");
                     }
                     Device(context.Matrix);
-                    var sampleMatrix = registry.GetMatrixDefinition(context.Matrix);
+                    var sampleMatrix = PassiveMatrix(context.Matrix);
                     sampleMatrix.Validate(context.Closed);
                     if (!sampleMatrix.GuardedSources.Contains(context.SourceMeter)) throw new ArgumentException("The sample source must be a declared matrix excitation guard.");
                     foreach (var guard in sampleMatrix.GuardedSources)

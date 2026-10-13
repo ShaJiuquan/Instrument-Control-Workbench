@@ -10,7 +10,7 @@ namespace InstrumentControlWorkbench.Application.Devices;
 
 // Run-owned routing lives here, not in a driver. Resource scopes park excitation
 // sources before invoking relay writes; manual registry operations cannot route.
-public sealed class MatrixSwitchSession : IDeviceSession
+public sealed partial class MatrixSwitchSession : IDeviceSession
 {
     private readonly IMatrixSwitchPort port;
     private readonly NotificationHub notifications;
@@ -77,6 +77,7 @@ public sealed class MatrixSwitchSession : IDeviceSession
 
     internal async Task ReconcileAsync(IReadOnlyList<MatrixCrossPoint> desired, RunId owner, CancellationToken token)
     {
+        if (Definition.AcIsolation is not null) throw new InvalidOperationException("Registered AC isolation must use its dedicated connect/disconnect lifecycle; generic routing is forbidden.");
         Definition.Validate(desired);
         await operations.EnterAsync(token, owner);
         try
@@ -156,7 +157,7 @@ public sealed class MatrixSwitchSession : IDeviceSession
         try
         {
             var snapshot = await port.GetSnapshotAsync(token); RequireKnown(snapshot, requireConnection: true);
-            return new(Descriptor.Id, Descriptor.Model, snapshot.Timestamp, [], new Dictionary<string, string>
+            var configuration = new Dictionary<string, string>
             {
                 ["display_name"] = Descriptor.DisplayName,
                 ["driver_kind"] = Descriptor.DriverKind.ToString(),
@@ -165,7 +166,16 @@ public sealed class MatrixSwitchSession : IDeviceSession
                 ["guarded_sources"] = string.Join(";", Definition.GuardedSources.Select(s => s.Value)),
                 ["initial_closed"] = string.Join(";", (baseline ?? snapshot.Closed.ToHashSet()).OrderBy(p => p.Slot).ThenBy(p => p.Row).ThenBy(p => p.Column).Select(p =>
                     string.Create(CultureInfo.InvariantCulture, $"{p.Slot}:{p.Row}:{p.Column}"))),
-            });
+            };
+            if (Definition.AcIsolation is { } ac)
+            {
+                configuration["ac_generator"] = ac.Generator.Value;
+                configuration["ac_disconnect_connections"] = string.Join(";", ac.Connections.Select(p => FormattableString.Invariant($"{p.Slot}:{p.Row}:{p.Column}")));
+                configuration["ac_maximum_amplitude_v"] = ac.MaximumAmplitude.Value.ToString("R", CultureInfo.InvariantCulture);
+                configuration["ac_maximum_frequency_hz"] = ac.MaximumFrequency.Value.ToString("R", CultureInfo.InvariantCulture);
+                configuration["ac_stop_proof"] = "Fresh registered disconnect-set open and known-route readback; generator amplitude remains nonzero.";
+            }
+            return new(Descriptor.Id, Descriptor.Model, snapshot.Timestamp, [], configuration);
         }
         finally { operations.Exit(); }
     }
@@ -180,7 +190,8 @@ public sealed class MatrixSwitchSession : IDeviceSession
         if (snapshot.Definition != Definition) throw new InvalidOperationException("Matrix snapshot belongs to a different definition.");
         var state = !snapshot.Connected ? InstrumentLifecycleState.Disconnected : faulted ? InstrumentLifecycleState.Faulted : InstrumentLifecycleState.Idle;
         var safe = snapshot.RouteKnown && (snapshot.Connected || Descriptor.DriverKind == DriverKind.Simulation) &&
-            (!HasRoutingMutations || !snapshot.Closed.Except(baseline!).Any());
+            (Definition.AcIsolation is null || !snapshot.Closed.Intersect(Definition.AcIsolation.Connections).Any()) &&
+            (!HasRoutingMutations || baseline is not null && !snapshot.Closed.Except(baseline).Any());
         var status = new DeviceStatus(Descriptor, state, snapshot.Connected, safe, snapshot.Timestamp, new Dictionary<ParameterId, Quantity>());
         await notifications.PublishAsync(new(WorkbenchNotificationKind.DeviceStateChanged, $"{Descriptor.DisplayName}: {state}", Descriptor.Id, Device: status), token);
         return status;

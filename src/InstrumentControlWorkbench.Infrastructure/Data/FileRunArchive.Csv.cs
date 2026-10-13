@@ -33,6 +33,7 @@ public sealed partial class FileRunArchive
                 var hasEnvironment = provenance.HasEnvironment;
                 var hasAcquisitionFailures = provenance.HasRecoverableAcquisitions;
                 var hasIndependentResistance = provenance.HasIndependentResistance;
+                var hasSr830Ac = provenance.HasSr830Ac;
                 var hasAnalysis = new SampleAnalysisRowValidator(header.Plan, header.Schema).HasGroups;
                 await WriteCsvAsync(writer, ["# format", "instrument-workbench-csv", "1"], token);
                 await WriteCsvAsync(writer, ["# run_id", id.ToString()], token);
@@ -54,7 +55,8 @@ public sealed partial class FileRunArchive
                     .. hasEnvironment ? new[] { "environment_json" } : Array.Empty<string>(),
                     .. header.Plan is not null ? new[] { "quality_json" } : Array.Empty<string>(),
                     .. hasIndependentResistance ? new[] { "independent_resistance_json" } : Array.Empty<string>(),
-                    .. hasAcquisitionFailures ? new[] { "acquisition_failures_json" } : Array.Empty<string>()], token);
+                    .. hasAcquisitionFailures ? new[] { "acquisition_failures_json" } : Array.Empty<string>(),
+                    .. hasSr830Ac ? new[] { "sr830_ac_json" } : Array.Empty<string>()], token);
                 var count = 0;
                 var cursor = new ReadCursor();
                 await foreach (var row in ReadRowsAsync(metadata, cursor, token))
@@ -68,7 +70,8 @@ public sealed partial class FileRunArchive
                         .. hasEnvironment ? new[] { row.Environment.Count == 0 ? "" : JsonSerializer.Serialize(row.Environment.Select(RunArchiveJson.EnvironmentObservationDto.From), RunArchiveJson.Options) } : Array.Empty<string>(),
                         .. header.Plan is not null ? new[] { row.Quality.Count == 0 ? "" : JsonSerializer.Serialize(row.Quality.Select(RunArchiveJson.AcquisitionQualityDto.From), RunArchiveJson.Options) } : Array.Empty<string>(),
                         .. hasIndependentResistance ? new[] { row.IndependentResistance.Count == 0 ? "" : JsonSerializer.Serialize(row.IndependentResistance.Select(RunArchiveJson.IndependentResistanceDto.From), RunArchiveJson.Options) } : Array.Empty<string>(),
-                        .. hasAcquisitionFailures ? new[] { row.AcquisitionFailures.Count == 0 ? "" : JsonSerializer.Serialize(row.AcquisitionFailures.Select(RunArchiveJson.IndependentFailureDto.From), RunArchiveJson.Options) } : Array.Empty<string>()], token);
+                        .. hasAcquisitionFailures ? new[] { row.AcquisitionFailures.Count == 0 ? "" : JsonSerializer.Serialize(row.AcquisitionFailures.Select(RunArchiveJson.IndependentFailureDto.From), RunArchiveJson.Options) } : Array.Empty<string>(),
+                        .. hasSr830Ac ? new[] { row.Sr830Ac.Count == 0 ? "" : JsonSerializer.Serialize(row.Sr830Ac.Select(RunArchiveJson.Sr830AcDto.From), RunArchiveJson.Options) } : Array.Empty<string>()], token);
                 if (cursor.HasIncompleteTail) await WriteCsvAsync(writer, ["# incomplete_tail", "The unfinished last record was excluded."], token);
                 await writer.FlushAsync(token);
             }

@@ -21,7 +21,7 @@ public sealed class ConfiguredDeviceFactory(TimeProvider? clock = null) : IConfi
             (ConfiguredDeviceCategory.SourceMeter, "K2450") => true,
             (ConfiguredDeviceCategory.Source, "K6221") => true,
             (ConfiguredDeviceCategory.Meter, "K2182" or "K6485" or "K6514") => true,
-            (ConfiguredDeviceCategory.LockIn, "SR830") => true,
+            (ConfiguredDeviceCategory.LockIn, "SR830" or "SR830-AC-SIM") => true,
             (ConfiguredDeviceCategory.Matrix, "K3706") => configuration.Matrix is not null,
             (ConfiguredDeviceCategory.Temperature, "SIM-TEMPERATURE" or "SIM-CRYOSTAT") => true,
             (ConfiguredDeviceCategory.Field, "SIM-FIELD") => true,
@@ -39,6 +39,7 @@ public sealed class ConfiguredDeviceFactory(TimeProvider? clock = null) : IConfi
         {
             ConfiguredDeviceCategory.SourceMeter => new(new MockKeithley2450SourceMeter(configuration.Id, configuration.DisplayName)),
             ConfiguredDeviceCategory.Source => new(new MockKeithley6221CurrentSource(configuration.Id, configuration.DisplayName)),
+            ConfiguredDeviceCategory.LockIn when configuration.Model.Equals("SR830-AC-SIM", StringComparison.OrdinalIgnoreCase) => new(new MockSr830ExcitationMeter(configuration.Id, configuration.DisplayName)),
             ConfiguredDeviceCategory.LockIn => new(new MockSr830Meter(configuration.Id, configuration.DisplayName)),
             ConfiguredDeviceCategory.Meter when configuration.Model.Equals("K6514", StringComparison.OrdinalIgnoreCase) => new(new MockKeithley6514Meter(configuration.Id, configuration.DisplayName)),
             ConfiguredDeviceCategory.Meter when configuration.Model.Equals("K6485", StringComparison.OrdinalIgnoreCase) => new(new MockKeithley6485Meter(configuration.Id, configuration.DisplayName)),
@@ -49,7 +50,7 @@ public sealed class ConfiguredDeviceFactory(TimeProvider? clock = null) : IConfi
             ConfiguredDeviceCategory.Rotation => new(MockEnvironmentCatalog.Angle(clock, configuration.Id, configuration.DisplayName, supportsHoming: true)),
             ConfiguredDeviceCategory.Matrix => new(new MockMatrixSwitch(new(
                 new(configuration.Id, configuration.Model, configuration.DisplayName, DriverKind.Simulation, DeviceStopPolicy.OpenRunAddedConnections, []),
-                configuration.Matrix!.Cards, configuration.Matrix.GuardedSources))),
+                configuration.Matrix!.Cards, configuration.Matrix.GuardedSources, configuration.Matrix.AcIsolation))),
             _ => throw new NotSupportedException(),
         };
     }

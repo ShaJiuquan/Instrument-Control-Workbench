@@ -943,3 +943,12 @@ write, and failed terminal ramp-OFF retains group ownership through recovery.
 Native/import/graph/blackboard/fresharchive/CSV and headless simulation are
 covered. See software-temperature-scans.md. Dedicated UI/physical thermal
 acceptance and full migration remain active.
+
+## Active SR830 raw-frame foundation (2026-10-13)
+
+Atomic active acquisition uses explicitly registered external matrix isolation,
+confirmed excitation/input and complete route evidence before committing data.
+Pause/cancel/drift/failure and retained ownership/recovery are part of the shared
+executor lifecycle. Native JSON, configuration, archive and CSV carry the same
+contract. Dedicated form, curr_ac inference/calibration/auto gain, differential
+measurement and physical qualification remain pending. See sr830-active-isolation.md.

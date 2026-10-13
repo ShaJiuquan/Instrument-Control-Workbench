@@ -13,6 +13,7 @@ public sealed partial class JsonExperimentPlanDocument
     {
         CheckSize(depth, ref count);
         var o = new JsonObject { ["id"] = step.Id.Value };
+        if (step is ReadSr830AcFrameStep) return EncodeSr830AcFrame((ReadSr830AcFrameStep)step, o);
         if (step is TemperatureScanStep) return EncodeTemperatureScan((TemperatureScanStep)step, o, depth, ref count);
         if (step is TemperatureCoolingStep) return EncodeCooling((TemperatureCoolingStep)step, o, depth, ref count);
         if (step is ReadElectrodeContinuityStep) return EncodeContinuity((ReadElectrodeContinuityStep)step, o);
@@ -198,6 +199,7 @@ public sealed partial class JsonExperimentPlanDocument
         var o = node as JsonObject ?? throw new FormatException("A step must be an object.");
         var id = new StepId(Text(o, "id"));
         var kind = Text(o, "kind");
+        if (kind == "read_sr830_ac_frame") return DecodeSr830AcFrame(o, id);
         switch (kind)
         {
             case "temperature_stability":

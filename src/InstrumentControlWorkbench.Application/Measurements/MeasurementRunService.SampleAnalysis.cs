@@ -35,7 +35,7 @@ public sealed partial class MeasurementRunService
             if (result.Values.TryGetValue(column.Kind, out var value)) values.Add(column.Column, value);
         foreach (var observation in firstRow!.Environment)
             if (observation.Value is { } actual) values.Add(observation.Column, actual);
-        var row = new MeasurementDataRow(DateTimeOffset.UtcNow, values, analysis: new(step.Id, firstInput, step.Readings.Count, result.Issues), environment: firstRow.Environment, quality: quality, independentResistance: independent, acquisitionFailures: failures);
+        var row = new MeasurementDataRow(DateTimeOffset.UtcNow, values, analysis: new(step.Id, firstInput, step.Readings.Count, result.Issues), environment: firstRow.Environment, quality: quality, independentResistance: independent, acquisitionFailures: failures, sr830Ac: firstRow.Sr830Ac);
         run.DataSet.Append(row); run.RowsAcquired++;
         run.LastRow = row;
         run.MeasurementInputs?.Add(row);

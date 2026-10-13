@@ -92,6 +92,7 @@ public sealed partial class DeviceRunResources
                         // reconfigure or overwrite a physical operator change.
                         foreach (var matrix in sessions.Values.OfType<MatrixSwitchSession>().Where(m => m.Definition.GuardedSources.Contains(step.Source)))
                         {
+                            if (matrix.Definition.AcIsolation is not null) throw new InvalidOperationException("Dedicated AC isolation cannot guard generic DC current retry output enable.");
                             await PrepareMutationAsync(matrix.Descriptor.Id); touched.Add(matrix.Descriptor.Id);
                             await matrix.ConfirmHeldRouteAsync(Owner, token);
                         }

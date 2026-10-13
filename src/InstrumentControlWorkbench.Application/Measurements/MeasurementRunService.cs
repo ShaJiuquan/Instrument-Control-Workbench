@@ -141,6 +141,9 @@ public sealed partial class MeasurementRunService
         var result = MeasurementRunState.Completed;
         try
         {
+            run.Token.ThrowIfCancellationRequested();
+            if (run.Resources is { } registeredResources)
+                await registeredResources.RegisterSr830AcIsolationsAsync(compiled.Sr830AcSteps ?? []);
             await PublishAsync(run, WorkbenchNotificationKind.RunStarted, $"Started {compiled.Plan.Name}.", run.Token);
             if (run.Resources is { } resources)
             {

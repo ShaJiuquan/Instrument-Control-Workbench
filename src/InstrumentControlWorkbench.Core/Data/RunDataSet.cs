@@ -22,7 +22,7 @@ public sealed record RunId
 
 public sealed record MeasurementDataRow
 {
-    public MeasurementDataRow(DateTimeOffset timestamp, IReadOnlyDictionary<ParameterId, Quantity> values, ResolvedSampleRoute? routing = null, SampleAnalysisSummary? analysis = null, MeasurementGroupSummary? measurementGroup = null, IEnumerable<EnvironmentObservation>? environment = null, IEnumerable<AcquisitionQuality>? quality = null, IEnumerable<IndependentResistanceEvidence>? independentResistance = null, IEnumerable<IndependentResistanceFailure>? acquisitionFailures = null, CalculationSummary? calculation = null)
+    public MeasurementDataRow(DateTimeOffset timestamp, IReadOnlyDictionary<ParameterId, Quantity> values, ResolvedSampleRoute? routing = null, SampleAnalysisSummary? analysis = null, MeasurementGroupSummary? measurementGroup = null, IEnumerable<EnvironmentObservation>? environment = null, IEnumerable<AcquisitionQuality>? quality = null, IEnumerable<IndependentResistanceEvidence>? independentResistance = null, IEnumerable<IndependentResistanceFailure>? acquisitionFailures = null, CalculationSummary? calculation = null, IEnumerable<Sr830AcEvidence>? sr830Ac = null)
     {
         ArgumentNullException.ThrowIfNull(values);
         if (new[] { routing is not null, analysis is not null, measurementGroup is not null }.Count(v => v) > 1) throw new ArgumentException("A row has one provenance kind: electrode reading, sample analysis or measurement point.");
@@ -42,9 +42,13 @@ public sealed record MeasurementDataRow
         if (failures.Length > 4096 || failures.Any(f => f is null) || failures.Select(f => f.Step).Distinct().Count() != failures.Length || failures.Any(f => resistance.Any(r => r.Step == f.Step)))
             throw new ArgumentException("Acquisition failures require bounded distinct identities without successful evidence for the same step.");
         AcquisitionFailures = Array.AsReadOnly(failures);
+        var ac = sr830Ac?.ToArray() ?? [];
+        if (ac.Length > 4096 || ac.Any(e => e is null) || ac.Select(e => e.Step).Distinct().Count() != ac.Length) throw new ArgumentException("AC evidence requires bounded distinct acquisition identities.");
+        Sr830Ac = Array.AsReadOnly(ac);
         Values = new ReadOnlyDictionary<ParameterId, Quantity>(new Dictionary<ParameterId, Quantity>(values));
     }
 
+    public IReadOnlyList<Sr830AcEvidence> Sr830Ac { get; }
     public CalculationSummary? Calculation { get; }
     public IReadOnlyList<IndependentResistanceFailure> AcquisitionFailures { get; }
     public IReadOnlyList<IndependentResistanceEvidence> IndependentResistance { get; }

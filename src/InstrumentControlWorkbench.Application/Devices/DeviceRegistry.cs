@@ -17,6 +17,10 @@ public sealed class DeviceRegistry
         var items = sessions.ToArray();
         if (items.Any(d => d is null) || items.Select(d => d.Descriptor.Id).Distinct().Count() != items.Length)
             throw new ArgumentException("Devices must be non-null with unique instance IDs.", nameof(sessions));
+        var acGenerators = items.OfType<MatrixSwitchSession>().Where(matrix => matrix.Definition.AcIsolation is not null)
+            .Select(matrix => matrix.Definition.AcIsolation!.Generator).ToArray();
+        if (acGenerators.Distinct().Count() != acGenerators.Length)
+            throw new ArgumentException("An active generator must have exactly one registered isolation matrix; multiple bindings are unsupported.", nameof(sessions));
         this.sessions = items.ToDictionary(d => d.Descriptor.Id);
         this.leases = leases;
         Devices = Array.AsReadOnly(items.Select(d => d.Descriptor).ToArray());
@@ -29,6 +33,7 @@ public sealed class DeviceRegistry
 
     public bool SupportsSr830Frame(InstrumentId device) => Get(device) is Sr830MeterSession;
     public bool SupportsSr830Reference(InstrumentId device) => Get(device) is Sr830MeterSession { SupportsReference: true };
+    public bool SupportsSr830Excitation(InstrumentId device) => Get(device) is Sr830MeterSession { SupportsExcitation: true };
     public IReadOnlyList<DeviceDescriptor> Devices { get; }
     public IReadOnlyList<AxisControllerDefinition> AxisDefinitions { get; }
     public IReadOnlyList<AxisControllerDefinition> TemperatureScanDefinitions { get; }

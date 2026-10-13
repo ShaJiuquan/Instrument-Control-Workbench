@@ -35,6 +35,7 @@ public sealed partial class RunDataRowValidator
                 MutateValueStep mutation => mutation.Variable == variable && (mutation.Action == VariableMutation.Multiply ? entry.Value is BlackboardQuantity :
                     IsQuantity(entry, mutation.Value.Unit) && (mutation.Action != VariableMutation.Set || ((BlackboardQuantity)entry.Value).Value == mutation.Value)),
                 ReadStep read => acquisitions[read.Id].ContainsKey(variable) && units.TryGetValue(variable, out var unit) && IsQuantity(entry, unit),
+                ReadSr830AcFrameStep read => ValidLockInValue(read.Frame, variable, entry),
                 ReadSr830FrameStep read => ValidLockInValue(read, variable, entry),
                 ReadElectrodeContinuityStep read => read.Columns.Contains(variable) && units.TryGetValue(variable, out var continuityUnit) && IsQuantity(entry, continuityUnit),
                 ReadPolarizationStep read => variable == read.RequestedPolarizationColumn ? IsQuantity(entry, PhysicalUnit.Volt) : variable == read.VoltageColumn ? IsQuantity(entry, PhysicalUnit.Volt) : variable == read.CurrentColumn ? IsQuantity(entry, PhysicalUnit.Ampere) : variable == read.AttemptsColumn && entry.Value is BlackboardQuantity attempts && attempts.Value.Unit == PhysicalUnit.Dimensionless && attempts.Value.Value == Math.Truncate(attempts.Value.Value) && attempts.Value.Value >= 1 && attempts.Value.Value <= read.MaximumAttempts,

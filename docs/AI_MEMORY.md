@@ -2112,3 +2112,14 @@ Existing draft/JSON/apply/discard/busy/stale gates and complete compiler remain.
 Architecture/QA independently review, with save/reload/mock/archive/CSV checks.
 See temperature-scan-authoring.md. No dependencies/driver/Rust/lab/native window
 operations; visual acceptance remains deferred and full migration active.
+
+## Registered active SR830 isolation (2026-10-13)
+
+- Active raw frames require a registered complete matrix disconnect set and an
+  explicit excitation-capable generator; recipe flags do not qualify wiring.
+- Fresh sample-open proof precedes row commit; root obtains a separate terminal
+  proof. Failed/live isolation retains the complete owned group until recovery.
+- Pause disconnects and restarts the atomic attempt, without restoring closed AC
+  routes. Nonzero amplitude or AbortAcquisition is never output-OFF evidence.
+- Active mock/config profile is distinct from passive SR830. No physical adapter
+  or continuity qualification is implied. See sr830-active-isolation.md.

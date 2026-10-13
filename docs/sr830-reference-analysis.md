@@ -76,3 +76,10 @@ referral, Siemens arithmetic and recomputation of calculated results. The histor
 unit formatter displays S; no layout or native window action occurs. The user's
 native visual acceptance remains deferred. Output mute wiring is a pending user
 clarification; independent input/data work does not assume a particular relay.
+
+## Active acquisition follow-up
+
+An explicit, separate active simulation capability is now described in
+[sr830-active-isolation.md](sr830-active-isolation.md). This passive stage
+retains its original boundary; the active raw-frame stage does not establish
+physical isolation or full curr_ac/differential-measurement parity.

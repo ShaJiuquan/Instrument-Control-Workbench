@@ -95,3 +95,10 @@ is launched and no new package dependency is added.
 Read-only reference observations, normalized port units and nominal input-referred
 analysis are now documented in [sr830-reference-analysis.md](sr830-reference-analysis.md).
 The original eight-column default and passive stop policy remain valid.
+
+## Active acquisition follow-up
+
+An explicit, separate active simulation capability is now described in
+[sr830-active-isolation.md](sr830-active-isolation.md). This passive stage
+retains its original boundary; the active raw-frame stage does not establish
+physical isolation or full curr_ac/differential-measurement parity.

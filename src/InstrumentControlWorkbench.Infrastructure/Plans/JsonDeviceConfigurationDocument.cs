@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using InstrumentControlWorkbench.Core.Devices;
 using InstrumentControlWorkbench.Core.Instruments;
+using InstrumentControlWorkbench.Core.Parameters;
 
 namespace InstrumentControlWorkbench.Infrastructure.Plans;
 
@@ -15,6 +16,8 @@ public sealed class JsonDeviceConfigurationDocument : IDeviceConfigurationDocume
     public string Serialize(DeviceConfigurationCatalog catalog)
     {
         ArgumentNullException.ThrowIfNull(catalog);
+        if (catalog.Devices.Sum(device => 14L * (device.Matrix?.AcIsolation?.Connections.Count ?? 0)) > MaximumBytes / 2)
+            throw new ArgumentOutOfRangeException(nameof(catalog), "Device isolation values exceed the document budget.");
         var root = new JsonObject
         {
             ["format"] = "instrument-workbench-devices",
@@ -31,11 +34,22 @@ public sealed class JsonDeviceConfigurationDocument : IDeviceConfigurationDocume
                     ["enabled"] = d.Enabled,
                     ["connection"] = EncodeConnection(d.Connection)
                 };
-                if (d.Matrix is { } m) value["matrix"] = new JsonObject
+                if (d.Matrix is { } m)
                 {
-                    ["cards"] = new JsonArray(m.Cards.Select(c => (JsonNode)new JsonObject { ["slot"] = c.Slot, ["rows"] = c.Rows, ["columns"] = c.Columns }).ToArray()),
-                    ["guardedSources"] = new JsonArray(m.GuardedSources.Select(id => (JsonNode)JsonValue.Create(id.Value)!).ToArray()),
-                };
+                    var matrix = new JsonObject
+                    {
+                        ["cards"] = new JsonArray(m.Cards.Select(c => (JsonNode)new JsonObject { ["slot"] = c.Slot, ["rows"] = c.Rows, ["columns"] = c.Columns }).ToArray()),
+                        ["guardedSources"] = new JsonArray(m.GuardedSources.Select(id => (JsonNode)JsonValue.Create(id.Value)!).ToArray()),
+                    };
+                    if (m.AcIsolation is { } isolation) matrix["acIsolation"] = new JsonObject
+                    {
+                        ["generator"] = isolation.Generator.Value,
+                        ["connections"] = new JsonArray(isolation.Connections.Select(point => (JsonNode)new JsonObject { ["slot"] = point.Slot, ["row"] = point.Row, ["column"] = point.Column }).ToArray()),
+                        ["maxAmplitude"] = EncodeQuantity(isolation.MaximumAmplitude),
+                        ["maxFrequency"] = EncodeQuantity(isolation.MaximumFrequency),
+                    };
+                    value["matrix"] = matrix;
+                }
                 return (JsonNode)value;
             }).ToArray()),
             ["aliases"] = new JsonObject(catalog.Aliases.Select(p => KeyValuePair.Create<string, JsonNode?>(p.Key, JsonValue.Create(p.Value.Value)))),
@@ -59,12 +73,22 @@ public sealed class JsonDeviceConfigurationDocument : IDeviceConfigurationDocume
                 ConfiguredMatrix? matrix = null;
                 if (d.ContainsKey("matrix"))
                 {
-                    var m = Object(d["matrix"], "cards", "guardedSources");
+                    var m = Object(d["matrix"], "cards", "guardedSources", "acIsolation");
+                    MatrixAcIsolationCapability? isolation = null;
+                    if (m.ContainsKey("acIsolation"))
+                    {
+                        var capability = Object(m["acIsolation"], "generator", "connections", "maxAmplitude", "maxFrequency");
+                        isolation = new(new(Text(capability, "generator")), List(capability["connections"], 1, 4096).Select(value =>
+                        {
+                            var point = Object(value, "slot", "row", "column");
+                            return new MatrixCrossPoint(Integer(point, "slot"), Integer(point, "row"), Integer(point, "column"));
+                        }), DecodeQuantity(capability["maxAmplitude"]), DecodeQuantity(capability["maxFrequency"]));
+                    }
                     matrix = new(List(m["cards"]).Select(card =>
                     {
                         var c = Object(card, "slot", "rows", "columns");
                         return new MatrixCardDefinition(Integer(c, "slot"), Integer(c, "rows"), Integer(c, "columns"));
-                    }), List(m["guardedSources"]).Select(source => new InstrumentId(source?.GetValue<string>() ?? throw new FormatException("Missing guarded source."))));
+                    }), List(m["guardedSources"], 0).Select(source => new InstrumentId(source?.GetValue<string>() ?? throw new FormatException("Missing guarded source."))), isolation);
                 }
                 return new DeviceConfiguration(new(Text(d, "id")), Text(d, "model"), Text(d, "displayName"), Enum.Parse<ConfiguredDeviceCategory>(name),
                     DecodeConnection(d["connection"]), d["enabled"]?.GetValue<bool>() ?? throw new FormatException("Missing enabled flag."), matrix);
@@ -141,14 +165,22 @@ public sealed class JsonDeviceConfigurationDocument : IDeviceConfigurationDocume
         if (keys.Length != 0 && value.Any(p => !keys.Contains(p.Key))) throw new FormatException("Unknown device field.");
         return value;
     }
-    private static JsonArray List(JsonNode? node)
+    private static JsonArray List(JsonNode? node, int minimum = 1, int maximum = 64)
     {
         var values = node as JsonArray ?? throw new FormatException("Expected device list.");
-        if (values.Count is < 1 or > 64) throw new FormatException("Device lists require one to 64 entries.");
+        if (values.Count < minimum || values.Count > maximum) throw new FormatException($"Device list requires {minimum} to {maximum} entries.");
         return values;
     }
     internal static string Text(JsonObject node, string key) => node[key]?.GetValue<string>() ?? throw new FormatException("Missing device field " + key);
     internal static int Integer(JsonObject node, string key) => node[key]?.GetValue<int>() ?? throw new FormatException("Missing device field " + key);
+    private static JsonObject EncodeQuantity(Quantity value) => new() { ["value"] = value.Value, ["unit"] = value.Unit.ToString() };
+    private static Quantity DecodeQuantity(JsonNode? node)
+    {
+        var quantity = Object(node, "value", "unit");
+        var unit = Text(quantity, "unit");
+        if (!Enum.GetNames<PhysicalUnit>().Contains(unit, StringComparer.Ordinal)) throw new FormatException("Unknown isolation quantity unit.");
+        return new(quantity["value"]?.GetValue<double>() ?? throw new FormatException("Missing isolation quantity value."), Enum.Parse<PhysicalUnit>(unit));
+    }
     private static JsonObject EncodeConnection(DeviceConnection connection) => connection switch
     {
         SimulationDeviceConnection => new() { ["transport"] = "simulation" },

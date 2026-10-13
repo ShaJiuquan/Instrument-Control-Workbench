@@ -1,0 +1,25 @@
+{
+  "format": "instrument-workbench-plan",
+  "version": 1,
+  "name": "Active SR830 atomic acquisition with external isolation simulation",
+  "preparations": [],
+  "metadata": {},
+  "root": {
+    "kind": "repeat",
+    "id": "three-frames",
+    "cycles": 3,
+    "body": {
+      "kind": "read_sr830_ac_frame",
+      "id": "ac-frame",
+      "device": "sr830-ac",
+      "isolator": "ac-isolator",
+      "connections": [{ "slot": 1, "row": 1, "column": 1 }],
+      "frequency": { "value": 17, "unit": "Hertz" },
+      "sineAmplitude": { "value": 0.01, "unit": "Volt" },
+      "harmonic": 1,
+      "input": "VoltageAB",
+      "prefix": "ac",
+      "settleSeconds": 0.001
+    }
+  }
+}

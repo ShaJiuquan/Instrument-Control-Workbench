@@ -35,7 +35,8 @@ public sealed class SoftwareTemperatureScanDocumentsTests
     [InlineData("scan_temp", "immediate", "temperature_ramp")]
     public async Task ImportedSoftwareAliasesAndSamplingModesExecuteActualKelvin(string name, string sampling, string? mode)
     {
-        var (runs, bindings) = Setup(); var workspace = new ExperimentPlanWorkspace(new JsonExperimentPlanDocument(), runs, new PpmsExperimentPlanImporter()); var imported = workspace.Import(Node(name, sampling, mode).ToJsonString(), bindings); var scan = Assert.IsType<SoftwareTemperatureScanStep>(imported.Plan.Root);
+        // The zero-latency mock otherwise depends on CPU speed to stay under the row budget.
+        var (runs, bindings) = Setup(sampling == "immediate" ? new PacedResultListener() : null); var workspace = new ExperimentPlanWorkspace(new JsonExperimentPlanDocument(), runs, new PpmsExperimentPlanImporter()); var imported = workspace.Import(Node(name, sampling, mode).ToJsonString(), bindings); var scan = Assert.IsType<SoftwareTemperatureScanStep>(imported.Plan.Root);
         Assert.True(imported.Preview.HasDynamicLoops); await runs.StartPlanAsync(imported.Plan, Token); Assert.NotEmpty(runs.LatestDataSet!.Rows); Assert.All(runs.LatestDataSet.Rows, row => Assert.Equal(PhysicalUnit.Kelvin, row.Values[scan.Column].Unit)); Assert.False(runs.HasActiveRun);
     }
     [Fact]
@@ -91,4 +92,11 @@ public sealed class SoftwareTemperatureScanDocumentsTests
         ExperimentStep root = new SoftwareTemperatureScanStep(s.Id, s.Device, s.Column, s.Points, s.Rate, s.WaitStableFirst, s.Tolerance, s.StableCount, s.StableTimeout, s.StepTimeout, s.PollInterval, s.Sampling, s.Interval, new DelayStep(new("body"), TimeSpan.Zero));
         for (var index = 0; index < depth; index++) root = new SequenceStep(new("nested" + index), [root]); var codec = new JsonExperimentPlanDocument(); Assert.NotNull(runs.PreviewPlan(codec.Parse(codec.Serialize(new("Deep", root)))));
     }
+    private sealed class PacedResultListener : IRunResultListener
+    {
+        public Task OnStartedAsync(RunDataSetSnapshot data, CancellationToken token) => Task.CompletedTask;
+        public Task OnRowAsync(RunId id, MeasurementDataRow row, CancellationToken token) => Task.Delay(TimeSpan.FromMilliseconds(1), token);
+        public Task OnFinalizedAsync(RunDataSetSnapshot data, CancellationToken token) => Task.CompletedTask;
+    }
+
 }

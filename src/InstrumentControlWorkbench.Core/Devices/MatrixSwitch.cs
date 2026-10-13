@@ -30,7 +30,7 @@ public sealed record MatrixCardDefinition
 
 public sealed class MatrixSwitchDefinition
 {
-    public MatrixSwitchDefinition(DeviceDescriptor device, IEnumerable<MatrixCardDefinition> cards, IEnumerable<InstrumentId> guardedSources)
+    public MatrixSwitchDefinition(DeviceDescriptor device, IEnumerable<MatrixCardDefinition> cards, IEnumerable<InstrumentId> guardedSources, MatrixAcIsolationCapability? acIsolation = null)
     {
         ArgumentNullException.ThrowIfNull(device); ArgumentNullException.ThrowIfNull(cards); ArgumentNullException.ThrowIfNull(guardedSources);
         if (device.StopPolicy != DeviceStopPolicy.OpenRunAddedConnections || device.Parameters.Count != 0)
@@ -38,13 +38,16 @@ public sealed class MatrixSwitchDefinition
         var items = cards.ToArray(); var sources = guardedSources.ToArray();
         if (items.Length is < 1 or > 64 || items.Any(c => c is null) || items.Select(c => c.Slot).Distinct().Count() != items.Length)
             throw new ArgumentException("Declare one to 64 cards with unique slots.", nameof(cards));
-        if (sources.Length is < 1 or > 64 || sources.Any(s => string.IsNullOrWhiteSpace(s.Value) || s == device.Id) || sources.Distinct().Count() != sources.Length)
-            throw new ArgumentException("Declare one to 64 distinct excitation sources, excluding the matrix itself.", nameof(guardedSources));
-        Device = device; Cards = Array.AsReadOnly(items); GuardedSources = Array.AsReadOnly(sources);
+        if (sources.Length > 64 || sources.Length == 0 && acIsolation is null || sources.Any(s => string.IsNullOrWhiteSpace(s.Value) || s == device.Id) || sources.Distinct().Count() != sources.Length)
+            throw new ArgumentException("Declare up to 64 distinct excitation sources, excluding the matrix itself; at least one is required without registered AC isolation.", nameof(guardedSources));
+        if (acIsolation?.Generator == device.Id) throw new ArgumentException("AC isolation requires a generator separate from the matrix.", nameof(acIsolation));
+        Device = device; Cards = Array.AsReadOnly(items); GuardedSources = Array.AsReadOnly(sources); AcIsolation = acIsolation;
+        if (acIsolation is not null) Validate(acIsolation.Connections);
     }
     public DeviceDescriptor Device { get; }
     public IReadOnlyList<MatrixCardDefinition> Cards { get; }
     public IReadOnlyList<InstrumentId> GuardedSources { get; }
+    public MatrixAcIsolationCapability? AcIsolation { get; }
     public void Validate(IEnumerable<MatrixCrossPoint> crossPoints)
     {
         ArgumentNullException.ThrowIfNull(crossPoints);
