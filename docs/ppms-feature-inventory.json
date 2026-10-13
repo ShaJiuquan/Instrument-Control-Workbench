@@ -561,9 +561,9 @@
       ],
       "status": "partial",
       "evidence": {
-        "implementation": "Core HardwareTemperatureScanStep; Application temperature-scan session/resources/executor/compiler; Infrastructure native and PPMS hardware ramp codecs",
-        "tests": "HardwareTemperatureScanModelTests; HardwareTemperatureScanTests; HardwareTemperatureScanDocumentsTests; temperature regressions and packaged headless fixture",
-        "limits": "Hardware branch only, explicit ramp_mode=hardware. Four sampling modes/both directions, optional first-point consecutive stability, actual Kelvin/index/estimated totals, held pause semantics and root ramp-OFF obligation/recovery, guarded children, budgets/deadlines, native/archive/CSV/graph. Guard expiry faults rather than Rust warning/success. Software default, dedicated UI, physical controller/protocol/calibration and thermal handoff remain pending. See hardware-temperature-scans.md."
+        "implementation": "Core TemperatureScanStep with Hardware/SoftwareTemperatureScanStep; Application owned foreground session/resources/executors/compiler; Infrastructure native and PPMS ramp codecs",
+        "tests": "HardwareTemperatureScanModel/Execution/Documents and SoftwareTemperatureScanModel/Execution/Documents; packaged headless fixtures",
+        "limits": "Both software (PPMS default) and explicit hardware branches, four modes/both directions, first stability, actual Kelvin/index/progress plus software confirmed setpoint, held-pause active clock, root ramp-OFF proof/recovery, guarded children and global budgets/deadlines. Software uses foreground decimal mK trajectory preserving hardware rate; no background updates during child acquisition. Exact rounded endpoint, raw crossings and C# fault on missing actual arrival. Native/archive/CSV/graph/depth. Dedicated forms, physical controller/protocol/calibration/thermal handoff and broader migration pending. See hardware-temperature-scans.md and software-temperature-scans.md."
       }
     },
     {
@@ -1790,5 +1790,11 @@
       "tests": "HeadlessCliImportTests; actual import/run CLI subprocesses",
       "limits": "Explicit configured aliases/preparations/budget and optional bounded routing selection. Six-row routed voltage,28-row sample collection,two-row pure current/meter simulation verified. Underlying unsupported PPMS commands remain unsupported."
     }
+  },
+  "softwareContinuousTemperatureScan": {
+    "status": "partial",
+    "hardwareVerified": false,
+    "implementation": "Foreground owned software trajectory and four sampling modes, separate confirmed target/actual axes; explicit software or PPMS default",
+    "limits": "No dedicated native form, physical controller/calibration/thermal acceptance or independently background progression; full PPMS remains active. See software-temperature-scans.md."
   }
 }

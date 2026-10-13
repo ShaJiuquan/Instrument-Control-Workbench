@@ -1,0 +1,26 @@
+{
+  "type": "scan",
+  "name": "scan_temp_ramp",
+  "params": {
+    "points": [
+      4,
+      4.01,
+      4.02
+    ],
+    "rate_k_per_min": 20,
+    "wait_stable_first_point": true,
+    "stable_count": 3,
+    "tolerance_k": 0.0005,
+    "stable_timeout_s": 2,
+    "timeout_s": 2,
+    "poll_interval_ms": 50,
+    "sample_mode": "linear",
+    "interval_s": 0.02
+  },
+  "children": [
+    {
+      "type": "measurement",
+      "name": "measure_temp"
+    }
+  ]
+}

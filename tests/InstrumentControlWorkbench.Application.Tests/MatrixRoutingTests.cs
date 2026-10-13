@@ -235,11 +235,14 @@ public sealed class MatrixRoutingTests
     [Fact]
     public async Task TimedOutUncooperativeMatrixStopIsNotOverlappedAndKeepsResourcesUntilCompletion()
     {
-        var b = new Bench(safetyTimeout: TimeSpan.FromMilliseconds(40));
-        var resources = await b.Devices.AcquireRunAsync([b.Source.Id, b.Matrix.Definition.Device.Id], RunId.New(), Token, TimeSpan.FromMilliseconds(40));
+        var b = new Bench(safetyTimeout: TimeSpan.FromSeconds(1));
+        var resources = await b.Devices.AcquireRunAsync([b.Source.Id, b.Matrix.Definition.Device.Id], RunId.New(), Token, TimeSpan.FromSeconds(1));
         await resources.ConnectAllAsync(Token); await resources.RouteMatrixAsync(b.Matrix.Definition.Device.Id, [First], Token);
         b.Matrix.OpenGate = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        Assert.NotEmpty(await resources.StopAllAsync(Token)); var attempts = b.Matrix.OpenCalls;
+        var initialAttempts = b.Matrix.OpenCalls; var stopping = resources.StopAllAsync(Token);
+        await b.Matrix.OpenStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.NotEmpty(await stopping.WaitAsync(TimeSpan.FromSeconds(5))); var attempts = b.Matrix.OpenCalls;
+        Assert.Equal(initialAttempts + 1, attempts);
         Assert.NotEmpty(await resources.StopAllAsync(Token, retryFailed: true)); Assert.Equal(attempts, b.Matrix.OpenCalls);
         await Assert.ThrowsAsync<InvalidOperationException>(() => resources.RouteMatrixAsync(b.Matrix.Definition.Device.Id, [Second], Token));
         await Assert.ThrowsAsync<InvalidOperationException>(() => resources.ReleaseAsync(Token));
@@ -441,6 +444,7 @@ public sealed class MatrixRoutingTests
         public bool Unknown { get; set; }
         public Func<Task>? AfterClose { get; set; }
         public TaskCompletionSource? OpenGate { get; set; }
+        public TaskCompletionSource OpenStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource OpenFinished { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public async Task<MatrixSwitchSnapshot> ConnectAsync(CancellationToken token) { Connects++; await inner.ConnectAsync(token); return await GetSnapshotAsync(token); }
         public async Task<MatrixSwitchSnapshot> GetSnapshotAsync(CancellationToken token)
@@ -452,9 +456,9 @@ public sealed class MatrixRoutingTests
         public async Task OpenAsync(IReadOnlyList<MatrixCrossPoint> points, CancellationToken token)
         {
             OpenCalls++; await RequireSourceOff(); Writes.Add("open:" + string.Join(",", points));
-            if (OpenGate is not null) { await OpenGate.Task; token = Token; }
+            if (OpenGate is not null) { OpenStarted.TrySetResult(); await OpenGate.Task; token = Token; }
             if (!IgnoreOpen) await inner.OpenAsync(points, token);
-            OpenFinished.TrySetResult();
+            if (OpenGate is not null) OpenFinished.TrySetResult();
         }
         public async Task CloseAsync(IReadOnlyList<MatrixCrossPoint> points, CancellationToken token)
         {

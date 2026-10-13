@@ -38,7 +38,9 @@ ramp/control flags around the readback. First stability and threshold waits
 have explicit deadlines. Timed/immediate endpoint guard uses nominal duration
 plus stable timeout. Unlike Rust's warning-and-success fallback on guard expiry,
 C# faults if the endpoint was not actually observed. The guard also bounds
-waiting for a long timed interval. Late reads cannot claim on-time completion.
+waiting for a long timed interval. Arrival observed in that wait satisfies the
+guard while the minimum interval remains respected, with continued fresh
+confirmation. Late reads cannot claim on-time completion.
 It is checked around sampling waits/reads; use an outer TimeoutStep to bound
 child acquisitions themselves. Pause holds current position under the lease, preserves
 configuration, and resumes the original end target. Estimates and deadline
@@ -55,11 +57,9 @@ than claiming continuing thermal motion after releasing ownership.
 
 Native version 1 adds hardware_temperature_scan with its complete executable
 body. PPMS scan_temp_ramp/temperature_ramp/temp_ramp, or scan_temperature/scan_temp
-with a ramp scan_mode, require explicit ramp_mode=hardware. The Rust default
-software branch is still unimplemented and rejects; it is never silently
-converted. Native plan, graph traversal, terminal blackboard, fresh archives
-and CSV retain settings, mode and actual sample axes. Dedicated native forms
-and software-ramp scans remain pending.
+with a ramp scan_mode, require explicit ramp_mode=hardware. The default software branch now uses SoftwareTemperatureScanStep; see
+software-temperature-scans.md. Hardware mode is never inferred from the default. Native plan, graph traversal, terminal blackboard, fresh archives
+and CSV retain settings, mode and actual sample axes. Dedicated native forms remain pending.
 
 The headless example uses headless-cooling.devices.json (SIM-CRYOSTAT),
 headless-hardware-ramp-context.plan.json and

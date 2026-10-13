@@ -16,6 +16,7 @@ architecture, and speculative abstractions are not.
 | --- | --- |
 | Any implementation or refactor | [docs/AI_WORKFLOW.md](docs/AI_WORKFLOW.md) |
 | C# / Avalonia / instrument-control shape | [docs/CONSTITUTION.md](docs/CONSTITUTION.md) |
+| User-requested team roles and collaboration | [docs/TEAM_WORKFLOW.md](docs/TEAM_WORKFLOW.md) |
 | Current durable decisions and known risks | [docs/AI_MEMORY.md](docs/AI_MEMORY.md) |
 | Audit gates and review checklist | [docs/AUDIT.md](docs/AUDIT.md) |
 | Copy-paste prompts for AI sessions | [docs/prompts/](docs/prompts/) |

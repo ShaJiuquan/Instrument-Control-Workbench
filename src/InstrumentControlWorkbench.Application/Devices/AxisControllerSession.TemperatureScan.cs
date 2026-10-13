@@ -26,13 +26,13 @@ public sealed partial class AxisControllerSession
         catch { faulted = true; ResetTemperatureRuntime(); throw; }
         finally { operations.Exit(); }
     }
-    private async Task<AxisControllerSnapshot> ObserveTemperatureScanCoreAsync(Quantity target, Quantity rate, bool ramp, CancellationToken token)
+    private async Task<AxisControllerSnapshot> ObserveTemperatureScanCoreAsync(Quantity target, Quantity rate, bool ramp, CancellationToken token, bool publish = true)
     {
         var temperature = (ITemperatureConfigurationPort)port; var expected = new TemperatureControlConfiguration(ramp, true);
         if (await temperature.ReadControlConfigurationAsync(token) != expected) throw new InvalidOperationException("Temperature scan control/ramp configuration changed.");
         var snapshot = await port.GetSnapshotAsync(token); Definition.Readback.Validate(snapshot.Readback); Definition.Target.Validate(snapshot.Target); Definition.Rate.Validate(snapshot.Rate);
         if (!snapshot.Connected || snapshot.Target != target || snapshot.Rate != rate || await temperature.ReadControlConfigurationAsync(token) != expected) throw new InvalidOperationException("Temperature scan target/rate/control drifted or disconnected.");
-        await PublishAsync(snapshot, token, new(snapshot, expected, stabilitySettings)); return snapshot;
+        if (publish) await PublishAsync(snapshot, token, new(snapshot, expected, stabilitySettings)); return snapshot;
     }
     internal async Task<AxisControllerSnapshot> ObserveTemperatureScanAsync(Quantity target, Quantity rate, bool ramp, RunId owner, CancellationToken token)
     {

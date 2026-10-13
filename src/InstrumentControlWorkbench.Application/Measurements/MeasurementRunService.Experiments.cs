@@ -47,6 +47,8 @@ public sealed partial class MeasurementRunService
                 var action = outcome == StepOutcome.Success ? hook.Success : hook.Failure;
                 if (action is not null) _ = await ExecuteStepAsync(action, run, started, ivPlot);
                 break;
+            case SoftwareTemperatureScanStep softwareTemperature:
+                outcome = await ExecuteSoftwareTemperatureScanAsync(softwareTemperature, run, started, ivPlot); break;
             case HardwareTemperatureScanStep scanTemperature:
                 outcome = await ExecuteHardwareTemperatureScanAsync(scanTemperature, run, started, ivPlot); break;
             case TemperatureCoolingStep cooling:

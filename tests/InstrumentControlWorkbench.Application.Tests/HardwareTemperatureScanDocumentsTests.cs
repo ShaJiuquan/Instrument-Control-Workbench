@@ -44,7 +44,7 @@ public sealed class HardwareTemperatureScanDocumentsTests
     [InlineData("invented")]
     public void SoftwareOrUnknownModeNeverSilentlyUsesHardware(string mode)
     {
-        var (_, bindings) = Setup(); var node = Node(); if (mode == "missing") node["params"]!.AsObject().Remove("ramp_mode"); else node["params"]!["ramp_mode"] = mode; Assert.Throws<FormatException>(() => new PpmsExperimentPlanImporter().Parse(node.ToJsonString(), bindings));
+        var (_, bindings) = Setup(); var node = Node(); if (mode == "missing") node["params"]!.AsObject().Remove("ramp_mode"); else node["params"]!["ramp_mode"] = mode; if (mode == "invented") Assert.Throws<FormatException>(() => new PpmsExperimentPlanImporter().Parse(node.ToJsonString(), bindings)); else Assert.IsType<SoftwareTemperatureScanStep>(new PpmsExperimentPlanImporter().Parse(node.ToJsonString(), bindings).Root);
     }
     [Theory]
     [InlineData("rate_k_per_min", 0)]

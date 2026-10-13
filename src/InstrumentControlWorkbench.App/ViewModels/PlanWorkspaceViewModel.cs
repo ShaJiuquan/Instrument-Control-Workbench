@@ -175,6 +175,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
             RetryStep s => ("重试", $"最多 {s.MaxAttempts} 次 · 间隔 {s.Delay.TotalSeconds:0.###} s"),
             TimeoutStep s => ("超时保护", $"{s.Timeout.TotalSeconds:0.###} s"),
             SubtreeStep s => ("子流程", $"{s.Children.Count} 个步骤"),
+            SoftwareTemperatureScanStep s => ("软件温度斜坡扫描", $"{s.Device} · {s.Sampling} · {s.Points.Values[0].Value} → {s.Points.Values[^1].Value} K"),
             HardwareTemperatureScanStep s => ("硬件温度斜坡扫描", $"{s.Device} · {s.Sampling} · {s.Points.Values[0].Value} → {s.Points.Values[^1].Value} K"),
             TemperatureCoolingStep s => ("被动冷却扫描", $"{s.Device} · {s.Sampling} · {s.EndTemperature.Value} K"),
             WhileStep s => ("条件循环", s.Condition.Variable.Value),
@@ -222,7 +223,7 @@ public partial class PlanWorkspaceViewModel : ObservableObject, IAsyncDisposable
             case RetryStep retry: AddStep(retry.Body, depth + 1); break;
             case TimeoutStep timeout: AddStep(timeout.Body, depth + 1); break;
             case ResultDecoratorStep decorator: AddStep(decorator.Body, depth + 1); break;
-            case HardwareTemperatureScanStep scan: AddStep(scan.Body, depth + 1); break;
+            case TemperatureScanStep scan: AddStep(scan.Body, depth + 1); break;
             case TemperatureCoolingStep cooling: AddStep(cooling.Body, depth + 1); break;
             case WhileStep loop: AddStep(loop.Body, depth + 1); break;
             case OutcomeMutationStep hook:

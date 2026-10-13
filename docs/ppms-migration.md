@@ -933,3 +933,13 @@ inherited-channel group-label lookup; explicit routing bypass still rejected.
 14 App+14 Application cases include actual file save/six-row execution and pure
 current-source/two-row meter acquisition. No Rust edits/physical IO/dependencies.
 Native locked desktop and whole migration remain pending. See ppms-import-desktop.md.
+
+## Continuous software temperature scans (2026-10-13)
+
+The PPMS software/default branch now executes an owned foreground trajectory
+with four sampling modes and separate actual/confirmed-setpoint axes. Hardware
+rate is preserved, pause time excluded, controller drift rejects before the next
+write, and failed terminal ramp-OFF retains group ownership through recovery.
+Native/import/graph/blackboard/fresharchive/CSV and headless simulation are
+covered. See software-temperature-scans.md. Dedicated UI/physical thermal
+acceptance and full migration remain active.

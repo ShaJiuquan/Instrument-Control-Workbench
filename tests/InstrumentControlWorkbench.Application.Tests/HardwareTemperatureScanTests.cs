@@ -165,9 +165,16 @@ public sealed class HardwareTemperatureScanTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => b.Runs.StartPlanAsync(b.Plan(b.Scan()), Token)); Assert.Single(b.Runs.LatestDataSet!.Rows); Assert.False((await b.Port.ReadControlConfigurationAsync(Token)).HardwareRampEnabled); Assert.False(b.Runs.HasActiveRun);
     }
     [Fact]
+    public async Task OnTimeArrivalDuringLongTimedIntervalDoesNotBecomeAFakeTimeout()
+    {
+        var b = new Bench(); var o = b.Scan(TemperatureRampSampling.Timed, timeout: TimeSpan.FromMilliseconds(400));
+        var scan = new HardwareTemperatureScanStep(o.Id, o.Device, o.Column, o.Points, o.Rate, false, o.Tolerance, o.StableCount, o.StableTimeout, o.StepTimeout, o.PollInterval, o.Sampling, TimeSpan.FromMilliseconds(900), o.Body);
+        await b.Runs.StartPlanAsync(b.Plan(scan), Token).WaitAsync(TimeSpan.FromSeconds(3)); Assert.Equal(2, b.Runs.LatestDataSet!.Rows.Count); Assert.True(b.Runs.LatestDataSet.Rows[1].Timestamp - b.Runs.LatestDataSet.Rows[0].Timestamp >= TimeSpan.FromMilliseconds(880)); Assert.True(b.Runs.LatestDataSet.Rows[^1].Values[scan.Column].Value >= 4.0195); Assert.False(b.Runs.HasActiveRun);
+    }
+    [Fact]
     public async Task LongSampleIntervalCannotHideTheEndpointGuard()
     {
-        var b = new Bench(); var original = b.Scan(TemperatureRampSampling.Timed, timeout: TimeSpan.FromMilliseconds(100)); var scan = new HardwareTemperatureScanStep(original.Id, original.Device, original.Column, original.Points, original.Rate, false, original.Tolerance, original.StableCount, original.StableTimeout, original.StepTimeout, original.PollInterval, original.Sampling, TimeSpan.FromSeconds(30), original.Body);
+        var b = new Bench(); b.Port.Freeze = true; var original = b.Scan(TemperatureRampSampling.Timed, timeout: TimeSpan.FromMilliseconds(100)); var scan = new HardwareTemperatureScanStep(original.Id, original.Device, original.Column, original.Points, original.Rate, false, original.Tolerance, original.StableCount, original.StableTimeout, original.StepTimeout, original.PollInterval, original.Sampling, TimeSpan.FromSeconds(30), original.Body);
         await Assert.ThrowsAsync<TimeoutException>(() => b.Runs.StartPlanAsync(b.Plan(scan), Token).WaitAsync(TimeSpan.FromSeconds(2))); Assert.Single(b.Runs.LatestDataSet!.Rows); Assert.False(b.Runs.HasActiveRun); Assert.False((await b.Port.ReadControlConfigurationAsync(Token)).HardwareRampEnabled);
     }
     [Fact]

@@ -2025,7 +2025,74 @@ active-time threshold/endpoint guard and global budget. Estimates exclude held
 pause; endpoint guard faults rather than Rust warn/success without arrival.
 Ramp-OFF obligation survives failure/abort/logical failure through root stops/
 recovery; successful paused holds cannot be reused as terminal OFF proof.
-Explicit hardware PPMS mode only; software default remains rejected. Native/
+Hardware PPMS mode remains explicit; the subsequent software stage implements
+the Rust software default. Native/
 graph/footer/fresharchive/CSV/depth verified. See hardware-temperature-scans.md.
-Dedicated UI, software scans, physical controller/protocol/thermal handoff and
+Dedicated UI, physical controller/protocol/thermal handoff and
 full PPMS remain pending; no deps/Rust/lab/nativewindow actions.
+
+## Software continuous temperature scans (2026-10-13)
+
+SoftwareTemperatureScanStep shares the real TemperatureScanStep model with
+hardware scanning, preserving the native hardware codec. Foreground active-time
+trajectory, decimal milliKelvin rounding, preserved hardware rate, coherent
+prior/new target/flags confirmation; no writes during children or held pause.
+Four modes record actual Kelvin plus confirmed .setpoint/index0/progress total.
+Point modes can repeat the last index until the programmed path finishes;
+all software scans are dynamic and global-budget bounded. First stability,
+point deadlines and actual endpoint guard during long interval waits; guard
+expiry faults rather than Rust warning/success. Exact rounded endpoint required,
+raw thresholds not silently widened. Shared ramp-OFF obligation and fresh
+terminal proof retain whole-group leases on failed OFF through recovery.
+Native/import/default software/graph/blackboard/fresharchive/CSV/depth verified;
+see software-temperature-scans.md. Dedicated UI/physical thermal acceptance
+remain pending; no dependencies/Rust/lab/native window actions; goal active.
+
+## SR830 active AC isolation decision (2026-10-13)
+
+User delegated the choice of hardware isolation ("你自己判断吧"). Choose an
+explicit, observed external isolation path, preferably an existing matrix card.
+Do not infer laboratory wiring. SR830 minimum oscillator amplitude is nonzero;
+changing amplitude and AbortAcquisition do not prove disconnection from sample.
+Current SR830 port remains passive. Future active AC must preflight registered
+isolator/wiring, hold both devices in the run's lease group, confirm open before
+configuration, and confirm open on pause/abort/fault/completion before release.
+Refused/unknown isolation must retain ownership and require recovery.
+Official oscillator limit: https://www.thinksrs.com/downloads/PDFs/Manuals/SR830m.pdf
+(SLVL command, section 5-4). Active
+AC stays disabled until that capability/configuration and its lifecycle tests
+are implemented. No physical switching is authorized by guessed wiring.
+
+## User-requested role team (2026-10-13)
+
+The user explicitly requested coordinator, architect, backend, product manager,
+validation/test and frontend roles, with the primary conversation coordinating.
+See TEAM_WORKFLOW.md for responsibilities, single-writer file ownership,
+review/integration gates and the three-worker concurrency rotation. Subagents
+are authorized for this project work; no new user-owned chat is implied.
+Existing code-only/native-visual deferral and GitHub-only publication persist.
+
+## Independent team review fixes (2026-10-13)
+
+Architecture/test reviewers found timed interval waits could discard on-time
+endpoint observations and falsely report timeout. Software and hardware paths
+now retain fresh timely endpoint evidence while preserving minimum cadence;
+first late reads cannot retroactively satisfy deadlines. Frozen-sensor negative
+and actual-arrival positive counterparts cover both paths, with cadence proof.
+Backend review also found temperature resume checked flags/rate but could
+silently overwrite an externally modified held target. Pause stop now records
+the confirmed held target, checks it in group preflight and again immediately
+before the session restoration write. Consuming the old pause proof ensures
+failed resume triggers new terminal stop; failed independent OFF retains the
+group. Legacy ports lacking independent OFF remain fail-closed on target drift,
+including recovery failure, rather than claiming automatic recovery.
+
+## Matrix stop regression synchronization (2026-10-13)
+
+Full audit exposed an older uncooperative-matrix test counting attempts before
+its blocked stop entered under load; its completion signal was also satisfied
+by initial route preparation. Validation role added gated-only entry/completion
+signals and waits, retaining non-overlap, ownership, cancellation and fresh
+recovery assertions. The test deadline allows normal source cleanup before
+matrix IO; production pending-stop behavior is unchanged. Failed audit logs
+are preserved in the stage publication evidence.

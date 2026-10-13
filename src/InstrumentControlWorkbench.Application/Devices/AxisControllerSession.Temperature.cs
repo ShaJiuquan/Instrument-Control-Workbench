@@ -224,7 +224,7 @@ public sealed partial class AxisControllerSession
         catch { faulted = true; ResetTemperatureRuntime(); throw; }
         finally { operations.Exit(); }
     }
-    internal async Task RestoreTemperatureTargetAsync(Quantity target, TemperatureControlConfiguration expected, Quantity expectedRate, Quantity? resumedSoftwareTarget, Quantity? resumedSoftwareRate, RunId owner, CancellationToken token)
+    internal async Task RestoreTemperatureTargetAsync(Quantity target, Quantity confirmedHeldTarget, TemperatureControlConfiguration expected, Quantity expectedRate, Quantity? resumedSoftwareTarget, Quantity? resumedSoftwareRate, RunId owner, CancellationToken token)
     {
         Definition.Target.ValidateWrite(target);
         if (resumedSoftwareTarget is { } goal) TemperatureRampPath.ValidateTemperature(goal);
@@ -237,6 +237,7 @@ public sealed partial class AxisControllerSession
             if (await temperature.ReadControlConfigurationAsync(token) != expected) throw new InvalidOperationException("Temperature configuration changed while paused; resume refused.");
             var before = await port.GetSnapshotAsync(token);
             if (!before.Connected || before.Rate != expectedRate) throw new InvalidOperationException("Temperature rate changed while paused; resume refused.");
+            if (before.Target != confirmedHeldTarget) throw new InvalidOperationException("Temperature target changed while paused; resume refused.");
             await port.SetTargetAsync(target, token);
             var snapshot = await port.GetSnapshotAsync(token);
             if (!snapshot.Connected || snapshot.Target != target || snapshot.Rate != expectedRate || await temperature.ReadControlConfigurationAsync(token) != expected)

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using InstrumentControlWorkbench.Application.Instruments;
 using InstrumentControlWorkbench.Core.Data;
 using InstrumentControlWorkbench.Core.Devices;
@@ -22,6 +23,7 @@ public sealed partial class DeviceRunResources
     private readonly HashSet<InstrumentId> touched = [];
     private readonly HashSet<InstrumentId> activeHomes = [];
     private readonly HashSet<InstrumentId> heldRoutes = [];
+    private readonly ConcurrentDictionary<InstrumentId, Quantity> heldTemperatureTargets = new();
     private readonly HashSet<InstrumentId> recoveryRequired = [];
     private bool released;
 
@@ -535,6 +537,8 @@ public sealed partial class DeviceRunResources
 
     internal async Task RestoreResumeStateAsync(IReadOnlyList<DeviceResumeState> states, CancellationToken token)
     {
+        // Keep the actual confirmed hold target; it can legitimately differ from the pre-pause target.
+        var confirmedHeldTargets = new Dictionary<InstrumentId, Quantity>();
         // Verify every held route even when no source was enabled before pause.
         await gate.WaitAsync(token);
         try
@@ -579,15 +583,21 @@ public sealed partial class DeviceRunResources
             }
             foreach (var state in states.Where(s => s.TemperatureState is not null))
             {
-                // External control drift invalidates the old pause hold proof.
-                // A failed check must trigger fresh hold confirmation in cleanup.
+                var hasHeldTarget = heldTemperatureTargets.TryGetValue(state.Device, out var heldTarget);
+                // Observation consumes the old pause stop proof before any check can fail.
                 await PrepareMutationAsync(state.Device);
-                if (await ((AxisControllerSession)Get(state.Device)).CaptureTemperatureConfigurationAsync(Owner, token) != state.TemperatureState)
-                    throw new InvalidOperationException($"{state.Device}: temperature control changed while paused; resume refused.");
                 var axis = (AxisControllerSession)Get(state.Device);
+                if (await axis.CaptureTemperatureConfigurationAsync(Owner, token) != state.TemperatureState)
+                    throw new InvalidOperationException($"{state.Device}: temperature control changed while paused; resume refused.");
                 var status = await axis.GetDeviceStatusAsync(token, Owner);
                 if (!status.Connected || status.Values[axis.Definition.Rate.Id] != state.TemperatureRate)
                     throw new InvalidOperationException($"{state.Device}: temperature rate changed while paused; resume refused.");
+                if (!hasHeldTarget || status.Values[axis.Definition.Target.Id] != heldTarget)
+                {
+                    temperatureScanRequiresRampOff.Add(state.Device);
+                    throw new InvalidOperationException($"{state.Device}: temperature target changed while paused or its hold proof is unavailable; resume refused.");
+                }
+                confirmedHeldTargets.Add(state.Device, heldTarget);
             }
             foreach (var matrix in sessions.Values.OfType<MatrixSwitchSession>())
             {
@@ -603,7 +613,12 @@ public sealed partial class DeviceRunResources
             if (state.TemperatureState is { } configuration)
             {
                 await gate.WaitAsync(token);
-                try { await PrepareMutationAsync(state.Device); touched.Add(state.Device); await ((AxisControllerSession)Get(state.Device)).RestoreTemperatureTargetAsync(state.TargetValue!.Value, configuration, state.TemperatureRate!.Value, state.TemperatureSoftwareTarget, state.TemperatureSoftwareRate, Owner, token); }
+                try
+                {
+                    await PrepareMutationAsync(state.Device); touched.Add(state.Device);
+                    await ((AxisControllerSession)Get(state.Device)).RestoreTemperatureTargetAsync(state.TargetValue!.Value, confirmedHeldTargets[state.Device], configuration, state.TemperatureRate!.Value, state.TemperatureSoftwareTarget, state.TemperatureSoftwareRate, Owner, token);
+                }
+                catch { temperatureScanRequiresRampOff.Add(state.Device); throw; }
                 finally { gate.Release(); }
             }
             else if (state.Homing) await StartRotationHomeAsync(state.Device, token);
@@ -634,7 +649,7 @@ public sealed partial class DeviceRunResources
         // need reconnection before another confirmation can succeed; it never
         // authorizes output enable or overlaps a still-running stop attempt.
         pendingStops.Remove(id);
-        heldRoutes.Remove(id); heldTemperatureScans.Remove(id);
+        heldRoutes.Remove(id); heldTemperatureScans.Remove(id); heldTemperatureTargets.TryRemove(id, out _);
     }
 
     private async Task<Exception?> StopAndCaptureAsync(IDeviceSession session, bool preserveRouting = false)
@@ -650,6 +665,8 @@ public sealed partial class DeviceRunResources
             var status = session is AxisControllerSession cooling && coolingRequiresOff.Contains(session.Descriptor.Id) ? await cooling.StopCoolingAsync(Owner, deadline.Token) : !preserveRouting && session is AxisControllerSession ramp && temperatureScanRequiresRampOff.Contains(session.Descriptor.Id) ? await ramp.StopTemperatureScanAsync(Owner, deadline.Token) : session is MatrixSwitchSession routed ? await routed.StopAfterSourcesAsync(deadline.Token, Owner)
                 : await session.StopDeviceAsync(deadline.Token, Owner);
             if (!status.SafetyConfirmed) throw new InvalidOperationException($"{session.Descriptor.Id} did not confirm {session.Descriptor.StopPolicy}.");
+            if (preserveRouting && session is AxisControllerSession heldAxis && heldAxis.Definition.SupportsSoftwareTemperatureRamp)
+                heldTemperatureTargets[session.Descriptor.Id] = status.Values[heldAxis.Definition.Target.Id];
             return null;
         }
         catch (OperationCanceledException ex) when (deadline.IsCancellationRequested)
