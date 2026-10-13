@@ -1,0 +1,10 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:views="using:InstrumentControlWorkbench.App.Views" x:Class="InstrumentControlWorkbench.App.Views.PlanPolarizationWaveformView" x:DataType="vm:PlanPolarizationFormViewModel">
+ <StackPanel Spacing="6">
+  <TextBlock Text="极化目标 / V" Classes="caption"/><views:PlanValueFormView DataContext="{Binding Target}"/>
+  <TextBlock Text="极化保持 / s" Classes="caption"/><TextBox Text="{Binding PolarizationSeconds, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="极化保持秒"/>
+  <TextBlock Text="间隔电压 / V" Classes="caption"/><TextBox Text="{Binding InterPulseVoltage, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="极化间隔电压"/>
+  <TextBlock Text="间隔保持 / s，0 表示省略间隔阶段" Classes="caption" TextWrapping="Wrap"/><TextBox Text="{Binding InterPulseSeconds, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="极化间隔秒"/>
+  <TextBlock Text="读出电压 / V" Classes="caption"/><TextBox Text="{Binding ReadVoltage, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="极化读出电压"/>
+  <TextBlock Text="读出前等待 / s" Classes="caption"/><TextBox Text="{Binding ReadDelaySeconds, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="极化读出等待秒"/>
+ </StackPanel>
+</UserControl>

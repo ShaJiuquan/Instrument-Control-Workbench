@@ -76,14 +76,16 @@ public partial class PlanStepFormViewModel : ObservableObject
         if (step is AssignValueStep assignment) variableName = assignment.Variable.Value;
         if (HasEnvironment)
         {
-            var reads = step switch { ReadStep s => s.EnvironmentReads, ReadSourceSenseStep s => s.EnvironmentReads, ResistanceAcquisitionStep s => s.EnvironmentReads, ReadSampleResistanceStep s => s.Acquisition.EnvironmentReads, _ => Array.Empty<EnvironmentRead>() };
+            var reads = step switch { ReadStep s => s.EnvironmentReads, ReadPolarizationStep s => s.EnvironmentReads, ReadSourceSenseStep s => s.EnvironmentReads, ResistanceAcquisitionStep s => s.EnvironmentReads, ReadSampleResistanceStep s => s.Acquisition.EnvironmentReads, _ => Array.Empty<EnvironmentRead>() };
             Environment = new(reads, axes ?? Array.Empty<AxisControllerDefinition>(), MarkDirty);
         }
+        if (step is ReadPolarizationStep pulse) Polarization = new(pulse, devices, MarkDirty, Environment!, template);
         if (HasAcquisition) Acquisition = new(step, devices, MarkDirty, template, Environment, routing);
         loading = false;
     }
     public void SetAvailableVariables(IReadOnlyList<PlanVariableAvailability>? variables)
     {
+        Polarization?.SetAvailableVariables(variables);
         ValueForm?.SetAvailableVariables(variables); ConditionForm?.SetAvailableVariables(variables);
         CalculationForm?.BodyForm.SetAvailableVariables(variables);
     }
@@ -119,13 +121,15 @@ public partial class PlanStepFormViewModel : ObservableObject
     public string SecondsLabel => IsRetry ? "重试间隔 / 秒" : IsTimeout || IsWaitStable ? "超时 / 秒" : "等待时间 / 秒";
     public string CyclesLabel => IsRetry ? "最大尝试次数" : "重复次数";
     public bool HasAddress => IsSet || IsScan || IsWaitStable;
+    public bool HasPolarization => Polarization is not null;
+    public PlanPolarizationFormViewModel? Polarization { get; }
     public bool HasSr830Frame => Sr830Frame is not null;
     public PlanSr830FrameFormViewModel? Sr830Frame { get; }
     public bool HasAcquisition => original is ReadSourceSenseStep or ReadResistanceStep or ReadCurrentResistanceStep or ReadSampleResistanceStep;
     public PlanAcquisitionFormViewModel? Acquisition { get; }
-    public bool HasEnvironment => IsRead || HasAcquisition;
+    public bool HasEnvironment => IsRead || HasAcquisition || original is ReadPolarizationStep;
     public PlanEnvironmentFormViewModel? Environment { get; }
-    public bool IsSupported => original is CalculatedMeasurementStep || HasSr830Frame || HasSeconds || IsRepeat || HasAddress || IsRead || IsOutput || HasAcquisition || IsAssign || HasCondition || HasMutation || HasOutcome || HasScope || HasIteration || HasAnalysis;
+    public bool IsSupported => HasPolarization || original is CalculatedMeasurementStep || HasSr830Frame || HasSeconds || IsRepeat || HasAddress || IsRead || IsOutput || HasAcquisition || IsAssign || HasCondition || HasMutation || HasOutcome || HasScope || HasIteration || HasAnalysis;
     public PlanParameterSelectionViewModel Address { get; }
     public ObservableCollection<PlanReadChannelFormViewModel> Channels { get; } = new();
     [ObservableProperty] private string seconds = "";
@@ -150,6 +154,7 @@ public partial class PlanStepFormViewModel : ObservableObject
     partial void OnPollSecondsChanged(string value) => MarkDirty();
     partial void OnIsReadOnlyChanged(bool value)
     {
+        if (Polarization is { } pulse) pulse.IsReadOnly = value;
         if (Sr830Frame is { } lockIn) lockIn.IsReadOnly = value;
         if (CalculationForm is { } calculation) calculation.IsReadOnly = value;
         if (AnalysisForm is { } analysis) analysis.IsReadOnly = value; if (ScanValuesForm is { } scanValues) scanValues.IsReadOnly = value; Address.IsReadOnly = value; if (ScopeForm is { } scope) scope.IsReadOnly = value; if (IterationForm is { } iteration) iteration.IsReadOnly = value; if (MutationForm is { } mutation) mutation.IsReadOnly = value; if (OutcomeForm is { } outcome) outcome.IsReadOnly = value; if (ValueForm is { } expression) expression.IsReadOnly = value; if (ConditionForm is { } condition) condition.IsReadOnly = value; if (Environment is { } environment) environment.IsReadOnly = value; if (Acquisition is { } acquisition) acquisition.IsReadOnly = value; foreach (var channel in Channels) channel.IsReadOnly = value;
@@ -179,6 +184,7 @@ public partial class PlanStepFormViewModel : ObservableObject
     }
     public ExperimentStep Build()
     {
+        if (Polarization is { } pulse) return pulse.Build();
         if (Sr830Frame is { } lockIn) return lockIn.Build();
         if (CalculationForm is { } calculation) return calculation.Build();
         if (AnalysisForm is { } analysis) return analysis.Build();

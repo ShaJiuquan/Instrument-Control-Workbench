@@ -1,0 +1,11 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:views="using:InstrumentControlWorkbench.App.Views" x:Class="InstrumentControlWorkbench.App.Views.PlanPolarizationReadoutView" x:DataType="vm:PlanPolarizationFormViewModel">
+ <StackPanel Spacing="6">
+  <TextBlock Text="感测模式 / 须与计划接线一致" Classes="caption" TextWrapping="Wrap"/><ComboBox ItemsSource="{Binding Modes}" SelectedItem="{Binding SelectedMode, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="极化感测模式"/>
+  <TextBlock Text="电流限值 / A" Classes="caption"/><TextBox Text="{Binding Compliance, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="极化电流限值"/>
+  <TextBlock Text="积分时间 / PLC" Classes="caption"/><TextBox Text="{Binding Nplc, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="极化积分时间"/>
+  <CheckBox Content="使用固定电流测量量程" IsChecked="{Binding UseManualRange, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}"/>
+  <TextBlock Text="标称量程 / A" Classes="caption"/><TextBox Text="{Binding ManualRange, Mode=TwoWay}" IsEnabled="{Binding CanEditRange}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="极化电流量程"/>
+  <TextBlock Text="量程须为仪器支持的标称值；电流限值与量程会一起验证。" Classes="caption" TextWrapping="Wrap"/>
+  <TextBlock Text="{Binding AcquisitionSummary}" Classes="caption" TextWrapping="Wrap"/>
+ </StackPanel>
+</UserControl>

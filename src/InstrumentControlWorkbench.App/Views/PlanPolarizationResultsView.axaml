@@ -1,0 +1,11 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:views="using:InstrumentControlWorkbench.App.Views" x:Class="InstrumentControlWorkbench.App.Views.PlanPolarizationResultsView" x:DataType="vm:PlanPolarizationFormViewModel">
+ <StackPanel Spacing="6">
+  <TextBlock Text="实际读出电压列 / V" Classes="caption"/><TextBox Text="{Binding VoltageColumn, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="极化读出电压列"/>
+  <TextBlock Text="实际读出电流列 / A" Classes="caption"/><TextBox Text="{Binding CurrentColumn, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="极化读出电流列"/>
+  <TextBlock Text="尝试次数列" Classes="caption"/><TextBox Text="{Binding AttemptsColumn, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="极化尝试次数列"/>
+  <CheckBox Content="记录请求的极化电压" IsChecked="{Binding RecordRequestedVoltage, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}"/>
+  <TextBlock Text="请求电压列 / V，扫描变量与动态表达式须记录此列" Classes="caption" TextWrapping="Wrap"/><TextBox Text="{Binding RequestedVoltageColumn, Mode=TwoWay}" IsEnabled="{Binding CanEditRequestedColumn}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="请求极化电压列"/>
+  <TextBlock Text="最多尝试次数 / 1..100" Classes="caption"/><TextBox Text="{Binding MaximumAttempts, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="极化最多尝试次数"/>
+  <TextBlock Text="确认输出关闭后才保存结果。修改表单不会发送仪器命令。" Classes="caption" TextWrapping="Wrap"/>
+ </StackPanel>
+</UserControl>

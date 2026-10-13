@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:InstrumentControlWorkbench.App.ViewModels" xmlns:views="using:InstrumentControlWorkbench.App.Views" x:Class="InstrumentControlWorkbench.App.Views.PlanPolarizationFormView" x:DataType="vm:PlanPolarizationFormViewModel">
+ <StackPanel Spacing="10">
+  <TextBlock Text="极化脉冲与读出" FontWeight="SemiBold"/>
+  <TextBlock Text="暂停会关闭输出；恢复后从极化电压完整重做当前点。软件时序需另行验证实际波形。" Classes="caption" TextWrapping="Wrap"/>
+  <TextBlock Text="脉冲源" Classes="caption"/>
+  <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch" AutomationProperties.Name="极化脉冲源"><ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PlanDeviceChoice"><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+  <TextBlock Text="{Binding RouteSummary}" Classes="caption" TextWrapping="Wrap"/>
+  <Expander Header="电压与时序" IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"><views:PlanPolarizationWaveformView/></Expander>
+  <Expander Header="读出配置" IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"><views:PlanPolarizationReadoutView/></Expander>
+  <Expander Header="结果列与恢复" IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"><views:PlanPolarizationResultsView/></Expander>
+ </StackPanel>
+</UserControl>

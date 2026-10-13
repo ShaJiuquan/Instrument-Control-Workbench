@@ -1967,3 +1967,17 @@ Bipolar/list/generator/segment/guardedchild/noIOemptyloop/nativearchive/replay,
 pausedpoint andpartialabort, actualTCP3point tests. See polarization-scan.md.
 No deps/Rust/labIO/nativewindowactions; dynamicgraphlabelonly. Physicalpulse/sweep
 trigger/buffer/forms andbroadercontroller/workflow/data/settings/remote active.
+
+## Native polarization authoring (2026-10-13)
+
+Pulse forms expose registered K2450 source, typed voltage targets, dwell/read
+timing, current compliance, sensing mode, NPLC, nominal range, result columns
+and bounded attempts. Three named compiled-binding subviews use existing
+resources and value/environment editors. Editing preserves route, acquisition
+configuration, custom calculation AST and dynamic targets; saved routed pulses
+reject source replacement. Palette adds pulse and Volt iterator forms; scoped
+variables remain metadata-only during authoring. Nineteen App tests cover
+invalid inputs, read-only/dirty/apply/discard, disconnected authoring and saved
+three-point simulation through fresh archive and CSV. No dependency, hardware
+IO or native window actions. Native minimum-window visual acceptance remains
+deferred per user. See polarization-authoring.md; broader migration active.
